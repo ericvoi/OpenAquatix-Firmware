@@ -1,0 +1,19 @@
+# STM32CubeIDE specific
+.settings/
+Debug/
+Release/
+.launches/
+.vscode/
+
+# STM32CubeIDE metadata
+.metadata/
+
+# Build files
+*.o
+*.d
+*.lst
+*.map
+*.elf
+
+# Backup files
+*.bak
