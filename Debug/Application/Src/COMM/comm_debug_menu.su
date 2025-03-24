@@ -1,0 +1,13 @@
+../Application/Src/COMM/comm_debug_menu.c:266:6:COMM_RegisterDebugMenu	16	static
+../Application/Src/COMM/comm_debug_menu.c:280:6:getGpioStatus	24	static
+../Application/Src/COMM/comm_debug_menu.c:286:6:setLedColourHandler	32	static
+../Application/Src/COMM/comm_debug_menu.c:352:6:printWaveformHandler	24	static
+../Application/Src/COMM/comm_debug_menu.c:358:6:performNoiseAnalysis	24	static
+../Application/Src/COMM/comm_debug_menu.c:378:6:printCurrentTemp	24	static
+../Application/Src/COMM/comm_debug_menu.c:384:6:printCurrentErrors	24	static
+../Application/Src/COMM/comm_debug_menu.c:390:6:printCurrentPowerConsumption	24	static
+../Application/Src/COMM/comm_debug_menu.c:396:6:sendFeedbackSignal	176	static
+../Application/Src/COMM/comm_debug_menu.c:447:6:sendTransducerSignal	176	static
+../Application/Src/COMM/comm_debug_menu.c:499:6:changeOutputAmplitude	24	static
+../Application/Src/COMM/comm_debug_menu.c:507:6:changePgaGain	32	static
+../Application/Src/COMM/comm_debug_menu.c:542:6:sendTestTransducerSignal	24	static

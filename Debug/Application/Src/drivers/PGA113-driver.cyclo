@@ -1,0 +1,10 @@
+../Application/Src/drivers/PGA113-driver.c:51:19:PGA_Init	1
+../Application/Src/drivers/PGA113-driver.c:61:6:PGA_SetGain	1
+../Application/Src/drivers/PGA113-driver.c:72:19:PGA_Read	1
+../Application/Src/drivers/PGA113-driver.c:81:19:PGA_Update	1
+../Application/Src/drivers/PGA113-driver.c:86:19:PGA_Shutdown	1
+../Application/Src/drivers/PGA113-driver.c:91:19:PGA_Enable	1
+../Application/Src/drivers/PGA113-driver.c:100:19:PGA_Status	1
+../Application/Src/drivers/PGA113-driver.c:105:19:SPI_TransmitData	2
+../Application/Src/drivers/PGA113-driver.c:114:19:SPI_SendCommandReceiveResponse	2
+../Application/Src/drivers/PGA113-driver.c:123:9:PGA_GetGain	1

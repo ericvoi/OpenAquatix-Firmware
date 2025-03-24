@@ -1,0 +1,10 @@
+../Application/Src/COMM/comm_main.c:71:6:COMM_StartTask	25
+../Application/Src/COMM/comm_main.c:201:6:COMM_TransmitData	6
+../Application/Src/COMM/comm_main.c:224:6:displaySubMenus	3
+../Application/Src/COMM/comm_main.c:239:6:isNumber	3
+../Application/Src/COMM/comm_main.c:247:6:checkMenuNumberInput	4
+../Application/Src/COMM/comm_main.c:259:6:updateInputEcho	11
+../Application/Src/COMM/comm_main.c:302:6:resetInputEcho	1
+../Application/Src/COMM/comm_main.c:307:6:printReceivedMessage	15
+../Application/Src/COMM/comm_main.c:376:6:printEvalMessage	7
+../Application/Src/COMM/comm_main.c:412:6:registerCommParams	2

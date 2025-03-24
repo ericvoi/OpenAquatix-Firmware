@@ -1,0 +1,16 @@
+../Application/Src/common/utils/dac_waveform.c:69:6:DAC_InitWaveformGenerator	16	static
+../Application/Src/common/utils/dac_waveform.c:83:6:DAC_SetWaveformSequence	40	static
+../Application/Src/common/utils/dac_waveform.c:112:6:DAC_StartWaveformOutput	32	static
+../Application/Src/common/utils/dac_waveform.c:131:6:DAC_StopWaveformOutput	8	static
+../Application/Src/common/utils/dac_waveform.c:142:6:DAC_IsRunning	4	static
+../Application/Src/common/utils/dac_waveform.c:150:13:generateSineTable	16	static
+../Application/Src/common/utils/dac_waveform.c:157:13:updateWaveformParameters	16	static
+../Application/Src/common/utils/dac_waveform.c:171:13:fillDacBuffer	48	static
+../Application/Src/common/utils/dac_waveform.c:242:6:HAL_DAC_ConvHalfCpltCallbackCh1	16	static
+../Application/Src/common/utils/dac_waveform.c:248:6:HAL_DAC_ConvCpltCallbackCh1	16	static
+../Application/Src/common/utils/dac_waveform.c:254:6:HAL_DACEx_ConvHalfCpltCallbackCh2	16	static
+../Application/Src/common/utils/dac_waveform.c:260:6:HAL_DACEx_ConvCpltCallbackCh2	16	static
+../Application/Src/common/utils/dac_waveform.c:266:13:halfFullDmaCallback	8	static
+../Application/Src/common/utils/dac_waveform.c:273:13:fullDmaCallback	8	static
+../Application/Src/common/utils/dac_waveform.c:280:6:HAL_DAC_ErrorCallbackCh2	16	static
+../Application/Src/common/utils/dac_waveform.c:288:6:HAL_DMA_ErrorCallback	16	static

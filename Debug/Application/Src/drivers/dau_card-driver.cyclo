@@ -1,0 +1,6 @@
+../Application/Src/drivers/dau_card-driver.c:50:6:DAU_Init	1
+../Application/Src/drivers/dau_card-driver.c:63:6:DAU_TransmitData	4
+../Application/Src/drivers/dau_card-driver.c:84:6:DAU_GetNewData	18
+../Application/Src/drivers/dau_card-driver.c:100:6:DAU_ProcessRxData	12
+../Application/Src/drivers/dau_card-driver.c:146:11:DAU_GetMessage	3
+../Application/Src/drivers/dau_card-driver.c:160:6:HAL_UART_TxCpltCallback	2
