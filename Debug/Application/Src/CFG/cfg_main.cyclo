@@ -1,5 +1,0 @@
-../Application/Src/CFG/cfg_main.c:39:6:CFG_StartTask	4
-../Application/Src/CFG/cfg_main.c:66:6:CFG_CreateParamFlags	2
-../Application/Src/CFG/cfg_main.c:83:6:CFG_WaitLoadComplete	1
-../Application/Src/CFG/cfg_main.c:90:6:waitAllTasksRegistered	1
-../Application/Src/CFG/cfg_main.c:95:6:registerCfgParams	1

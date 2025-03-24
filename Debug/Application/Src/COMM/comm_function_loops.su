@@ -1,6 +1,0 @@
-../Application/Src/COMM/comm_function_loops.c:44:6:COMMLoops_LoopUint32	56	static
-../Application/Src/COMM/comm_function_loops.c:106:6:COMMLoops_LoopUint16	48	static
-../Application/Src/COMM/comm_function_loops.c:168:6:COMMLoops_LoopUint8	48	static
-../Application/Src/COMM/comm_function_loops.c:230:6:COMMLoops_LoopFloat	56	static
-../Application/Src/COMM/comm_function_loops.c:292:6:COMMLoops_LoopEnum	56	static
-../Application/Src/COMM/comm_function_loops.c:366:6:COMMLoops_LoopToggle	40	static

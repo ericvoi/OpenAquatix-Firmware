@@ -1,5 +1,0 @@
-../Application/Src/COMM/comm_evaluation_menu.c:124:6:COMM_RegisterEvalMenu	16	static
-../Application/Src/COMM/comm_evaluation_menu.c:135:6:toggleEval	24	static
-../Application/Src/COMM/comm_evaluation_menu.c:141:6:setEvalMsg	24	static
-../Application/Src/COMM/comm_evaluation_menu.c:148:6:sendEvalFeedback	168	static
-../Application/Src/COMM/comm_evaluation_menu.c:170:6:sendEvalTransducer	168	static

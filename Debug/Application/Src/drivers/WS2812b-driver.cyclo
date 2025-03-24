@@ -1,4 +1,0 @@
-../Application/Src/drivers/WS2812b-driver.c:42:19:WS_Init	2
-../Application/Src/drivers/WS2812b-driver.c:61:6:WS_SetColour	1
-../Application/Src/drivers/WS2812b-driver.c:68:19:WS_Update	6
-../Application/Src/drivers/WS2812b-driver.c:97:6:WS_Callback	1

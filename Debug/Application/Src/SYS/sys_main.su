@@ -1,2 +1,0 @@
-../Application/Src/SYS/sys_main.c:41:6:SYS_StartTask	16	static
-../Application/Src/SYS/sys_main.c:66:6:registerSysParam	4	static

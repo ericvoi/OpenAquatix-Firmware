@@ -1,5 +1,0 @@
-../Application/Src/common/utils/check_inputs.c:39:6:checkUint8	32	static
-../Application/Src/common/utils/check_inputs.c:67:6:checkUint16	32	static
-../Application/Src/common/utils/check_inputs.c:95:6:checkUint32	32	static
-../Application/Src/common/utils/check_inputs.c:123:6:checkFloat	32	static
-../Application/Src/common/utils/check_inputs.c:134:6:checkYesNo	16	static

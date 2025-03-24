@@ -1,3 +1,0 @@
-../Application/Src/MESS/mess_demodulate.c:50:6:Demodulate_Perform	72	static
-../Application/Src/MESS/mess_demodulate.c:141:6:Demodulate_RegisterParams	32	static
-../Application/Src/MESS/mess_demodulate.c:154:6:goertzel	80	static
