@@ -61,6 +61,8 @@ DMA_HandleTypeDef hdma_dac1_ch1;
 DTS_HandleTypeDef hdts;
 
 I2C_HandleTypeDef hi2c1;
+DMA_HandleTypeDef hdma_i2c1_rx;
+DMA_HandleTypeDef hdma_i2c1_tx;
 
 SPI_HandleTypeDef hspi4;
 DMA_HandleTypeDef hdma_spi4_tx;
@@ -69,6 +71,7 @@ DMA_HandleTypeDef hdma_spi4_rx;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim6;
 TIM_HandleTypeDef htim8;
+TIM_HandleTypeDef htim16;
 DMA_HandleTypeDef hdma_tim3_ch1;
 
 UART_HandleTypeDef huart5;
@@ -140,6 +143,7 @@ static void MX_TIM3_Init(void);
 static void MX_UART5_Init(void);
 static void MX_TIM6_Init(void);
 static void MX_TIM8_Init(void);
+static void MX_TIM16_Init(void);
 void StartDefaultTask(void *argument);
 void startMessageProcessingTask(void *argument);
 void startSystemManagementTask(void *argument);
@@ -206,6 +210,7 @@ int main(void)
   MX_UART5_Init();
   MX_TIM6_Init();
   MX_TIM8_Init();
+  MX_TIM16_Init();
   /* USER CODE BEGIN 2 */
   WS_Init();
 
@@ -833,6 +838,38 @@ static void MX_TIM8_Init(void)
 }
 
 /**
+  * @brief TIM16 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM16_Init(void)
+{
+
+  /* USER CODE BEGIN TIM16_Init 0 */
+
+  /* USER CODE END TIM16_Init 0 */
+
+  /* USER CODE BEGIN TIM16_Init 1 */
+
+  /* USER CODE END TIM16_Init 1 */
+  htim16.Instance = TIM16;
+  htim16.Init.Prescaler = 100-1;
+  htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim16.Init.Period = 1000-1;
+  htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim16.Init.RepetitionCounter = 0;
+  htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim16) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM16_Init 2 */
+
+  /* USER CODE END TIM16_Init 2 */
+
+}
+
+/**
   * @brief UART5 Initialization Function
   * @param None
   * @retval None
@@ -918,6 +955,12 @@ static void MX_DMA_Init(void)
   /* DMA2_Stream0_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
+  /* DMA2_Stream1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
+  /* DMA2_Stream2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
 
 }
 
