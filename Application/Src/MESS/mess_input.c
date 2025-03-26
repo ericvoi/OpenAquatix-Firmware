@@ -62,7 +62,6 @@ typedef struct {
 #define LEN_10_MAG                750000.0f
 #define LEN_6_MAG                 1500000.0f
 #endif
-#define
 #define LEN_3_MAG                 2000000.0f
 #define LEN_1_MAG                 8000000000.0f
 
