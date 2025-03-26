@@ -35,6 +35,8 @@ typedef struct {
 
 /* Private define ------------------------------------------------------------*/
 
+#define REDUCED_SENSITIVITY
+
 #define PRINT_BUFFER_SIZE         1000
 #define PRINT_CHUNK_SIZE          50
 
@@ -53,8 +55,14 @@ typedef struct {
 #define LEN_3_THRESH              16.0f
 #define LEN_1_THRESH              30.0f
 
-#define LEN_10_MAG                800000.0f
+#ifdef REDUCED_SENSITIVITY
+#define LEN_10_MAG                10000000.0f
+#define LEN_6_MAG                 150000000.0f
+#else
+#define LEN_10_MAG                750000.0f
 #define LEN_6_MAG                 1500000.0f
+#endif
+#define
 #define LEN_3_MAG                 2000000.0f
 #define LEN_1_MAG                 8000000000.0f
 

@@ -83,7 +83,7 @@ bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg, bool* error);
  * @return true if length was set successfully,
  *         false if the current correction method is invalid
  */
-bool ErrorCorrecton_CheckLength(uint16_t* length);
+bool ErrorCorrection_CheckLength(uint16_t* length);
 
 /**
  * @brief Registers error correction parameters with the system

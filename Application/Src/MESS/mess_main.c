@@ -454,6 +454,10 @@ static bool registerMessParams()
     return false;
   }
 
+  if (Demodulate_RegisterParams() == false) {
+    return false;
+  } 
+
   return true;
 }
 
