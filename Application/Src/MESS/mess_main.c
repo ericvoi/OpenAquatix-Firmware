@@ -71,6 +71,8 @@ static ProcessingState_t MESS_TaskState = LISTENING;
 
 static BitMessage_t input_bit_msg;
 
+bool in_feedback = false;
+
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -115,8 +117,8 @@ void MESS_StartTask(void* argument)
   Feedback_Init();
   Evaluate_Init();
   DAC_InitWaveformGenerator();
-//  switchState(LISTENING);
-  MESS_TaskState = LISTENING;
+  switchState(LISTENING);
+  // MESS_TaskState = LISTENING;
 
   osDelay(10);
   ADC_StartInput();
@@ -127,7 +129,10 @@ void MESS_StartTask(void* argument)
         if (DAC_IsRunning() == false) {
           osDelay(1); // Lets the ADC finish in the case of feedback network
           HAL_TIM_Base_Stop(&htim6);
-//          Feedback_DumpData();
+          if (in_feedback == true) {
+            Feedback_DumpData();
+            in_feedback = false;
+          }
           switchState(LISTENING);
         }
         break;
@@ -149,6 +154,7 @@ void MESS_StartTask(void* argument)
           case MESS_FREQ_RESP:
             osEventFlagsClear(print_event_handle, MESS_FREQ_RESP);
             Modulate_TestFrequencyResponse();
+            in_feedback = true;
             switchState(DRIVING_TRANSDUCER);
             break;
           default:
@@ -447,6 +453,10 @@ static bool registerMessParams()
   if (ErrorCorrection_RegisterParams() == false) {
     return false;
   }
+
+  if (Demodulate_RegisterParams() == false) {
+    return false;
+  } 
 
   return true;
 }
