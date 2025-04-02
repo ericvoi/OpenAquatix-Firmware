@@ -76,6 +76,8 @@ bool DAC_InitWaveformGenerator(void)
 
   // Configure DAC and DMA here
   HAL_StatusTypeDef ret1 = HAL_TIM_Base_Start(&htim6);
+  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_2);
+  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
 
   return (ret1 == HAL_OK);
 }

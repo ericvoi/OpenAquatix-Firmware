@@ -146,6 +146,20 @@ void Input_Reset();
 void Input_PrintNoise();
 
 /**
+ * @brief Prints waveform as it is received
+ * 
+ * Looks for any new received data that has not been printed and prints it
+ * over USB ONLY. This function must be called with a script as the data rates
+ * (~2 Mbps) are excessive for a terminal emulator
+ * 
+ * @param print_next_waveform Whether the next waveform shoould be printed.
+ * Note that the function changes this to false to terminate when it is done
+ * @param fully_received Whether the message being decoded has been fully received
+ * @return true if processing
+ */
+bool Input_PrintWaveform(bool* print_next_waveform, bool fully_received);
+
+/**
  * @brief Registers module parameters with the parameter system
  *
  * Makes the message start function parameter accessible via the HMI interface.

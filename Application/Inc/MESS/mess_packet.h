@@ -33,8 +33,9 @@ typedef struct {
   MessageData_t contents_data_type;
   uint16_t final_length;
   bool stationary_flag;
-  bool preamble_received;
-  bool fully_received;
+  bool preamble_received; // Set when first preamble number of bits received and decoded
+  bool fully_received;    // Set when message bit count > final bit count
+  bool added_to_queue;    // Set when message decoded and "done with"
 } BitMessage_t;
 
 /* Exported constants --------------------------------------------------------*/

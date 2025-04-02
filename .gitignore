@@ -17,3 +17,6 @@ Release/
 
 # Backup files
 *.bak
+
+# Data Outputs
+scripts/acoustic_data

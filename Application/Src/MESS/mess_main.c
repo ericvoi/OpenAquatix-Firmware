@@ -72,6 +72,7 @@ static ProcessingState_t MESS_TaskState = LISTENING;
 static BitMessage_t input_bit_msg;
 
 bool in_feedback = false;
+bool print_next_waveform = false;
 
 
 /* Private function prototypes -----------------------------------------------*/
@@ -157,6 +158,10 @@ void MESS_StartTask(void* argument)
             in_feedback = true;
             switchState(DRIVING_TRANSDUCER);
             break;
+          case MESS_PRINT_WAVEFORM:
+            osEventFlagsClear(print_event_handle, MESS_PRINT_WAVEFORM);
+            print_next_waveform = true;
+            break;
           default:
             break;
         }
@@ -221,7 +226,8 @@ void MESS_StartTask(void* argument)
           break;
         }
         if (evaluation_mode == true) {
-          if (input_bit_msg.bit_count >= EVAL_MESSAGE_LENGTH) {
+          if (input_bit_msg.bit_count >= EVAL_MESSAGE_LENGTH && input_bit_msg.added_to_queue == false) {
+            input_bit_msg.fully_received = true;
             Message_t rx_msg;
             rx_msg.data_type = EVAL;
             rx_msg.timestamp = osKernelGetTickCount();
@@ -230,11 +236,11 @@ void MESS_StartTask(void* argument)
             rx_msg.eval_info->eval_msg = evaluation_message;
             memcpy(&rx_msg.data, input_bit_msg.data, 100 / 8 + 1);
             MESS_AddMessageToRxQ(&rx_msg);
-            switchState(LISTENING);
+            input_bit_msg.added_to_queue = true;
           }
         }
         else {
-          if (input_bit_msg.fully_received == true) {
+          if (input_bit_msg.fully_received == true && input_bit_msg.added_to_queue == false) {
             Message_t rx_msg;
             // TODO: fix currently incorrect since cant know if transducer or feedback
             rx_msg.type = (tx_msg.type == MSG_TRANSMIT_TRANSDUCER) ?
@@ -257,8 +263,16 @@ void MESS_StartTask(void* argument)
             }
             // send it via queue
             MESS_AddMessageToRxQ(&rx_msg);
-            switchState(LISTENING);
+            input_bit_msg.added_to_queue = true;
           }
+        }
+        if (Input_PrintWaveform(&print_next_waveform, input_bit_msg.fully_received) == false) {
+          Error_Routine(ERROR_MESS_PROCESSING);
+          break;
+        }
+
+        if (input_bit_msg.fully_received == true && print_next_waveform == false) {
+          switchState(LISTENING);
         }
         break;
       default:
@@ -427,6 +441,18 @@ static MessageFlags_t checkFlags()
   }
   else if ((flags & MESS_FREQ_RESP) == MESS_FREQ_RESP) {
     return MESS_FREQ_RESP;
+  }
+
+  flags = osEventFlagsWait(print_event_handle, MESS_PRINT_WAVEFORM, osFlagsWaitAny, 0);
+
+  if (flags == osFlagsErrorResource) {
+    // Normal nothing returned. Do nothing
+  }
+  else if (flags & 0x80000000U) {
+    // TODO: log error
+  }
+  else if ((flags & MESS_PRINT_WAVEFORM) == MESS_PRINT_WAVEFORM) {
+    return MESS_PRINT_WAVEFORM;
   }
   return 0;
 }
