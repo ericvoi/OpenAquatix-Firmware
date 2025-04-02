@@ -33,6 +33,16 @@ typedef struct {
   uint16_t start_index;
 } FFTInfo_t;
 
+typedef struct {
+  uint16_t length_us;
+  uint16_t num_samples;
+
+  uint16_t raw_amplitude_threshold;
+  float energy_threshold;
+
+  uint32_t hits;
+} FrequencyThresholds_t;
+
 /* Private define ------------------------------------------------------------*/
 
 //#define REDUCED_SENSITIVITY
@@ -112,6 +122,15 @@ static uint16_t fft_analysis_length = 0;
 
 static arm_rfft_fast_instance_f32 fft_handle;
 
+static FrequencyThresholds_t frequency_thresholds[] = {
+    {.raw_amplitude_threshold = 80, .length_us = 2500},
+    {.raw_amplitude_threshold = 120, .length_us = 1500}
+};
+
+uint16_t unique_frequency_conditions = sizeof(frequency_thresholds) / sizeof(frequency_thresholds[0]);
+
+static uint16_t max_frequency_threshold_length;
+
 //static volatile uint32_t len_1_hits = 0;
 //static volatile uint32_t len_3_hits = 0;
 static volatile uint32_t len_6_hits = 0;
@@ -128,8 +147,8 @@ static bool messageStartWithThreshold();
 static bool messageStartWithFrequency();
 static float indexToFrequency(uint16_t index);
 static uint16_t frequencyToIndex(float frequency);
-static bool checkFftConditions(const uint16_t check_length, const float multiplier);
-static uint16_t findStartPosition(const uint16_t analysis_index, const uint16_t check_length);
+static bool checkFftConditions(uint16_t check_length, float multiplier);
+static uint16_t findStartPosition(uint16_t analysis_index, uint16_t check_length);
 static bool printReceivedWaveform(char* preamble_sequence);
 
 /* Exported function definitions ---------------------------------------------*/
@@ -145,6 +164,22 @@ bool Input_Init()
   if (ADC_RegisterInputBuffer(input_buffer) == false) return false;
 
   memset(input_buffer, 0, PROCESSING_BUFFER_SIZE * sizeof(uint16_t));
+
+  max_frequency_threshold_length = 0;
+
+  for (uint16_t i = 0; i < unique_frequency_conditions; i++) {
+    frequency_thresholds[i].energy_threshold = (float) frequency_thresholds[i].raw_amplitude_threshold *
+        frequency_thresholds[i].raw_amplitude_threshold * FFT_SIZE / 2.0f;
+
+    uint32_t ns_per_sample = 1000000000 / ADC_SAMPLING_RATE;
+    frequency_thresholds[i].num_samples = frequency_thresholds[i].length_us * 1000 / ns_per_sample * FFT_OVERLAP / FFT_SIZE + 1;
+
+    if (frequency_thresholds[i].num_samples > max_frequency_threshold_length) {
+      max_frequency_threshold_length = frequency_thresholds[i].num_samples;
+    }
+
+    frequency_thresholds[i].hits = 0;
+  }
 
   fft_handle.fftLenRFFT = FFT_SIZE;
 
@@ -498,6 +533,13 @@ bool messageStartWithFrequency()
 
   if (fft_analysis_length < 1) return false;
 
+  for (uint16_t i = 0; i < unique_frequency_conditions; i++) {
+    if (checkFftConditions(frequency_thresholds[i].num_samples, frequency_thresholds[i].energy_threshold) == true) {
+      frequency_thresholds[i].hits++;
+      return true;
+    }
+  }
+
 //  if (checkFftConditions(1, LEN_1_MAG) == true) {
 //    len_1_hits++;
 //    return true;
@@ -508,17 +550,17 @@ bool messageStartWithFrequency()
 //    return true;
 //  }
 
-  if (checkFftConditions(6, LEN_6_MAG) == true) {
-    len_6_hits++;
-    return true;
-  }
+//  if (checkFftConditions(6, LEN_6_MAG) == true) {
+//    len_6_hits++;
+//    return true;
+//  }
+//
+//  if (checkFftConditions(10, LEN_10_MAG) == true) {
+//    len_10_hits++;
+//    return true;
+//  }
 
-  if (checkFftConditions(10, LEN_10_MAG) == true) {
-    len_10_hits++;
-    return true;
-  }
-
-  fft_analysis_length = 10 - 1;
+  fft_analysis_length = max_frequency_threshold_length - 1;
 
   return false;
 }
@@ -533,13 +575,13 @@ uint16_t frequencyToIndex(float frequency)
   return (uint16_t) roundf(frequency * FFT_SIZE / ((float) ADC_SAMPLING_RATE));
 }
 
-bool checkFftConditions(const uint16_t check_length, const float multiplier)
+bool checkFftConditions(uint16_t check_length, float multiplier)
 {
   static const uint16_t analysis_mask = FFT_ANALYSIS_BUFF_SIZE - 1;
   static const uint16_t buffer_mask = PROCESSING_BUFFER_SIZE - 1;
   uint16_t check_count = 0;
   // looks for check_length successive points that meet the threshold condition and then sets the array start location to be at the start of the first in the chain
-  for (uint16_t i = 10 - check_length; i < fft_analysis_length; i++) {
+  for (uint16_t i = max_frequency_threshold_length - check_length; i < fft_analysis_length; i++) {
     uint16_t remaining_length = fft_analysis_length - i;
     if (remaining_length + check_count < check_length) break; // not enough data points left
 
@@ -559,7 +601,7 @@ bool checkFftConditions(const uint16_t check_length, const float multiplier)
   return false;
 }
 
-static uint16_t findStartPosition(const uint16_t analysis_index, const uint16_t check_length)
+static uint16_t findStartPosition(uint16_t analysis_index, uint16_t check_length)
 {
   static const uint16_t analysis_mask = FFT_ANALYSIS_BUFF_SIZE - 1;
   static const uint16_t buffer_mask = PROCESSING_BUFFER_SIZE - 1;
