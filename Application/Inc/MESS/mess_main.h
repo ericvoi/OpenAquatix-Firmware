@@ -113,10 +113,11 @@ typedef struct {
 
 
 typedef enum {
-  MESS_PRINT_REQUEST = 0x01,
-  MESS_PRINT_COMPLETE = 0x02,
-  MESS_TEST_OUTPUT = 0x04,
-  MESS_FREQ_RESP = 0x08
+  MESS_PRINT_REQUEST = 0x00000001,
+  MESS_PRINT_COMPLETE = 0x00000002,
+  MESS_TEST_OUTPUT = 0x00000004,
+  MESS_FREQ_RESP = 0x00000008,
+  MESS_PRINT_WAVEFORM = 0x00000010
 } MessageFlags_t;
 
 /* Exported macro ------------------------------------------------------------*/

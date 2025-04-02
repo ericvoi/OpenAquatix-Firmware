@@ -185,6 +185,7 @@ static const MenuNode_t debugMenuPwr = {
   .parameters = &debugMenuPwrParam
 };
 
+// TODO: deprecate
 static ParamContext_t debugMenuSendParam = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_DBG_SEND
@@ -200,6 +201,7 @@ static const MenuNode_t debugMenuSend = {
   .parameters = &debugMenuSendParam
 };
 
+// TODO: deprecate
 static ParamContext_t debugMenuSendTransducerParam = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_DBG_SENDOUT
@@ -352,6 +354,16 @@ void setLedColourHandler(void* argument)
 void printWaveformHandler(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  if (print_event_handle == NULL) {
+    return;
+  }
+
+  osEventFlagsSet(print_event_handle, MESS_PRINT_WAVEFORM);
+
+  COMM_TransmitData("\r\nThe next waveform will be printed. This function should "
+                    "only be used with a script.", CALC_LEN, COMM_USB);
+
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
@@ -359,14 +371,16 @@ void performNoiseAnalysis(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
 
-  if (print_event_handle == NULL) return;
+  if (print_event_handle == NULL) {
+    return;
+  }
 
   osEventFlagsSet(print_event_handle, MESS_PRINT_REQUEST);
   uint32_t flags;
 
   do {
     // Prevents accidentally corrupting noise analysis data
-    flags = osEventFlagsWait(print_event_handle, MESS_PRINT_COMPLETE, osFlagsWaitAny, osWaitForever);
+    flags = osEventFlagsWait(print_event_handle, MESS_PRINT_COMPLETE, osFlagsNoClear, osWaitForever);
     osDelay(1);
   } while ((flags & MESS_PRINT_COMPLETE) != MESS_PRINT_COMPLETE);
 

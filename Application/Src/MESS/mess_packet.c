@@ -206,6 +206,7 @@ void initPacket(BitMessage_t* bit_msg)
   bit_msg->stationary_flag = false;
   bit_msg->preamble_received = false;
   bit_msg->fully_received = false;
+  bit_msg->added_to_queue = false;
 }
 
 bool addPreamble(BitMessage_t* bit_msg, Message_t* msg)

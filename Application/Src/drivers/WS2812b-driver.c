@@ -61,6 +61,9 @@ HAL_StatusTypeDef WS_Init()
 
 void WS_SetColour(uint8_t index, uint8_t r, uint8_t g, uint8_t b)
 {
+  if (index != 0) {
+    return;
+  }
   WS_LED_DATA[index].colour.r = r;
   WS_LED_DATA[index].colour.g = g;
   WS_LED_DATA[index].colour.b = b;
@@ -69,7 +72,7 @@ void WS_SetColour(uint8_t index, uint8_t r, uint8_t g, uint8_t b)
 HAL_StatusTypeDef WS_Update()
 {
   // Check if previous DMA complete
-  if (! WS_DMA_COMPLETE_FLAG) {
+  if (WS_DMA_COMPLETE_FLAG == 0) {
     return HAL_BUSY;
   }
 

@@ -23,7 +23,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 
-extern osSemaphoreId_t usbSemaphoreHandle;
+
 
 /* Exported types ------------------------------------------------------------*/
 
@@ -95,6 +95,8 @@ void USB_ProcessRxData(uint8_t* data, uint32_t len);
  * @note The buffer is cleared after copying if a complete message was received
  */
 RxState_t USB_GetMessage(uint8_t* buffer, uint16_t* len);
+
+void USB_TransferComplete(void);
 
 /* Private defines -----------------------------------------------------------*/
 
