@@ -45,8 +45,6 @@ typedef struct {
 
 /* Private define ------------------------------------------------------------*/
 
-//#define REDUCED_SENSITIVITY
-
 #define PRINT_BUFFER_SIZE         1000
 #define PRINT_CHUNK_SIZE          50
 
@@ -59,21 +57,6 @@ typedef struct {
 // TODO: change to be indicative of modulation scheme used
 #define FREQUENCY_INDEX_0         16  // 30 kHz
 #define FREQUENCY_INDEX_1         17  // 31.875 kHz
-
-#define LEN_10_THRESH             6.0f
-#define LEN_5_THRESH              8.0f
-#define LEN_3_THRESH              16.0f
-#define LEN_1_THRESH              30.0f
-
-#ifdef REDUCED_SENSITIVITY
-#define LEN_10_MAG                10000000.0f
-#define LEN_6_MAG                 15000000.0f
-#else
-#define LEN_10_MAG                750000.0f
-#define LEN_6_MAG                 1500000.0f
-#endif
-#define LEN_3_MAG                 2000000.0f
-#define LEN_1_MAG                 8000000000.0f
 
 // The number of samples to go back when printing the waveform
 #define WAVEFORM_BACK_AMOUNT              200
@@ -130,13 +113,6 @@ static FrequencyThresholds_t frequency_thresholds[] = {
 uint16_t unique_frequency_conditions = sizeof(frequency_thresholds) / sizeof(frequency_thresholds[0]);
 
 static uint16_t max_frequency_threshold_length;
-
-//static volatile uint32_t len_1_hits = 0;
-//static volatile uint32_t len_3_hits = 0;
-static volatile uint32_t len_6_hits = 0;
-static volatile uint32_t len_10_hits = 0;
-
-static uint32_t print_count = 0;
 
 static MsgStartFunctions_t message_start_function = DEFAULT_MSG_START_FCN;
 
@@ -211,7 +187,7 @@ bool Input_DetectMessageStart()
 // Segments blocks and adds them to array of blocks to be processed
 bool Input_SegmentBlocks()
 {
-  uint32_t analysis_buffer_length = ADC_SAMPLING_RATE / baud_rate;
+  uint16_t analysis_buffer_length = (uint16_t) ((float) ADC_SAMPLING_RATE / baud_rate);
   while (getBufferLength() >= analysis_buffer_length) {
 
     analysis_count1++;
@@ -527,10 +503,6 @@ bool messageStartWithFrequency()
 
   } while (difference > FFT_SIZE);
 
-  // go through the fft_analysis array to see if the condition is met
-
-  // TODO later add individual start indices for each
-
   if (fft_analysis_length < 1) return false;
 
   for (uint16_t i = 0; i < unique_frequency_conditions; i++) {
@@ -539,26 +511,6 @@ bool messageStartWithFrequency()
       return true;
     }
   }
-
-//  if (checkFftConditions(1, LEN_1_MAG) == true) {
-//    len_1_hits++;
-//    return true;
-//  }
-
-//  if (checkFftConditions(3, LEN_3_MAG) == true) {
-//    len_3_hits++;
-//    return true;
-//  }
-
-//  if (checkFftConditions(6, LEN_6_MAG) == true) {
-//    len_6_hits++;
-//    return true;
-//  }
-//
-//  if (checkFftConditions(10, LEN_10_MAG) == true) {
-//    len_10_hits++;
-//    return true;
-//  }
 
   fft_analysis_length = max_frequency_threshold_length - 1;
 
@@ -658,7 +610,6 @@ bool printReceivedWaveform(char* preamble_sequence)
     return false;
   }
   print_waveform_start_index = (print_waveform_start_index + WAVEFORM_PRINT_CHUNK_SIZE_UINT16) & mask;
-  print_count++;
   COMM_TransmitData(print_waveform_out_buffer, out_buffer_index, COMM_USB);
   return true;
 }
