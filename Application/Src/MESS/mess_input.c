@@ -12,12 +12,14 @@
 #include "mess_demodulate.h"
 #include "mess_packet.h"
 #include "mess_main.h"
+#include "mess_modulate.h"
 #include "cfg_defaults.h"
 #include "cfg_parameters.h"
 #include "usb_comm.h"
 #include "cmsis_os.h"
 #include "arm_math.h"
 #include "arm_const_structs.h"
+#include <math.h>
 #include <stdbool.h>
 #include <string.h>
 
@@ -53,10 +55,6 @@ typedef struct {
 #define FFT_SIZE                  64
 #define FFT_ANALYSIS_BUFF_SIZE    512
 #define FFT_OVERLAP               4
-
-// TODO: change to be indicative of modulation scheme used
-#define FREQUENCY_INDEX_0         16  // 30 kHz
-#define FREQUENCY_INDEX_1         17  // 31.875 kHz
 
 // The number of samples to go back when printing the waveform
 #define WAVEFORM_BACK_AMOUNT              200
@@ -114,18 +112,21 @@ uint16_t unique_frequency_conditions = sizeof(frequency_thresholds) / sizeof(fre
 
 static uint16_t max_frequency_threshold_length;
 
+uint16_t frequency_check_index_0;
+uint16_t frequency_check_index_1;
+
 static MsgStartFunctions_t message_start_function = DEFAULT_MSG_START_FCN;
 
 /* Private function prototypes -----------------------------------------------*/
 
-static uint16_t getBufferLength();
-static bool messageStartWithThreshold();
-static bool messageStartWithFrequency();
-static float indexToFrequency(uint16_t index);
-static uint16_t frequencyToIndex(float frequency);
+static uint16_t getBufferLength(void);
+static bool messageStartWithThreshold(void);
+static bool messageStartWithFrequency(void);
+static float frequencyToIndex(float frequency);
 static bool checkFftConditions(uint16_t check_length, float multiplier);
 static uint16_t findStartPosition(uint16_t analysis_index, uint16_t check_length);
 static bool printReceivedWaveform(char* preamble_sequence);
+static void updateFrequencyIndices();
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -461,6 +462,8 @@ bool messageStartWithFrequency()
 
   if (difference < FFT_SIZE) return false;
 
+  updateFrequencyIndices();
+
   do {
     // Prepare buffer
     for (uint16_t i = 0; i < FFT_SIZE; i++) {
@@ -468,8 +471,6 @@ bool messageStartWithFrequency()
     }
 
     arm_rfft_fast_f32(&fft_handle, fft_input_buffer, fft_output_buffer, 0);
-
-
 
     fft_mag_sq_buffer[0] = fft_output_buffer[0] * fft_output_buffer[0];
     for (uint16_t i = 1; i < FFT_SIZE / 2; i++) {
@@ -486,8 +487,8 @@ bool messageStartWithFrequency()
     // skip the dc component since it will always dominate
     arm_max_f32(&fft_mag_sq_buffer[1], FFT_SIZE / 2 - 1, &fft_analysis[fft_analysis_index].maximum, &fft_analysis[fft_analysis_index].max_index);
 
-    fft_analysis[fft_analysis_index].frequency0_amplitude = fft_mag_sq_buffer[FREQUENCY_INDEX_0];
-    fft_analysis[fft_analysis_index].frequency1_amplitude = fft_mag_sq_buffer[FREQUENCY_INDEX_1];
+    fft_analysis[fft_analysis_index].frequency0_amplitude = fft_mag_sq_buffer[frequency_check_index_0];
+    fft_analysis[fft_analysis_index].frequency1_amplitude = fft_mag_sq_buffer[frequency_check_index_0];
 
 
     fft_analysis_index = (fft_analysis_index + 1) & analysis_mask;
@@ -517,14 +518,9 @@ bool messageStartWithFrequency()
   return false;
 }
 
-float indexToFrequency(uint16_t index)
+float frequencyToIndex(float frequency)
 {
-  return (float) (index * (ADC_SAMPLING_RATE / FFT_SIZE));
-}
-
-uint16_t frequencyToIndex(float frequency)
-{
-  return (uint16_t) roundf(frequency * FFT_SIZE / ((float) ADC_SAMPLING_RATE));
+  return frequency * FFT_SIZE / ((float) ADC_SAMPLING_RATE);
 }
 
 bool checkFftConditions(uint16_t check_length, float multiplier)
@@ -612,4 +608,51 @@ bool printReceivedWaveform(char* preamble_sequence)
   print_waveform_start_index = (print_waveform_start_index + WAVEFORM_PRINT_CHUNK_SIZE_UINT16) & mask;
   COMM_TransmitData(print_waveform_out_buffer, out_buffer_index, COMM_USB);
   return true;
+}
+
+void updateFrequencyIndices()
+{
+  uint32_t frequency0, frequency1;
+
+  if (mod_demod_method == MOD_DEMOD_FSK) {
+    frequency0 = fsk_f0;
+    frequency1 = fsk_f1;
+  }
+  else {
+    frequency0 = Modulate_GetFhbfskFrequency(false, 0);
+    frequency1 = Modulate_GetFhbfskFrequency(true, 0);
+  }
+
+  float index0 = frequencyToIndex(frequency0);
+  float index1 = frequencyToIndex(frequency1);
+
+  frequency_check_index_0 = (uint16_t) roundf(index0);
+  frequency_check_index_1 = (uint16_t) roundf(index1);
+
+  if (frequency_check_index_0 != frequency_check_index_1) {
+    // Sufficient spread in frequency spread indices
+    return;
+  }
+
+  // From this point onwards, assume that the frequencies are close to one another
+
+  float integral_part; // Ignore the integral part of modff
+  float fractional_0 = modff(frequency_check_index_0, &integral_part);
+  float fractional_1 = modff(frequency_check_index_1, &integral_part);
+
+  // Additional conditions to increase the spread in frequencies tested
+
+  if (fractional_0 > 0.5 && fractional_1 > 0.5) { // both rounded up
+    if (fractional_0 < 0.6) { // but 0 is borderline
+      frequency_check_index_0--;
+      return;
+    }
+  }
+
+  if (fractional_0 < 0.5 && fractional_1 < 0.5) { // both rounded down
+    if (fractional_1 > 0.4) { // but 1 is borderline
+      frequency_check_index_1++;
+      return;
+    }
+  }
 }
