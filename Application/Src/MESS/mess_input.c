@@ -12,12 +12,14 @@
 #include "mess_demodulate.h"
 #include "mess_packet.h"
 #include "mess_main.h"
+#include "mess_modulate.h"
 #include "cfg_defaults.h"
 #include "cfg_parameters.h"
 #include "usb_comm.h"
 #include "cmsis_os.h"
 #include "arm_math.h"
 #include "arm_const_structs.h"
+#include <math.h>
 #include <stdbool.h>
 #include <string.h>
 
@@ -33,9 +35,17 @@ typedef struct {
   uint16_t start_index;
 } FFTInfo_t;
 
-/* Private define ------------------------------------------------------------*/
+typedef struct {
+  uint16_t length_us;
+  uint16_t num_samples;
 
-//#define REDUCED_SENSITIVITY
+  uint16_t raw_amplitude_threshold;
+  float energy_threshold;
+
+  uint32_t hits;
+} FrequencyThresholds_t;
+
+/* Private define ------------------------------------------------------------*/
 
 #define PRINT_BUFFER_SIZE         1000
 #define PRINT_CHUNK_SIZE          50
@@ -45,25 +55,6 @@ typedef struct {
 #define FFT_SIZE                  64
 #define FFT_ANALYSIS_BUFF_SIZE    512
 #define FFT_OVERLAP               4
-
-// TODO: change to be indicative of modulation scheme used
-#define FREQUENCY_INDEX_0         16  // 30 kHz
-#define FREQUENCY_INDEX_1         17  // 31.875 kHz
-
-#define LEN_10_THRESH             6.0f
-#define LEN_5_THRESH              8.0f
-#define LEN_3_THRESH              16.0f
-#define LEN_1_THRESH              30.0f
-
-#ifdef REDUCED_SENSITIVITY
-#define LEN_10_MAG                10000000.0f
-#define LEN_6_MAG                 15000000.0f
-#else
-#define LEN_10_MAG                750000.0f
-#define LEN_6_MAG                 1500000.0f
-#endif
-#define LEN_3_MAG                 2000000.0f
-#define LEN_1_MAG                 8000000000.0f
 
 // The number of samples to go back when printing the waveform
 #define WAVEFORM_BACK_AMOUNT              200
@@ -112,25 +103,30 @@ static uint16_t fft_analysis_length = 0;
 
 static arm_rfft_fast_instance_f32 fft_handle;
 
-//static volatile uint32_t len_1_hits = 0;
-//static volatile uint32_t len_3_hits = 0;
-static volatile uint32_t len_6_hits = 0;
-static volatile uint32_t len_10_hits = 0;
+static FrequencyThresholds_t frequency_thresholds[] = {
+    {.raw_amplitude_threshold = 80, .length_us = 2500},
+    {.raw_amplitude_threshold = 120, .length_us = 1500}
+};
 
-static uint32_t print_count = 0;
+uint16_t unique_frequency_conditions = sizeof(frequency_thresholds) / sizeof(frequency_thresholds[0]);
+
+static uint16_t max_frequency_threshold_length;
+
+uint16_t frequency_check_index_0;
+uint16_t frequency_check_index_1;
 
 static MsgStartFunctions_t message_start_function = DEFAULT_MSG_START_FCN;
 
 /* Private function prototypes -----------------------------------------------*/
 
-static uint16_t getBufferLength();
-static bool messageStartWithThreshold();
-static bool messageStartWithFrequency();
-static float indexToFrequency(uint16_t index);
-static uint16_t frequencyToIndex(float frequency);
-static bool checkFftConditions(const uint16_t check_length, const float multiplier);
-static uint16_t findStartPosition(const uint16_t analysis_index, const uint16_t check_length);
+static uint16_t getBufferLength(void);
+static bool messageStartWithThreshold(void);
+static bool messageStartWithFrequency(void);
+static float frequencyToIndex(float frequency);
+static bool checkFftConditions(uint16_t check_length, float multiplier);
+static uint16_t findStartPosition(uint16_t analysis_index, uint16_t check_length);
 static bool printReceivedWaveform(char* preamble_sequence);
+static void updateFrequencyIndices();
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -145,6 +141,22 @@ bool Input_Init()
   if (ADC_RegisterInputBuffer(input_buffer) == false) return false;
 
   memset(input_buffer, 0, PROCESSING_BUFFER_SIZE * sizeof(uint16_t));
+
+  max_frequency_threshold_length = 0;
+
+  for (uint16_t i = 0; i < unique_frequency_conditions; i++) {
+    frequency_thresholds[i].energy_threshold = (float) frequency_thresholds[i].raw_amplitude_threshold *
+        frequency_thresholds[i].raw_amplitude_threshold * FFT_SIZE / 2.0f;
+
+    uint32_t ns_per_sample = 1000000000 / ADC_SAMPLING_RATE;
+    frequency_thresholds[i].num_samples = frequency_thresholds[i].length_us * 1000 / ns_per_sample * FFT_OVERLAP / FFT_SIZE + 1;
+
+    if (frequency_thresholds[i].num_samples > max_frequency_threshold_length) {
+      max_frequency_threshold_length = frequency_thresholds[i].num_samples;
+    }
+
+    frequency_thresholds[i].hits = 0;
+  }
 
   fft_handle.fftLenRFFT = FFT_SIZE;
 
@@ -176,7 +188,7 @@ bool Input_DetectMessageStart()
 // Segments blocks and adds them to array of blocks to be processed
 bool Input_SegmentBlocks()
 {
-  uint32_t analysis_buffer_length = ADC_SAMPLING_RATE / baud_rate;
+  uint16_t analysis_buffer_length = (uint16_t) ((float) ADC_SAMPLING_RATE / baud_rate);
   while (getBufferLength() >= analysis_buffer_length) {
 
     analysis_count1++;
@@ -450,6 +462,8 @@ bool messageStartWithFrequency()
 
   if (difference < FFT_SIZE) return false;
 
+  updateFrequencyIndices();
+
   do {
     // Prepare buffer
     for (uint16_t i = 0; i < FFT_SIZE; i++) {
@@ -457,8 +471,6 @@ bool messageStartWithFrequency()
     }
 
     arm_rfft_fast_f32(&fft_handle, fft_input_buffer, fft_output_buffer, 0);
-
-
 
     fft_mag_sq_buffer[0] = fft_output_buffer[0] * fft_output_buffer[0];
     for (uint16_t i = 1; i < FFT_SIZE / 2; i++) {
@@ -475,8 +487,8 @@ bool messageStartWithFrequency()
     // skip the dc component since it will always dominate
     arm_max_f32(&fft_mag_sq_buffer[1], FFT_SIZE / 2 - 1, &fft_analysis[fft_analysis_index].maximum, &fft_analysis[fft_analysis_index].max_index);
 
-    fft_analysis[fft_analysis_index].frequency0_amplitude = fft_mag_sq_buffer[FREQUENCY_INDEX_0];
-    fft_analysis[fft_analysis_index].frequency1_amplitude = fft_mag_sq_buffer[FREQUENCY_INDEX_1];
+    fft_analysis[fft_analysis_index].frequency0_amplitude = fft_mag_sq_buffer[frequency_check_index_0];
+    fft_analysis[fft_analysis_index].frequency1_amplitude = fft_mag_sq_buffer[frequency_check_index_0];
 
 
     fft_analysis_index = (fft_analysis_index + 1) & analysis_mask;
@@ -492,54 +504,32 @@ bool messageStartWithFrequency()
 
   } while (difference > FFT_SIZE);
 
-  // go through the fft_analysis array to see if the condition is met
-
-  // TODO later add individual start indices for each
-
   if (fft_analysis_length < 1) return false;
 
-//  if (checkFftConditions(1, LEN_1_MAG) == true) {
-//    len_1_hits++;
-//    return true;
-//  }
-
-//  if (checkFftConditions(3, LEN_3_MAG) == true) {
-//    len_3_hits++;
-//    return true;
-//  }
-
-  if (checkFftConditions(6, LEN_6_MAG) == true) {
-    len_6_hits++;
-    return true;
+  for (uint16_t i = 0; i < unique_frequency_conditions; i++) {
+    if (checkFftConditions(frequency_thresholds[i].num_samples, frequency_thresholds[i].energy_threshold) == true) {
+      frequency_thresholds[i].hits++;
+      return true;
+    }
   }
 
-  if (checkFftConditions(10, LEN_10_MAG) == true) {
-    len_10_hits++;
-    return true;
-  }
-
-  fft_analysis_length = 10 - 1;
+  fft_analysis_length = max_frequency_threshold_length - 1;
 
   return false;
 }
 
-float indexToFrequency(uint16_t index)
+float frequencyToIndex(float frequency)
 {
-  return (float) (index * (ADC_SAMPLING_RATE / FFT_SIZE));
+  return frequency * FFT_SIZE / ((float) ADC_SAMPLING_RATE);
 }
 
-uint16_t frequencyToIndex(float frequency)
-{
-  return (uint16_t) roundf(frequency * FFT_SIZE / ((float) ADC_SAMPLING_RATE));
-}
-
-bool checkFftConditions(const uint16_t check_length, const float multiplier)
+bool checkFftConditions(uint16_t check_length, float multiplier)
 {
   static const uint16_t analysis_mask = FFT_ANALYSIS_BUFF_SIZE - 1;
   static const uint16_t buffer_mask = PROCESSING_BUFFER_SIZE - 1;
   uint16_t check_count = 0;
   // looks for check_length successive points that meet the threshold condition and then sets the array start location to be at the start of the first in the chain
-  for (uint16_t i = 10 - check_length; i < fft_analysis_length; i++) {
+  for (uint16_t i = max_frequency_threshold_length - check_length; i < fft_analysis_length; i++) {
     uint16_t remaining_length = fft_analysis_length - i;
     if (remaining_length + check_count < check_length) break; // not enough data points left
 
@@ -559,7 +549,7 @@ bool checkFftConditions(const uint16_t check_length, const float multiplier)
   return false;
 }
 
-static uint16_t findStartPosition(const uint16_t analysis_index, const uint16_t check_length)
+static uint16_t findStartPosition(uint16_t analysis_index, uint16_t check_length)
 {
   static const uint16_t analysis_mask = FFT_ANALYSIS_BUFF_SIZE - 1;
   static const uint16_t buffer_mask = PROCESSING_BUFFER_SIZE - 1;
@@ -616,7 +606,53 @@ bool printReceivedWaveform(char* preamble_sequence)
     return false;
   }
   print_waveform_start_index = (print_waveform_start_index + WAVEFORM_PRINT_CHUNK_SIZE_UINT16) & mask;
-  print_count++;
   COMM_TransmitData(print_waveform_out_buffer, out_buffer_index, COMM_USB);
   return true;
+}
+
+void updateFrequencyIndices()
+{
+  uint32_t frequency0, frequency1;
+
+  if (mod_demod_method == MOD_DEMOD_FSK) {
+    frequency0 = fsk_f0;
+    frequency1 = fsk_f1;
+  }
+  else {
+    frequency0 = Modulate_GetFhbfskFrequency(false, 0);
+    frequency1 = Modulate_GetFhbfskFrequency(true, 0);
+  }
+
+  float index0 = frequencyToIndex(frequency0);
+  float index1 = frequencyToIndex(frequency1);
+
+  frequency_check_index_0 = (uint16_t) roundf(index0);
+  frequency_check_index_1 = (uint16_t) roundf(index1);
+
+  if (frequency_check_index_0 != frequency_check_index_1) {
+    // Sufficient spread in frequency spread indices
+    return;
+  }
+
+  // From this point onwards, assume that the frequencies are close to one another
+
+  float integral_part; // Ignore the integral part of modff
+  float fractional_0 = modff(frequency_check_index_0, &integral_part);
+  float fractional_1 = modff(frequency_check_index_1, &integral_part);
+
+  // Additional conditions to increase the spread in frequencies tested
+
+  if (fractional_0 > 0.5 && fractional_1 > 0.5) { // both rounded up
+    if (fractional_0 < 0.6) { // but 0 is borderline
+      frequency_check_index_0--;
+      return;
+    }
+  }
+
+  if (fractional_0 < 0.5 && fractional_1 < 0.5) { // both rounded down
+    if (fractional_1 > 0.4) { // but 1 is borderline
+      frequency_check_index_1++;
+      return;
+    }
+  }
 }

@@ -29,7 +29,7 @@ typedef struct {
 
 #define NUM_DEMODULATION_HISTORY          8 // Number of demodulations to look back on. Must be a power of 2
 
-#define SIGNFIICANT_SHIFT_THRESHOLD       0.15
+#define SIGNFIICANT_SHIFT_THRESHOLD       0.25
 
 /* Private macro -------------------------------------------------------------*/
 
