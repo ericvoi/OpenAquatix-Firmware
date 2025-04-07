@@ -147,11 +147,6 @@ void MESS_StartTask(void* argument)
             Input_PrintNoise();
             osEventFlagsSet(print_event_handle, MESS_PRINT_COMPLETE);
             break;
-          case MESS_TEST_OUTPUT:
-            osEventFlagsClear(print_event_handle, MESS_TEST_OUTPUT);
-            Modulate_TestOutput();
-            switchState(DRIVING_TRANSDUCER);
-            break;
           case MESS_FREQ_RESP:
             osEventFlagsClear(print_event_handle, MESS_FREQ_RESP);
             Modulate_TestFrequencyResponse();
@@ -416,19 +411,6 @@ static MessageFlags_t checkFlags()
   }
   else if ((flags & MESS_PRINT_REQUEST) == MESS_PRINT_REQUEST) {
     return MESS_PRINT_REQUEST;
-  }
-
-  flags = osEventFlagsWait(print_event_handle, MESS_TEST_OUTPUT, osFlagsWaitAny, 0);
-
-  if (flags == osFlagsErrorResource) {
-    // Normal nothing returned. Do nothing
-  }
-  else if (flags & 0x80000000U) {
-    // TODO: log error
-  }
-  else if ((flags & MESS_TEST_OUTPUT) == MESS_TEST_OUTPUT) {
-    osEventFlagsClear(print_event_handle, MESS_TEST_OUTPUT); // TODO: test if useless
-    return MESS_TEST_OUTPUT;
   }
 
   flags = osEventFlagsWait(print_event_handle, MESS_FREQ_RESP, osFlagsWaitAny, 0);

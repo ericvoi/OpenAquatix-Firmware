@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 
 # Open the serial port
-ser = serial.Serial('COM5', 3686400, timeout=0.1)  
+ser = serial.Serial('COM6', 3686400, timeout=0.1)  
 ser.set_buffer_size(rx_size=1024*256)
 
 # Constants for binary data detection

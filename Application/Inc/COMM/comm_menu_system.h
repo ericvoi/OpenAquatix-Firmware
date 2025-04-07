@@ -91,11 +91,9 @@ typedef enum {
   MENU_ID_DBG_TEMP,             // Current temperature
   MENU_ID_DBG_ERR,              // Current errors
   MENU_ID_DBG_PWR,              // Current power consumption
-  MENU_ID_DBG_SEND,             // [TEMP] trigger waveform through feedback system
-  MENU_ID_DBG_SENDOUT,          // [TEMP] trigger waveform through transducer
+  MENU_ID_DBG_DFU,              // Enter DFU mode to flash new firmware over USB
   MENU_ID_DBG_OUTAMP,           // [TEMP] Change fixed output amplitude
   MENU_ID_DBG_INGAIN,           // [TEMP] Manually change the PGAs gain
-  MENU_ID_DBG_TESTOUT,          // [TEMP] Send a test waveform through transducer
   MENU_ID_HIST_PWR,             // History of power
   MENU_ID_HIST_PWR_PEAK,        // Peak power consumption since boot
   MENU_ID_HIST_PWR_BOOT,        // Total power consumption since boot
