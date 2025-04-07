@@ -55,20 +55,17 @@ void performNoiseAnalysis(void* argument);
 void printCurrentTemp(void* argument);
 void printCurrentErrors(void* argument);
 void printCurrentPowerConsumption(void* argument);
-void sendFeedbackSignal(void* argument);
-void sendTransducerSignal(void* argument);
+void enterDfuMode(void* argument);
 void changeOutputAmplitude(void* argument);
 void changePgaGain(void* argument);
-void sendTestTransducerSignal(void* argument);
 
 /* Private variables ---------------------------------------------------------*/
 
 static MenuID_t debugMenuChildren[] = {MENU_ID_DBG_GPIO, MENU_ID_DBG_SETLED,
                                        MENU_ID_DBG_PRINT, MENU_ID_DBG_NOISE,
                                        MENU_ID_DBG_TEMP, MENU_ID_DBG_ERR,
-                                       MENU_ID_DBG_PWR, MENU_ID_DBG_SEND,
-                                       MENU_ID_DBG_SENDOUT, MENU_ID_DBG_OUTAMP,
-                                       MENU_ID_DBG_INGAIN, MENU_ID_DBG_TESTOUT};
+                                       MENU_ID_DBG_PWR, MENU_ID_DBG_DFU,
+                                       MENU_ID_DBG_OUTAMP, MENU_ID_DBG_INGAIN};
 static const MenuNode_t debugMenu = {
   .id = MENU_ID_DBG,
   .description = "Debug Menu",
@@ -185,36 +182,19 @@ static const MenuNode_t debugMenuPwr = {
   .parameters = &debugMenuPwrParam
 };
 
-// TODO: deprecate
-static ParamContext_t debugMenuSendParam = {
+static ParamContext_t debugMenuDfuParam = {
   .state = PARAM_STATE_0,
-  .param_id = MENU_ID_DBG_SEND
+  .param_id = MENU_ID_DBG_DFU
 };
-static const MenuNode_t debugMenuSend = {
-  .id = MENU_ID_DBG_SEND,
-  .description = "[TEMP] Send Test Waveform Through Feedback Network",
-  .handler = sendFeedbackSignal,
+static const MenuNode_t debugMenuDfu = {
+  .id = MENU_ID_DBG_DFU,
+  .description = "Enter DFU mode to flash new firmware over USB",
+  .handler = enterDfuMode,
   .parent_id = MENU_ID_DBG,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &debugMenuSendParam
-};
-
-// TODO: deprecate
-static ParamContext_t debugMenuSendTransducerParam = {
-  .state = PARAM_STATE_0,
-  .param_id = MENU_ID_DBG_SENDOUT
-};
-static const MenuNode_t debugMenuSendTransducer = {
-  .id = MENU_ID_DBG_SENDOUT,
-  .description = "[TEMP] Send Test Waveform Through Transducer",
-  .handler = sendTransducerSignal,
-  .parent_id = MENU_ID_DBG,
-  .children_ids = NULL,
-  .num_children = 0,
-  .access_level = 0,
-  .parameters = &debugMenuSendTransducerParam
+  .parameters = &debugMenuDfuParam
 };
 
 static ParamContext_t debugMenuOutAmpParam = {
@@ -247,21 +227,6 @@ static const MenuNode_t debugMenuPgaGain = {
   .parameters = &debugMenuPgaGainParam
 };
 
-static ParamContext_t debugMenuSendOutParam = {
-  .state = PARAM_STATE_0,
-  .param_id = MENU_ID_DBG_TESTOUT
-};
-static const MenuNode_t debugMenuSendOut = {
-  .id = MENU_ID_DBG_TESTOUT,
-  .description = "[TEMP] Send a test waveform through transducer",
-  .handler = sendTestTransducerSignal,
-  .parent_id = MENU_ID_DBG,
-  .children_ids = NULL,
-  .num_children = 0,
-  .access_level = 0,
-  .parameters = &debugMenuSendOutParam
-};
-
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -271,9 +236,8 @@ bool COMM_RegisterDebugMenu(void)
              registerMenu(&debugMenuSetLed) && registerMenu(&debugMenuPrint) &&
              registerMenu(&debugMenuNoise) && registerMenu(&debugMenuTemp) &&
              registerMenu(&debugMenuErr) && registerMenu(&debugMenuPwr) &&
-             registerMenu(&debugMenuSend) && registerMenu(&debugMenuSendTransducer) &&
              registerMenu(&debugMenuOutAmp) && registerMenu(&debugMenuPgaGain) &&
-             registerMenu(&debugMenuSendOut);
+             registerMenu(&debugMenuDfu);
   return ret;
 }
 
@@ -407,109 +371,6 @@ void printCurrentPowerConsumption(void* argument)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void sendFeedbackSignal(void* argument)
-{
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
-  ParamState_t old_state = context->state->state;
-
-  do {
-    switch (context->state->state) {
-      case PARAM_STATE_0:
-        sprintf((char*) context->output_buffer, "\r\n\r\nPlease enter a string to send to the feedback network with a maximum length of 8 characters:\r\n");
-        COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-        context->state->state = PARAM_STATE_1;
-        break;
-      case PARAM_STATE_1:
-        if (context->input_len > 8) {
-          sprintf((char*) context->output_buffer, "\r\nInput string must be less than 8 characters!\r\n");
-          COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          context->state->state = PARAM_STATE_0;
-        }
-        else {
-          Message_t msg;
-          msg.type = MSG_TRANSMIT_FEEDBACK;
-          msg.length_bits = TEST_PACKET_LENGTH;
-          msg.timestamp = osKernelGetTickCount();
-          msg.data_type = STRING;
-          for (uint16_t i = 0; i < TEST_PACKET_LENGTH / 8; i++) {
-            if (context->input_len > i) {
-              msg.data[i] = context->input[i];
-            }
-            else {
-              msg.data[i] = ' ';
-            }
-          }
-          if (MESS_AddMessageToTxQ(&msg) == pdPASS) {
-            sprintf((char*) context->output_buffer, "\r\nSuccessfully added to feedback queue!\r\n\r\n");
-            COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          }
-          else {
-            sprintf((char*) context->output_buffer, "\r\nError adding message to feedback queue\r\n\r\n");
-            COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          }
-          context->state->state = PARAM_STATE_COMPLETE;
-        }
-        break;
-      default:
-        context->state->state = PARAM_STATE_COMPLETE;
-        break;
-    }
-  } while (old_state > context->state->state); // Continues looping if the state has regressed
-}
-
-void sendTransducerSignal(void* argument)
-{
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
-  ParamState_t old_state = context->state->state;
-
-  do {
-    switch (context->state->state) {
-      case PARAM_STATE_0:
-        sprintf((char*) context->output_buffer, "\r\n\r\nPlease enter a string to send through the transducer with a maximum length of 8 characters:\r\n");
-        COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-        context->state->state = PARAM_STATE_1;
-        break;
-
-      case PARAM_STATE_1:
-        if (context->input_len > 8) {
-          sprintf((char*) context->output_buffer, "\r\nInput string must be less than 8 characters!\r\n");
-          COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          context->state->state = PARAM_STATE_0;
-        }
-        else {
-          Message_t msg;
-          msg.type = MSG_TRANSMIT_TRANSDUCER;
-          msg.length_bits = TEST_PACKET_LENGTH;
-          msg.timestamp = osKernelGetTickCount();
-          msg.data_type = STRING;
-          for (uint16_t i = 0; i < TEST_PACKET_LENGTH / 8; i++) {
-            if (context->input_len > i) {
-              msg.data[i] = context->input[i];
-            }
-            else {
-              msg.data[i] = ' ';
-            }
-          }
-          if (MESS_AddMessageToTxQ(&msg) == pdPASS) {
-            sprintf((char*) context->output_buffer, "\r\nSuccessfully added to output queue!\r\n\r\n");
-            COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          }
-          else {
-            sprintf((char*) context->output_buffer, "\r\nError adding message to output queue\r\n\r\n");
-            COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          }
-          context->state->state = PARAM_STATE_COMPLETE;
-        }
-        break;
-      default:
-        context->state->state = PARAM_STATE_COMPLETE;
-        break;
-    }
-  } while (old_state > context->state->state); // Continues looping if the state has regressed
-}
-
 void changeOutputAmplitude(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
@@ -553,13 +414,14 @@ void changePgaGain(void* argument)
   } while (old_state > context->state->state);
 }
 
-void sendTestTransducerSignal(void* argument)
+void enterDfuMode(void* argument)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
+  (void)(argument);
 
-  if (print_event_handle == NULL) return;
+  // write magic number to magic address. See startup code for corresponding check
+  *((uint32_t*) 0x38000000) = 0xABCDABCD;
 
-  osEventFlagsSet(print_event_handle, MESS_TEST_OUTPUT);
+  osDelay(10);
 
-  context->state->state = PARAM_STATE_COMPLETE;
+  NVIC_SystemReset();
 }
