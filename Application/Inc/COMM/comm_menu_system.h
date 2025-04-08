@@ -92,6 +92,7 @@ typedef enum {
   MENU_ID_DBG_ERR,              // Current errors
   MENU_ID_DBG_PWR,              // Current power consumption
   MENU_ID_DBG_DFU,              // Enter DFU mode to flash new firmware over USB
+  MENU_ID_DBG_RESETCONFIG,      // Reset saved configuration 
   MENU_ID_DBG_OUTAMP,           // [TEMP] Change fixed output amplitude
   MENU_ID_DBG_INGAIN,           // [TEMP] Manually change the PGAs gain
   MENU_ID_HIST_PWR,             // History of power

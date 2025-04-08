@@ -74,7 +74,6 @@ static bool isParamInitialized(ParamIds_t id);
 
 static bool getNumErases();
 static bool updateNumErases();
-static bool flashReset();
 static bool writeParameterToFlash(uint16_t id);
 
 /* Exported function definitions ---------------------------------------------*/
@@ -440,7 +439,7 @@ bool Param_SaveToFlash(void)
       }
       if (next_write_addr >= FLASH_PARAM_ADDR_END) {
         // clear flash, update num erases, add parameters back to flash
-        if (flashReset() == false) {
+        if (Param_FlashReset() == false) {
           return false;
         }
         if (updateNumErases() == false) {
@@ -510,6 +509,34 @@ bool Param_TaskRegistrationComplete(TaskIds_t task_id)
   return false;
 }
 
+bool Param_FlashReset()
+{
+  FLASH_EraseInitTypeDef erase = {0};
+  erase.TypeErase = FLASH_TYPEERASE_SECTORS;
+  erase.Banks = FLASH_BANK_1;
+  erase.Sector = FLASH_PARAM_SECTOR;
+  erase.NbSectors = 1;
+  erase.VoltageRange = FLASH_VOLTAGE_RANGE_3;
+
+  uint32_t error = 0;
+  if (HAL_FLASH_Unlock() != HAL_OK) {
+    return false;
+  }
+  if (HAL_FLASHEx_Erase(&erase, &error) != HAL_OK) {
+    return false;
+  }
+  if (HAL_FLASH_Lock() != HAL_OK) {
+    return false;
+  }
+  next_write_addr = FLASH_PARAM_ADDR;
+  num_erases++;
+  if (updateNumErases() == false) {
+    return false;
+  }
+  next_write_addr += FLASH_WORD_SIZE;
+  return true;
+}
+
 
 /* Private function definitions ----------------------------------------------*/
 
@@ -550,7 +577,7 @@ static bool updateNumErases()
   if (HAL_FLASH_Unlock() != HAL_OK) {
     return false;
   }
-  uint8_t flash_buffer[FLASH_WORD_SIZE];
+  uint8_t flash_buffer[FLASH_WORD_SIZE] = {0};
   *((uint32_t*) flash_buffer) = num_erases;
   HAL_StatusTypeDef status = HAL_FLASH_Program(
       FLASH_TYPEPROGRAM_FLASHWORD, FLASH_PARAM_ADDR, (uint32_t) flash_buffer);
@@ -560,34 +587,6 @@ static bool updateNumErases()
   if (HAL_FLASH_Lock() != HAL_OK) {
     return false;
   }
-  return true;
-}
-
-bool flashReset()
-{
-  FLASH_EraseInitTypeDef erase = {0};
-  erase.TypeErase = FLASH_TYPEERASE_SECTORS;
-  erase.Banks = FLASH_BANK_1;
-  erase.Sector = FLASH_PARAM_SECTOR;
-  erase.NbSectors = 1;
-  erase.VoltageRange = FLASH_VOLTAGE_RANGE_3;
-
-  uint32_t error = 0;
-  if (HAL_FLASH_Unlock() != HAL_OK) {
-    return false;
-  }
-  if (HAL_FLASHEx_Erase(&erase, &error) != HAL_OK) {
-    return false;
-  }
-  if (HAL_FLASH_Lock() != HAL_OK) {
-    return false;
-  }
-  next_write_addr = FLASH_PARAM_ADDR;
-  num_erases++;
-  if (updateNumErases() == false) {
-    return false;
-  }
-  next_write_addr += FLASH_WORD_SIZE;
   return true;
 }
 

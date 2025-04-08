@@ -56,6 +56,7 @@ void printCurrentTemp(void* argument);
 void printCurrentErrors(void* argument);
 void printCurrentPowerConsumption(void* argument);
 void enterDfuMode(void* argument);
+void resetSavedValues(void* argument);
 void changeOutputAmplitude(void* argument);
 void changePgaGain(void* argument);
 
@@ -65,7 +66,8 @@ static MenuID_t debugMenuChildren[] = {MENU_ID_DBG_GPIO, MENU_ID_DBG_SETLED,
                                        MENU_ID_DBG_PRINT, MENU_ID_DBG_NOISE,
                                        MENU_ID_DBG_TEMP, MENU_ID_DBG_ERR,
                                        MENU_ID_DBG_PWR, MENU_ID_DBG_DFU,
-                                       MENU_ID_DBG_OUTAMP, MENU_ID_DBG_INGAIN};
+                                       MENU_ID_DBG_RESETCONFIG, MENU_ID_DBG_OUTAMP, 
+                                       MENU_ID_DBG_INGAIN};
 static const MenuNode_t debugMenu = {
   .id = MENU_ID_DBG,
   .description = "Debug Menu",
@@ -197,6 +199,21 @@ static const MenuNode_t debugMenuDfu = {
   .parameters = &debugMenuDfuParam
 };
 
+static ParamContext_t debugMenuResetParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_DBG_RESETCONFIG
+};
+static const MenuNode_t debugMenuReset = {
+  .id = MENU_ID_DBG_RESETCONFIG,
+  .description = "Reset saved configuration",
+  .handler = resetSavedValues,
+  .parent_id = MENU_ID_DBG,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &debugMenuResetParam
+};
+
 static ParamContext_t debugMenuOutAmpParam = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_DBG_OUTAMP
@@ -237,7 +254,7 @@ bool COMM_RegisterDebugMenu(void)
              registerMenu(&debugMenuNoise) && registerMenu(&debugMenuTemp) &&
              registerMenu(&debugMenuErr) && registerMenu(&debugMenuPwr) &&
              registerMenu(&debugMenuOutAmp) && registerMenu(&debugMenuPgaGain) &&
-             registerMenu(&debugMenuDfu);
+             registerMenu(&debugMenuDfu) && registerMenu(&debugMenuReset);
   return ret;
 }
 
@@ -369,6 +386,45 @@ void printCurrentPowerConsumption(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
   context->state->state = PARAM_STATE_COMPLETE;
+}
+
+void resetSavedValues(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  ParamState_t old_state = context->state->state;
+
+  do {
+    switch (context->state->state) {
+      case PARAM_STATE_0:
+        COMM_TransmitData("\r\nThis will reset the device. Are you sure? (y/n)\r\n", CALC_LEN, context->comm_interface);
+        context->state->state = PARAM_STATE_1;
+        break;
+      case PARAM_STATE_1:
+        bool affirm;
+        if (checkYesNo(*context->input, &affirm) == false) {
+          COMM_TransmitData("\r\nInvalid input!\r\n", CALC_LEN, context->comm_interface);
+          context->state->state = PARAM_STATE_0;
+          break;
+        }
+        if (affirm == true) {
+          COMM_TransmitData("\r\nResetting flash sector...", CALC_LEN, context->comm_interface);
+          if (Param_FlashReset() == false) {
+            COMM_TransmitData("\r\nError encountered. Aborting...", CALC_LEN, context->comm_interface);
+            context->state->state = PARAM_STATE_COMPLETE;
+            break;
+          }
+          COMM_TransmitData("\r\nResetting device...\r\n", CALC_LEN, context->comm_interface);
+
+          HAL_NVIC_SystemReset();
+        }
+        context->state->state = PARAM_STATE_COMPLETE;
+        break;
+      default:
+        context->state->state = PARAM_STATE_COMPLETE;
+        break;
+    }
+  } while (old_state > context->state->state);
 }
 
 void changeOutputAmplitude(void* argument)

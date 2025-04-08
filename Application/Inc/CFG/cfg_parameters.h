@@ -512,6 +512,17 @@ bool Param_RegisterTask(TaskIds_t task_id, const char* task_name);
  */
 bool Param_TaskRegistrationComplete(TaskIds_t task_id);
 
+/**
+ * @brief Resets the flash memory for parameters
+ *
+ * Resets the flash sector designated for parameters and then increments
+ * the number of erases and writes it to the first block
+ *
+ * @return true if no errors,
+ *         false if errors
+ */
+bool Param_FlashReset(void);
+
 /* Private defines -----------------------------------------------------------*/
 
 #ifdef __cplusplus
