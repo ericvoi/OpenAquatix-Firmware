@@ -478,7 +478,6 @@ bool Param_SetInt32(ParamIds_t id, int32_t* value);
 bool Param_SetFloat(ParamIds_t id, float* value);
 
 bool Param_SaveToFlash(void);
-bool Param_LoadFromFlash(void);
 
 /**
  * @brief Registers a task in the parameter management system
@@ -512,6 +511,17 @@ bool Param_RegisterTask(TaskIds_t task_id, const char* task_name);
  * @see Param_RegisterTask
  */
 bool Param_TaskRegistrationComplete(TaskIds_t task_id);
+
+/**
+ * @brief Resets the flash memory for parameters
+ *
+ * Resets the flash sector designated for parameters and then increments
+ * the number of erases and writes it to the first block
+ *
+ * @return true if no errors,
+ *         false if errors
+ */
+bool Param_FlashReset(void);
 
 /* Private defines -----------------------------------------------------------*/
 

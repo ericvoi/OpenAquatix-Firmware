@@ -209,7 +209,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   WS_Init();
 
-  if (CFG_CreateParamFlags() == false) {
+  if (CFG_CreateFlags() == false) {
     Error_Handler();
   }
 
