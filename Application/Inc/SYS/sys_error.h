@@ -28,6 +28,7 @@ typedef enum {
   ERROR_MESS_INIT,
   ERROR_SYS_INIT,
   ERROR_MESS_PROCESSING,
+  ERROR_FLASH,
   ERROR_OTHER
 } ErrorCodes_t;
 

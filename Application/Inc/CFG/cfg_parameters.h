@@ -478,7 +478,6 @@ bool Param_SetInt32(ParamIds_t id, int32_t* value);
 bool Param_SetFloat(ParamIds_t id, float* value);
 
 bool Param_SaveToFlash(void);
-bool Param_LoadFromFlash(void);
 
 /**
  * @brief Registers a task in the parameter management system
