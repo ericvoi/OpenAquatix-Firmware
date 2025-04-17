@@ -32,7 +32,6 @@ typedef enum {
   MENU_ID_TXRX,                 // Transmission/reception menu
   MENU_ID_EVAL,                 // Evaluation option menu
   MENU_ID_CFG_UNIV,             // Universal waveform porcessing parameters
-  MENU_ID_CFG_UNIV_ENC,         // How characters are encoded
   MENU_ID_CFG_UNIV_ERR,         // Error correction scheme
   MENU_ID_CFG_UNIV_MOD,         // Modulation scheme used for both reception and transmission
   MENU_ID_CFG_UNIV_FSK,         // FSK based waveform processing parameters

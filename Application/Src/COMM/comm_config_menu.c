@@ -99,10 +99,10 @@ static const MenuNode_t configMenu = {
 /* Sub menus -----------------------------------------------------------------*/
 
 static MenuID_t univConfigMenuChildren[] = {
-  MENU_ID_CFG_UNIV_ENC,   MENU_ID_CFG_UNIV_ERR,     MENU_ID_CFG_UNIV_MOD, 
-  MENU_ID_CFG_UNIV_FSK,   MENU_ID_CFG_UNIV_FHBFSK,  MENU_ID_CFG_UNIV_BAUD,
-  MENU_ID_CFG_UNIV_FC,    MENU_ID_CFG_UNIV_BP,      MENU_ID_CFG_UNIV_BANDWIDTH,
-  MENU_ID_CFG_UNIV_EXP,   MENU_ID_CFG_UNIV_IMP
+  MENU_ID_CFG_UNIV_ERR,     MENU_ID_CFG_UNIV_MOD,      MENU_ID_CFG_UNIV_FSK,   
+  MENU_ID_CFG_UNIV_FHBFSK,  MENU_ID_CFG_UNIV_BAUD,      MENU_ID_CFG_UNIV_FC,    
+  MENU_ID_CFG_UNIV_BP,      MENU_ID_CFG_UNIV_BANDWIDTH, MENU_ID_CFG_UNIV_EXP,   
+  MENU_ID_CFG_UNIV_IMP
 };
 static const MenuNode_t univConfigMenu = {
   .id = MENU_ID_CFG_UNIV,
@@ -204,21 +204,6 @@ static const MenuNode_t setStationary = {
 };
 
 /* Sub sub menus -------------------------------------------------------------*/
-
-static ParamContext_t univConfigEncParam = {
-  .state = PARAM_STATE_0,
-  .param_id = MENU_ID_CFG_UNIV_ENC
-};
-static const MenuNode_t univConfigEnc = {
-  .id = MENU_ID_CFG_UNIV_ENC,
-  .description = "Set Encoding",
-  .handler = setEncoding,
-  .parent_id = MENU_ID_CFG_UNIV,
-  .children_ids = NULL,
-  .num_children = 0,
-  .access_level = 0,
-  .parameters = &univConfigEncParam
-};
 
 static ParamContext_t univConfigErrParam = {
   .state = PARAM_STATE_0,
@@ -904,7 +889,7 @@ bool COMM_RegisterConfigurationMenu()
   bool ret = registerMenu(&configMenu) && registerMenu(&univConfigMenu) &&
              registerMenu(&modConfigMenu) && registerMenu(&demodConfigMenu) &&
              registerMenu(&dauConfigMenu) && registerMenu(&ledConfigMenu) && 
-             registerMenu(&univConfigEnc) && registerMenu(&univConfigErr) && 
+             registerMenu(&univConfigErr) && registerMenu(&demodConfigDecisionFcn) &&
              registerMenu(&univConfigMod) && registerMenu(&univConfigFskMenu) && 
              registerMenu(&univConfigFhbskMenu) && registerMenu(&univConfigBaud) && 
              registerMenu(&univConfigFc) && registerMenu(&univConfigBitPeriod) && 
@@ -927,7 +912,7 @@ bool COMM_RegisterConfigurationMenu()
              registerMenu(&univFskConfigF1) && registerMenu(&univFhbfskConfigFreqSpacing) &&
              registerMenu(&univFhbfskConfigDwell) && registerMenu(&univConfigBandwidth) &&
              registerMenu(&univFhbfskConfigTones) && registerMenu(&setNewId) &&
-             registerMenu(&setStationary) && registerMenu(&demodConfigDecisionFcn);
+             registerMenu(&setStationary);
 
   return ret;
 }
