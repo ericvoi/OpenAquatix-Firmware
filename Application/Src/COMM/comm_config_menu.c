@@ -44,7 +44,7 @@ void setFhbfskDwell(void* argument);
 void setFhbfskTones(void* argument);
 void setBaudRate(void* argument);
 void setCenterFrequency(void* argument);
-void setBitPeriod(void* argument);
+void getBitPeriod(void* argument);
 void getBandwidth(void* argument);
 void printConfigOptions(void* argument);
 void importConfiOptions(void* argument);
@@ -300,8 +300,8 @@ static ParamContext_t univConfigBitPeriodParam = {
 };
 static const MenuNode_t univConfigBitPeriod = {
   .id = MENU_ID_CFG_UNIV_BP,
-  .description = "Set Bit Period",
-  .handler = setBitPeriod,
+  .description = "Get Bit Period",
+  .handler = getBitPeriod,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
   .num_children = 0,
@@ -1069,9 +1069,21 @@ void setCenterFrequency(void* argument)
   COMMLoops_LoopUint32(context, PARAM_FC);
 }
 
-void setBitPeriod(void* argument)
+void getBitPeriod(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  float bit_period_ms;
+
+  if (MESS_GetBitPeriod(&bit_period_ms) == false) {
+    COMM_TransmitData("Internal Error!\r\n", CALC_LEN, context->comm_interface);
+    context->state->state = PARAM_STATE_COMPLETE;
+    return;
+  }
+
+  sprintf((char*) context->output_buffer, "\r\nBit period: %.2fms\r\n", bit_period_ms);
+  COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
+  
   context->state->state = PARAM_STATE_COMPLETE;
 }
 

@@ -230,6 +230,17 @@ void MESS_RoundBaud(float* baud);
  */
 bool MESS_GetBandwidth(uint32_t* bandwidth, uint32_t* lower_freq, uint32_t* upper_freq);
 
+/**
+ * @brief Gets the current bit period
+ *
+ * Returns the bit period in ms as a float
+ *
+ * @param bit_period_ms Pointer to float containing the bit period (modified)
+ *
+ * @return true always
+ */
+bool MESS_GetBitPeriod(float* bit_period_ms);
+
 /* Private defines -----------------------------------------------------------*/
 
 #ifdef __cplusplus

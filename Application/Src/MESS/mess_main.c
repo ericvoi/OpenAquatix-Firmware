@@ -371,6 +371,12 @@ bool MESS_GetBandwidth(uint32_t* bandwidth, uint32_t* lower_freq, uint32_t* uppe
   return false;
 }
 
+bool MESS_GetBitPeriod(float* bit_period_ms)
+{
+  *bit_period_ms =  (1.0f / baud_rate) * 1000;
+  return true;
+}
+
 /* Private function definitions ----------------------------------------------*/
 
 static void switchState(ProcessingState_t newState)
