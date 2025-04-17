@@ -219,6 +219,17 @@ BaseType_t MESS_AddMessageToRxQ(Message_t* msg);
  */
 void MESS_RoundBaud(float* baud);
 
+/**
+ * @brief Gets bandwidth
+ *
+ * @param bandwidth Pointer to uint32 containing bandwidth (modified)
+ * @param lower_freq Pointer to uint32 containing lowest used frequency (modified)
+ * @param upper_freq Pointer to uint32 containing highest used frequency (modified)
+ *
+ * @return true unless an internal parameter like frequency was set incorrectly
+ */
+bool MESS_GetBandwidth(uint32_t* bandwidth, uint32_t* lower_freq, uint32_t* upper_freq);
+
 /* Private defines -----------------------------------------------------------*/
 
 #ifdef __cplusplus

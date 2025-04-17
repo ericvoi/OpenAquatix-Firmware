@@ -45,7 +45,7 @@ void setFhbfskTones(void* argument);
 void setBaudRate(void* argument);
 void setCenterFrequency(void* argument);
 void setBitPeriod(void* argument);
-void setBandwidth(void* argument);
+void getBandwidth(void* argument);
 void printConfigOptions(void* argument);
 void importConfiOptions(void* argument);
 void setModSps(void* argument);
@@ -315,8 +315,8 @@ static ParamContext_t univConfigBandwidthParam = {
 };
 static const MenuNode_t univConfigBandwidth = {
   .id = MENU_ID_CFG_UNIV_BANDWIDTH,
-  .description = "Set Bandwidth",
-  .handler = setBandwidth,
+  .description = "Get Bandwidth",
+  .handler = getBandwidth,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
   .num_children = 0,
@@ -1075,12 +1075,27 @@ void setBitPeriod(void* argument)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-// TODO: replace with get
-void setBandwidth(void* argument)
+void getBandwidth(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
 
-  // COMMLoops_LoopUint32(context, PARAM_BANDWIDTH);
+  uint32_t bandwidth, lower_freq, upper_freq;
+
+  if (MESS_GetBandwidth(&bandwidth, &lower_freq, &upper_freq) == false) {
+    COMM_TransmitData("Internal Error!\r\n", CALC_LEN, context->comm_interface);
+    context->state->state = PARAM_STATE_COMPLETE;
+    return;
+  }
+
+  sprintf((char*) context->output_buffer, "\r\nLower frequency: %luHz\r\n", lower_freq);
+  COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
+
+  sprintf((char*) context->output_buffer, "Upper frequency: %luHz\r\n", upper_freq);
+  COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
+
+  sprintf((char*) context->output_buffer, "Bandwidth: %luHz\r\n", bandwidth);
+  COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
+
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
