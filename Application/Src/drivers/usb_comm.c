@@ -21,7 +21,7 @@
 
 /* Private define ------------------------------------------------------------*/
 
-#define USB_RX_BUFFER_SIZE            256
+#define USB_RX_BUFFER_SIZE            2048
 #define USB_OVERFLOW_MESS             "Too many input characters!\r\n"
 
 #define TRANSFER_COMPLETE_FLAG        0x00000001

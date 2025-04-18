@@ -12,6 +12,7 @@
 #include "comm_main.h"
 #include "cfg_parameters.h"
 #include "comm_function_loops.h"
+#include "cfg_import_export.h"
 #include "main.h"
 #include "mess_main.h"
 #include "mess_modulate.h"
@@ -1083,7 +1084,7 @@ void getBitPeriod(void* argument)
 
   sprintf((char*) context->output_buffer, "\r\nBit period: %.2fms\r\n", bit_period_ms);
   COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-  
+
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
@@ -1114,13 +1115,17 @@ void getBandwidth(void* argument)
 void printConfigOptions(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+
+  if (ImportExport_ExportConfiguration(context) == false) {
+    COMM_TransmitData("\r\nInternal Error!\r\n", CALC_LEN, context->comm_interface);
+  }
 }
 
 void importConfiOptions(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+
+  ImportExport_ImportConfiguration(context);
 }
 
 void setModSps(void* argument)

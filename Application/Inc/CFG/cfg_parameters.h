@@ -55,20 +55,6 @@ typedef enum {
   PARAM_TYPE_FLOAT
 } ParamType_t;
 
-typedef struct {
-  ParamIds_t id;
-  char name[32];
-  ParamType_t type;
-  void* value_ptr;
-  size_t value_size;
-  union {
-    struct {uint32_t min; uint32_t max;} u32;
-    struct {int32_t min; int32_t max;} i32;
-    struct {float min; float max;} f;
-  } limits;
-  bool is_modified;
-} Parameter_t;
-
 /* Exported constants --------------------------------------------------------*/
 
 
@@ -477,6 +463,29 @@ bool Param_SetInt32(ParamIds_t id, int32_t* value);
  */
 bool Param_SetFloat(ParamIds_t id, float* value);
 
+/**
+ * @brief Returns the parameter type for a parameter
+ *
+ * @param id Identifier for the parameter
+ * @param param_type Type for the parameter
+ *
+ * @return true if parameter exists, false otherwise
+ *
+ * @note Blocks indefinitely while waiting for mutex acquisition
+ * @note The parameter must be set
+ */
+bool Param_GetParamType(ParamIds_t id, ParamType_t* param_type);
+
+/**
+ * @brief Saves parameters to flash (non-volatile) memory
+ *
+ * Loops through the parameters and checks if one has changed. If a parameter
+ * has changed, save it to the next flash word. If the next address is outside
+ * of the flash sector, reset flash. Can save multiple parameters
+ *
+ * @return true if all modified parameters saved
+ *         false if error saving parameter
+ */
 bool Param_SaveToFlash(void);
 
 /**
