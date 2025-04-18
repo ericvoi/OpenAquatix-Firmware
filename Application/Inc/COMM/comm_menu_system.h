@@ -48,7 +48,7 @@ typedef enum {
   MENU_ID_CFG_UNIV_EXP,         // Export the configuration options used
   MENU_ID_CFG_UNIV_IMP,         // Import configuration options
   MENU_ID_CFG_MOD,              // Waveform modulation parameters
-  MENU_ID_CFG_MOD_STEP,         // Maximum code change to use with the DAC
+  MENU_ID_CFG_MOD_TLEN,         // Maximum code change to use with the DAC
   MENU_ID_CFG_MOD_CAL,          // Calibration menu for the modem's modulation
   MENU_ID_CFG_MOD_CAL_FREQ,     // Frequency range to use for modulation calibration
   MENU_ID_CFG_MOD_CAL_SEP,      // Separation between frequencies in calibration

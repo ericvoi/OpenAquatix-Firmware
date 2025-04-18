@@ -502,6 +502,10 @@ static bool registerMessParams()
     return false;
   } 
 
+  if (DAC_RegisterParams() == false) {
+    return false;
+  }
+
   return true;
 }
 

@@ -49,7 +49,7 @@ void getBitPeriod(void* argument);
 void getBandwidth(void* argument);
 void printConfigOptions(void* argument);
 void importConfiOptions(void* argument);
-void setMaxDacStep(void* argument);
+void setDacTransitionDuration(void* argument);
 void setOutputPower(void* argument);
 void setDemodSps(void* argument);
 void setMessageStartFunction(void* argument);
@@ -116,7 +116,7 @@ static const MenuNode_t univConfigMenu = {
 };
 
 static MenuID_t modConfigMenuChildren[] = {
-  MENU_ID_CFG_MOD_STEP, MENU_ID_CFG_MOD_CAL, 
+  MENU_ID_CFG_MOD_TLEN, MENU_ID_CFG_MOD_CAL, 
   MENU_ID_CFG_MOD_FB,   MENU_ID_CFG_MOD_PWR
 };
 static const MenuNode_t modConfigMenu = {
@@ -354,19 +354,19 @@ static const MenuNode_t univConfigImport = {
   .parameters = &univConfigImportParam
 };
 
-static ParamContext_t modConfigDacStepParam = {
+static ParamContext_t modConfigDacTransitionParam = {
   .state = PARAM_STATE_0,
-  .param_id = MENU_ID_CFG_MOD_STEP
+  .param_id = MENU_ID_CFG_MOD_TLEN
 };
-static const MenuNode_t modConfigDacStep = {
-  .id = MENU_ID_CFG_MOD_STEP,
-  .description = "Set Maximum DAC Step",
-  .handler = setMaxDacStep,
+static const MenuNode_t modConfigDacTransition = {
+  .id = MENU_ID_CFG_MOD_TLEN,
+  .description = "Set DAC Transition Duration",
+  .handler = setDacTransitionDuration,
   .parent_id = MENU_ID_CFG_MOD,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &modConfigDacStepParam
+  .parameters = &modConfigDacTransitionParam
 };
 
 static MenuID_t modConfigCalChildren[] = {
@@ -879,7 +879,7 @@ bool COMM_RegisterConfigurationMenu()
              registerMenu(&univConfigFhbskMenu) && registerMenu(&univConfigBaud) && 
              registerMenu(&univConfigFc) && registerMenu(&univConfigBitPeriod) && 
              registerMenu(&univConfigExport) && registerMenu(&univConfigImport) && 
-             registerMenu(&setStationary) && registerMenu(&modConfigDacStep) &&
+             registerMenu(&setStationary) && registerMenu(&modConfigDacTransition) &&
              registerMenu(&modConfigCalMenu) && registerMenu(&modConfigFeedbackMenu) && 
              registerMenu(&modConfigPwr) && registerMenu(&demodConfigSps) && 
              registerMenu(&demodConfigCalMenu) && registerMenu(&dauConfigUart) && 
@@ -1111,10 +1111,11 @@ void importConfiOptions(void* argument)
   ImportExport_ImportConfiguration(context);
 }
 
-void setMaxDacStep(void* argument)
+void setDacTransitionDuration(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+
+  COMMLoops_LoopUint16(context, PARAM_DAC_TRANSITION_LEN);
 }
 
 void setOutputPower(void* argument)

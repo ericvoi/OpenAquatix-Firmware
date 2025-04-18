@@ -98,6 +98,10 @@ extern "C" {
 #define MIN_DEMOD_DECISION          0
 #define MAX_DEMOD_DECISION          (NUM_DEMODULATION_DECISION - 1)
 
+#define DEFAULT_DAC_TRANSITION_LEN  64
+#define MIN_DAC_TRANSITION_LEN      8
+#define MAX_DAC_TRANSITION_LEN      1000
+
 
 /* Exported macro ------------------------------------------------------------*/
 

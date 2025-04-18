@@ -41,6 +41,7 @@ typedef enum {
   PARAM_STATIONARY_FLAG,
   PARAM_ERROR_CORRECTION,
   PARAM_DEMODULATION_DECISION,
+  PARAM_DAC_TRANSITION_LEN,
   // Add new parameters here and nowhere else
   NUM_PARAM
 } ParamIds_t;
