@@ -57,7 +57,6 @@ void printCurrentErrors(void* argument);
 void printCurrentPowerConsumption(void* argument);
 void enterDfuMode(void* argument);
 void resetSavedValues(void* argument);
-void changeOutputAmplitude(void* argument);
 void changePgaGain(void* argument);
 
 /* Private variables ---------------------------------------------------------*/
@@ -66,8 +65,7 @@ static MenuID_t debugMenuChildren[] = {MENU_ID_DBG_GPIO, MENU_ID_DBG_SETLED,
                                        MENU_ID_DBG_PRINT, MENU_ID_DBG_NOISE,
                                        MENU_ID_DBG_TEMP, MENU_ID_DBG_ERR,
                                        MENU_ID_DBG_PWR, MENU_ID_DBG_DFU,
-                                       MENU_ID_DBG_RESETCONFIG, MENU_ID_DBG_OUTAMP, 
-                                       MENU_ID_DBG_INGAIN};
+                                       MENU_ID_DBG_RESETCONFIG, MENU_ID_DBG_INGAIN};
 static const MenuNode_t debugMenu = {
   .id = MENU_ID_DBG,
   .description = "Debug Menu",
@@ -214,21 +212,6 @@ static const MenuNode_t debugMenuReset = {
   .parameters = &debugMenuResetParam
 };
 
-static ParamContext_t debugMenuOutAmpParam = {
-  .state = PARAM_STATE_0,
-  .param_id = MENU_ID_DBG_OUTAMP
-};
-static const MenuNode_t debugMenuOutAmp = {
-  .id = MENU_ID_DBG_OUTAMP,
-  .description = "[TEMP] Change fixed output amplitude",
-  .handler = changeOutputAmplitude,
-  .parent_id = MENU_ID_DBG,
-  .children_ids = NULL,
-  .num_children = 0,
-  .access_level = 0,
-  .parameters = &debugMenuOutAmpParam
-};
-
 static ParamContext_t debugMenuPgaGainParam = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_DBG_INGAIN
@@ -253,7 +236,7 @@ bool COMM_RegisterDebugMenu(void)
              registerMenu(&debugMenuSetLed) && registerMenu(&debugMenuPrint) &&
              registerMenu(&debugMenuNoise) && registerMenu(&debugMenuTemp) &&
              registerMenu(&debugMenuErr) && registerMenu(&debugMenuPwr) &&
-             registerMenu(&debugMenuOutAmp) && registerMenu(&debugMenuPgaGain) &&
+             registerMenu(&debugMenuPgaGain) &&
              registerMenu(&debugMenuDfu) && registerMenu(&debugMenuReset);
   return ret;
 }
@@ -425,13 +408,6 @@ void resetSavedValues(void* argument)
         break;
     }
   } while (old_state > context->state->state);
-}
-
-void changeOutputAmplitude(void* argument)
-{
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
-  COMMLoops_LoopFloat(context, PARAM_OUTPUT_AMPLITUDE);
 }
 
 // temporary before automatic gain control

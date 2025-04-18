@@ -50,7 +50,8 @@ void getBandwidth(void* argument);
 void printConfigOptions(void* argument);
 void importConfiOptions(void* argument);
 void setDacTransitionDuration(void* argument);
-void setOutputPower(void* argument);
+void setModPowerControlMethod(void* argument);
+void setModFixedOutput(void* argument);
 void setDemodSps(void* argument);
 void setMessageStartFunction(void* argument);
 void setBitDecisionFunction(void* argument);
@@ -68,6 +69,11 @@ void updateVmax(void* argument);
 void toggleModFeedback(void* argument);
 void setModFeedbackRatio(void* argument);
 void setModFeedbackSps(void* argument);
+void setModOutputPower(void* argument);
+void setTransducerR(void* argument);
+void setTransducerC0(void* argument);
+void setTransducerL0(void* argument);
+void setTransducerC1(void* argument);
 void setDemodCalRatio(void* argument);
 void performDemodCal(void* argument);
 void setDemodCalFreq(void* argument);
@@ -116,8 +122,9 @@ static const MenuNode_t univConfigMenu = {
 };
 
 static MenuID_t modConfigMenuChildren[] = {
-  MENU_ID_CFG_MOD_TLEN, MENU_ID_CFG_MOD_CAL, 
-  MENU_ID_CFG_MOD_FB,   MENU_ID_CFG_MOD_PWR
+  MENU_ID_CFG_MOD_TLEN,   MENU_ID_CFG_MOD_CAL, 
+  MENU_ID_CFG_MOD_FB,     MENU_ID_CFG_MOD_METHOD,
+  MENU_ID_CFG_MOD_FIXED,  MENU_ID_CFG_MOD_PWROPT
 };
 static const MenuNode_t modConfigMenu = {
   .id = MENU_ID_CFG_MOD,
@@ -400,19 +407,50 @@ static const MenuNode_t modConfigFeedbackMenu = {
   .parameters = NULL,
 };
 
-static ParamContext_t modConfigPwrParam = {
+static ParamContext_t modConfigMethodParam = {
   .state = PARAM_STATE_0,
-  .param_id = MENU_ID_CFG_MOD_PWR
+  .param_id = MENU_ID_CFG_MOD_METHOD
 };
-static const MenuNode_t modConfigPwr = {
-  .id = MENU_ID_CFG_MOD_PWR,
-  .description = "Output Power Level",
-  .handler = setOutputPower,
+static const MenuNode_t modConfigMethod = {
+  .id = MENU_ID_CFG_MOD_METHOD,
+  .description = "Set method to control output strength",
+  .handler = setModPowerControlMethod,
   .parent_id = MENU_ID_CFG_MOD,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &modConfigPwrParam
+  .parameters = &modConfigMethodParam
+};
+
+static ParamContext_t modConfigFixedParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_MOD_FIXED
+};
+static const MenuNode_t modConfigFixed = {
+  .id = MENU_ID_CFG_MOD_FIXED,
+  .description = "Fixed relative DAC output strength to use",
+  .handler = setModFixedOutput,
+  .parent_id = MENU_ID_CFG_MOD,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &modConfigFixedParam
+};
+
+static MenuID_t modConfigPowerChildren[] = {
+  MENU_ID_CFG_MOD_PWROPT_PWR, MENU_ID_CFG_MOD_PWROPT_R, 
+  MENU_ID_CFG_MOD_PWROPT_C0,  MENU_ID_CFG_MOD_PWROPT_L0,
+  MENU_ID_CFG_MOD_PWROPT_C1
+};
+static const MenuNode_t modConfigPowerMenu = {
+  .id = MENU_ID_CFG_MOD_PWROPT,
+  .description = "Fixed output power level options",
+  .handler = NULL,
+  .parent_id = MENU_ID_CFG_MOD,
+  .children_ids = modConfigPowerChildren,
+  .num_children = sizeof(modConfigPowerChildren) / sizeof(modConfigPowerChildren[0]),
+  .access_level = 0,
+  .parameters = NULL,
 };
 
 static ParamContext_t demodConfigSpsParam = {
@@ -777,6 +815,81 @@ static const MenuNode_t modFbConfigSps = {
   .parameters = &modFbConfigSpsParam
 };
 
+static ParamContext_t modPwrConfigTargetParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_MOD_PWROPT_PWR
+};
+static const MenuNode_t modPwrConfigTarget = {
+  .id = MENU_ID_CFG_MOD_PWROPT_PWR,
+  .description = "Target output power (W)",
+  .handler = setModOutputPower,
+  .parent_id = MENU_ID_CFG_MOD_PWROPT,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &modPwrConfigTargetParam
+};
+
+static ParamContext_t modPwrConfigRParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_MOD_PWROPT_R
+};
+static const MenuNode_t modPwrConfigR = {
+  .id = MENU_ID_CFG_MOD_PWROPT_R,
+  .description = "Series resistance of the motional branch (R) [ohms]",
+  .handler = setTransducerR,
+  .parent_id = MENU_ID_CFG_MOD_PWROPT,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &modPwrConfigRParam
+};
+
+static ParamContext_t modPwrConfigC0Param = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_MOD_PWROPT_C0
+};
+static const MenuNode_t modPwrConfigC0 = {
+  .id = MENU_ID_CFG_MOD_PWROPT_C0,
+  .description = "Series capacitance of the motional branch (C0) [nF]",
+  .handler = setTransducerC0,
+  .parent_id = MENU_ID_CFG_MOD_PWROPT,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &modPwrConfigC0Param
+};
+
+static ParamContext_t modPwrConfigL0Param = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_MOD_PWROPT_L0
+};
+static const MenuNode_t modPwrConfigL0 = {
+  .id = MENU_ID_CFG_MOD_PWROPT_L0,
+  .description = "Series inductance of the motional branch (L0) [mH]",
+  .handler = setTransducerL0,
+  .parent_id = MENU_ID_CFG_MOD_PWROPT,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &modPwrConfigL0Param
+};
+
+static ParamContext_t modPwrConfigC1Param = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_MOD_PWROPT_C1
+};
+static const MenuNode_t modPwrConfigC1 = {
+  .id = MENU_ID_CFG_MOD_PWROPT_C1,
+  .description = "Parallel capacitance with the motional branch (C1) [nF]",
+  .handler = setTransducerC1,
+  .parent_id = MENU_ID_CFG_MOD_PWROPT,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &modPwrConfigC1Param
+};
+
 static ParamContext_t demodCalConfigRatioParam = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_DEMOD_CAL_RATIO
@@ -881,7 +994,7 @@ bool COMM_RegisterConfigurationMenu()
              registerMenu(&univConfigExport) && registerMenu(&univConfigImport) && 
              registerMenu(&setStationary) && registerMenu(&modConfigDacTransition) &&
              registerMenu(&modConfigCalMenu) && registerMenu(&modConfigFeedbackMenu) && 
-             registerMenu(&modConfigPwr) && registerMenu(&demodConfigSps) && 
+             registerMenu(&modConfigMethod) && registerMenu(&demodConfigSps) && 
              registerMenu(&demodConfigCalMenu) && registerMenu(&dauConfigUart) && 
              registerMenu(&dauConfigSleep) && registerMenu(&ledConfigBrightness) &&
              registerMenu(&ledConfigToggle) && registerMenu(&modCalConfigFreq) &&
@@ -896,7 +1009,11 @@ bool COMM_RegisterConfigurationMenu()
              registerMenu(&demodConfigStartFcn) && registerMenu(&univFskConfigF0) &&
              registerMenu(&univFskConfigF1) && registerMenu(&univFhbfskConfigFreqSpacing) &&
              registerMenu(&univFhbfskConfigDwell) && registerMenu(&univConfigBandwidth) &&
-             registerMenu(&univFhbfskConfigTones) && registerMenu(&setNewId);
+             registerMenu(&univFhbfskConfigTones) && registerMenu(&setNewId) &&
+             registerMenu(&modConfigFixed) && registerMenu(&modConfigPowerMenu) &&
+             registerMenu(&modPwrConfigTarget) && registerMenu(&modPwrConfigR) &&
+             registerMenu(&modPwrConfigC0) && registerMenu(&modPwrConfigL0) &&
+             registerMenu(&modPwrConfigC1);
 
   return ret;
 }
@@ -1118,10 +1235,20 @@ void setDacTransitionDuration(void* argument)
   COMMLoops_LoopUint16(context, PARAM_DAC_TRANSITION_LEN);
 }
 
-void setOutputPower(void* argument)
+void setModPowerControlMethod(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+
+  char* descriptors[] = {"Static DAC output", "Static Output Power"};
+
+  COMMLoops_LoopEnum(context, PARAM_MODULATION_OUTPUT_METHOD, descriptors, sizeof(descriptors) / sizeof(descriptors[0]));
+}
+
+void setModFixedOutput(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+  
+  COMMLoops_LoopFloat(context, PARAM_OUTPUT_AMPLITUDE);
 }
 
 void setDemodSps(void* argument)
@@ -1264,6 +1391,41 @@ void setModFeedbackSps(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
   context->state->state = PARAM_STATE_COMPLETE;
+}
+
+void setModOutputPower(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+  
+  COMMLoops_LoopFloat(context, PARAM_MODULATION_TARGET_POWER);
+}
+
+void setTransducerR(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+  
+  COMMLoops_LoopFloat(context, PARAM_R);
+}
+
+void setTransducerC0(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+  
+  COMMLoops_LoopFloat(context, PARAM_C0);
+}
+
+void setTransducerL0(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+  
+  COMMLoops_LoopFloat(context, PARAM_L0);
+}
+
+void setTransducerC1(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+  
+  COMMLoops_LoopFloat(context, PARAM_C1);
 }
 
 void setDemodCalRatio(void* argument)

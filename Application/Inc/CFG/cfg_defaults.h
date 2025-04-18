@@ -18,6 +18,7 @@ extern "C" {
 #include "mess_main.h"
 #include "mess_error_correction.h"
 #include "mess_demodulate.h"
+#include "mess_modulate.h"
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -29,9 +30,9 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 
-#define DEFAULT_BAUD_RATE           100.0f
-#define MIN_BAUD_RATE               10.0f
-#define MAX_BAUD_RATE               1000.0f
+#define DEFAULT_BAUD_RATE           (100.0f)
+#define MIN_BAUD_RATE               (10.0f)
+#define MAX_BAUD_RATE               (1000.0f)
 
 #define DEFAULT_OUTPUT_AMPLITUDE    (0.1f)
 #define MIN_OUTPUT_AMPLITUDE        (0.02f)
@@ -102,6 +103,29 @@ extern "C" {
 #define MIN_DAC_TRANSITION_LEN      8
 #define MAX_DAC_TRANSITION_LEN      1000
 
+#define DEFAULT_MOD_OUTPUT_METHOD   (MOD_OUTPUT_STATIC_DAC)
+#define MIN_MOD_OUTPUT_METHOD       0
+#define MAX_MOD_OUTPUT_METHOD       (NUM_MOD_OUTPUT_LEVEL_CONTROL - 1)
+
+#define DEFAULT_MOD_TARGET_POWER    (0.5f)
+#define MIN_MOD_TARGET_POWER        (0.005f)
+#define MAX_MOD_TARGET_POWER        (5.0f)
+
+#define DEFAULT_R                   (300.0f)
+#define MIN_R                       (50.0f)
+#define MAX_R                       (1000.0f)
+
+#define DEFAULT_C0                  (1.91f)
+#define MIN_C0                      (0.1f)
+#define MAX_C0                      (50.0f)
+
+#define DEFAULT_L0                  (13.3f)
+#define MIN_L0                      (0.5f)
+#define MAX_L0                      (400.0f)
+
+#define DEFAULT_C1                  (20.0f)
+#define MIN_C1                      (0.5f)
+#define MAX_C1                      (300.0f)
 
 /* Exported macro ------------------------------------------------------------*/
 

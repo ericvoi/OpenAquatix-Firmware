@@ -20,7 +20,7 @@ This task handles all of the signal processing for both the input and output as 
 - Preparing packets with a sender id, message type, and message length
 - Adding error correction to packets and determining if errors occurred during demodulation
 - Printing raw data over USB
-- Calibrating the input hardware and teh output hardware to ensure responsivity over frequency (TODO)
+- Calibrating the input hardware and the output hardware to ensure responsivity over frequency (TODO)
 - Sending received messages to the COMM task
 
 ## Communication (COMM)

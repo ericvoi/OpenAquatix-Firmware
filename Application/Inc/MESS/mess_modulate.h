@@ -24,7 +24,12 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
-
+typedef enum {
+  MOD_OUTPUT_STATIC_DAC,
+  MOD_OUTPUT_STATIC_PWR,
+  // Others as needed...
+  NUM_MOD_OUTPUT_LEVEL_CONTROL
+} OutputStrengthMethod_t;
 
 /* Exported constants --------------------------------------------------------*/
 

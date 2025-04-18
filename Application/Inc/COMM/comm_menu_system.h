@@ -62,7 +62,14 @@ typedef enum {
   MENU_ID_CFG_MOD_FB_EN,        // Enable or disable the feedback network (saves CPU cycles)
   MENU_ID_CFG_MOD_FB_RATIO,     // Voltage division ratio used in the feedback network
   MENU_ID_CFG_MOD_FB_SPS,       // ADC sampling rate in feedback network
-  MENU_ID_CFG_MOD_PWR,          // Target output power level
+  MENU_ID_CFG_MOD_METHOD,       // Method to control output power
+  MENU_ID_CFG_MOD_FIXED,        // Fixed relative DAC output strength to use
+  MENU_ID_CFG_MOD_PWROPT,       // Fixed output power level options
+  MENU_ID_CFG_MOD_PWROPT_PWR,   // Target output power to aim for
+  MENU_ID_CFG_MOD_PWROPT_R,     // Series resistance of the motional branch
+  MENU_ID_CFG_MOD_PWROPT_C0,    // Series capacitance of the motional branch
+  MENU_ID_CFG_MOD_PWROPT_L0,    // Series inductance of the motional branch
+  MENU_ID_CFG_MOD_PWROPT_C1,    // Parallel capacitance with the motional branch
   MENU_ID_CFG_DEMOD,            // Waveform demodulation parameters
   MENU_ID_CFG_DEMOD_SPS,        // ADC sampling rate on input
   MENU_ID_CFG_DEMOD_CAL,        // Calibration options for demodulation
@@ -91,7 +98,6 @@ typedef enum {
   MENU_ID_DBG_PWR,              // Current power consumption
   MENU_ID_DBG_DFU,              // Enter DFU mode to flash new firmware over USB
   MENU_ID_DBG_RESETCONFIG,      // Reset saved configuration 
-  MENU_ID_DBG_OUTAMP,           // [TEMP] Change fixed output amplitude
   MENU_ID_DBG_INGAIN,           // [TEMP] Manually change the PGAs gain
   MENU_ID_HIST_PWR,             // History of power
   MENU_ID_HIST_PWR_PEAK,        // Peak power consumption since boot
