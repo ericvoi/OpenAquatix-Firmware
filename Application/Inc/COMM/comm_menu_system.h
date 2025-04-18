@@ -50,8 +50,8 @@ typedef enum {
   MENU_ID_CFG_MOD,              // Waveform modulation parameters
   MENU_ID_CFG_MOD_TLEN,         // Maximum code change to use with the DAC
   MENU_ID_CFG_MOD_CAL,          // Calibration menu for the modem's modulation
-  MENU_ID_CFG_MOD_CAL_FREQ,     // Frequency range to use for modulation calibration
-  MENU_ID_CFG_MOD_CAL_SEP,      // Separation between frequencies in calibration
+  MENU_ID_CFG_MOD_CAL_LOWFREQ,  // Lower frequency for calibration
+  MENU_ID_CFG_MOD_CAL_HIFREQ,   // Upper frequency for calibration
   MENU_ID_CFG_MOD_CAL_TVR,      // Import the TVR of the hydrophone being used
   MENU_ID_CFG_MOD_CAL_PERFORM,  // Perform a calibration
   MENU_ID_CFG_MOD_CAL_EXP,      // Export calibration data

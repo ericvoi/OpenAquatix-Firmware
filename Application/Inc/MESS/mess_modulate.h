@@ -80,20 +80,6 @@ bool Modulate_ApplyAmplitude(WaveformStep_t* message_sequence, uint16_t len);
 bool Modulate_ApplyDuration(WaveformStep_t* message_sequence, uint16_t len);
 
 /**
- * @brief Returns the current transducer output amplitude setting
- *
- * @return Current amplitude value
- */
-float Modulate_GetTransducerAmplitude(void);
-
-/**
- * @brief Updates the transducer output amplitude setting
- *
- * @param new_amplitude New amplitude value to be applied
- */
-void Modulate_ChangeTransducerAmplitude(float new_amplitude);
-
-/**
  * @brief Initializes and starts the transducer output subsystem
  *
  * Performs a controlled sequence of shutting down active peripherals,
@@ -111,13 +97,6 @@ bool Modulate_StartTransducerOutput();
  * Uses the currently configured output amplitude.
  */
 void Modulate_TestOutput();
-
-/**
- * @brief Sets the frequency to be used for frequency response testing
- *
- * @param freq_hz Test frequency in Hertz
- */
-void Modulate_SetTestFrequency(uint32_t freq_hz);
 
 /**
  * @brief Generates a single-frequency test signal for frequency response analysis

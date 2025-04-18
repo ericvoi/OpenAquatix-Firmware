@@ -19,6 +19,7 @@
 #include "mess_input.h"
 #include "mess_feedback.h"
 #include "mess_evaluate.h"
+#include "mess_calibration.h"
 
 #include "sys_error.h"
 
@@ -506,6 +507,9 @@ static bool registerMessParams()
     return false;
   }
 
+  if (Calibrate_RegisterParams() == false) {
+    return false;
+  }
   return true;
 }
 

@@ -127,6 +127,14 @@ extern "C" {
 #define MIN_C1                      (0.5f)
 #define MAX_C1                      (300.0f)
 
+#define DEFAULT_MOD_CAL_LOWER_FREQ  28000
+#define MIN_MOD_CAL_LOWER_FREQ      15000
+#define MAX_MOD_CAL_LOWER_FREQ      90000
+
+#define DEFAULT_MOD_CAL_UPPER_FREQ  36000
+#define MIN_MOD_CAL_UPPER_FREQ      20000
+#define MAX_MOD_CAL_UPPER_FREQ      100000
+
 /* Exported macro ------------------------------------------------------------*/
 
 

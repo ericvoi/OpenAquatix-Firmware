@@ -45,7 +45,6 @@ static float motional_head_c0_nf = DEFAULT_C0;
 static float motional_head_l0_mh = DEFAULT_L0;
 static float parallel_c1_nf = DEFAULT_C1;
 
-
 /* Private function prototypes -----------------------------------------------*/
 
 bool convertToFrequencyFsk(BitMessage_t* bit_msg, WaveformStep_t* message_sequence);
@@ -86,16 +85,6 @@ bool Modulate_ApplyDuration(WaveformStep_t* message_sequence, uint16_t len)
   return true;
 }
 
-float Modulate_GetTransducerAmplitude(void)
-{
-  return output_amplitude;
-}
-
-void Modulate_ChangeTransducerAmplitude(float new_amplitude)
-{
-  output_amplitude = new_amplitude;
-}
-
 bool Modulate_StartTransducerOutput()
 {
   HAL_TIM_Base_Stop(&htim6);
@@ -123,11 +112,6 @@ void Modulate_TestOutput()
   test_sequence[1].relative_amplitude = output_amplitude;
 
   DAC_SetWaveformSequence(test_sequence, 2);
-}
-
-void Modulate_SetTestFrequency(uint32_t freq_hz)
-{
-  test_freq = freq_hz;
 }
 
 void Modulate_TestFrequencyResponse()

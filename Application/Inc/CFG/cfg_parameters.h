@@ -48,6 +48,10 @@ typedef enum {
   PARAM_C0,
   PARAM_L0,
   PARAM_C1,
+  // The lower frequency must be lower than the upper frequency but this is not
+  // enforced when setting the parameter only when a calibration is performed
+  PARAM_MOD_CAL_LOWER_FREQ,
+  PARAM_MOD_CAL_UPPER_FREQ,
   // Add new parameters here and nowhere else
   NUM_PARAM
 } ParamIds_t;

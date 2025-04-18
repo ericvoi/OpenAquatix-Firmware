@@ -58,8 +58,8 @@ void setBitDecisionFunction(void* argument);
 void configureSleep(void* argument);
 void setLedBrightness(void* argument);
 void toggleLed(void* argument);
-void setModCalFreq(void* argument);
-void setModCalFreqStep(void* argument);
+void setModCalLowerFreq(void* argument);
+void setModCalUpperFreq(void* argument);
 void updateTvr(void* argument);
 void modCalibration(void* argument);
 void exportModCalibration(void* argument);
@@ -377,10 +377,10 @@ static const MenuNode_t modConfigDacTransition = {
 };
 
 static MenuID_t modConfigCalChildren[] = {
-  MENU_ID_CFG_MOD_CAL_FREQ,   MENU_ID_CFG_MOD_CAL_SEP, 
-  MENU_ID_CFG_MOD_CAL_TVR,    MENU_ID_CFG_MOD_CAL_PERFORM, 
-  MENU_ID_CFG_MOD_CAL_EXP,    MENU_ID_CFG_MOD_CAL_TUNE, 
-  MENU_ID_CFG_MOD_CAL_RECV,   MENU_ID_CFG_MOD_CAL_VMAX
+  MENU_ID_CFG_MOD_CAL_LOWFREQ,  MENU_ID_CFG_MOD_CAL_HIFREQ, 
+  MENU_ID_CFG_MOD_CAL_TVR,      MENU_ID_CFG_MOD_CAL_PERFORM, 
+  MENU_ID_CFG_MOD_CAL_EXP,      MENU_ID_CFG_MOD_CAL_TUNE, 
+  MENU_ID_CFG_MOD_CAL_RECV,     MENU_ID_CFG_MOD_CAL_VMAX
 };
 static const MenuNode_t modConfigCalMenu = {
   .id = MENU_ID_CFG_MOD_CAL,
@@ -650,34 +650,34 @@ static const MenuNode_t univFhbfskConfigTones = {
   .parameters = &univFhbfskConfigTonesParam
 };
 
-static ParamContext_t modCalConfigFreqParam = {
+static ParamContext_t modCalConfigLowFreqParam = {
   .state = PARAM_STATE_0,
-  .param_id = MENU_ID_CFG_MOD_CAL_FREQ
+  .param_id = MENU_ID_CFG_MOD_CAL_LOWFREQ
 };
-static const MenuNode_t modCalConfigFreq = {
-  .id = MENU_ID_CFG_MOD_CAL_FREQ,
-  .description = "Set Frequency Range",
-  .handler = setModCalFreq,
+static const MenuNode_t modCalConfigLowFreq = {
+  .id = MENU_ID_CFG_MOD_CAL_LOWFREQ,
+  .description = "Lower Frequency for Calibration",
+  .handler = setModCalLowerFreq,
   .parent_id = MENU_ID_CFG_MOD_CAL,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &modCalConfigFreqParam
+  .parameters = &modCalConfigLowFreqParam
 };
 
-static ParamContext_t modCalConfigFreqStepParam = {
+static ParamContext_t modCalConfigUpperFreqParam = {
   .state = PARAM_STATE_0,
-  .param_id = MENU_ID_CFG_MOD_CAL_SEP
+  .param_id = MENU_ID_CFG_MOD_CAL_HIFREQ
 };
-static const MenuNode_t modCalConfigFreqStep = {
-  .id = MENU_ID_CFG_MOD_CAL_SEP,
-  .description = "Set Frequency Step",
-  .handler = setModCalFreqStep,
+static const MenuNode_t modCalConfigUpperFreq = {
+  .id = MENU_ID_CFG_MOD_CAL_HIFREQ,
+  .description = "Upper Frequency for Calibration",
+  .handler = setModCalUpperFreq,
   .parent_id = MENU_ID_CFG_MOD_CAL,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &modCalConfigFreqStepParam
+  .parameters = &modCalConfigUpperFreqParam
 };
 
 static ParamContext_t modCalConfigTvrParam = {
@@ -997,8 +997,8 @@ bool COMM_RegisterConfigurationMenu()
              registerMenu(&modConfigMethod) && registerMenu(&demodConfigSps) && 
              registerMenu(&demodConfigCalMenu) && registerMenu(&dauConfigUart) && 
              registerMenu(&dauConfigSleep) && registerMenu(&ledConfigBrightness) &&
-             registerMenu(&ledConfigToggle) && registerMenu(&modCalConfigFreq) &&
-             registerMenu(&modCalConfigFreqStep) && registerMenu(&modCalConfigTvr) && 
+             registerMenu(&ledConfigToggle) && registerMenu(&modCalConfigLowFreq) &&
+             registerMenu(&modCalConfigUpperFreq) && registerMenu(&modCalConfigTvr) && 
              registerMenu(&modCalConfigPerform) && registerMenu(&modCalConfigExport) &&
              registerMenu(&modCalConfigTune) && registerMenu(&modCalConfigRecv) && 
              registerMenu(&modCalConfigVmax) && registerMenu(&modFbConfigToggle) &&
@@ -1294,44 +1294,18 @@ void toggleLed(void* argument)
 }
 
 // TODO: change to be a registered parameter
-void setModCalFreq(void* argument)
+void setModCalLowerFreq(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
 
-  ParamState_t old_state = context->state->state;
-
-  do {
-    switch (context->state->state) {
-      case PARAM_STATE_0:
-        sprintf((char*) context->output_buffer, "\r\n\r\nPlease enter a new frequency from 25000 Hz - 38000 Hz:\r\n");
-        COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-        context->state->state = PARAM_STATE_1;
-        break;
-      case PARAM_STATE_1:
-        uint32_t new_freq = 0;
-        if (checkUint32(context->input, context->input_len, &new_freq, 25000, 38000) == true) {
-          Modulate_SetTestFrequency(new_freq);
-          sprintf((char*) context->output_buffer, "\r\nSuccessfully set the feedback frequency to %lu\r\n\r\n", new_freq);
-          COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          context->state->state = PARAM_STATE_COMPLETE;
-        }
-        else {
-          sprintf((char*) context->output_buffer, "\r\nInvalid Input!\r\n");
-          COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          context->state->state = PARAM_STATE_0;
-        }
-        break;
-      default:
-        context->state->state = PARAM_STATE_COMPLETE;
-        break;
-    }
-  } while (old_state > context->state->state);
+  COMMLoops_LoopUint32(context, PARAM_MOD_CAL_LOWER_FREQ);
 }
 
-void setModCalFreqStep(void* argument)
+void setModCalUpperFreq(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+
+  COMMLoops_LoopUint32(context, PARAM_MOD_CAL_UPPER_FREQ);
 }
 
 void updateTvr(void* argument)

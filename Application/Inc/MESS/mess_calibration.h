@@ -15,6 +15,8 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
 
+#include <stdbool.h>
+
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -34,7 +36,7 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-
+bool Calibrate_RegisterParams(void);
 
 /* Private defines -----------------------------------------------------------*/
 
