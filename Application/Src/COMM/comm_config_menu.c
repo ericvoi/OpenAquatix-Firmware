@@ -49,7 +49,6 @@ void getBitPeriod(void* argument);
 void getBandwidth(void* argument);
 void printConfigOptions(void* argument);
 void importConfiOptions(void* argument);
-void setModSps(void* argument);
 void setMaxDacStep(void* argument);
 void setOutputPower(void* argument);
 void setDemodSps(void* argument);
@@ -117,7 +116,7 @@ static const MenuNode_t univConfigMenu = {
 };
 
 static MenuID_t modConfigMenuChildren[] = {
-  MENU_ID_CFG_MOD_SPS,  MENU_ID_CFG_MOD_STEP, MENU_ID_CFG_MOD_CAL, 
+  MENU_ID_CFG_MOD_STEP, MENU_ID_CFG_MOD_CAL, 
   MENU_ID_CFG_MOD_FB,   MENU_ID_CFG_MOD_PWR
 };
 static const MenuNode_t modConfigMenu = {
@@ -353,21 +352,6 @@ static const MenuNode_t univConfigImport = {
   .num_children = 0,
   .access_level = 0,
   .parameters = &univConfigImportParam
-};
-
-static ParamContext_t modConfigSpsParam = {
-  .state = PARAM_STATE_0,
-  .param_id = MENU_ID_CFG_MOD_SPS
-};
-static const MenuNode_t modConfigSps = {
-  .id = MENU_ID_CFG_MOD_SPS,
-  .description = "Set DAC Sampling Rate",
-  .handler = setModSps,
-  .parent_id = MENU_ID_CFG_MOD,
-  .children_ids = NULL,
-  .num_children = 0,
-  .access_level = 0,
-  .parameters = &modConfigSpsParam
 };
 
 static ParamContext_t modConfigDacStepParam = {
@@ -895,7 +879,7 @@ bool COMM_RegisterConfigurationMenu()
              registerMenu(&univConfigFhbskMenu) && registerMenu(&univConfigBaud) && 
              registerMenu(&univConfigFc) && registerMenu(&univConfigBitPeriod) && 
              registerMenu(&univConfigExport) && registerMenu(&univConfigImport) && 
-             registerMenu(&modConfigSps) && registerMenu(&modConfigDacStep) &&
+             registerMenu(&setStationary) && registerMenu(&modConfigDacStep) &&
              registerMenu(&modConfigCalMenu) && registerMenu(&modConfigFeedbackMenu) && 
              registerMenu(&modConfigPwr) && registerMenu(&demodConfigSps) && 
              registerMenu(&demodConfigCalMenu) && registerMenu(&dauConfigUart) && 
@@ -912,8 +896,7 @@ bool COMM_RegisterConfigurationMenu()
              registerMenu(&demodConfigStartFcn) && registerMenu(&univFskConfigF0) &&
              registerMenu(&univFskConfigF1) && registerMenu(&univFhbfskConfigFreqSpacing) &&
              registerMenu(&univFhbfskConfigDwell) && registerMenu(&univConfigBandwidth) &&
-             registerMenu(&univFhbfskConfigTones) && registerMenu(&setNewId) &&
-             registerMenu(&setStationary);
+             registerMenu(&univFhbfskConfigTones) && registerMenu(&setNewId);
 
   return ret;
 }
@@ -1126,12 +1109,6 @@ void importConfiOptions(void* argument)
   FunctionContext_t* context = (FunctionContext_t*) argument;
 
   ImportExport_ImportConfiguration(context);
-}
-
-void setModSps(void* argument)
-{
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
 }
 
 void setMaxDacStep(void* argument)
