@@ -45,6 +45,8 @@ static float motional_head_c0_nf = DEFAULT_C0;
 static float motional_head_l0_mh = DEFAULT_L0;
 static float parallel_c1_nf = DEFAULT_C1;
 
+static float max_transducer_voltage = DEFAULT_MAX_TRANSDUCER_V;
+
 /* Private function prototypes -----------------------------------------------*/
 
 bool convertToFrequencyFsk(BitMessage_t* bit_msg, WaveformStep_t* message_sequence);
@@ -183,6 +185,13 @@ bool Modulate_RegisterParams()
   max_f = MAX_C1;
   if (Param_Register(PARAM_C1, "parallel cap c1 [nF]", PARAM_TYPE_FLOAT,
                      &parallel_c1_nf, sizeof(float), &min_f, &max_f) == false) {
+    return false;
+  }
+
+  min_f = MIN_MAX_TRANSDUCER_V;
+  max_f = MAX_MAX_TRANSDUCER_V;
+  if (Param_Register(PARAM_MAX_TRANSDUCER_VOLTAGE, "Maximum transducer voltage", PARAM_TYPE_FLOAT,
+                     &max_transducer_voltage, sizeof(float), &min_f, &max_f) == false) {
     return false;
   }
 

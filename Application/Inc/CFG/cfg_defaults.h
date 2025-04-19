@@ -135,6 +135,10 @@ extern "C" {
 #define MIN_MOD_CAL_UPPER_FREQ      20000
 #define MAX_MOD_CAL_UPPER_FREQ      100000
 
+#define DEFAULT_MAX_TRANSDUCER_V    (80.0f)
+#define MIN_MAX_TRANSDUCER_V        (10.0f)
+#define MAX_MAX_TRANSDUCER_V        (87.0f)
+
 /* Exported macro ------------------------------------------------------------*/
 
 

@@ -1346,7 +1346,8 @@ void updateOcrr(void* argument)
 void updateVmax(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_LoopFloat(context, PARAM_MAX_TRANSDUCER_VOLTAGE);
 }
 
 void toggleModFeedback(void* argument)
