@@ -275,6 +275,7 @@ void setLedColourHandler(void* argument)
         } else {
           context->state->state = PARAM_STATE_2;
         }
+        // fall through
       case PARAM_STATE_2: // Prompt for green
         sprintf((char*) context->output_buffer, "\r\n\r\nPlease enter a green value from 0-255\r\nGreen: ");
         COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
@@ -289,6 +290,7 @@ void setLedColourHandler(void* argument)
         } else {
           context->state->state = PARAM_STATE_4;
         }
+        // fall through
       case PARAM_STATE_4: // prompt blue
         sprintf((char*) context->output_buffer, "\r\n\r\nPlease enter a blue value from 0-255\r\nBlue: ");
         COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
