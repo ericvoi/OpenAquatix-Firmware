@@ -153,7 +153,7 @@ static const MenuNode_t demodConfigMenu = {
 };
 
 static MenuID_t dauConfigMenuChildren[] = {
-  MENU_ID_CFG_DAU_UART, MENU_ID_CFG_DAU_SLEEP
+  MENU_ID_CFG_DAU_SLEEP
 };
 static const MenuNode_t dauConfigMenu = {
   .id = MENU_ID_CFG_DAU,
@@ -527,20 +527,6 @@ static const MenuNode_t demodConfigSigShift = {
   .num_children = 0,
   .access_level = 0,
   .parameters = &demodConfigSigShiftParam
-};
-
-static MenuID_t dauConfigUartChildren[] = {
-  MENU_ID_CFG_DAU_UART_BAUD
-};
-static const MenuNode_t dauConfigUart = {
-  .id = MENU_ID_CFG_DAU_UART,
-  .description = "UART Configuration Options",
-  .handler = NULL,
-  .parent_id = MENU_ID_CFG_DAU,
-  .children_ids = dauConfigUartChildren,
-  .num_children = sizeof(dauConfigUartChildren) / sizeof(dauConfigUartChildren[0]),
-  .access_level = 0,
-  .parameters = NULL
 };
 
 static ParamContext_t dauConfigSleepParam = {
@@ -965,21 +951,6 @@ static const MenuNode_t demodCalConfigExport = {
   .parameters = &demodCalConfigExportParam
 };
 
-static ParamContext_t dauUartConfigBaudParam = {
-  .state = PARAM_STATE_0,
-  .param_id = MENU_ID_CFG_DAU_UART_BAUD
-};
-static const MenuNode_t dauUartConfigBaud = {
-  .id = MENU_ID_CFG_DAU_UART_BAUD,
-  .description = "Set UART Baud Rate",
-  .handler = setUartBaud,
-  .parent_id = MENU_ID_CFG_DAU_UART,
-  .children_ids = NULL,
-  .num_children = 0,
-  .access_level = 0,
-  .parameters = &dauUartConfigBaudParam
-};
-
 /* Exported function definitions ---------------------------------------------*/
 
 bool COMM_RegisterConfigurationMenu()
@@ -995,7 +966,7 @@ bool COMM_RegisterConfigurationMenu()
              registerMenu(&setStationary) && registerMenu(&modConfigDacTransition) &&
              registerMenu(&modConfigCalMenu) && registerMenu(&modConfigFeedbackMenu) && 
              registerMenu(&modConfigMethod) && registerMenu(&demodConfigSps) && 
-             registerMenu(&demodConfigCalMenu) && registerMenu(&dauConfigUart) && 
+             registerMenu(&demodConfigCalMenu) && 
              registerMenu(&dauConfigSleep) && registerMenu(&ledConfigBrightness) &&
              registerMenu(&ledConfigToggle) && registerMenu(&modCalConfigLowFreq) &&
              registerMenu(&modCalConfigUpperFreq) && registerMenu(&modCalConfigTvr) && 
@@ -1005,7 +976,7 @@ bool COMM_RegisterConfigurationMenu()
              registerMenu(&modFbConfigRatio) && registerMenu(&demodConfigSigShift) &&
              registerMenu(&demodCalConfigRatio) && registerMenu(&demodCalConfigPerform) && 
              registerMenu(&demodCalConfigLowFreq) && registerMenu(&demodCalConfigUpperFreq) && 
-             registerMenu(&demodCalConfigExport) && registerMenu(&dauUartConfigBaud) &&
+             registerMenu(&demodCalConfigExport) && 
              registerMenu(&demodConfigStartFcn) && registerMenu(&univFskConfigF0) &&
              registerMenu(&univFskConfigF1) && registerMenu(&univFhbfskConfigFreqSpacing) &&
              registerMenu(&univFhbfskConfigDwell) && registerMenu(&univConfigBandwidth) &&

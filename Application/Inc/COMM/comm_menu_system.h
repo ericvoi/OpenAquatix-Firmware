@@ -81,8 +81,6 @@ typedef enum {
   MENU_ID_CFG_DEMOD_DECISION,   // Select the bit decision maker
   MENU_ID_CFG_DEMOD_CMPTHRESH,  // Historical comparison threshold
   MENU_ID_CFG_DAU,              // Daughter card configuration options
-  MENU_ID_CFG_DAU_UART,         // UART configuration
-  MENU_ID_CFG_DAU_UART_BAUD,    // UART baud rate to use
   MENU_ID_CFG_DAU_SLEEP,        // Enable/disable sleep modes from the daughter card
   MENU_ID_CFG_LED,              // LED configuration options
   MENU_ID_CFG_LED_BRIGHTNESS,   // Set the brightness of the onboard LED
