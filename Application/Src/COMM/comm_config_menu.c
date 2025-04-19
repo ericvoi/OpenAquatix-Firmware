@@ -75,8 +75,8 @@ void setTransducerL0(void* argument);
 void setTransducerC1(void* argument);
 void setDemodCalRatio(void* argument);
 void performDemodCal(void* argument);
-void setDemodCalFreq(void* argument);
-void setDemodCalFreqStep(void* argument);
+void setDemodCalLowerFreq(void* argument);
+void setDemodCalUpperFreq(void* argument);
 void exportDemodCal(void* argument);
 void setUartBaud(void* argument);
 void setID(void* argument);
@@ -468,8 +468,8 @@ static const MenuNode_t demodConfigSps = {
 };
 
 static MenuID_t demodConfigCalChildren[] = {
-  MENU_ID_CFG_DEMOD_CAL_RATIO,  MENU_ID_CFG_DEMOD_CAL_PERFORM,
-  MENU_ID_CFG_DEMOD_CAL_FREQ,   MENU_ID_CFG_DEMOD_CAL_STEP,
+  MENU_ID_CFG_DEMOD_CAL_RATIO,     MENU_ID_CFG_DEMOD_CAL_PERFORM,
+  MENU_ID_CFG_DEMOD_CAL_LOWFREQ,   MENU_ID_CFG_DEMOD_CAL_HIFREQ,
   MENU_ID_CFG_DEMOD_CAL_EXP
 };
 static const MenuNode_t demodConfigCalMenu = {
@@ -904,34 +904,34 @@ static const MenuNode_t demodCalConfigPerform = {
   .parameters = &demodCalConfigPerformParam
 };
 
-static ParamContext_t demodCalConfigFreqParam = {
+static ParamContext_t demodCalConfigLowFreqParam = {
   .state = PARAM_STATE_0,
-  .param_id = MENU_ID_CFG_DEMOD_CAL_FREQ
+  .param_id = MENU_ID_CFG_DEMOD_CAL_LOWFREQ
 };
-static const MenuNode_t demodCalConfigFreq = {
-  .id = MENU_ID_CFG_DEMOD_CAL_FREQ,
-  .description = "Set Frequency Range",
-  .handler = setDemodCalFreq,
+static const MenuNode_t demodCalConfigLowFreq = {
+  .id = MENU_ID_CFG_DEMOD_CAL_LOWFREQ,
+  .description = "Lower frequency used for demodulation calibration",
+  .handler = setDemodCalLowerFreq,
   .parent_id = MENU_ID_CFG_DEMOD_CAL,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &demodCalConfigFreqParam
+  .parameters = &demodCalConfigLowFreqParam
 };
 
-static ParamContext_t demodCalConfigFreqStepParam = {
+static ParamContext_t demodCalConfigUpperFreqParam = {
   .state = PARAM_STATE_0,
-  .param_id = MENU_ID_CFG_DEMOD_CAL_STEP,
+  .param_id = MENU_ID_CFG_DEMOD_CAL_HIFREQ,
 };
-static const MenuNode_t demodCalConfigFreqStep = {
-  .id = MENU_ID_CFG_DEMOD_CAL_STEP,
-  .description = "Set Frequency Step",
-  .handler = setDemodCalFreqStep,
+static const MenuNode_t demodCalConfigUpperFreq = {
+  .id = MENU_ID_CFG_DEMOD_CAL_HIFREQ,
+  .description = "Upper frequency used for demodulation calibration",
+  .handler = setDemodCalUpperFreq,
   .parent_id = MENU_ID_CFG_DEMOD_CAL,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &demodCalConfigFreqStepParam
+  .parameters = &demodCalConfigUpperFreqParam
 };
 
 static ParamContext_t demodCalConfigExportParam = {
@@ -986,9 +986,9 @@ bool COMM_RegisterConfigurationMenu()
              registerMenu(&modCalConfigPerform) && registerMenu(&modCalConfigExport) &&
              registerMenu(&modCalConfigTune) && registerMenu(&modCalConfigRecv) && 
              registerMenu(&modCalConfigVmax) && registerMenu(&modFbConfigToggle) &&
-             registerMenu(&modFbConfigRatio) && registerMenu(&modFbConfigSps) &&
+             registerMenu(&modFbConfigRatio) && 
              registerMenu(&demodCalConfigRatio) && registerMenu(&demodCalConfigPerform) && 
-             registerMenu(&demodCalConfigFreq) && registerMenu(&demodCalConfigFreqStep) && 
+             registerMenu(&demodCalConfigLowFreq) && registerMenu(&demodCalConfigUpperFreq) && 
              registerMenu(&demodCalConfigExport) && registerMenu(&dauUartConfigBaud) &&
              registerMenu(&demodConfigStartFcn) && registerMenu(&univFskConfigF0) &&
              registerMenu(&univFskConfigF1) && registerMenu(&univFhbfskConfigFreqSpacing) &&
@@ -1277,7 +1277,6 @@ void toggleLed(void* argument)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-// TODO: change to be a registered parameter
 void setModCalLowerFreq(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
@@ -1393,16 +1392,18 @@ void performDemodCal(void* argument)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void setDemodCalFreq(void* argument)
+void setDemodCalLowerFreq(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_LoopUint32(context, PARAM_DEMOD_CAL_LOWER_FREQ);
 }
 
-void setDemodCalFreqStep(void* argument)
+void setDemodCalUpperFreq(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_LoopUint32(context, PARAM_DEMOD_CAL_UPPER_FREQ);
 }
 
 void exportDemodCal(void* argument)

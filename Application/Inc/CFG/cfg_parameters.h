@@ -53,6 +53,10 @@ typedef enum {
   PARAM_MOD_CAL_LOWER_FREQ,
   PARAM_MOD_CAL_UPPER_FREQ,
   PARAM_MAX_TRANSDUCER_VOLTAGE,
+  // The lower frequency must be lower than the upper frequency but this is not
+  // enforced when setting the parameter only when a calibration is performed
+  PARAM_DEMOD_CAL_LOWER_FREQ,
+  PARAM_DEMOD_CAL_UPPER_FREQ,
   // Add new parameters here and nowhere else
   NUM_PARAM
 } ParamIds_t;

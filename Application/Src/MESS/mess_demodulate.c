@@ -39,6 +39,10 @@ typedef struct {
 /* Private variables ---------------------------------------------------------*/
 
 static DemodulationDecision_t decision_method = DEFAULT_DEMOD_DECISION;
+
+static uint32_t lower_calibration_frequency = DEFAULT_DEMOD_CAL_LOWER_F;
+static uint32_t upper_calibration_frequency = DEFAULT_DEMOD_CAL_UPPER_F;
+
 static DemodulationHistory_t demodulation_history[NUM_DEMODULATION_HISTORY][MAX_FHBFSK_NUM_TONES];
 
 /* Private function prototypes -----------------------------------------------*/
@@ -146,6 +150,21 @@ bool Demodulate_RegisterParams()
                      &decision_method, sizeof(uint8_t), &min_u32, &max_u32) == false) {
     return false;
   }
+
+  min_u32 = MIN_DEMOD_CAL_LOWER_F;
+  max_u32 = MAX_DEMOD_CAL_LOWER_F;
+  if (Param_Register(PARAM_DEMOD_CAL_LOWER_FREQ, "demod cal lower frequency", PARAM_TYPE_UINT32,
+                     &lower_calibration_frequency, sizeof(uint32_t), &min_u32, &max_u32) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_DEMOD_CAL_LOWER_F;
+  max_u32 = MAX_DEMOD_CAL_LOWER_F;
+  if (Param_Register(PARAM_DEMOD_CAL_UPPER_FREQ, "demod cal upper frequency", PARAM_TYPE_UINT32,
+                     &upper_calibration_frequency, sizeof(uint32_t), &min_u32, &max_u32) == false) {
+    return false;
+  }
+
   return true;
 }
 

@@ -74,8 +74,8 @@ typedef enum {
   MENU_ID_CFG_DEMOD_CAL,        // Calibration options for demodulation
   MENU_ID_CFG_DEMOD_CAL_RATIO,  // Voltage division ratio on the feedback network
   MENU_ID_CFG_DEMOD_CAL_PERFORM,// Perform calibration on input amplifier
-  MENU_ID_CFG_DEMOD_CAL_FREQ,   // Frequency range used for calibration
-  MENU_ID_CFG_DEMOD_CAL_STEP,   // Frequency step used in calibration
+  MENU_ID_CFG_DEMOD_CAL_LOWFREQ,// Lower frequency used for demodulation calibration
+  MENU_ID_CFG_DEMOD_CAL_HIFREQ, // Upper frequency used for demodulation calibration
   MENU_ID_CFG_DEMOD_CAL_EXP,    // Export calibration results
   MENU_ID_CFG_DEMOD_START,      // Select the message start function to use
   MENU_ID_CFG_DEMOD_DECISION,   // Select the bit decision maker

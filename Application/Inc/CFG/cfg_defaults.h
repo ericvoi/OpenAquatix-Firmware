@@ -139,6 +139,14 @@ extern "C" {
 #define MIN_MAX_TRANSDUCER_V        (10.0f)
 #define MAX_MAX_TRANSDUCER_V        (87.0f)
 
+#define DEFAULT_DEMOD_CAL_LOWER_F   28000
+#define MIN_DEMOD_CAL_LOWER_F       15000
+#define MAX_DEMOD_CAL_LOWER_F       90000
+
+#define DEFAULT_DEMOD_CAL_UPPER_F   36000
+#define MIN_DEMOD_CAL_UPPER_F       20000
+#define MAX_DEMOD_CAL_UPPER_F       100000
+
 /* Exported macro ------------------------------------------------------------*/
 
 
