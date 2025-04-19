@@ -60,6 +60,8 @@ typedef enum {
   PARAM_DEMOD_CAL_UPPER_FREQ,
 
   PARAM_HISTORICAL_COMPARISON_THRESHOLD,
+  PARAM_LED_BRIGHTNESS,
+  PARAM_LED_ENABLE,
   // Add new parameters here and nowhere else
   NUM_PARAM
 } ParamIds_t;

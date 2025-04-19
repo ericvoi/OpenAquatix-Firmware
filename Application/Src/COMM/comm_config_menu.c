@@ -1262,13 +1262,15 @@ void configureSleep(void* argument)
 void setLedBrightness(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_LoopUint16(context, PARAM_LED_BRIGHTNESS);
 }
 
 void toggleLed(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_LoopToggle(context, PARAM_LED_ENABLE);
 }
 
 void setModCalLowerFreq(void* argument)

@@ -151,6 +151,14 @@ extern "C" {
 #define MIN_HIST_CMP_THRESH         (0.05f)
 #define MAX_HIST_CMP_THRESH         (0.5f)
 
+#define DEFAULT_LED_BRIGHTNESS      20
+#define MIN_LED_BRIGHTNESS          1
+#define MAX_LED_BRIGHTNESS          255
+
+#define DEFAULT_LED_STATE           (true)
+#define MIN_LED_STATE               (false)
+#define MAX_LED_STATE               (true)
+
 /* Exported macro ------------------------------------------------------------*/
 
 
