@@ -20,6 +20,8 @@ extern "C" {
 #include "mess_demodulate.h"
 #include "mess_modulate.h"
 
+#include "PGA113-driver.h"
+
 /* Private includes ----------------------------------------------------------*/
 
 
@@ -158,6 +160,14 @@ extern "C" {
 #define DEFAULT_LED_STATE           (true)
 #define MIN_LED_STATE               (false)
 #define MAX_LED_STATE               (true)
+
+#define DEFAULT_AGC_STATE           (false)
+#define MIN_AGC_STATE               (false)
+#define MAX_AGC_STATE               (true)
+
+#define DEFAULT_FIXED_PGA_GAIN      (PGA_GAIN_1)
+#define MIN_FIXED_PGA_GAIN          0
+#define MAX_FIXED_PGA_GAIN          (PGA_NUM_CODES - 1)
 
 /* Exported macro ------------------------------------------------------------*/
 

@@ -62,6 +62,8 @@ typedef enum {
   PARAM_HISTORICAL_COMPARISON_THRESHOLD,
   PARAM_LED_BRIGHTNESS,
   PARAM_LED_ENABLE,
+  PARAM_AGC_ENABLE,
+  PARAM_FIXED_PGA_GAIN,
   // Add new parameters here and nowhere else
   NUM_PARAM
 } ParamIds_t;

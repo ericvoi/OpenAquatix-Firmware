@@ -80,6 +80,8 @@ typedef enum {
   MENU_ID_CFG_DEMOD_START,      // Select the message start function to use
   MENU_ID_CFG_DEMOD_DECISION,   // Select the bit decision maker
   MENU_ID_CFG_DEMOD_CMPTHRESH,  // Historical comparison threshold
+  MENU_ID_CFG_DEMOD_AGCEN,      // Enable/disable automatic gain control (AGC)
+  MENU_ID_CFG_DEMOD_GAIN,       // Set fixed PGA gain
   MENU_ID_CFG_DAU,              // Daughter card configuration options
   MENU_ID_CFG_DAU_SLEEP,        // Enable/disable sleep modes from the daughter card
   MENU_ID_CFG_LED,              // LED configuration options
@@ -96,7 +98,6 @@ typedef enum {
   MENU_ID_DBG_PWR,              // Current power consumption
   MENU_ID_DBG_DFU,              // Enter DFU mode to flash new firmware over USB
   MENU_ID_DBG_RESETCONFIG,      // Reset saved configuration 
-  MENU_ID_DBG_INGAIN,           // [TEMP] Manually change the PGAs gain
   MENU_ID_HIST_PWR,             // History of power
   MENU_ID_HIST_PWR_PEAK,        // Peak power consumption since boot
   MENU_ID_HIST_PWR_BOOT,        // Total power consumption since boot

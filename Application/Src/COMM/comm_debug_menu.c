@@ -57,7 +57,6 @@ void printCurrentErrors(void* argument);
 void printCurrentPowerConsumption(void* argument);
 void enterDfuMode(void* argument);
 void resetSavedValues(void* argument);
-void changePgaGain(void* argument);
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -65,7 +64,7 @@ static MenuID_t debugMenuChildren[] = {MENU_ID_DBG_GPIO, MENU_ID_DBG_SETLED,
                                        MENU_ID_DBG_PRINT, MENU_ID_DBG_NOISE,
                                        MENU_ID_DBG_TEMP, MENU_ID_DBG_ERR,
                                        MENU_ID_DBG_PWR, MENU_ID_DBG_DFU,
-                                       MENU_ID_DBG_RESETCONFIG, MENU_ID_DBG_INGAIN};
+                                       MENU_ID_DBG_RESETCONFIG};
 static const MenuNode_t debugMenu = {
   .id = MENU_ID_DBG,
   .description = "Debug Menu",
@@ -212,21 +211,6 @@ static const MenuNode_t debugMenuReset = {
   .parameters = &debugMenuResetParam
 };
 
-static ParamContext_t debugMenuPgaGainParam = {
-  .state = PARAM_STATE_0,
-  .param_id = MENU_ID_DBG_INGAIN
-};
-static const MenuNode_t debugMenuPgaGain = {
-  .id = MENU_ID_DBG_INGAIN,
-  .description = "[TEMP] Manually change the PGAs gain",
-  .handler = changePgaGain,
-  .parent_id = MENU_ID_DBG,
-  .children_ids = NULL,
-  .num_children = 0,
-  .access_level = 0,
-  .parameters = &debugMenuPgaGainParam
-};
-
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -236,7 +220,6 @@ bool COMM_RegisterDebugMenu(void)
              registerMenu(&debugMenuSetLed) && registerMenu(&debugMenuPrint) &&
              registerMenu(&debugMenuNoise) && registerMenu(&debugMenuTemp) &&
              registerMenu(&debugMenuErr) && registerMenu(&debugMenuPwr) &&
-             registerMenu(&debugMenuPgaGain) &&
              registerMenu(&debugMenuDfu) && registerMenu(&debugMenuReset);
   return ret;
 }
@@ -404,42 +387,6 @@ void resetSavedValues(void* argument)
           HAL_NVIC_SystemReset();
         }
         context->state->state = PARAM_STATE_COMPLETE;
-        break;
-      default:
-        context->state->state = PARAM_STATE_COMPLETE;
-        break;
-    }
-  } while (old_state > context->state->state);
-}
-
-// temporary before automatic gain control
-void changePgaGain(void* argument)
-{
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
-  ParamState_t old_state = context->state->state;
-
-  do {
-    switch (context->state->state) {
-      case PARAM_STATE_0:
-        uint8_t current_gain = PGA_GetGain();
-        sprintf((char*) context->output_buffer, "\r\n\r\nEnter a gain code from 0-7:\r\n0: 1\r\n1: 2\r\n2: 5\r\n3: 10\r\n4: 20\r\n5: 50\r\n6: 100\r\n7: 200\r\nCurrent gain code is %d\r\n", current_gain);
-        COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-        context->state->state = PARAM_STATE_1;
-        break;
-      case PARAM_STATE_1:
-        uint8_t newGain = 0;
-        if (checkUint8(context->input, context->input_len, &newGain, 0, 7) == true) {
-          PGA_SetGain(newGain);
-          sprintf((char*) context->output_buffer, "\r\nSuccessfully set the PGA gain code to %d\r\n\r\n", newGain);
-          COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          context->state->state = PARAM_STATE_COMPLETE;
-        }
-        else {
-          sprintf((char*) context->output_buffer, "\r\nInvalid Input!\r\n");
-          COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          context->state->state = PARAM_STATE_0;
-        }
         break;
       default:
         context->state->state = PARAM_STATE_COMPLETE;

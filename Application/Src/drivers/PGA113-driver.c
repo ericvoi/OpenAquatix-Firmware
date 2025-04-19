@@ -37,7 +37,7 @@ extern DMA_HandleTypeDef  hdma_spi4_rx;
 
 volatile bool             spi4_dma_complete;
 bool                      pga_is_shutdown;
-volatile PGA_Gain_t       current_gain;
+volatile PgaGain_t       current_gain;
 
 uint16_t tx_buffer;
 uint16_t rx_buffer;
@@ -58,7 +58,7 @@ HAL_StatusTypeDef PGA_Init()
   return HAL_OK;
 }
 
-void PGA_SetGain(PGA_Gain_t gain)
+void PGA_SetGain(PgaGain_t gain)
 {
   tx_buffer = PGA_CMD_WRITE;
   tx_buffer |= PGA_CHANNEL;

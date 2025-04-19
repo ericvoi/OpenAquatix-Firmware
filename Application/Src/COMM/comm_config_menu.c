@@ -35,7 +35,6 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-void setEncoding(void* argument);
 void setErrorCorrection(void* argument);
 void setModulationMethod(void* argument);
 void setFskF0(void* argument);
@@ -56,6 +55,8 @@ void setDemodSps(void* argument);
 void setMessageStartFunction(void* argument);
 void setBitDecisionFunction(void* argument);
 void setHistoricalComparisonThreshold(void* argument);
+void toggleAgc(void* argument);
+void setFixedPgaGain(void* argument);
 void configureSleep(void* argument);
 void setLedBrightness(void* argument);
 void toggleLed(void* argument);
@@ -138,8 +139,9 @@ static const MenuNode_t modConfigMenu = {
 };
 
 static MenuID_t demodConfigMenuChildren[] = {
-  MENU_ID_CFG_DEMOD_SPS,      MENU_ID_CFG_DEMOD_CAL, MENU_ID_CFG_DEMOD_START,
-  MENU_ID_CFG_DEMOD_DECISION, MENU_ID_CFG_DEMOD_CMPTHRESH
+  MENU_ID_CFG_DEMOD_SPS,      MENU_ID_CFG_DEMOD_CAL,       MENU_ID_CFG_DEMOD_START,
+  MENU_ID_CFG_DEMOD_DECISION, MENU_ID_CFG_DEMOD_CMPTHRESH, MENU_ID_CFG_DEMOD_AGCEN,
+  MENU_ID_CFG_DEMOD_GAIN
 };
 static const MenuNode_t demodConfigMenu = {
   .id = MENU_ID_CFG_DEMOD,
@@ -527,6 +529,36 @@ static const MenuNode_t demodConfigSigShift = {
   .num_children = 0,
   .access_level = 0,
   .parameters = &demodConfigSigShiftParam
+};
+
+static ParamContext_t demodConfigUseAgcParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_DEMOD_AGCEN
+};
+static const MenuNode_t demodConfigUseAgc = {
+  .id = MENU_ID_CFG_DEMOD_AGCEN,
+  .description = "Enable/disable automatic gain control (AGC)",
+  .handler = toggleAgc,
+  .parent_id = MENU_ID_CFG_DEMOD,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &demodConfigUseAgcParam
+};
+
+static ParamContext_t demodConfigFixedGainParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_DEMOD_GAIN
+};
+static const MenuNode_t demodConfigFixedGain = {
+  .id = MENU_ID_CFG_DEMOD_GAIN,
+  .description = "Set fixed PGA gain",
+  .handler = setFixedPgaGain,
+  .parent_id = MENU_ID_CFG_DEMOD,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &demodConfigFixedGainParam
 };
 
 static ParamContext_t dauConfigSleepParam = {
@@ -984,25 +1016,22 @@ bool COMM_RegisterConfigurationMenu()
              registerMenu(&modConfigFixed) && registerMenu(&modConfigPowerMenu) &&
              registerMenu(&modPwrConfigTarget) && registerMenu(&modPwrConfigR) &&
              registerMenu(&modPwrConfigC0) && registerMenu(&modPwrConfigL0) &&
-             registerMenu(&modPwrConfigC1);
+             registerMenu(&modPwrConfigC1) && registerMenu(&demodConfigUseAgc) &&
+             registerMenu(&demodConfigFixedGain);
 
   return ret;
 }
 
 /* Private function definitions ----------------------------------------------*/
 
-void setEncoding(void* argument)
-{
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
-}
-
 void setErrorCorrection(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  char* descriptors[] = {"CRC-8", "CRC-16", "CRC-32", "Checksum-8", "Checksum-16", "Checksum-32"};
+  char* descriptors[] = {"CRC-8",      "CRC-16",      "CRC-32", 
+                         "Checksum-8", "Checksum-16", "Checksum-32"};
 
-  COMMLoops_LoopEnum(context, PARAM_ERROR_CORRECTION, descriptors, sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_ERROR_CORRECTION, descriptors, 
+    sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
 void setModulationMethod(void* argument)
@@ -1011,7 +1040,8 @@ void setModulationMethod(void* argument)
 
   char* descriptors[] = {"FSK", "FHBFSK"};
   
-  COMMLoops_LoopEnum(context, PARAM_MOD_DEMOD_METHOD, descriptors, sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_MOD_DEMOD_METHOD, descriptors, 
+    sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
 void setFskF0(void* argument)
@@ -1079,14 +1109,17 @@ void setBaudRate(void* argument)
       case PARAM_STATE_0:
         float current_value;
         if (Param_GetFloat(param_id, &current_value) == false) {
-          sprintf((char*) context->output_buffer, "\r\nError obtaining current value for %s\r\n", parameter_name);
+          sprintf((char*) context->output_buffer, "\r\nError obtaining current "
+                  "value for %s\r\n", parameter_name);
           COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
           context->state->state = PARAM_STATE_COMPLETE;
         }
         else {
-          sprintf((char*) context->output_buffer, "\r\n\r\nCurrent value of %s: %.2f\r\n", parameter_name, current_value);
+          sprintf((char*) context->output_buffer, "\r\n\r\nCurrent value of %s:"
+                  " %.2f\r\n", parameter_name, current_value);
           COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          sprintf((char*) context->output_buffer, "Please enter a new value from %.2f to %.2f:\r\n", min, max);
+          sprintf((char*) context->output_buffer, "Please enter a new value from"
+                  " %.2f to %.2f:\r\n", min, max);
           COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
           context->state->state = PARAM_STATE_1;
         }
@@ -1094,12 +1127,14 @@ void setBaudRate(void* argument)
       case PARAM_STATE_1:
         if (checkFloat(context->input, &new_baud, min, max) == true) {
           MESS_RoundBaud(&new_baud);
-          sprintf((char*) context->output_buffer, "\r\nThe closest allowable baud rate is %.2f. Is this ok? (y/n)\r\n", new_baud);
+          sprintf((char*) context->output_buffer, "\r\nThe closest allowable "
+                  "baud rate is %.2f. Is this ok? (y/n)\r\n", new_baud);
           COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
           context->state->state = PARAM_STATE_2;
           break;
         } else {
-          sprintf((char*) context->output_buffer, "\r\nValue %.2f is outside the range of %.2f and %.2f\r\n", new_baud, min, max);
+          sprintf((char*) context->output_buffer, "\r\nValue %.2f is outside "
+                  "the range of %.2f and %.2f\r\n", new_baud, min, max);
           COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
           context->state->state = PARAM_STATE_0;
         }
@@ -1109,7 +1144,8 @@ void setBaudRate(void* argument)
         if (checkYesNo(*context->input, &confirmed) == true) {
           if (confirmed == true) {
             if (Param_SetFloat(param_id, &new_baud) == true) {
-              sprintf((char*) context->output_buffer, "\r\n%s successfully set to new value of %.2f\r\n", parameter_name, new_baud);
+              sprintf((char*) context->output_buffer, "\r\n%s successfully set"
+              " to new value of %.2f\r\n", parameter_name, new_baud);
               COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
             }
             else {
@@ -1212,7 +1248,8 @@ void setModPowerControlMethod(void* argument)
 
   char* descriptors[] = {"Static DAC output", "Static Output Power"};
 
-  COMMLoops_LoopEnum(context, PARAM_MODULATION_OUTPUT_METHOD, descriptors, sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_MODULATION_OUTPUT_METHOD, descriptors, 
+    sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
 void setModFixedOutput(void* argument)
@@ -1234,7 +1271,8 @@ void setMessageStartFunction(void* argument)
 
   char* descriptors[] = {"Use amplitude threshold", "Use overlapping FFTs"};
 
-  COMMLoops_LoopEnum(context, PARAM_MSG_START_FCN, descriptors, sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_MSG_START_FCN, descriptors, 
+    sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
 void setBitDecisionFunction(void* argument)
@@ -1243,7 +1281,8 @@ void setBitDecisionFunction(void* argument)
 
   char* descriptors[] = {"Use energy comparison", "Use historical comparison"};
 
-  COMMLoops_LoopEnum(context, PARAM_DEMODULATION_DECISION, descriptors, sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_DEMODULATION_DECISION, descriptors, 
+    sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
 void setHistoricalComparisonThreshold(void* argument)
@@ -1251,6 +1290,24 @@ void setHistoricalComparisonThreshold(void* argument)
   FunctionContext_t* context = (FunctionContext_t*) argument;
 
   COMMLoops_LoopFloat(context, PARAM_HISTORICAL_COMPARISON_THRESHOLD);
+}
+
+void toggleAgc(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  COMMLoops_LoopToggle(context, PARAM_AGC_ENABLE);
+}
+
+void setFixedPgaGain(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  char* descriptors[] = {"1 V/V", "2 V/V", "5 V/V", "10 V/V", "20 V/V", 
+    "50 V/V", "100 V/V", "200 V/V"};
+
+  COMMLoops_LoopEnum(context, PARAM_FIXED_PGA_GAIN, descriptors, 
+    sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
 void configureSleep(void* argument)

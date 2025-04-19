@@ -116,6 +116,8 @@ uint16_t frequency_check_index_0;
 uint16_t frequency_check_index_1;
 
 static MsgStartFunctions_t message_start_function = DEFAULT_MSG_START_FCN;
+static bool automatic_gain_control = DEFAULT_AGC_STATE;
+static PgaGain_t fixed_pga_gain = DEFAULT_FIXED_PGA_GAIN;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -126,7 +128,7 @@ static float frequencyToIndex(float frequency);
 static bool checkFftConditions(uint16_t check_length, float multiplier);
 static uint16_t findStartPosition(uint16_t analysis_index, uint16_t check_length);
 static bool printReceivedWaveform(char* preamble_sequence);
-static void updateFrequencyIndices();
+static void updateFrequencyIndices(void);
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -413,6 +415,19 @@ bool Input_RegisterParams()
   uint32_t max = MAX_MSG_START_FCN;
   if (Param_Register(PARAM_MSG_START_FCN, "message start function", PARAM_TYPE_UINT8,
                      &message_start_function, sizeof(uint8_t), &min, &max) == false) {
+    return false;
+  }
+
+  min = MIN_AGC_STATE;
+  max = MAX_AGC_STATE;
+  if (Param_Register(PARAM_AGC_ENABLE, "automatic gain control", PARAM_TYPE_UINT8,
+                     &automatic_gain_control, sizeof(uint8_t), &min, &max) == false) {
+    return false;
+  }
+  min = MIN_FIXED_PGA_GAIN;
+  max = MAX_FIXED_PGA_GAIN;
+  if (Param_Register(PARAM_FIXED_PGA_GAIN, "the fixed PGA gain code", PARAM_TYPE_UINT8,
+                     &fixed_pga_gain, sizeof(uint8_t), &min, &max) == false) {
     return false;
   }
 
