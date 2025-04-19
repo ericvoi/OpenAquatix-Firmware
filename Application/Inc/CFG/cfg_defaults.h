@@ -147,6 +147,10 @@ extern "C" {
 #define MIN_DEMOD_CAL_UPPER_F       20000
 #define MAX_DEMOD_CAL_UPPER_F       100000
 
+#define DEFAULT_HIST_CMP_THRESH     (0.25f)
+#define MIN_HIST_CMP_THRESH         (0.05f)
+#define MAX_HIST_CMP_THRESH         (0.5f)
+
 /* Exported macro ------------------------------------------------------------*/
 
 

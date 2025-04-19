@@ -55,6 +55,7 @@ void setModFixedOutput(void* argument);
 void setDemodSps(void* argument);
 void setMessageStartFunction(void* argument);
 void setBitDecisionFunction(void* argument);
+void setHistoricalComparisonThreshold(void* argument);
 void configureSleep(void* argument);
 void setLedBrightness(void* argument);
 void toggleLed(void* argument);
@@ -137,8 +138,8 @@ static const MenuNode_t modConfigMenu = {
 };
 
 static MenuID_t demodConfigMenuChildren[] = {
-  MENU_ID_CFG_DEMOD_SPS, MENU_ID_CFG_DEMOD_CAL, MENU_ID_CFG_DEMOD_START,
-  MENU_ID_CFG_DEMOD_DECISION
+  MENU_ID_CFG_DEMOD_SPS,      MENU_ID_CFG_DEMOD_CAL, MENU_ID_CFG_DEMOD_START,
+  MENU_ID_CFG_DEMOD_DECISION, MENU_ID_CFG_DEMOD_CMPTHRESH
 };
 static const MenuNode_t demodConfigMenu = {
   .id = MENU_ID_CFG_DEMOD,
@@ -511,6 +512,21 @@ static const MenuNode_t demodConfigDecisionFcn = {
   .num_children = 0,
   .access_level = 0,
   .parameters = &demodConfigDecisionFcnParam
+};
+
+static ParamContext_t demodConfigSigShiftParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_DEMOD_CMPTHRESH
+};
+static const MenuNode_t demodConfigSigShift = {
+  .id = MENU_ID_CFG_DEMOD_CMPTHRESH,
+  .description = "Set the historical comparison threshold",
+  .handler = setHistoricalComparisonThreshold,
+  .parent_id = MENU_ID_CFG_DEMOD,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &demodConfigSigShiftParam
 };
 
 static MenuID_t dauConfigUartChildren[] = {
@@ -986,7 +1002,7 @@ bool COMM_RegisterConfigurationMenu()
              registerMenu(&modCalConfigPerform) && registerMenu(&modCalConfigExport) &&
              registerMenu(&modCalConfigTune) && registerMenu(&modCalConfigRecv) && 
              registerMenu(&modCalConfigVmax) && registerMenu(&modFbConfigToggle) &&
-             registerMenu(&modFbConfigRatio) && 
+             registerMenu(&modFbConfigRatio) && registerMenu(&demodConfigSigShift) &&
              registerMenu(&demodCalConfigRatio) && registerMenu(&demodCalConfigPerform) && 
              registerMenu(&demodCalConfigLowFreq) && registerMenu(&demodCalConfigUpperFreq) && 
              registerMenu(&demodCalConfigExport) && registerMenu(&dauUartConfigBaud) &&
@@ -1257,6 +1273,13 @@ void setBitDecisionFunction(void* argument)
   char* descriptors[] = {"Use energy comparison", "Use historical comparison"};
 
   COMMLoops_LoopEnum(context, PARAM_DEMODULATION_DECISION, descriptors, sizeof(descriptors) / sizeof(descriptors[0]));
+}
+
+void setHistoricalComparisonThreshold(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  COMMLoops_LoopFloat(context, PARAM_HISTORICAL_COMPARISON_THRESHOLD);
 }
 
 void configureSleep(void* argument)

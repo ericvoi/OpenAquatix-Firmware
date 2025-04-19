@@ -79,6 +79,7 @@ typedef enum {
   MENU_ID_CFG_DEMOD_CAL_EXP,    // Export calibration results
   MENU_ID_CFG_DEMOD_START,      // Select the message start function to use
   MENU_ID_CFG_DEMOD_DECISION,   // Select the bit decision maker
+  MENU_ID_CFG_DEMOD_CMPTHRESH,  // Historical comparison threshold
   MENU_ID_CFG_DAU,              // Daughter card configuration options
   MENU_ID_CFG_DAU_UART,         // UART configuration
   MENU_ID_CFG_DAU_UART_BAUD,    // UART baud rate to use
