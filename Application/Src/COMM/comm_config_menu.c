@@ -80,7 +80,6 @@ void performDemodCal(void* argument);
 void setDemodCalLowerFreq(void* argument);
 void setDemodCalUpperFreq(void* argument);
 void exportDemodCal(void* argument);
-void setUartBaud(void* argument);
 void setID(void* argument);
 void setStationaryFlag(void* argument);
 
@@ -1460,12 +1459,6 @@ void setDemodCalUpperFreq(void* argument)
 }
 
 void exportDemodCal(void* argument)
-{
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
-}
-
-void setUartBaud(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
   context->state->state = PARAM_STATE_COMPLETE;
