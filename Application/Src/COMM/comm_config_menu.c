@@ -68,7 +68,6 @@ void updateOcrr(void* argument);
 void updateVmax(void* argument);
 void toggleModFeedback(void* argument);
 void setModFeedbackRatio(void* argument);
-void setModFeedbackSps(void* argument);
 void setModOutputPower(void* argument);
 void setTransducerR(void* argument);
 void setTransducerC0(void* argument);
@@ -394,7 +393,7 @@ static const MenuNode_t modConfigCalMenu = {
 };
 
 static MenuID_t modConfigFeedbackChildren[] = {
-  MENU_ID_CFG_MOD_FB_EN, MENU_ID_CFG_MOD_FB_RATIO, MENU_ID_CFG_MOD_FB_SPS
+  MENU_ID_CFG_MOD_FB_EN, MENU_ID_CFG_MOD_FB_RATIO
 };
 static const MenuNode_t modConfigFeedbackMenu = {
   .id = MENU_ID_CFG_MOD_FB,
@@ -798,21 +797,6 @@ static const MenuNode_t modFbConfigRatio = {
   .num_children = 0,
   .access_level = 0,
   .parameters = &modFbConfigRatioParam
-};
-
-static ParamContext_t modFbConfigSpsParam = {
-  .state = PARAM_STATE_0,
-  .param_id = MENU_ID_CFG_MOD_FB_SPS
-};
-static const MenuNode_t modFbConfigSps = {
-  .id = MENU_ID_CFG_MOD_FB_SPS,
-  .description = "Set Sampling Rate",
-  .handler = setModFeedbackSps,
-  .parent_id = MENU_ID_CFG_MOD_FB,
-  .children_ids = NULL,
-  .num_children = 0,
-  .access_level = 0,
-  .parameters = &modFbConfigSpsParam
 };
 
 static ParamContext_t modPwrConfigTargetParam = {
@@ -1357,12 +1341,6 @@ void toggleModFeedback(void* argument)
 }
 
 void setModFeedbackRatio(void* argument)
-{
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
-}
-
-void setModFeedbackSps(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
   context->state->state = PARAM_STATE_COMPLETE;

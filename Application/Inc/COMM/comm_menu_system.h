@@ -61,7 +61,6 @@ typedef enum {
   MENU_ID_CFG_MOD_FB,           // Modulation feedback network options
   MENU_ID_CFG_MOD_FB_EN,        // Enable or disable the feedback network (saves CPU cycles)
   MENU_ID_CFG_MOD_FB_RATIO,     // Voltage division ratio used in the feedback network
-  MENU_ID_CFG_MOD_FB_SPS,       // ADC sampling rate in feedback network
   MENU_ID_CFG_MOD_METHOD,       // Method to control output power
   MENU_ID_CFG_MOD_FIXED,        // Fixed relative DAC output strength to use
   MENU_ID_CFG_MOD_PWROPT,       // Fixed output power level options
