@@ -322,11 +322,13 @@ void transmitString(FunctionContext_t* context, bool is_feedback)
             }
           }
           if (MESS_AddMessageToTxQ(&msg) == pdPASS) {
-            sprintf((char*) context->output_buffer, "\r\nSuccessfully added to feedback queue!\r\n\r\n");
+            sprintf((char*) context->output_buffer, "\r\nSuccessfully added to"
+            " %s queue!\r\n\r\n", is_feedback ? "feedback network" : "transducer");
             COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
           }
           else {
-            sprintf((char*) context->output_buffer, "\r\nError adding message to feedback queue\r\n\r\n");
+            sprintf((char*) context->output_buffer, "\r\nError adding message to"
+            " %s queue\r\n\r\n", is_feedback ? "feedback network" : "transducer");
             COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
           }
           context->state->state = PARAM_STATE_COMPLETE;
@@ -367,11 +369,13 @@ void transmitInt(FunctionContext_t* context, bool is_feedback)
           msg.length_bits = 8 * sizeof(uint32_t);
           memcpy(&msg.data[0], &input, sizeof(uint32_t));
           if (MESS_AddMessageToTxQ(&msg) == pdPASS) {
-            sprintf((char*) context->output_buffer, "\r\nSuccessfully added to feedback queue!\r\n\r\n");
+            sprintf((char*) context->output_buffer, "\r\nSuccessfully added to"
+            " %s queue!\r\n\r\n", is_feedback ? "feedback network" : "transducer");
             COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
           }
           else {
-            sprintf((char*) context->output_buffer, "\r\nError adding message to feedback queue\r\n\r\n");
+            sprintf((char*) context->output_buffer, "\r\nError adding message to"
+            " %s queue\r\n\r\n", is_feedback ? "feedback network" : "transducer");
             COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
           }
           context->state->state = PARAM_STATE_COMPLETE;
@@ -412,11 +416,13 @@ void transmitFloat(FunctionContext_t* context, bool is_feedback)
           msg.length_bits = 8 * sizeof(float);
           memcpy(&msg.data[0], &input, sizeof(float));
           if (MESS_AddMessageToTxQ(&msg) == pdPASS) {
-            sprintf((char*) context->output_buffer, "\r\nSuccessfully added to feedback queue!\r\n\r\n");
+            sprintf((char*) context->output_buffer, "\r\nSuccessfully added to"
+            " %s queue!\r\n\r\n", is_feedback ? "feedback network" : "transducer");
             COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
           }
           else {
-            sprintf((char*) context->output_buffer, "\r\nError adding message to feedback queue\r\n\r\n");
+            sprintf((char*) context->output_buffer, "\r\nError adding message to"
+            " %s queue\r\n\r\n", is_feedback ? "feedback network" : "transducer");
             COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
           }
           context->state->state = PARAM_STATE_COMPLETE;
