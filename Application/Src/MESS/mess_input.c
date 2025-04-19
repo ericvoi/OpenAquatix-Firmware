@@ -16,6 +16,7 @@
 #include "cfg_defaults.h"
 #include "cfg_parameters.h"
 #include "usb_comm.h"
+#include "PGA113-driver.h"
 #include "cmsis_os.h"
 #include "arm_math.h"
 #include "arm_const_structs.h"
@@ -404,6 +405,18 @@ bool Input_PrintWaveform(bool* print_next_waveform, bool fully_received)
     if (printReceivedWaveform(print_waveform_last_sequence) == false) {
       return false;
     }
+  }
+
+  return true;
+}
+
+bool Input_UpdatePgaGain()
+{
+  // TODO: add automatic gain control
+  if (automatic_gain_control == true) return false;
+
+  if (PGA_GetGain() != fixed_pga_gain) {
+    PGA_SetGain(fixed_pga_gain);
   }
 
   return true;

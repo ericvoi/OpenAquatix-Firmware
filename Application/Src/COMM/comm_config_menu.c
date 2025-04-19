@@ -1302,8 +1302,7 @@ void setFixedPgaGain(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
 
-  char* descriptors[] = {"1 V/V", "2 V/V", "5 V/V", "10 V/V", "20 V/V", 
-    "50 V/V", "100 V/V", "200 V/V"};
+  char* descriptors[] = {"1", "2", "5", "10", "20", "50", "100", "200"};
 
   COMMLoops_LoopEnum(context, PARAM_FIXED_PGA_GAIN, descriptors, 
     sizeof(descriptors) / sizeof(descriptors[0]));

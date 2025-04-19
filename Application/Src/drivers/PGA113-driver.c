@@ -37,7 +37,7 @@ extern DMA_HandleTypeDef  hdma_spi4_rx;
 
 volatile bool             spi4_dma_complete;
 bool                      pga_is_shutdown;
-volatile PgaGain_t       current_gain;
+volatile PgaGain_t        current_gain;
 
 uint16_t tx_buffer;
 uint16_t rx_buffer;

@@ -139,6 +139,11 @@ void MESS_StartTask(void* argument)
         }
         break;
       case LISTENING:
+
+        if (Input_UpdatePgaGain() == false) {
+          Error_Routine(ERROR_MESS_PROCESSING);
+          break;
+        }
         // Wait for an edge/chirp or send a message if received
         MessageFlags_t flags = checkFlags();
 
@@ -209,6 +214,10 @@ void MESS_StartTask(void* argument)
             (input_bit_msg.bit_count >= input_bit_msg.final_length) &&
             (input_bit_msg.preamble_received == true);
 
+        if (Input_UpdatePgaGain() == false) {
+          Error_Routine(ERROR_MESS_PROCESSING);
+          break;
+        }
         if (Input_SegmentBlocks() == false) {
           Error_Routine(ERROR_MESS_PROCESSING);
           break;
