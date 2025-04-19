@@ -1183,7 +1183,7 @@ void getBitPeriod(void* argument)
   float bit_period_ms;
 
   if (MESS_GetBitPeriod(&bit_period_ms) == false) {
-    COMM_TransmitData("Internal Error!\r\n", CALC_LEN, context->comm_interface);
+    COMM_TransmitData("\r\nInternal Error!\r\n", CALC_LEN, context->comm_interface);
     context->state->state = PARAM_STATE_COMPLETE;
     return;
   }
@@ -1201,7 +1201,7 @@ void getBandwidth(void* argument)
   uint32_t bandwidth, lower_freq, upper_freq;
 
   if (MESS_GetBandwidth(&bandwidth, &lower_freq, &upper_freq) == false) {
-    COMM_TransmitData("Internal Error!\r\n", CALC_LEN, context->comm_interface);
+    COMM_TransmitData("\r\nInternal Error!\r\n", CALC_LEN, context->comm_interface);
     context->state->state = PARAM_STATE_COMPLETE;
     return;
   }
@@ -1308,10 +1308,12 @@ void setFixedPgaGain(void* argument)
     sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
+// TODO: implement
 void configureSleep(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
 void setLedBrightness(void* argument)
@@ -1342,10 +1344,12 @@ void setModCalUpperFreq(void* argument)
   COMMLoops_LoopUint32(context, PARAM_MOD_CAL_UPPER_FREQ);
 }
 
+// TODO: implement
 void updateTvr(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
 void modCalibration(void* argument)
@@ -1359,22 +1363,28 @@ void modCalibration(void* argument)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
+// TODO: implement
 void exportModCalibration(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
+// TODO: implement
 void tuneMatchingNetwork(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
+// TODO: implement
 void updateOcrr(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
 void updateVmax(void* argument)
@@ -1384,16 +1394,20 @@ void updateVmax(void* argument)
   COMMLoops_LoopFloat(context, PARAM_MAX_TRANSDUCER_VOLTAGE);
 }
 
+// TODO: implement
 void toggleModFeedback(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
+// TODO: implement
 void setModFeedbackRatio(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
 void setModOutputPower(void* argument)
@@ -1431,16 +1445,20 @@ void setTransducerC1(void* argument)
   COMMLoops_LoopFloat(context, PARAM_C1);
 }
 
+// TODO: implement
 void setDemodCalRatio(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
+// TODO: implement
 void performDemodCal(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
 void setDemodCalLowerFreq(void* argument)
@@ -1457,10 +1475,12 @@ void setDemodCalUpperFreq(void* argument)
   COMMLoops_LoopUint32(context, PARAM_DEMOD_CAL_UPPER_FREQ);
 }
 
+// TODO: implement
 void exportDemodCal(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
 void setID(void* argument)

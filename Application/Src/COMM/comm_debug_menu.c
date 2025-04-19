@@ -226,10 +226,12 @@ bool COMM_RegisterDebugMenu(void)
 
 /* Private function definitions ----------------------------------------------*/
 
+// TODO: implement
 void getGpioStatus(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
 void setLedColourHandler(void* argument)
@@ -338,22 +340,28 @@ void performNoiseAnalysis(void* argument)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
+// TODO: implement
 void printCurrentTemp(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
+// TODO: implement
 void printCurrentErrors(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
+// TODO: implement
 void printCurrentPowerConsumption(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
 void resetSavedValues(void* argument)

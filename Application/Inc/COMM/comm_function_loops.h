@@ -125,6 +125,13 @@ void COMMLoops_LoopEnum(FunctionContext_t* context, ParamIds_t param_id, char** 
  */
 void COMMLoops_LoopToggle(FunctionContext_t* context, ParamIds_t param_id);
 
+/**
+ * @brief Tells the user that a feature has not been implemented yet
+ * 
+ * @param context Communication context containing state machine and I/O buffers
+ */
+void COMMLoops_NotImplemented(FunctionContext_t* context);
+
 /* Private defines -----------------------------------------------------------*/
 
 #ifdef __cplusplus

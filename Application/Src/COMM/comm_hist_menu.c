@@ -9,6 +9,7 @@
 
 #include "comm_menu_registration.h"
 #include "comm_menu_system.h"
+#include "comm_function_loops.h"
 #include <stdbool.h>
 
 /* Private typedef -----------------------------------------------------------*/
@@ -250,62 +251,82 @@ bool COMM_RegisterHistoryMenu()
 
 /* Private function definitions ----------------------------------------------*/
 
+// TODO: implement
 void printReceivedMessages(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
+// TODO: implement
 void printSentMessages(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
+// TODO: implement
 void printErrorLog(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
+// TODO: implement
 void printPeakPwr(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
+// TODO: implement
 void printPwrSinceBoot(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
+// TODO: implement
 void printAvgPwr(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
+// TODO: implement
 void printCurrPwr(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
+// TODO: implement
 void printCurrTemp(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
+// TODO: implement
 void printPeakTemp(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
+// TODO: implement
 void printAvgTemp(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
