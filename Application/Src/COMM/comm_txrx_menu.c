@@ -20,9 +20,12 @@
 
 #include "check_inputs.h"
 #include "usb_comm.h"
+
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 /* Private typedef -----------------------------------------------------------*/
 
@@ -52,6 +55,10 @@ void transmitBits(FunctionContext_t* context, bool is_feedback);
 void transmitString(FunctionContext_t* context, bool is_feedback);
 void transmitInt(FunctionContext_t* context, bool is_feedback);
 void transmitFloat(FunctionContext_t* context, bool is_feedback);
+
+bool parseHexString(FunctionContext_t* context, uint16_t* num_bytes, uint8_t* decoded_bytes);
+bool isPowerOf2(uint16_t x);
+void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_feedback);
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -224,12 +231,14 @@ bool COMM_RegisterTxRxMenu()
 void transmitBitsOut(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+
+  transmitBits(context, false);
 }
  
 void transmitBitsFb(void* argument) {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+
+  transmitBits(context, true);
 }
 
 void transmitStringOut(void* argument)
@@ -284,7 +293,43 @@ void togglePrint(void* argument)
 
 void transmitBits(FunctionContext_t* context, bool is_feedback)
 {
-  // TODO: implement
+  ParamState_t old_state = context->state->state;
+
+  do {
+    switch (context->state->state) {
+      case PARAM_STATE_0:
+        sprintf((char*) context->output_buffer, "\r\n\r\nPlease enter up to %u "
+            "bytes in binary data in hexademical to send to the %s with the "
+            "format 'F6 1D'...\r\n"
+            "Note: The number of bytes must be a power of 2\r\n",
+            PACKET_DATA_MAX_LENGTH_BYTES,
+            is_feedback ? "feedback network" : "transducer");
+        COMM_TransmitData(context->output_buffer, CALC_LEN, 
+            context->comm_interface);
+        context->state->state = PARAM_STATE_1;
+        break;
+      case PARAM_STATE_1:
+        uint8_t binary_data[PACKET_DATA_MAX_LENGTH_BYTES];
+        uint16_t num_bytes;
+        if (parseHexString(context, &num_bytes, binary_data) == false) {
+          context->state->state = PARAM_STATE_0;
+        }
+        else {
+          Message_t msg;
+          msg.type = is_feedback ? MSG_TRANSMIT_FEEDBACK : MSG_TRANSMIT_TRANSDUCER;
+          msg.timestamp = osKernelGetTickCount();
+          msg.data_type = BITS;
+          msg.length_bits = num_bytes * 8;
+          memcpy(msg.data, binary_data, num_bytes);
+
+          sendMessageToTxQueue(context, &msg, is_feedback);
+        }
+        break;
+      default:
+        context->state->state = PARAM_STATE_COMPLETE;
+        break;
+    }
+  } while (old_state > context->state->state);
 }
 
 void transmitString(FunctionContext_t* context, bool is_feedback)
@@ -295,16 +340,19 @@ void transmitString(FunctionContext_t* context, bool is_feedback)
     switch (context->state->state) {
       case PARAM_STATE_0:
         sprintf((char*) context->output_buffer, "\r\n\r\nPlease enter a string to "
-            "send to the %s with a maximum length of 128 characters:\r\n", 
-            is_feedback ? "feedback network" : "transducer");
-        COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
+            "send to the %s with a maximum length of %u characters:\r\n", 
+            is_feedback ? "feedback network" : "transducer",
+            PACKET_DATA_MAX_LENGTH_BYTES);
+        COMM_TransmitData(context->output_buffer, CALC_LEN, 
+            context->comm_interface);
         context->state->state = PARAM_STATE_1;
         break;
       case PARAM_STATE_1:
         if (context->input_len > 128) {
           sprintf((char*) context->output_buffer, "\r\nInput string must be"
-              "less than 128 characters!\r\n");
-          COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
+              "less than %u characters!\r\n", PACKET_DATA_MAX_LENGTH_BYTES);
+          COMM_TransmitData(context->output_buffer, CALC_LEN, 
+              context->comm_interface);
           context->state->state = PARAM_STATE_0;
         }
         else {
@@ -318,20 +366,11 @@ void transmitString(FunctionContext_t* context, bool is_feedback)
               msg.data[i] = context->input[i];
             }
             else {
-              msg.data[i] = context->input[i];
+              msg.data[i] = '\0';
             }
           }
-          if (MESS_AddMessageToTxQ(&msg) == pdPASS) {
-            sprintf((char*) context->output_buffer, "\r\nSuccessfully added to"
-            " %s queue!\r\n\r\n", is_feedback ? "feedback network" : "transducer");
-            COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          }
-          else {
-            sprintf((char*) context->output_buffer, "\r\nError adding message to"
-            " %s queue\r\n\r\n", is_feedback ? "feedback network" : "transducer");
-            COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          }
-          context->state->state = PARAM_STATE_COMPLETE;
+          
+          sendMessageToTxQueue(context, &msg, is_feedback);
         }
         break;
       default:
@@ -351,14 +390,16 @@ void transmitInt(FunctionContext_t* context, bool is_feedback)
         sprintf((char*) context->output_buffer, "\r\n\r\nPlease enter an integer to "
             "send to the %s between 0 and 4,294,967,295:\r\n", 
             is_feedback ? "feedback network" : "transducer");
-        COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
+        COMM_TransmitData(context->output_buffer, CALC_LEN, 
+            context->comm_interface);
         context->state->state = PARAM_STATE_1;
         break;
       case PARAM_STATE_1:
         uint32_t input;
         if (checkUint32(context->input, context->input_len, &input, 0, 4294967295) == false) {
           sprintf((char*) context->output_buffer, "\r\nInvalid input!\r\n");
-          COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
+          COMM_TransmitData(context->output_buffer, CALC_LEN, 
+              context->comm_interface);
           context->state->state = PARAM_STATE_0;
         }
         else {
@@ -368,17 +409,8 @@ void transmitInt(FunctionContext_t* context, bool is_feedback)
           msg.data_type = INTEGER;
           msg.length_bits = 8 * sizeof(uint32_t);
           memcpy(&msg.data[0], &input, sizeof(uint32_t));
-          if (MESS_AddMessageToTxQ(&msg) == pdPASS) {
-            sprintf((char*) context->output_buffer, "\r\nSuccessfully added to"
-            " %s queue!\r\n\r\n", is_feedback ? "feedback network" : "transducer");
-            COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          }
-          else {
-            sprintf((char*) context->output_buffer, "\r\nError adding message to"
-            " %s queue\r\n\r\n", is_feedback ? "feedback network" : "transducer");
-            COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          }
-          context->state->state = PARAM_STATE_COMPLETE;
+          
+          sendMessageToTxQueue(context, &msg, is_feedback);
         }
         break;
       default:
@@ -415,17 +447,8 @@ void transmitFloat(FunctionContext_t* context, bool is_feedback)
           msg.data_type = FLOAT;
           msg.length_bits = 8 * sizeof(float);
           memcpy(&msg.data[0], &input, sizeof(float));
-          if (MESS_AddMessageToTxQ(&msg) == pdPASS) {
-            sprintf((char*) context->output_buffer, "\r\nSuccessfully added to"
-            " %s queue!\r\n\r\n", is_feedback ? "feedback network" : "transducer");
-            COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          }
-          else {
-            sprintf((char*) context->output_buffer, "\r\nError adding message to"
-            " %s queue\r\n\r\n", is_feedback ? "feedback network" : "transducer");
-            COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          }
-          context->state->state = PARAM_STATE_COMPLETE;
+
+          sendMessageToTxQueue(context, &msg, is_feedback);
         }
         break;
       default:
@@ -433,4 +456,102 @@ void transmitFloat(FunctionContext_t* context, bool is_feedback)
         break;
     }
   } while (old_state > context->state->state);
+}
+
+bool parseHexString(FunctionContext_t* context, uint16_t* num_bytes, uint8_t* decoded_bytes)
+{
+  if (context == NULL || num_bytes == NULL) {
+    COMM_TransmitData("\r\nInternal Error!\r\n", CALC_LEN, 
+        context->comm_interface);
+    return false;
+  }
+
+  const char* ptr = context->input;
+  uint16_t ptr_index = 0;
+  *num_bytes = 0;
+  bool high_digit = true;
+  uint8_t current_byte;
+
+  // skip preceding whitespace
+  while (ptr[ptr_index] != '\0' && isspace((unsigned char) ptr[ptr_index])) ptr_index++;
+
+  // skip 0x if present
+  if (ptr[ptr_index] == '0' && 
+      (ptr[ptr_index + 1] == 'x' || ptr[ptr_index + 1] == 'X')) {
+
+    ptr_index += 2;
+  }
+
+  while (ptr[ptr_index] != '\0' && *num_bytes < PACKET_DATA_MAX_LENGTH_BYTES) {
+
+    if (ptr_index >= context->input_len || ptr[ptr_index] == '\0') break;
+
+    // Common delimiters to skip
+    if (isspace((unsigned char) ptr[ptr_index]) || ptr[ptr_index] == ',' || ptr[ptr_index] == ':') {
+      ptr_index++;
+      continue;
+    }
+
+    uint8_t nibble;
+    if (ptr[ptr_index] >= '0' && ptr[ptr_index] <= '9') {
+      nibble = ptr[ptr_index] - '0';
+    }
+    else if (ptr[ptr_index] >= 'a' && ptr[ptr_index] <= 'f') {
+      nibble = ptr[ptr_index] - 'a' + 10;
+    }
+    else if (ptr[ptr_index] >= 'A' && ptr[ptr_index] <= 'F') {
+      nibble = ptr[ptr_index] - 'A' + 10;
+    } else {
+      COMM_TransmitData("\r\nError: Unknown character detected\r\n", CALC_LEN,
+          context->comm_interface);
+      return false;
+    }
+
+    if (high_digit == true) {
+      current_byte = nibble << 4;
+      high_digit = false;
+    } 
+    else {
+      current_byte |= nibble;
+      decoded_bytes[(*num_bytes)++] = current_byte;
+      high_digit = true;
+    } 
+
+    ptr_index++;
+  }
+
+  if (isPowerOf2(*num_bytes) == true && high_digit == true &&
+      *num_bytes <= PACKET_DATA_MAX_LENGTH_BYTES) {
+    return true;
+  }
+  else { 
+    sprintf((char*) context->output_buffer,"\r\nError: The input length must "
+        "be a power of 2 and less than %u. The received input is %u bytes long\r\n",
+        PACKET_DATA_MAX_LENGTH_BYTES, *num_bytes);
+    COMM_TransmitData(context->output_buffer, CALC_LEN, 
+        context->comm_interface);
+    return false;
+  }
+}
+
+bool isPowerOf2(uint16_t x)
+{
+  return (x != 0) && ((x & (x - 1)) == 0);
+}
+
+void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_feedback)
+{
+  if (MESS_AddMessageToTxQ(msg) == pdPASS) {
+    sprintf((char*) context->output_buffer, "\r\nSuccessfully added to"
+        " %s queue!\r\n\r\n", is_feedback ? "feedback network" : "transducer");
+    COMM_TransmitData(context->output_buffer, CALC_LEN, 
+        context->comm_interface);
+  }
+  else {
+    sprintf((char*) context->output_buffer, "\r\nError adding message to"
+        " %s queue\r\n\r\n", is_feedback ? "feedback network" : "transducer");
+    COMM_TransmitData(context->output_buffer, CALC_LEN, 
+        context->comm_interface);
+  }
+  context->state->state = PARAM_STATE_COMPLETE;
 }
