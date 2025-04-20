@@ -51,7 +51,6 @@ void importConfiOptions(void* argument);
 void setDacTransitionDuration(void* argument);
 void setModPowerControlMethod(void* argument);
 void setModFixedOutput(void* argument);
-void setDemodSps(void* argument);
 void setMessageStartFunction(void* argument);
 void setBitDecisionFunction(void* argument);
 void setHistoricalComparisonThreshold(void* argument);
@@ -138,9 +137,9 @@ static const MenuNode_t modConfigMenu = {
 };
 
 static MenuID_t demodConfigMenuChildren[] = {
-  MENU_ID_CFG_DEMOD_SPS,      MENU_ID_CFG_DEMOD_CAL,       MENU_ID_CFG_DEMOD_START,
-  MENU_ID_CFG_DEMOD_DECISION, MENU_ID_CFG_DEMOD_CMPTHRESH, MENU_ID_CFG_DEMOD_AGCEN,
-  MENU_ID_CFG_DEMOD_GAIN
+  MENU_ID_CFG_DEMOD_CAL,       MENU_ID_CFG_DEMOD_START, 
+  MENU_ID_CFG_DEMOD_DECISION,  MENU_ID_CFG_DEMOD_CMPTHRESH, 
+  MENU_ID_CFG_DEMOD_AGCEN,     MENU_ID_CFG_DEMOD_GAIN
 };
 static const MenuNode_t demodConfigMenu = {
   .id = MENU_ID_CFG_DEMOD,
@@ -452,21 +451,6 @@ static const MenuNode_t modConfigPowerMenu = {
   .num_children = sizeof(modConfigPowerChildren) / sizeof(modConfigPowerChildren[0]),
   .access_level = 0,
   .parameters = NULL,
-};
-
-static ParamContext_t demodConfigSpsParam = {
-  .state = PARAM_STATE_0,
-  .param_id = MENU_ID_CFG_DEMOD_SPS
-};
-static const MenuNode_t demodConfigSps = {
-  .id = MENU_ID_CFG_DEMOD_SPS,
-  .description = "Set ADC sampling rate",
-  .handler = setDemodSps,
-  .parent_id = MENU_ID_CFG_DEMOD,
-  .children_ids = NULL,
-  .num_children = 0,
-  .access_level = 0,
-  .parameters = &demodConfigSpsParam
 };
 
 static MenuID_t demodConfigCalChildren[] = {
@@ -996,7 +980,7 @@ bool COMM_RegisterConfigurationMenu()
              registerMenu(&univConfigExport) && registerMenu(&univConfigImport) && 
              registerMenu(&setStationary) && registerMenu(&modConfigDacTransition) &&
              registerMenu(&modConfigCalMenu) && registerMenu(&modConfigFeedbackMenu) && 
-             registerMenu(&modConfigMethod) && registerMenu(&demodConfigSps) && 
+             registerMenu(&modConfigMethod) && 
              registerMenu(&demodConfigCalMenu) && 
              registerMenu(&dauConfigSleep) && registerMenu(&ledConfigBrightness) &&
              registerMenu(&ledConfigToggle) && registerMenu(&modCalConfigLowFreq) &&
@@ -1256,12 +1240,6 @@ void setModFixedOutput(void* argument)
   FunctionContext_t* context = (FunctionContext_t*) argument;
   
   COMMLoops_LoopFloat(context, PARAM_OUTPUT_AMPLITUDE);
-}
-
-void setDemodSps(void* argument)
-{
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
 }
 
 void setMessageStartFunction(void* argument)

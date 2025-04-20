@@ -70,7 +70,6 @@ typedef enum {
   MENU_ID_CFG_MOD_PWROPT_L0,    // Series inductance of the motional branch
   MENU_ID_CFG_MOD_PWROPT_C1,    // Parallel capacitance with the motional branch
   MENU_ID_CFG_DEMOD,            // Waveform demodulation parameters
-  MENU_ID_CFG_DEMOD_SPS,        // ADC sampling rate on input
   MENU_ID_CFG_DEMOD_CAL,        // Calibration options for demodulation
   MENU_ID_CFG_DEMOD_CAL_RATIO,  // Voltage division ratio on the feedback network
   MENU_ID_CFG_DEMOD_CAL_PERFORM,// Perform calibration on input amplifier
