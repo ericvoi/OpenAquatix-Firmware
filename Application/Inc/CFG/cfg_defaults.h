@@ -18,6 +18,9 @@ extern "C" {
 #include "mess_main.h"
 #include "mess_error_correction.h"
 #include "mess_demodulate.h"
+#include "mess_modulate.h"
+
+#include "PGA113-driver.h"
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -29,9 +32,9 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 
-#define DEFAULT_BAUD_RATE           100.0f
-#define MIN_BAUD_RATE               10.0f
-#define MAX_BAUD_RATE               1000.0f
+#define DEFAULT_BAUD_RATE           (100.0f)
+#define MIN_BAUD_RATE               (10.0f)
+#define MAX_BAUD_RATE               (1000.0f)
 
 #define DEFAULT_OUTPUT_AMPLITUDE    (0.1f)
 #define MIN_OUTPUT_AMPLITUDE        (0.02f)
@@ -98,6 +101,73 @@ extern "C" {
 #define MIN_DEMOD_DECISION          0
 #define MAX_DEMOD_DECISION          (NUM_DEMODULATION_DECISION - 1)
 
+#define DEFAULT_DAC_TRANSITION_LEN  64
+#define MIN_DAC_TRANSITION_LEN      8
+#define MAX_DAC_TRANSITION_LEN      1000
+
+#define DEFAULT_MOD_OUTPUT_METHOD   (MOD_OUTPUT_STATIC_DAC)
+#define MIN_MOD_OUTPUT_METHOD       0
+#define MAX_MOD_OUTPUT_METHOD       (NUM_MOD_OUTPUT_LEVEL_CONTROL - 1)
+
+#define DEFAULT_MOD_TARGET_POWER    (0.5f)
+#define MIN_MOD_TARGET_POWER        (0.005f)
+#define MAX_MOD_TARGET_POWER        (5.0f)
+
+#define DEFAULT_R                   (300.0f)
+#define MIN_R                       (50.0f)
+#define MAX_R                       (1000.0f)
+
+#define DEFAULT_C0                  (1.91f)
+#define MIN_C0                      (0.1f)
+#define MAX_C0                      (50.0f)
+
+#define DEFAULT_L0                  (13.3f)
+#define MIN_L0                      (0.5f)
+#define MAX_L0                      (400.0f)
+
+#define DEFAULT_C1                  (20.0f)
+#define MIN_C1                      (0.5f)
+#define MAX_C1                      (300.0f)
+
+#define DEFAULT_MOD_CAL_LOWER_FREQ  28000
+#define MIN_MOD_CAL_LOWER_FREQ      15000
+#define MAX_MOD_CAL_LOWER_FREQ      90000
+
+#define DEFAULT_MOD_CAL_UPPER_FREQ  36000
+#define MIN_MOD_CAL_UPPER_FREQ      20000
+#define MAX_MOD_CAL_UPPER_FREQ      100000
+
+#define DEFAULT_MAX_TRANSDUCER_V    (80.0f)
+#define MIN_MAX_TRANSDUCER_V        (10.0f)
+#define MAX_MAX_TRANSDUCER_V        (87.0f)
+
+#define DEFAULT_DEMOD_CAL_LOWER_F   28000
+#define MIN_DEMOD_CAL_LOWER_F       15000
+#define MAX_DEMOD_CAL_LOWER_F       90000
+
+#define DEFAULT_DEMOD_CAL_UPPER_F   36000
+#define MIN_DEMOD_CAL_UPPER_F       20000
+#define MAX_DEMOD_CAL_UPPER_F       100000
+
+#define DEFAULT_HIST_CMP_THRESH     (0.25f)
+#define MIN_HIST_CMP_THRESH         (0.05f)
+#define MAX_HIST_CMP_THRESH         (0.5f)
+
+#define DEFAULT_LED_BRIGHTNESS      20
+#define MIN_LED_BRIGHTNESS          1
+#define MAX_LED_BRIGHTNESS          255
+
+#define DEFAULT_LED_STATE           (true)
+#define MIN_LED_STATE               (false)
+#define MAX_LED_STATE               (true)
+
+#define DEFAULT_AGC_STATE           (false)
+#define MIN_AGC_STATE               (false)
+#define MAX_AGC_STATE               (true)
+
+#define DEFAULT_FIXED_PGA_GAIN      (PGA_GAIN_1)
+#define MIN_FIXED_PGA_GAIN          0
+#define MAX_FIXED_PGA_GAIN          (PGA_NUM_CODES - 1)
 
 /* Exported macro ------------------------------------------------------------*/
 

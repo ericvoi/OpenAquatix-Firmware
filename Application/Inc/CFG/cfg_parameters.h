@@ -41,6 +41,29 @@ typedef enum {
   PARAM_STATIONARY_FLAG,
   PARAM_ERROR_CORRECTION,
   PARAM_DEMODULATION_DECISION,
+  PARAM_DAC_TRANSITION_LEN,
+  PARAM_MODULATION_OUTPUT_METHOD,
+  PARAM_MODULATION_TARGET_POWER,
+  PARAM_R,
+  PARAM_C0,
+  PARAM_L0,
+  PARAM_C1,
+  // The lower frequency must be lower than the upper frequency but this is not
+  // enforced when setting the parameter only when a calibration is performed
+  PARAM_MOD_CAL_LOWER_FREQ,
+  PARAM_MOD_CAL_UPPER_FREQ,
+
+  PARAM_MAX_TRANSDUCER_VOLTAGE,
+  // The lower frequency must be lower than the upper frequency but this is not
+  // enforced when setting the parameter only when a calibration is performed
+  PARAM_DEMOD_CAL_LOWER_FREQ,
+  PARAM_DEMOD_CAL_UPPER_FREQ,
+
+  PARAM_HISTORICAL_COMPARISON_THRESHOLD,
+  PARAM_LED_BRIGHTNESS,
+  PARAM_LED_ENABLE,
+  PARAM_AGC_ENABLE,
+  PARAM_FIXED_PGA_GAIN,
   // Add new parameters here and nowhere else
   NUM_PARAM
 } ParamIds_t;
@@ -54,20 +77,6 @@ typedef enum {
   PARAM_TYPE_INT32,
   PARAM_TYPE_FLOAT
 } ParamType_t;
-
-typedef struct {
-  ParamIds_t id;
-  char name[32];
-  ParamType_t type;
-  void* value_ptr;
-  size_t value_size;
-  union {
-    struct {uint32_t min; uint32_t max;} u32;
-    struct {int32_t min; int32_t max;} i32;
-    struct {float min; float max;} f;
-  } limits;
-  bool is_modified;
-} Parameter_t;
 
 /* Exported constants --------------------------------------------------------*/
 
@@ -477,6 +486,29 @@ bool Param_SetInt32(ParamIds_t id, int32_t* value);
  */
 bool Param_SetFloat(ParamIds_t id, float* value);
 
+/**
+ * @brief Returns the parameter type for a parameter
+ *
+ * @param id Identifier for the parameter
+ * @param param_type Type for the parameter
+ *
+ * @return true if parameter exists, false otherwise
+ *
+ * @note Blocks indefinitely while waiting for mutex acquisition
+ * @note The parameter must be set
+ */
+bool Param_GetParamType(ParamIds_t id, ParamType_t* param_type);
+
+/**
+ * @brief Saves parameters to flash (non-volatile) memory
+ *
+ * Loops through the parameters and checks if one has changed. If a parameter
+ * has changed, save it to the next flash word. If the next address is outside
+ * of the flash sector, reset flash. Can save multiple parameters
+ *
+ * @return true if all modified parameters saved
+ *         false if error saving parameter
+ */
 bool Param_SaveToFlash(void);
 
 /**

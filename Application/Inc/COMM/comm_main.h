@@ -21,7 +21,7 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
-#define MAX_COMM_IN_BUFFER_SIZE   256
+#define MAX_COMM_IN_BUFFER_SIZE   512
 #define MAX_COMM_OUT_BUFFER_SIZE  512
 
 #define CALC_LEN                  0 // A length of 0 makes the function call strlen

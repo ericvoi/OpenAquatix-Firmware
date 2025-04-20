@@ -163,6 +163,8 @@ void COMM_StartTask(void *argument)
         if (menu_context.current_menu->num_children == 0) {
           // no children so handle function
           // Prepare function argument
+          updateInputEcho(msg_buffer, msg_buf_len);
+          osDelay(1);
           resetInputEcho();
           FunctionContext_t context = {
               .state = menu_context.current_menu->parameters,
@@ -171,7 +173,9 @@ void COMM_StartTask(void *argument)
               .comm_interface = menu_context.interface
           };
           strncpy(context.input, (char*) msg_buffer, MAX_COMM_IN_BUFFER_SIZE);
+
           (*menu_context.current_menu->handler)(&context);
+          resetInputEcho();
 
           if (menu_context.current_menu->parameters->state == PARAM_STATE_COMPLETE) {
             menu_context.current_menu->parameters->state = PARAM_STATE_0;

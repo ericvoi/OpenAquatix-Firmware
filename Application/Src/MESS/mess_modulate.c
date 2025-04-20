@@ -36,6 +36,17 @@ static WaveformStep_t test_sequence[2];
 
 static uint32_t test_freq = 30000;
 
+static OutputStrengthMethod_t output_strength_method = DEFAULT_MOD_OUTPUT_METHOD;
+
+static float target_power_w = DEFAULT_MOD_TARGET_POWER;
+
+static float motional_head_r_ohm = DEFAULT_R;
+static float motional_head_c0_nf = DEFAULT_C0;
+static float motional_head_l0_mh = DEFAULT_L0;
+static float parallel_c1_nf = DEFAULT_C1;
+
+static float max_transducer_voltage = DEFAULT_MAX_TRANSDUCER_V;
+
 /* Private function prototypes -----------------------------------------------*/
 
 bool convertToFrequencyFsk(BitMessage_t* bit_msg, WaveformStep_t* message_sequence);
@@ -76,16 +87,6 @@ bool Modulate_ApplyDuration(WaveformStep_t* message_sequence, uint16_t len)
   return true;
 }
 
-float Modulate_GetTransducerAmplitude(void)
-{
-  return output_amplitude;
-}
-
-void Modulate_ChangeTransducerAmplitude(float new_amplitude)
-{
-  output_amplitude = new_amplitude;
-}
-
 bool Modulate_StartTransducerOutput()
 {
   HAL_TIM_Base_Stop(&htim6);
@@ -115,11 +116,6 @@ void Modulate_TestOutput()
   DAC_SetWaveformSequence(test_sequence, 2);
 }
 
-void Modulate_SetTestFrequency(uint32_t freq_hz)
-{
-  test_freq = freq_hz;
-}
-
 void Modulate_TestFrequencyResponse()
 {
   test_sequence[0].duration_us = FEEDBACK_TEST_DURATION_MS * 1000;
@@ -143,10 +139,59 @@ uint32_t Modulate_GetFhbfskFrequency(bool bit, uint16_t bit_index)
 
 bool Modulate_RegisterParams()
 {
-  float min = MIN_OUTPUT_AMPLITUDE;
-  float max = MAX_OUTPUT_AMPLITUDE;
+  float min_f = MIN_OUTPUT_AMPLITUDE;
+  float max_f = MAX_OUTPUT_AMPLITUDE;
   if (Param_Register(PARAM_OUTPUT_AMPLITUDE, "output amplitude", PARAM_TYPE_FLOAT,
-                     &output_amplitude, sizeof(float), &min, &max) == false) {
+                     &output_amplitude, sizeof(float), &min_f, &max_f) == false) {
+    return false;
+  }
+
+  uint32_t min_u32 = MIN_MOD_OUTPUT_METHOD;
+  uint32_t max_u32 = MAX_MOD_OUTPUT_METHOD;
+  if (Param_Register(PARAM_MODULATION_OUTPUT_METHOD, "output strength method", PARAM_TYPE_UINT8,
+                     &output_strength_method, sizeof(uint8_t), &min_u32, &max_u32) == false) {
+    return false;
+  }
+
+  min_f = MIN_MOD_TARGET_POWER;
+  max_f = MAX_MOD_TARGET_POWER;
+  if (Param_Register(PARAM_MODULATION_TARGET_POWER, "target output power", PARAM_TYPE_FLOAT,
+                     &target_power_w, sizeof(float), &min_f, &max_f) == false) {
+    return false;
+  }
+
+  min_f = MIN_R;
+  max_f = MAX_R;
+  if (Param_Register(PARAM_R, "motional head R [ohm]", PARAM_TYPE_FLOAT,
+                     &motional_head_r_ohm, sizeof(float), &min_f, &max_f) == false) {
+    return false;
+  }
+
+  min_f = MIN_C0;
+  max_f = MAX_C0;
+  if (Param_Register(PARAM_C0, "motional head C0 [nF]", PARAM_TYPE_FLOAT,
+                     &motional_head_c0_nf, sizeof(float), &min_f, &max_f) == false) {
+    return false;
+  }
+
+  min_f = MIN_L0;
+  max_f = MAX_L0;
+  if (Param_Register(PARAM_L0, "motional head L0 [mH]", PARAM_TYPE_FLOAT,
+                     &motional_head_l0_mh, sizeof(float), &min_f, &max_f) == false) {
+    return false;
+  }
+
+  min_f = MIN_C1;
+  max_f = MAX_C1;
+  if (Param_Register(PARAM_C1, "parallel cap c1 [nF]", PARAM_TYPE_FLOAT,
+                     &parallel_c1_nf, sizeof(float), &min_f, &max_f) == false) {
+    return false;
+  }
+
+  min_f = MIN_MAX_TRANSDUCER_V;
+  max_f = MAX_MAX_TRANSDUCER_V;
+  if (Param_Register(PARAM_MAX_TRANSDUCER_VOLTAGE, "Maximum transducer voltage", PARAM_TYPE_FLOAT,
+                     &max_transducer_voltage, sizeof(float), &min_f, &max_f) == false) {
     return false;
   }
 

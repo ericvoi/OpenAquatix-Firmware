@@ -19,6 +19,7 @@
 #include "mess_input.h"
 #include "mess_feedback.h"
 #include "mess_evaluate.h"
+#include "mess_calibration.h"
 
 #include "sys_error.h"
 
@@ -138,6 +139,11 @@ void MESS_StartTask(void* argument)
         }
         break;
       case LISTENING:
+
+        if (Input_UpdatePgaGain() == false) {
+          Error_Routine(ERROR_MESS_PROCESSING);
+          break;
+        }
         // Wait for an edge/chirp or send a message if received
         MessageFlags_t flags = checkFlags();
 
@@ -208,6 +214,10 @@ void MESS_StartTask(void* argument)
             (input_bit_msg.bit_count >= input_bit_msg.final_length) &&
             (input_bit_msg.preamble_received == true);
 
+        if (Input_UpdatePgaGain() == false) {
+          Error_Routine(ERROR_MESS_PROCESSING);
+          break;
+        }
         if (Input_SegmentBlocks() == false) {
           Error_Routine(ERROR_MESS_PROCESSING);
           break;
@@ -341,6 +351,42 @@ void MESS_RoundBaud(float* baud)
   *baud = 1000000.0f / (baud_multiple_durations * length_multiple_us);
 }
 
+bool MESS_GetBandwidth(uint32_t* bandwidth, uint32_t* lower_freq, uint32_t* upper_freq)
+{
+  if (mod_demod_method == MOD_DEMOD_FSK) {
+    if (fsk_f0 == fsk_f1) {
+      return false;
+    }
+    if (fsk_f0 < fsk_f1) {
+      *lower_freq = fsk_f0;
+      *upper_freq = fsk_f1;
+      *bandwidth = fsk_f1 - fsk_f0;
+    }
+    else {
+      *lower_freq = fsk_f0;
+      *upper_freq = fsk_f1;
+      *bandwidth = fsk_f0 - fsk_f1;
+    }
+    return true;
+  }
+  else if (mod_demod_method == MOD_DEMOD_FHBFSK) {
+    *lower_freq = Modulate_GetFhbfskFrequency(false, 0);
+
+    uint16_t last_bit_index = fhbfsk_num_tones * fhbfsk_dwell_time - 1;
+    *upper_freq = Modulate_GetFhbfskFrequency(true, last_bit_index);
+
+    *bandwidth = *upper_freq - *lower_freq;
+    return true;
+  }
+  return false;
+}
+
+bool MESS_GetBitPeriod(float* bit_period_ms)
+{
+  *bit_period_ms =  (1.0f / baud_rate) * 1000;
+  return true;
+}
+
 /* Private function definitions ----------------------------------------------*/
 
 static void switchState(ProcessingState_t newState)
@@ -466,6 +512,13 @@ static bool registerMessParams()
     return false;
   } 
 
+  if (DAC_RegisterParams() == false) {
+    return false;
+  }
+
+  if (Calibrate_RegisterParams() == false) {
+    return false;
+  }
   return true;
 }
 

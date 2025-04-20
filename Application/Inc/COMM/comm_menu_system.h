@@ -32,7 +32,6 @@ typedef enum {
   MENU_ID_TXRX,                 // Transmission/reception menu
   MENU_ID_EVAL,                 // Evaluation option menu
   MENU_ID_CFG_UNIV,             // Universal waveform porcessing parameters
-  MENU_ID_CFG_UNIV_ENC,         // How characters are encoded
   MENU_ID_CFG_UNIV_ERR,         // Error correction scheme
   MENU_ID_CFG_UNIV_MOD,         // Modulation scheme used for both reception and transmission
   MENU_ID_CFG_UNIV_FSK,         // FSK based waveform processing parameters
@@ -45,15 +44,14 @@ typedef enum {
   MENU_ID_CFG_UNIV_BAUD,        // Raw baud rate used for transmission
   MENU_ID_CFG_UNIV_FC,          // Center frequency used 
   MENU_ID_CFG_UNIV_BP,          // Bit period used in the baud rate. Currently the inverse of ^^
-  MENU_ID_CFG_UNIV_BANDWIDTH,   // Bandwidth to use for universal modulation methods with a spread of frequencies 
+  MENU_ID_CFG_UNIV_BANDWIDTH,   // Bandwidth
   MENU_ID_CFG_UNIV_EXP,         // Export the configuration options used
   MENU_ID_CFG_UNIV_IMP,         // Import configuration options
   MENU_ID_CFG_MOD,              // Waveform modulation parameters
-  MENU_ID_CFG_MOD_SPS,          // Samples per second (SPS) to use with the DAC
-  MENU_ID_CFG_MOD_STEP,         // Maximum code change to use with the DAC
+  MENU_ID_CFG_MOD_TLEN,         // Maximum code change to use with the DAC
   MENU_ID_CFG_MOD_CAL,          // Calibration menu for the modem's modulation
-  MENU_ID_CFG_MOD_CAL_FREQ,     // Frequency range to use for modulation calibration
-  MENU_ID_CFG_MOD_CAL_SEP,      // Separation between frequencies in calibration
+  MENU_ID_CFG_MOD_CAL_LOWFREQ,  // Lower frequency for calibration
+  MENU_ID_CFG_MOD_CAL_HIFREQ,   // Upper frequency for calibration
   MENU_ID_CFG_MOD_CAL_TVR,      // Import the TVR of the hydrophone being used
   MENU_ID_CFG_MOD_CAL_PERFORM,  // Perform a calibration
   MENU_ID_CFG_MOD_CAL_EXP,      // Export calibration data
@@ -63,21 +61,27 @@ typedef enum {
   MENU_ID_CFG_MOD_FB,           // Modulation feedback network options
   MENU_ID_CFG_MOD_FB_EN,        // Enable or disable the feedback network (saves CPU cycles)
   MENU_ID_CFG_MOD_FB_RATIO,     // Voltage division ratio used in the feedback network
-  MENU_ID_CFG_MOD_FB_SPS,       // ADC sampling rate in feedback network
-  MENU_ID_CFG_MOD_PWR,          // Target output power level
+  MENU_ID_CFG_MOD_METHOD,       // Method to control output power
+  MENU_ID_CFG_MOD_FIXED,        // Fixed relative DAC output strength to use
+  MENU_ID_CFG_MOD_PWROPT,       // Fixed output power level options
+  MENU_ID_CFG_MOD_PWROPT_PWR,   // Target output power to aim for
+  MENU_ID_CFG_MOD_PWROPT_R,     // Series resistance of the motional branch
+  MENU_ID_CFG_MOD_PWROPT_C0,    // Series capacitance of the motional branch
+  MENU_ID_CFG_MOD_PWROPT_L0,    // Series inductance of the motional branch
+  MENU_ID_CFG_MOD_PWROPT_C1,    // Parallel capacitance with the motional branch
   MENU_ID_CFG_DEMOD,            // Waveform demodulation parameters
-  MENU_ID_CFG_DEMOD_SPS,        // ADC sampling rate on input
   MENU_ID_CFG_DEMOD_CAL,        // Calibration options for demodulation
   MENU_ID_CFG_DEMOD_CAL_RATIO,  // Voltage division ratio on the feedback network
   MENU_ID_CFG_DEMOD_CAL_PERFORM,// Perform calibration on input amplifier
-  MENU_ID_CFG_DEMOD_CAL_FREQ,   // Frequency range used for calibration
-  MENU_ID_CFG_DEMOD_CAL_STEP,   // Frequency step used in calibration
+  MENU_ID_CFG_DEMOD_CAL_LOWFREQ,// Lower frequency used for demodulation calibration
+  MENU_ID_CFG_DEMOD_CAL_HIFREQ, // Upper frequency used for demodulation calibration
   MENU_ID_CFG_DEMOD_CAL_EXP,    // Export calibration results
   MENU_ID_CFG_DEMOD_START,      // Select the message start function to use
   MENU_ID_CFG_DEMOD_DECISION,   // Select the bit decision maker
+  MENU_ID_CFG_DEMOD_CMPTHRESH,  // Historical comparison threshold
+  MENU_ID_CFG_DEMOD_AGCEN,      // Enable/disable automatic gain control (AGC)
+  MENU_ID_CFG_DEMOD_GAIN,       // Set fixed PGA gain
   MENU_ID_CFG_DAU,              // Daughter card configuration options
-  MENU_ID_CFG_DAU_UART,         // UART configuration
-  MENU_ID_CFG_DAU_UART_BAUD,    // UART baud rate to use
   MENU_ID_CFG_DAU_SLEEP,        // Enable/disable sleep modes from the daughter card
   MENU_ID_CFG_LED,              // LED configuration options
   MENU_ID_CFG_LED_BRIGHTNESS,   // Set the brightness of the onboard LED
@@ -93,8 +97,6 @@ typedef enum {
   MENU_ID_DBG_PWR,              // Current power consumption
   MENU_ID_DBG_DFU,              // Enter DFU mode to flash new firmware over USB
   MENU_ID_DBG_RESETCONFIG,      // Reset saved configuration 
-  MENU_ID_DBG_OUTAMP,           // [TEMP] Change fixed output amplitude
-  MENU_ID_DBG_INGAIN,           // [TEMP] Manually change the PGAs gain
   MENU_ID_HIST_PWR,             // History of power
   MENU_ID_HIST_PWR_PEAK,        // Peak power consumption since boot
   MENU_ID_HIST_PWR_BOOT,        // Total power consumption since boot

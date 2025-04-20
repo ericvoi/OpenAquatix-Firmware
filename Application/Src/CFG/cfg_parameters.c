@@ -21,6 +21,20 @@
 
 /* Private typedef -----------------------------------------------------------*/
 
+typedef struct {
+  ParamIds_t id;
+  char name[32];
+  ParamType_t type;
+  void* value_ptr;
+  size_t value_size;
+  union {
+    struct {uint32_t min; uint32_t max;} u32;
+    struct {int32_t min; int32_t max;} i32;
+    struct {float min; float max;} f;
+  } limits;
+  bool is_modified;
+} Parameter_t;
+
 #define TASK_NAME_LEN 8
 
 typedef struct {
@@ -427,6 +441,18 @@ bool Param_SetInt32(ParamIds_t id, int32_t* value)
 bool Param_SetFloat(ParamIds_t id, float* value)
 {
   return Param_SetValue(id, value);
+}
+
+bool Param_GetParamType(ParamIds_t id, ParamType_t* param_type)
+{
+  if (osMutexAcquire(param_mutex, osWaitForever) == osOK) {
+    Parameter_t* param = findParamById(id);
+    if (isParamInitialized(id) == true) {
+      *param_type = param->type;
+      return true;
+    }
+  }
+  return false;
 }
 
 bool Param_SaveToFlash(void)

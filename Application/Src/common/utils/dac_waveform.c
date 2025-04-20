@@ -9,6 +9,8 @@
 
 #include "dac_waveform.h"
 #include "mess_adc.h"
+#include "cfg_defaults.h"
+#include "cfg_parameters.h"
 #include "cmsis_os.h"
 #include <stdbool.h>
 #include <string.h>
@@ -36,7 +38,6 @@ typedef enum {
 #define SINE_POINTS         1024
 #define DAC_MAX_VALUE       4095
 #define PHASE_PRECISION     32
-#define AMPLITUDE_STEPS     32  // Number of steps for amplitude transition
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -55,6 +56,8 @@ static volatile bool dac_running = false;
 static uint32_t current_symbol_duration_us = 0;
 
 static volatile uint32_t callback_count = 0;
+
+static uint16_t transition_length = DEFAULT_DAC_TRANSITION_LEN;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -130,7 +133,7 @@ bool DAC_StartWaveformOutput(uint32_t channel)
   return ret == HAL_OK;
 }
 
-bool DAC_StopWaveformOutput(void)
+bool DAC_StopWaveformOutput()
 {
   // reset flags and end DMA transfer to ease DMA channels
   dac_running = false;
@@ -144,6 +147,18 @@ bool DAC_StopWaveformOutput(void)
 bool DAC_IsRunning()
 {
   return dac_running;
+}
+
+bool DAC_RegisterParams()
+{
+  uint32_t min = MIN_DAC_TRANSITION_LEN;
+  uint32_t max = MAX_DAC_TRANSITION_LEN;
+  if (Param_Register(PARAM_DAC_TRANSITION_LEN, "DAC transition duration (us)", PARAM_TYPE_UINT16,
+                     &transition_length, sizeof(uint16_t), &min, &max) == false) {
+    return false;
+  }
+
+  return true;
 }
 
 /* Private function definitions ----------------------------------------------*/
@@ -163,7 +178,7 @@ static void updateWaveformParameters(const WaveformStep_t* step)
 
   // Setup amplitude transition
   wave_ctrl.target_amplitude = (uint32_t) (step->relative_amplitude * (float) DAC_MAX_VALUE);
-  wave_ctrl.amplitude_step = ((int32_t) wave_ctrl.target_amplitude - (int32_t) wave_ctrl.current_amplitude) / AMPLITUDE_STEPS;
+  wave_ctrl.amplitude_step = ((int32_t) wave_ctrl.target_amplitude - (int32_t) wave_ctrl.current_amplitude) / transition_length;
   wave_ctrl.amplitude_counter = 0;
   wave_ctrl.amplitude_transitioning = true;
 
@@ -205,14 +220,14 @@ static void fillDacBuffer(FillType_t type)
 
   // Flag to change the output frequency has been set so perform amplitude transition
   if (wave_ctrl.amplitude_transitioning) {
-    for (;i < start_index + AMPLITUDE_STEPS; i++) {
+    for (;i < start_index + transition_length; i++) {
       // Take the first 10 bits of the phase as the sine table has 2^10 points
       uint32_t index = wave_ctrl.phase_accumulator >> (PHASE_PRECISION - 10);
       uint32_t base_value = sine_table[index & (SINE_POINTS - 1)]; // Ensures nothing out of index
 
       wave_ctrl.current_amplitude = (uint32_t) ((int32_t) wave_ctrl.current_amplitude + wave_ctrl.amplitude_step);
       wave_ctrl.amplitude_counter++;
-      if(wave_ctrl.amplitude_counter >= AMPLITUDE_STEPS) {
+      if (wave_ctrl.amplitude_counter >= transition_length) {
         wave_ctrl.amplitude_transitioning = false;
         wave_ctrl.current_amplitude = wave_ctrl.target_amplitude;
       }
@@ -225,7 +240,7 @@ static void fillDacBuffer(FillType_t type)
   }
 
   uint16_t offset_amt = (DAC_MAX_VALUE + 1) / 2 - wave_ctrl.current_amplitude / 2;
-  for(; i < end_index; i++) {
+  for (; i < end_index; i++) {
     // Get current phase
     uint32_t index = wave_ctrl.phase_accumulator >> (PHASE_PRECISION - 10);
     uint32_t base_value = sine_table[index & (SINE_POINTS - 1)];

@@ -159,6 +159,8 @@ void Input_PrintNoise();
  */
 bool Input_PrintWaveform(bool* print_next_waveform, bool fully_received);
 
+bool Input_UpdatePgaGain();
+
 /**
  * @brief Registers module parameters with the parameter system
  *

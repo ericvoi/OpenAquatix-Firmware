@@ -102,6 +102,15 @@ bool DAC_StopWaveformOutput(void);
  */
 bool DAC_IsRunning(void);
 
+/**
+ * @brief Registers module parameters with the parameter system
+ *
+ * Makes the DAC transition length accessible via the HMI.
+ *
+ * @return true if parameter registration succeeds, false otherwise
+ */
+bool DAC_RegisterParams(void);
+
 /* Private defines -----------------------------------------------------------*/
 
 #ifdef __cplusplus

@@ -29,8 +29,6 @@ typedef struct {
 
 #define NUM_DEMODULATION_HISTORY          8 // Number of demodulations to look back on. Must be a power of 2
 
-#define SIGNFIICANT_SHIFT_THRESHOLD       0.25
-
 /* Private macro -------------------------------------------------------------*/
 
 #define MIN(a, b)     ((a < b) ? (a) : (b))
@@ -39,7 +37,13 @@ typedef struct {
 /* Private variables ---------------------------------------------------------*/
 
 static DemodulationDecision_t decision_method = DEFAULT_DEMOD_DECISION;
+
+static uint32_t lower_calibration_frequency = DEFAULT_DEMOD_CAL_LOWER_F;
+static uint32_t upper_calibration_frequency = DEFAULT_DEMOD_CAL_UPPER_F;
+
 static DemodulationHistory_t demodulation_history[NUM_DEMODULATION_HISTORY][MAX_FHBFSK_NUM_TONES];
+
+static float significant_shift_threshold = DEFAULT_HIST_CMP_THRESH;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -114,7 +118,7 @@ bool Demodulate_Perform(DemodulationInfo_t* data)
         bool delta_energy_f0_pos = delta_energy_f0 > 0.0f;
         bool delta_energy_f1_pos = delta_energy_f1 > 0.0f;
         bool significant_delta_energy =
-            abs_normalized_delta_energy_sum > SIGNFIICANT_SHIFT_THRESHOLD;
+            abs_normalized_delta_energy_sum > significant_shift_threshold;
 
         // significant shift towards f0
         if (delta_energy_f0_pos == true && delta_energy_f1_pos == false &&
@@ -146,6 +150,28 @@ bool Demodulate_RegisterParams()
                      &decision_method, sizeof(uint8_t), &min_u32, &max_u32) == false) {
     return false;
   }
+
+  min_u32 = MIN_DEMOD_CAL_LOWER_F;
+  max_u32 = MAX_DEMOD_CAL_LOWER_F;
+  if (Param_Register(PARAM_DEMOD_CAL_LOWER_FREQ, "demod cal lower frequency", PARAM_TYPE_UINT32,
+                     &lower_calibration_frequency, sizeof(uint32_t), &min_u32, &max_u32) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_DEMOD_CAL_LOWER_F;
+  max_u32 = MAX_DEMOD_CAL_LOWER_F;
+  if (Param_Register(PARAM_DEMOD_CAL_UPPER_FREQ, "demod cal upper frequency", PARAM_TYPE_UINT32,
+                     &upper_calibration_frequency, sizeof(uint32_t), &min_u32, &max_u32) == false) {
+    return false;
+  }
+
+  float min_f = MIN_HIST_CMP_THRESH;
+  float max_f = MAX_HIST_CMP_THRESH;
+  if (Param_Register(PARAM_HISTORICAL_COMPARISON_THRESHOLD, "significant shift threshold", PARAM_TYPE_FLOAT,
+                     &significant_shift_threshold, sizeof(float), &min_f, &max_f) == false) {
+    return false;
+  }
+
   return true;
 }
 

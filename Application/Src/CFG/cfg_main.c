@@ -65,6 +65,7 @@ void CFG_StartTask(void* argument)
   osEventFlagsSet(param_events, EVENT_PARAMS_LOADED);
   for (;;) {
     if (waitForFlashSave() == true) {
+      osDelay(100); // Small wait for multiple successive saves
       if (Param_SaveToFlash() == false) {
         Error_Routine(ERROR_FLASH);
       }

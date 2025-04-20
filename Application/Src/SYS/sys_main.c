@@ -12,6 +12,7 @@
 #include "sys_error.h"
 #include "cfg_main.h"
 #include "cfg_parameters.h"
+#include "cfg_defaults.h"
 #include "WS2812b-driver.h"
 
 #include <stdbool.h>
@@ -30,7 +31,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-
+static uint16_t led_brightness = DEFAULT_LED_BRIGHTNESS;
+static bool led_enable = DEFAULT_LED_STATE;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -65,5 +67,19 @@ void SYS_StartTask(void* argument)
 
 bool registerSysParam()
 {
+  uint32_t min = MIN_LED_BRIGHTNESS;
+  uint32_t max = MAX_LED_BRIGHTNESS;
+  if (Param_Register(PARAM_LED_BRIGHTNESS, "RGB LED brightness", PARAM_TYPE_UINT16,
+                     &led_brightness, sizeof(uint16_t), &min, &max) == false) {
+    return false;
+  }
+
+  min = MIN_LED_STATE;
+  max = MAX_LED_STATE;
+  if (Param_Register(PARAM_LED_ENABLE, "the onboard RGB LED", PARAM_TYPE_UINT8,
+                     &led_enable, sizeof(bool), &min, &max) == false) {
+    return false;
+  }
+
   return true;
 }
