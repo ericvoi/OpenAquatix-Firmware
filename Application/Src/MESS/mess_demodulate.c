@@ -29,13 +29,8 @@ typedef struct {
 
 #define NUM_DEMODULATION_HISTORY          8 // Number of demodulations to look back on. Must be a power of 2
 
-<<<<<<< Updated upstream
-=======
-#define SIGNFIICANT_SHIFT_THRESHOLD       0.25
-
 #define OVERWHELMING_ENERGY_THRESHOLD     (6.25f) // If the energy ratio is greater than this value then dont do historical comparison
 
->>>>>>> Stashed changes
 /* Private macro -------------------------------------------------------------*/
 
 #define MIN(a, b)     ((a < b) ? (a) : (b))
