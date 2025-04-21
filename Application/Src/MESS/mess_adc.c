@@ -10,6 +10,7 @@
 #include "mess_adc.h"
 #include "mess_input.h"
 #include "mess_feedback.h"
+#include "sys_temperature.h"
 #include "stm32h7xx_hal.h"
 #include <string.h>
 #include "FreeRTOS.h"
@@ -20,7 +21,7 @@
 
 /* Private define ------------------------------------------------------------*/
 
-#define INPUT_ADC         hadc3
+#define INPUT_ADC         hadc2
 #define FEEDBACK_ADC      hadc1
 
 /* Private macro -------------------------------------------------------------*/
@@ -181,10 +182,9 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
   else if (hadc == &FEEDBACK_ADC) {
     addToFeedbackBuffer(false);
   }
-  else {
-    return;
+  else if (hadc == &TEMPERATURE_ADC) {
+    Temperature_AddValue();
   }
-  return;
 }
 
 void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc)

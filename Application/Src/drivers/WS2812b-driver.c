@@ -76,6 +76,8 @@ HAL_StatusTypeDef WS_Update()
     return HAL_BUSY;
   }
 
+  memset(WS_DMA_BUF, 0, sizeof(WS_DMA_BUF));
+
   uint16_t bufIndex = WS_RST_PERIODS;
 
   for (uint8_t ledIndex = 0; ledIndex < WS_NUM_LEDS; ledIndex++) {
