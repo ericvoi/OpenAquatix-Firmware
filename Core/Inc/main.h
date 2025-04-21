@@ -101,8 +101,8 @@ void Error_Handler(void);
 #define DAC1_1_OUT_GPIO_Port GPIOA
 #define DAC1_2_FB_Pin GPIO_PIN_5
 #define DAC1_2_FB_GPIO_Port GPIOA
-#define ADC1_3_RECV_Pin GPIO_PIN_6
-#define ADC1_3_RECV_GPIO_Port GPIOA
+#define ADC2_3_RECV_Pin GPIO_PIN_6
+#define ADC2_3_RECV_GPIO_Port GPIOA
 #define UNUSED16_Pin GPIO_PIN_7
 #define UNUSED16_GPIO_Port GPIOA
 #define UNUSED17_Pin GPIO_PIN_4
@@ -111,8 +111,8 @@ void Error_Handler(void);
 #define UNUSED18_GPIO_Port GPIOC
 #define UNUSED19_Pin GPIO_PIN_0
 #define UNUSED19_GPIO_Port GPIOB
-#define ADC2_5_FB_Pin GPIO_PIN_1
-#define ADC2_5_FB_GPIO_Port GPIOB
+#define ADC1_5_FB_Pin GPIO_PIN_1
+#define ADC1_5_FB_GPIO_Port GPIOB
 #define PAMP_FAULTZ_Pin GPIO_PIN_2
 #define PAMP_FAULTZ_GPIO_Port GPIOB
 #define PAMP_FAULTZ_EXTI_IRQn EXTI2_IRQn

@@ -14,10 +14,10 @@
 
 #include "cfg_parameters.h"
 
+#include "sys_temperature.h"
+
 #include "WS2812b-driver.h"
 #include "PGA113-driver.h"
-
-#include "comm_main.h"
 
 #include "check_inputs.h"
 
@@ -340,12 +340,16 @@ void performNoiseAnalysis(void* argument)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-// TODO: implement
 void printCurrentTemp(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
   
-  COMMLoops_NotImplemented(context);
+  float temp = Temperature_GetCurrent();
+
+  sprintf((char*) context->output_buffer, "\r\nCurrent temperature: %.2f C\r\n",
+          temp);
+  COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
+  context->state->state = PARAM_STATE_COMPLETE;
 }
 
 // TODO: implement

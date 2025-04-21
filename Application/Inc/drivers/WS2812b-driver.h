@@ -88,10 +88,10 @@ void WS_Callback();
 #define WS_TIM_CHANNEL	TIM_CHANNEL_1
 
 // Assuming 800 kHz and ARR of 100
-#define WS_HI_VAL		    67	// 0.8 us
-#define WS_LO_VAL		    33  // 0.4 us
+#define WS_HI_VAL		    64	// 0.8 us
+#define WS_LO_VAL		    32  // 0.4 us
 
-#define WS_RST_PERIODS	50	// 62.5 us. 50 us required for reset
+#define WS_RST_PERIODS	100	// 125 us. 50 us required for reset
 #define WS_BITS_PER_LED	24
 
 #define WS_DMA_BUF_LEN	((WS_NUM_LEDS * WS_BITS_PER_LED) + WS_RST_PERIODS * 2)
