@@ -40,8 +40,20 @@ extern TIM_HandleTypeDef SENSOR_TIMER_SOURCE;
 
 
 /* Exported functions prototypes ---------------------------------------------*/
-
+/**
+ * @brief Initializes timer for the sensor timer which controls when the
+ * temperature sensor and power monitor are triggered.
+ * 
+ * Starts the timer that updates the tick count
+ * 
+ * @return true if initialization of timer is successful, false otherwise
+ */
 bool SensorTimer_Init(void);
+
+/**
+ * @brief Updates tick count. If the tick count is a multiple of a value then
+ * either the temperature reading or power reading is taken
+ */
 void SensorTimer_Tick(void);
 
 /* Private defines -----------------------------------------------------------*/

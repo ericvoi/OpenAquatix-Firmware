@@ -38,19 +38,24 @@ typedef struct {
 
 /* Private variables ---------------------------------------------------------*/
 
+// Calibration factors loaded from flash during intialization
 static uint16_t ts_cal1;
 static uint16_t ts_cal2;
 
-static float leading_factor; // constant multiplicative factor when converting adc values to temperature
+// constant multiplicative factor when converting adc values to temperature
+static float leading_factor;
 
+// Stores latest temperature values both raw and converted
 static Temperature_t temperature_buffer[TEMPERATURE_BUFFER_SIZE];
 
 static uint16_t buf_index = 0; // Where new data should go
 static uint16_t processing_index = 0; // Where to start processing data from
 
-static float max_temperature = -1000.0f;
+static float max_temperature = -1000.0f; // -1000 So the first value always overwrites
 
+// The number of temeprature readings that have been taken
 static uint64_t temperature_count = 0;
+// Sum of all raw adc temperature values
 static uint64_t accumulated_raw_adc = 0;
 
 
@@ -121,7 +126,8 @@ float Temperature_GetAverage()
 
 float Temperature_GetCurrent()
 {
-  uint16_t current_index = (buf_index - 1) % TEMPERATURE_BUFFER_SIZE;
+  static const uint16_t mask = TEMPERATURE_BUFFER_SIZE - 1;
+  uint16_t current_index = (buf_index - 1) & mask;
 
   return temperature_buffer[current_index].converted_value_c;
 }
