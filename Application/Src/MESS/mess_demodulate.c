@@ -29,6 +29,13 @@ typedef struct {
 
 #define NUM_DEMODULATION_HISTORY          8 // Number of demodulations to look back on. Must be a power of 2
 
+<<<<<<< Updated upstream
+=======
+#define SIGNFIICANT_SHIFT_THRESHOLD       0.25
+
+#define OVERWHELMING_ENERGY_THRESHOLD     (6.25f) // If the energy ratio is greater than this value then dont do historical comparison
+
+>>>>>>> Stashed changes
 /* Private macro -------------------------------------------------------------*/
 
 #define MIN(a, b)     ((a < b) ? (a) : (b))
@@ -97,7 +104,9 @@ bool Demodulate_Perform(DemodulationInfo_t* data)
       float delta_energy_f0, delta_energy_f1;
       float abs_normalized_delta_energy_f0, abs_normalized_delta_energy_f1;
 
-      if (buffer_length >= 1) {
+      float energy_ratio = data->energy_f0 / data->energy_f1;
+
+      if (buffer_length >= 1 && (energy_ratio < OVERWHELMING_ENERGY_THRESHOLD && energy_ratio > (1.0f / OVERWHELMING_ENERGY_THRESHOLD))) {
         // Look at the previous bit and check for large changes
         DemodulationHistory_t previous_result =
             demodulation_history[(buffer_index - 1) % NUM_DEMODULATION_HISTORY][frequency_index];
