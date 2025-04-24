@@ -7,9 +7,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 
+#include <mess_error_detection.h>
 #include "mess_packet.h"
-#include "mess_error_correction.h"
-
 #include "cfg_defaults.h"
 #include "cfg_parameters.h"
 #include <stdbool.h>
@@ -28,7 +27,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-static ErrorCorrectionMethod_t error_correction_method = DEFAULT_ERROR_CORRECTION;
+static ErrorDetectionMethod_t error_detection_method = DEFAULT_ERROR_CORRECTION;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -48,9 +47,9 @@ bool checkChecksum32(BitMessage_t* bit_msg, bool* error);
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool ErrorCorrection_AddCorrection(BitMessage_t* bit_msg)
+bool ErrorDetection_AddDetection(BitMessage_t* bit_msg)
 {
-  switch (error_correction_method) {
+  switch (error_detection_method) {
     case CRC_8:
       uint8_t crc_8;
       if (calculateCrc8(bit_msg, &crc_8) == false) {
@@ -98,9 +97,9 @@ bool ErrorCorrection_AddCorrection(BitMessage_t* bit_msg)
   }
 }
 
-bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg, bool* error)
+bool ErrorDetection_CheckDetection(BitMessage_t* bit_msg, bool* error)
 {
-  switch (error_correction_method) {
+  switch (error_detection_method) {
     case CRC_8:
       return checkCrc8(bit_msg, error);
     case CRC_16:
@@ -118,9 +117,9 @@ bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg, bool* error)
   }
 }
 
-bool ErrorCorrection_CheckLength(uint16_t* length)
+bool ErrorDetection_CheckLength(uint16_t* length)
 {
-  switch (error_correction_method) {
+  switch (error_detection_method) {
     case CRC_8:
     case CHECKSUM_8:
       *length = 8;
@@ -138,12 +137,12 @@ bool ErrorCorrection_CheckLength(uint16_t* length)
   }
 }
 
-bool ErrorCorrection_RegisterParams(void)
+bool ErrorDetection_RegisterParams(void)
 {
   uint32_t min_u32 = MIN_ERROR_CORRECTION;
   uint32_t max_u32 = MAX_ERROR_CORRECTION;
   if (Param_Register(PARAM_ERROR_CORRECTION, "error correction method", PARAM_TYPE_UINT8,
-      &error_correction_method, sizeof(uint8_t), &min_u32, &max_u32) == false) {
+      &error_detection_method, sizeof(uint8_t), &min_u32, &max_u32) == false) {
     return false;
   }
 

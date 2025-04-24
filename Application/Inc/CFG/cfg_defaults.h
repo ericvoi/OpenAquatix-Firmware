@@ -16,7 +16,7 @@ extern "C" {
 #include "stm32h7xx_hal.h"
 #include "mess_input.h"
 #include "mess_main.h"
-#include "mess_error_correction.h"
+#include <mess_error_detection.h>
 #include "mess_demodulate.h"
 #include "mess_modulate.h"
 

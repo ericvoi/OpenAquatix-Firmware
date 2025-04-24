@@ -218,7 +218,7 @@ static ParamContext_t univConfigErrParam = {
 };
 static const MenuNode_t univConfigErr = {
   .id = MENU_ID_CFG_UNIV_ERR,
-  .description = "Error Correction Scheme",
+  .description = "Error Detection Scheme",
   .handler = setErrorCorrection,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,

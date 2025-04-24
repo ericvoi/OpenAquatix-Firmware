@@ -32,7 +32,7 @@ typedef enum {
   MENU_ID_TXRX,                 // Transmission/reception menu
   MENU_ID_EVAL,                 // Evaluation option menu
   MENU_ID_CFG_UNIV,             // Universal waveform porcessing parameters
-  MENU_ID_CFG_UNIV_ERR,         // Error correction scheme
+  MENU_ID_CFG_UNIV_ERR,         // Error detection scheme
   MENU_ID_CFG_UNIV_MOD,         // Modulation scheme used for both reception and transmission
   MENU_ID_CFG_UNIV_FSK,         // FSK based waveform processing parameters
   MENU_ID_CFG_UNIV_FSK_F0,      // FSK frequency corresponding to bit 0
@@ -122,6 +122,7 @@ typedef enum {
   MENU_ID_EVAL_SETMSG,          // Set the message to compare to
   MENU_ID_EVAL_FEEDBACK,        // Send evaluation message through feedback network
   MENU_ID_EVAL_TRANSDUCER,      // Send evaluation message through transducer
+  MENU_ID_EVAL_FEEDBACKTESTS,   // Performs the feedback network tests
   // ... other menu IDs can be added freely
   MENU_ID_COUNT
 } MenuID_t;

@@ -1,12 +1,12 @@
 /*
- * mess_encoding.h
+ * mess_feedback_tests.h
  *
- *  Created on: Feb 12, 2025
+ *  Created on: Apr 21, 2025
  *      Author: ericv
  */
 
-#ifndef MESS_MESS_ENCODING_H_
-#define MESS_MESS_ENCODING_H_
+#ifndef MESS_MESS_FEEDBACK_TESTS_H_
+#define MESS_MESS_FEEDBACK_TESTS_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,6 +14,9 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
+#include "mess_main.h"
+#include "mess_packet.h"
+#include <stdbool.h>
 
 
 /* Private includes ----------------------------------------------------------*/
@@ -34,7 +37,12 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-
+bool FeedbackTests_Init(void);
+void FeedbackTests_Start(void);
+void FeedbackTests_GetNext(void);
+bool FeedbackTests_CorruptMessage(BitMessage_t* bit_msg);
+// returns true if doing a feedback network test and false otherwise
+bool FeedbackTests_Check(Message_t* received_msg, BitMessage_t* received_bit_msg);
 
 /* Private defines -----------------------------------------------------------*/
 
@@ -42,4 +50,4 @@ extern "C" {
 }
 #endif
 
-#endif /* MESS_MESS_ENCODING_H_ */
+#endif /* MESS_MESS_FEEDBACK_TESTS_H_ */

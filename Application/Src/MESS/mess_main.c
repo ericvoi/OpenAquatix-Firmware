@@ -20,6 +20,8 @@
 #include "mess_feedback.h"
 #include "mess_evaluate.h"
 #include "mess_calibration.h"
+#include "mess_dsp_config.h"
+#include "mess_feedback_tests.h"
 
 #include "sys_error.h"
 
@@ -53,8 +55,8 @@ typedef enum {
 
 /* Private variables ---------------------------------------------------------*/
 
-QueueHandle_t tx_queue = NULL; // Messages to send
-QueueHandle_t rx_queue = NULL; // Messages received
+static QueueHandle_t tx_queue = NULL; // Messages to send
+static QueueHandle_t rx_queue = NULL; // Messages received
 
 float baud_rate = DEFAULT_BAUD_RATE;
 uint32_t fsk_f0 = DEFAULT_FSK_F0;
@@ -118,6 +120,7 @@ void MESS_StartTask(void* argument)
   Input_Init();
   Feedback_Init();
   Evaluate_Init();
+  FeedbackTests_Init();
   DAC_InitWaveformGenerator();
   switchState(LISTENING);
   // MESS_TaskState = LISTENING;
@@ -163,13 +166,24 @@ void MESS_StartTask(void* argument)
             osEventFlagsClear(print_event_handle, MESS_PRINT_WAVEFORM);
             print_next_waveform = true;
             break;
+          case MESS_FEEDBACK_TESTS:
+            osEventFlagsClear(print_event_handle, MESS_FEEDBACK_TESTS);
+            FeedbackTests_Start();
           default:
             break;
         }
 
+        FeedbackTests_GetNext();
+
         if (MESS_GetMessageFromTxQ(&tx_msg) == pdPASS) {
           BitMessage_t bit_msg;
           if (Packet_PrepareTx(&tx_msg, &bit_msg) == false) {
+            // TODO: log error
+            break;
+          }
+          // Add ECC
+          // Add feedback network test false bits
+          if (FeedbackTests_CorruptMessage(&bit_msg) == false) {
             // TODO: log error
             break;
           }
@@ -255,19 +269,23 @@ void MESS_StartTask(void* argument)
             rx_msg.data_type = input_bit_msg.contents_data_type;
             rx_msg.eval_info = &eval_info;
             rx_msg.sender_id = input_bit_msg.sender_id;
+
+            // perform correction
             // decode message
             if (Input_DecodeMessage(&input_bit_msg, &rx_msg) == false) {
               Error_Routine(ERROR_MESS_PROCESSING);
               break;
             }
 
-            if (ErrorCorrection_CheckCorrection(&input_bit_msg,
-                &rx_msg.error_correction_error) == false) {
+            if (ErrorDetection_CheckDetection(&input_bit_msg,
+                &rx_msg.error_detected) == false) {
               Error_Routine(ERROR_MESS_PROCESSING);
               break;
             }
             // send it via queue
-            MESS_AddMessageToRxQ(&rx_msg);
+            if (FeedbackTests_Check(&rx_msg, &input_bit_msg) == false) {
+              MESS_AddMessageToRxQ(&rx_msg);
+            }
             input_bit_msg.added_to_queue = true;
           }
         }
@@ -482,6 +500,18 @@ static MessageFlags_t checkFlags()
   else if ((flags & MESS_PRINT_WAVEFORM) == MESS_PRINT_WAVEFORM) {
     return MESS_PRINT_WAVEFORM;
   }
+
+  flags = osEventFlagsWait(print_event_handle, MESS_FEEDBACK_TESTS, osFlagsWaitAny, 0);
+
+  if (flags == osFlagsErrorResource) {
+    // Normal nothing returned. Do nothing
+  }
+  else if (flags & 0x80000000U) {
+    // TODO: log error
+  }
+  else if ((flags & MESS_FEEDBACK_TESTS) == MESS_FEEDBACK_TESTS) {
+    return MESS_FEEDBACK_TESTS;
+  }
   return 0;
 }
 
@@ -504,7 +534,7 @@ static bool registerMessParams()
     return false;
   }
 
-  if (ErrorCorrection_RegisterParams() == false) {
+  if (ErrorDetection_RegisterParams() == false) {
     return false;
   }
 

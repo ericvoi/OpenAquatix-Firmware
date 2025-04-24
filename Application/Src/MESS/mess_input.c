@@ -109,12 +109,12 @@ static FrequencyThresholds_t frequency_thresholds[] = {
     {.raw_amplitude_threshold = 120, .length_us = 1500}
 };
 
-uint16_t unique_frequency_conditions = sizeof(frequency_thresholds) / sizeof(frequency_thresholds[0]);
+static uint16_t unique_frequency_conditions = sizeof(frequency_thresholds) / sizeof(frequency_thresholds[0]);
 
 static uint16_t max_frequency_threshold_length;
 
-uint16_t frequency_check_index_0;
-uint16_t frequency_check_index_1;
+static uint16_t frequency_check_index_0;
+static uint16_t frequency_check_index_1;
 
 static MsgStartFunctions_t message_start_function = DEFAULT_MSG_START_FCN;
 static bool automatic_gain_control = DEFAULT_AGC_STATE;
@@ -289,7 +289,7 @@ bool Input_DecodeBits(BitMessage_t* bit_msg, bool evaluation_mode)
       bit_msg->final_length = 8 << packet_length;
       bit_msg->final_length += PACKET_PREAMBLE_LENGTH_BITS;
       uint16_t error_bits_length;
-      if (ErrorCorrection_CheckLength(&error_bits_length) == false) {
+      if (ErrorDetection_CheckLength(&error_bits_length) == false) {
         return false;
       }
       bit_msg->final_length += error_bits_length;

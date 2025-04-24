@@ -93,7 +93,7 @@ typedef struct {
   uint32_t timestamp;
   MessageData_t data_type;
   uint8_t sender_id;
-  bool error_correction_error;
+  bool error_detected;
   EvalMessageInfo_t* eval_info;
 } Message_t;
 
@@ -116,13 +116,12 @@ typedef enum {
   MESS_PRINT_REQUEST = 0x00000001,
   MESS_PRINT_COMPLETE = 0x00000002,
   MESS_FREQ_RESP = 0x00000004,
-  MESS_PRINT_WAVEFORM = 0x00000008
+  MESS_PRINT_WAVEFORM = 0x00000008,
+  MESS_FEEDBACK_TESTS = 0x00000010,
 } MessageFlags_t;
 
 /* Exported macro ------------------------------------------------------------*/
 
-extern QueueHandle_t tx_queue; // Messages to send
-extern QueueHandle_t rx_queue; // Messages received
 extern float baud_rate;
 extern uint32_t fsk_f0;
 extern uint32_t fsk_f1;

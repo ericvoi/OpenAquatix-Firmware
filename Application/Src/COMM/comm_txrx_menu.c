@@ -541,6 +541,7 @@ bool isPowerOf2(uint16_t x)
 
 void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_feedback)
 {
+  msg->sender_id = Packet_GetId();
   if (MESS_AddMessageToTxQ(msg) == pdPASS) {
     sprintf((char*) context->output_buffer, "\r\nSuccessfully added to"
         " %s queue!\r\n\r\n", is_feedback ? "feedback network" : "transducer");

@@ -175,6 +175,29 @@ bool Packet_Get16(BitMessage_t* bit_msg, uint16_t* start_position, uint16_t* dat
 bool Packet_Get32(BitMessage_t* bit_msg, uint16_t* start_position, uint32_t* data);
 
 /**
+ * @brief Flips bit at selected position
+ *
+ * @param bit_msg Pointer to the bit message structure
+ * @param bit_index Index where the bit should be flipped
+ *
+ * @return true if successful, false if invalid inputs
+ */
+bool Packet_FlipBit(BitMessage_t* bit_msg, uint16_t bit_index);
+
+/**
+ * @brief Compares the data in 2 bit messages
+ *
+ * @param msg1 Pointer to the first message to compare
+ * @param msg2 Pointer to the second message to compare
+ * @param identical Returned value indicating if all bits identical
+ *
+ * @return true if successful and false otherwise
+ */
+bool Packet_Compare(const BitMessage_t* msg1, const BitMessage_t* msg2, bool* identical);
+
+uint8_t Packet_GetId(void);
+
+/**
  * @brief Calculates the minimum power-of-2 packet size needed for a given payload
  *
  * @param str_len The length of data to accommodate
