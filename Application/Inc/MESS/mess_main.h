@@ -122,14 +122,7 @@ typedef enum {
 
 /* Exported macro ------------------------------------------------------------*/
 
-extern float baud_rate;
-extern uint32_t fsk_f0;
-extern uint32_t fsk_f1;
-extern ModDemodMethod_t mod_demod_method;
-extern uint32_t fc;
-extern uint8_t fhbfsk_freq_spacing;
-extern uint8_t fhbfsk_num_tones;
-extern uint8_t fhbfsk_dwell_time;
+
 
 /* Exported functions prototypes ---------------------------------------------*/
 

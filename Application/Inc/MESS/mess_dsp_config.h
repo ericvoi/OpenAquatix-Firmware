@@ -23,6 +23,8 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
+// Struct for all configuration parameters that are relevant for feedback tests
+// Other configuration parameters belong to modules
 typedef struct {
   float baud_rate;
   ModDemodMethod_t mod_demod_method;
@@ -32,7 +34,7 @@ typedef struct {
   uint8_t fhbfsk_freq_spacing;
   uint8_t fhbfsk_num_tones;
   uint8_t fhbfsk_dwell_time;
-  ErrorDetectionMethod_t error_correction_method;
+  ErrorDetectionMethod_t error_detection_method; // TODO
 } DspConfig_t;
 
 

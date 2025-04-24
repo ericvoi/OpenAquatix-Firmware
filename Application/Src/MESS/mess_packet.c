@@ -213,11 +213,6 @@ bool Packet_Compare(const BitMessage_t* msg1, const BitMessage_t* msg2, bool* id
   return true;
 }
 
-uint8_t Packet_GetId()
-{
-  return modem_id;
-}
-
 uint16_t Packet_MinimumSize(uint16_t str_len)
 {
   size_t packet_size = 1;
@@ -315,6 +310,7 @@ bool addMessage(BitMessage_t* bit_msg, Message_t* msg)
     if (Packet_AddBit(bit_msg, bit) == false)
       return false;
   }
+  bit_msg->data_len_bits = msg->length_bits;
   return true;
 }
 

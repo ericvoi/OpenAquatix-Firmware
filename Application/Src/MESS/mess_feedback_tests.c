@@ -14,6 +14,8 @@
 
 #include "comm_main.h"
 
+#include "cmsis_os.h"
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -201,7 +203,7 @@ static FeedbackTests_t feedback_tests[] = {
             .fhbfsk_freq_spacing = 1,
             .fhbfsk_num_tones = 10,
             .fhbfsk_dwell_time = 1,
-            .error_correction_method = CRC_16
+            .error_detection_method = CRC_16
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[2],
@@ -218,12 +220,12 @@ static FeedbackTests_t feedback_tests[] = {
             .fhbfsk_freq_spacing = 1,
             .fhbfsk_num_tones = 10,
             .fhbfsk_dwell_time = 1,
-            .error_correction_method = CRC_16
+            .error_detection_method = CRC_16
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[2],
-        .errors_added = 0,
-        .repetitions = 1
+        .errors_added = 1,
+        .repetitions = 10
     }
 };
 
@@ -234,6 +236,7 @@ static uint16_t total_tests;
 
 static bool performing_test = false;
 static uint16_t current_test = 0;
+static uint16_t call_count = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -288,6 +291,7 @@ void FeedbackTests_Start()
 
 void FeedbackTests_GetNext()
 {
+  static uint32_t last_message_send_time = 0;
   if (performing_test == false) {
     return;
   }
@@ -297,7 +301,21 @@ void FeedbackTests_GetNext()
     return;
   }
 
-  MESS_AddMessageToTxQ(&feedback_tests[current_test].reference_message->test_msg);
+  uint32_t current_time = osKernelGetTickCount();
+
+  if (current_time - last_message_send_time < 30) {
+    return;
+  }
+
+  uint16_t test_index;
+
+  if (getTestIndex(&test_index) == false) {
+    return;
+  }
+
+  MESS_AddMessageToTxQ(&feedback_tests[test_index].reference_message->test_msg);
+  call_count++;
+  last_message_send_time = osKernelGetTickCount();
 }
 
 bool FeedbackTests_CorruptMessage(BitMessage_t* bit_msg)
@@ -395,6 +413,21 @@ bool FeedbackTests_Check(Message_t* received_msg, BitMessage_t* received_bit_msg
   return true;
 }
 
+bool FeedbackTests_GetConfig(const DspConfig_t** cfg)
+{
+  if (performing_test == false) {
+    return false;
+  }
+
+  uint16_t test_index;
+  if (getTestIndex(&test_index) == false) {
+    return false;
+  }
+
+  *cfg = &feedback_tests[test_index].cfg;
+  return true;
+}
+
 /* Private function definitions ----------------------------------------------*/
 
 bool getTestIndex(uint16_t* index)
@@ -409,7 +442,13 @@ bool getTestIndex(uint16_t* index)
 
     counter += feedback_tests[i].repetitions;
   }
-  return false;
+  if (current_test >= total_tests) {
+    return false;
+  }
+  else {
+    *index = unique_tests - 1;
+    return true;
+  }
 }
 
 static bool compareHeaders(const Message_t* msg1, const Message_t* msg2, bool* identical)
@@ -445,12 +484,15 @@ bool generateUniqueIndices(uint16_t* indices, uint16_t num_indices, uint16_t min
     num_indices = range_size;
   }
 
+  uint32_t current_time = osKernelGetTickCount();
+  srand(current_time);
+
   for (uint16_t i = 0; i < num_indices; i++) {
     uint16_t index;
     bool is_unique;
 
     do {
-      is_unique = false;
+      is_unique = true;
       index = min_index + (rand() % range_size);
 
       // Check if this index is already in our array
@@ -496,7 +538,7 @@ static void printStatistics(void)
 
     snprintf(output_buffer, 128, "Baud rate: %.2f\r\nMod/Demod method: %u\r\n"
         "error detection method: %u\r\n", cfg->baud_rate,
-        cfg->mod_demod_method, cfg->error_correction_method);
+        cfg->mod_demod_method, cfg->error_detection_method);
     COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
 
     if (cfg->mod_demod_method == MOD_DEMOD_FSK) {
@@ -530,3 +572,4 @@ static void printStatistics(void)
     COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
   }
 }
+

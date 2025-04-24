@@ -27,7 +27,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-static ErrorDetectionMethod_t error_detection_method = DEFAULT_ERROR_CORRECTION;
+static ErrorDetectionMethod_t error_detection_method = DEFAULT_ERROR_DETECTION;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -92,6 +92,8 @@ bool ErrorDetection_AddDetection(BitMessage_t* bit_msg)
       }
       bit_msg->final_length += 32;
       return Packet_Add32(bit_msg, checksum_32);
+    case NO_ERROR_DETECTION:
+      return true;
     default:
       return false;
   }
@@ -112,6 +114,8 @@ bool ErrorDetection_CheckDetection(BitMessage_t* bit_msg, bool* error)
       return checkChecksum16(bit_msg, error);
     case CHECKSUM_32:
       return checkChecksum32(bit_msg, error);
+    case NO_ERROR_DETECTION:
+      return false;
     default:
       return false;
   }
@@ -132,6 +136,9 @@ bool ErrorDetection_CheckLength(uint16_t* length)
     case CHECKSUM_32:
       *length = 32;
       return true;
+    case NO_ERROR_DETECTION:
+      *length = 0;
+      return true;
     default:
       return false;
   }
@@ -139,8 +146,8 @@ bool ErrorDetection_CheckLength(uint16_t* length)
 
 bool ErrorDetection_RegisterParams(void)
 {
-  uint32_t min_u32 = MIN_ERROR_CORRECTION;
-  uint32_t max_u32 = MAX_ERROR_CORRECTION;
+  uint32_t min_u32 = MIN_ERROR_DETECTION;
+  uint32_t max_u32 = MAX_ERROR_DETECTION;
   if (Param_Register(PARAM_ERROR_CORRECTION, "error correction method", PARAM_TYPE_UINT8,
       &error_detection_method, sizeof(uint8_t), &min_u32, &max_u32) == false) {
     return false;

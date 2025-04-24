@@ -32,7 +32,8 @@ typedef enum {
   CHECKSUM_8,
   CHECKSUM_16,
   CHECKSUM_32,
-  NUM_ERROR_CORRECTION_METHODS
+  NO_ERROR_DETECTION,
+  NUM_ERROR_DETECTION_METHODS
 } ErrorDetectionMethod_t;
 
 /* Exported constants --------------------------------------------------------*/

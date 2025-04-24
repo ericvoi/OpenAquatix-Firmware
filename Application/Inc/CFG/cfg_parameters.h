@@ -103,7 +103,17 @@ typedef enum {
  */
 bool Param_Init(void);
 
-// TODO: implement
+/**
+ * @brief Loads saved configuration parameters from flash
+ *
+ * Loops through the entire flash sector for saved parameters and saves them
+ * one at a time to RAM. Also resets the is_modified flag
+ *
+ * @return true if successful and false if the version of an entry is incorrect
+ * or updating a parameter failed
+ *
+ * @note Must be called after all parameters have been registered
+ */
 bool Param_LoadInit(void);
 
 /**

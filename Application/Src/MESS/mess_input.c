@@ -124,12 +124,12 @@ static PgaGain_t fixed_pga_gain = DEFAULT_FIXED_PGA_GAIN;
 
 static uint16_t getBufferLength(void);
 static bool messageStartWithThreshold(void);
-static bool messageStartWithFrequency(void);
+static bool messageStartWithFrequency(const DspConfig_t* cfg);
 static float frequencyToIndex(float frequency);
 static bool checkFftConditions(uint16_t check_length, float multiplier);
 static uint16_t findStartPosition(uint16_t analysis_index, uint16_t check_length);
 static bool printReceivedWaveform(char* preamble_sequence);
-static void updateFrequencyIndices(void);
+static void updateFrequencyIndices(const DspConfig_t* cfg);
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -174,24 +174,24 @@ void Input_IncrementEndIndex()
   buffer_end_index = (buffer_end_index + ADC_BUFFER_SIZE / 2) % PROCESSING_BUFFER_SIZE;
 }
 
-bool Input_DetectMessageStart()
+bool Input_DetectMessageStart(const DspConfig_t* cfg)
 {
   switch (message_start_function) {
     case MSG_START_AMPLITUDE:
       return messageStartWithThreshold();
       break;
     case MSG_START_FREQUENCY:
-      return messageStartWithFrequency();
+      return messageStartWithFrequency(cfg);
       break;
     default:
-      return messageStartWithFrequency();
+      return messageStartWithFrequency(cfg);
   }
 }
 
 // Segments blocks and adds them to array of blocks to be processed
-bool Input_SegmentBlocks()
+bool Input_SegmentBlocks(const DspConfig_t* cfg)
 {
-  uint16_t analysis_buffer_length = (uint16_t) ((float) ADC_SAMPLING_RATE / baud_rate);
+  uint16_t analysis_buffer_length = (uint16_t) ((float) ADC_SAMPLING_RATE / cfg->baud_rate);
   while (getBufferLength() >= analysis_buffer_length) {
 
     analysis_count1++;
@@ -220,7 +220,7 @@ bool Input_SegmentBlocks()
 // TODO: Address possibility for overflow in eval_info
 // The eval_info arrays need bounds checking against bit_msg->bit_count
 // to prevent buffer overrun when processing long messages
-bool Input_ProcessBlocks(BitMessage_t* bit_msg, EvalMessageInfo_t* eval_info)
+bool Input_ProcessBlocks(BitMessage_t* bit_msg, EvalMessageInfo_t* eval_info, const DspConfig_t* cfg)
 {
   if (bit_msg == NULL || eval_info == NULL) {
     return false;
@@ -231,7 +231,7 @@ bool Input_ProcessBlocks(BitMessage_t* bit_msg, EvalMessageInfo_t* eval_info)
 
   while (analysis_length != 0) {
     analysis_count2++;
-    if (Demodulate_Perform(&analysis_blocks[analysis_start_index]) == false) {
+    if (Demodulate_Perform(&analysis_blocks[analysis_start_index], cfg) == false) {
       return false;
     }
     if (Packet_AddBit(bit_msg, analysis_blocks[analysis_start_index].decoded_bit) == false) {
@@ -480,7 +480,7 @@ bool messageStartWithThreshold()
   return false;
 }
 
-bool messageStartWithFrequency()
+bool messageStartWithFrequency(const DspConfig_t* cfg)
 {
   static const uint16_t buffer_mask = PROCESSING_BUFFER_SIZE - 1;
   static const uint16_t analysis_mask = FFT_ANALYSIS_BUFF_SIZE - 1;
@@ -490,7 +490,7 @@ bool messageStartWithFrequency()
 
   if (difference < FFT_SIZE) return false;
 
-  updateFrequencyIndices();
+  updateFrequencyIndices(cfg);
 
   do {
     // Prepare buffer
@@ -638,17 +638,17 @@ bool printReceivedWaveform(char* preamble_sequence)
   return true;
 }
 
-void updateFrequencyIndices()
+void updateFrequencyIndices(const DspConfig_t* cfg)
 {
   uint32_t frequency0, frequency1;
 
-  if (mod_demod_method == MOD_DEMOD_FSK) {
-    frequency0 = fsk_f0;
-    frequency1 = fsk_f1;
+  if (cfg->mod_demod_method == MOD_DEMOD_FSK) {
+    frequency0 = cfg->fsk_f0;
+    frequency1 = cfg->fsk_f1;
   }
   else {
-    frequency0 = Modulate_GetFhbfskFrequency(false, 0);
-    frequency1 = Modulate_GetFhbfskFrequency(true, 0);
+    frequency0 = Modulate_GetFhbfskFrequency(false, 0, cfg);
+    frequency1 = Modulate_GetFhbfskFrequency(true, 0, cfg);
   }
 
   float index0 = frequencyToIndex(frequency0);

@@ -172,7 +172,12 @@ void sendEvalFeedback(void* argument)
   msg.data_type = EVAL;
   Evaluate_CopyEvaluationMessage(&msg);
   msg.eval_info = NULL;
-  msg.sender_id = Packet_GetId();
+  if (Param_GetUint8(PARAM_ID, &msg.sender_id) == false) {
+    COMM_TransmitData("\r\nError getting sender ID. Message not sent\r\n", 
+        CALC_LEN, context->comm_interface);
+    context->state->state = PARAM_STATE_COMPLETE;
+    return;
+  }
 
   if (MESS_AddMessageToTxQ(&msg) == pdPASS) {
     sprintf((char*) context->output_buffer, "\r\nSuccessfully added to feedback queue!\r\n\r\n");
@@ -195,7 +200,12 @@ void sendEvalTransducer(void* argument)
   msg.data_type = EVAL;
   Evaluate_CopyEvaluationMessage(&msg);
   msg.eval_info = NULL;
-  msg.sender_id = Packet_GetId();
+  if (Param_GetUint8(PARAM_ID, &msg.sender_id) == false) {
+    COMM_TransmitData("\r\nError getting sender ID. Message not sent\r\n", 
+        CALC_LEN, context->comm_interface);
+    context->state->state = PARAM_STATE_COMPLETE;
+    return;
+  }
 
   if (MESS_AddMessageToTxQ(&msg) == pdPASS) {
     sprintf((char*) context->output_buffer, "\r\nSuccessfully added to ouput queue!\r\n\r\n");

@@ -195,8 +195,6 @@ bool Packet_FlipBit(BitMessage_t* bit_msg, uint16_t bit_index);
  */
 bool Packet_Compare(const BitMessage_t* msg1, const BitMessage_t* msg2, bool* identical);
 
-uint8_t Packet_GetId(void);
-
 /**
  * @brief Calculates the minimum power-of-2 packet size needed for a given payload
  *

@@ -15,6 +15,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
 #include "mess_packet.h"
+#include "mess_dsp_config.h"
 #include "dac_waveform.h"
 #include <stdbool.h>
 
@@ -52,7 +53,7 @@ typedef enum {
  *
  * @return true if conversion was successful, false otherwise
  */
-bool Modulate_ConvertToFrequency(BitMessage_t* bit_msg, WaveformStep_t* message_sequence);
+bool Modulate_ConvertToFrequency(BitMessage_t* bit_msg, WaveformStep_t* message_sequence, const DspConfig_t* cfg);
 
 /**
  * @brief Applies the configured amplitude to all waveform steps in the sequence
@@ -77,7 +78,7 @@ bool Modulate_ApplyAmplitude(WaveformStep_t* message_sequence, uint16_t len);
  *
  * @return true if operation was successful
  */
-bool Modulate_ApplyDuration(WaveformStep_t* message_sequence, uint16_t len);
+bool Modulate_ApplyDuration(WaveformStep_t* message_sequence, uint16_t len, const DspConfig_t* cfg);
 
 /**
  * @brief Initializes and starts the transducer output subsystem
@@ -118,7 +119,7 @@ void Modulate_TestFrequencyResponse();
  *
  * @return The calculated frequency in Hertz
  */
-uint32_t Modulate_GetFhbfskFrequency(bool bit, uint16_t bit_index);
+uint32_t Modulate_GetFhbfskFrequency(bool bit, uint16_t bit_index, const DspConfig_t* cfg);
 
 /**
  * @brief Registers modulation parameters with the parameter system for HMI access
