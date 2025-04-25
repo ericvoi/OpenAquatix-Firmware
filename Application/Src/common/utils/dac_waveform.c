@@ -1,5 +1,5 @@
 /*
- * sine_lut.c
+ * dac_waveform.c
  *
  *  Created on: Feb 5, 2025
  *      Author: ericv
@@ -75,12 +75,17 @@ bool DAC_InitWaveformGenerator(void)
 
   // Initialize control structure
   memset(&wave_ctrl, 0, sizeof(wave_ctrl));
-  wave_ctrl.current_amplitude = 0;
+  callback_count = 0;
+  current_step = 0;
+  dac_running = false;
+  current_sequence = NULL;
+  sequence_length = 0;
+  current_symbol_duration_us = 0;
 
   // Configure DAC and DMA here
-  HAL_StatusTypeDef ret1 = HAL_TIM_Base_Start(&htim6);
   HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_2);
   HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+  HAL_StatusTypeDef ret1 = HAL_TIM_Base_Start(&htim6);
 
   return (ret1 == HAL_OK);
 }
@@ -123,12 +128,12 @@ bool DAC_StartWaveformOutput(uint32_t channel)
   fillDacBuffer(FILL_FIRST_HALF);
   fillDacBuffer(FILL_LAST_HALF);
 
+  HAL_StatusTypeDef ret = HAL_DAC_Start_DMA(&hdac1, channel, (uint32_t*) dac_buffer,
+                    DAC_BUFFER_SIZE, DAC_ALIGN_12B_R);
+
   if (channel == DAC_CHANNEL_2) {
     HAL_TIM_Base_Start(&htim6);
   }
-
-  HAL_StatusTypeDef ret = HAL_DAC_Start_DMA(&hdac1, channel, (uint32_t*) dac_buffer,
-                    DAC_BUFFER_SIZE, DAC_ALIGN_12B_R);
 
   return ret == HAL_OK;
 }
@@ -140,6 +145,12 @@ bool DAC_StopWaveformOutput()
   // current_sequence = NULL; // deprecated
   HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_2);
   HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+
+  wave_ctrl.phase_accumulator = 0;
+  wave_ctrl.current_amplitude = 0;
+  wave_ctrl.target_amplitude = 0;
+  wave_ctrl.amplitude_transitioning = false;
+
   ADC_StopFeedback();
   return true;
 }
