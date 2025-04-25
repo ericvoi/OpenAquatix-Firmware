@@ -52,45 +52,45 @@ bool ErrorDetection_AddDetection(BitMessage_t* bit_msg)
   switch (error_detection_method) {
     case CRC_8:
       uint8_t crc_8;
+      bit_msg->final_length += 8;
       if (calculateCrc8(bit_msg, &crc_8) == false) {
         return false;
       }
-      bit_msg->final_length += 8;
       return Packet_Add8(bit_msg, crc_8);
     case CRC_16:
       uint16_t crc_16;
+      bit_msg->final_length += 16;
       if (calculateCrc16(bit_msg, &crc_16) == false) {
         return false;
       }
-      bit_msg->final_length += 16;
       return Packet_Add16(bit_msg, crc_16);
     case CRC_32:
       uint32_t crc_32;
+      bit_msg->final_length += 32;
       if (calculateCrc32(bit_msg, &crc_32) == false) {
         return false;
       }
-      bit_msg->final_length += 32;
       return Packet_Add32(bit_msg, crc_32);
     case CHECKSUM_8:
       uint8_t checksum_8;
+      bit_msg->final_length += 8;
       if (calculateChecksum8(bit_msg, &checksum_8) == false) {
         return false;
       }
-      bit_msg->final_length += 8;
       return Packet_Add8(bit_msg, checksum_8);
     case CHECKSUM_16:
       uint16_t checksum_16;
+      bit_msg->final_length += 16;
       if (calculateChecksum16(bit_msg, &checksum_16) == false) {
         return false;
       }
-      bit_msg->final_length += 16;
       return Packet_Add16(bit_msg, checksum_16);
     case CHECKSUM_32:
       uint32_t checksum_32;
+      bit_msg->final_length += 32;
       if (calculateChecksum32(bit_msg, &checksum_32) == false) {
         return false;
       }
-      bit_msg->final_length += 32;
       return Packet_Add32(bit_msg, checksum_32);
     case NO_ERROR_DETECTION:
       return true;

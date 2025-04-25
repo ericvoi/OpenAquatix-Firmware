@@ -128,6 +128,7 @@ void MESS_StartTask(void* argument)
   // MESS_TaskState = LISTENING;
 
   osDelay(10);
+  DAC_Flush();
   ADC_StartInput();
   for (;;) {
     switch (MESS_TaskState) {
@@ -235,9 +236,11 @@ void MESS_StartTask(void* argument)
           Error_Routine(ERROR_MESS_PROCESSING);
           break;
         }
-        if (Input_SegmentBlocks(cfg) == false) {
-          Error_Routine(ERROR_MESS_PROCESSING);
-          break;
+        if (input_bit_msg.fully_received == false) {
+          if (Input_SegmentBlocks(cfg) == false) {
+            Error_Routine(ERROR_MESS_PROCESSING);
+            break;
+          }
         }
         if (Input_ProcessBlocks(&input_bit_msg, &eval_info, cfg) == false) {
           Error_Routine(ERROR_MESS_PROCESSING);

@@ -111,6 +111,13 @@ bool DAC_IsRunning(void);
  */
 bool DAC_RegisterParams(void);
 
+/**
+ * @brief Sends a flushing message through the dac
+ *
+ * @note This must be called before starting the DAC
+ */
+void DAC_Flush(void);
+
 /* Private defines -----------------------------------------------------------*/
 
 #ifdef __cplusplus
