@@ -218,7 +218,7 @@ static ParamContext_t univConfigErrParam = {
 };
 static const MenuNode_t univConfigErr = {
   .id = MENU_ID_CFG_UNIV_ERR,
-  .description = "Error Correction Scheme",
+  .description = "Error Detection Scheme",
   .handler = setErrorCorrection,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
@@ -1011,7 +1011,8 @@ void setErrorCorrection(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
   char* descriptors[] = {"CRC-8",      "CRC-16",      "CRC-32", 
-                         "Checksum-8", "Checksum-16", "Checksum-32"};
+                         "Checksum-8", "Checksum-16", "Checksum-32",
+                         "None"};
 
   COMMLoops_LoopEnum(context, PARAM_ERROR_CORRECTION, descriptors, 
     sizeof(descriptors) / sizeof(descriptors[0]));

@@ -57,7 +57,7 @@ void DAU_Init(void)
 
   __HAL_UART_ENABLE_IT(&huart5, UART_IT_IDLE);
 
-  HAL_StatusTypeDef ret = HAL_UART_Receive_DMA(&huart5, rx_buffer, DAU_RX_BUFFER_SIZE);
+  HAL_UART_Receive_DMA(&huart5, rx_buffer, DAU_RX_BUFFER_SIZE);
 }
 
 void DAU_TransmitData(uint8_t* data, uint16_t len)

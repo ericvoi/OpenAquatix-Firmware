@@ -17,6 +17,7 @@ extern "C" {
 
 #include "mess_packet.h"
 #include "mess_main.h"
+#include "mess_dsp_config.h"
 
 #include <stdbool.h>
 
@@ -72,7 +73,7 @@ void Input_IncrementEndIndex();
  *
  * @return true if a message start is detected, false otherwise
  */
-bool Input_DetectMessageStart();
+bool Input_DetectMessageStart(const DspConfig_t* cfg);
 
 /**
  * @brief Segments input buffer into analysis blocks for demodulation
@@ -82,7 +83,7 @@ bool Input_DetectMessageStart();
  *
  * @return true if segmentation succeeds, false if analysis buffer capacity is exceeded
  */
-bool Input_SegmentBlocks();
+bool Input_SegmentBlocks(const DspConfig_t* cfg);
 
 /**
  * @brief Processes analysis blocks to extract bits from the received signal
@@ -97,7 +98,7 @@ bool Input_SegmentBlocks();
  *
  * @warning Potential for eval_info overflow - needs to be addressed
  */
-bool Input_ProcessBlocks(BitMessage_t* bit_msg, EvalMessageInfo_t* eval_info);
+bool Input_ProcessBlocks(BitMessage_t* bit_msg, EvalMessageInfo_t* eval_info, const DspConfig_t* cfg);
 
 /**
  * @brief Decodes header information from accumulated bits

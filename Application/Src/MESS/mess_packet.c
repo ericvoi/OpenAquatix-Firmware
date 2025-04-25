@@ -7,8 +7,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 
+#include <mess_error_detection.h>
 #include "mess_packet.h"
-#include "mess_error_correction.h"
 #include "cfg_defaults.h"
 #include "cfg_parameters.h"
 #include <stdbool.h>
@@ -64,7 +64,7 @@ bool Packet_PrepareTx(Message_t* msg, BitMessage_t* bit_msg)
 
   // Add the error correction bits as specified by the user
   if (msg->data_type != EVAL) {
-    if (ErrorCorrection_AddCorrection(bit_msg) == false) {
+    if (ErrorDetection_AddDetection(bit_msg) == false) {
       return false;
     }
   }
@@ -163,6 +163,56 @@ bool Packet_Get32(BitMessage_t* bit_msg, uint16_t* start_position, uint32_t* dat
   return getData(bit_msg, start_position, 8 * sizeof(uint32_t), data);
 }
 
+bool Packet_FlipBit(BitMessage_t* bit_msg, uint16_t bit_index)
+{
+  if (bit_msg == NULL) {
+    return false;
+  }
+  if (bit_index >= bit_msg->final_length) {
+    return false;
+  }
+
+  uint16_t byte_index = bit_index / 8;
+  uint8_t bit_position = bit_index % 8;
+
+  uint8_t mask = 1 << (7 - bit_position);
+
+  bit_msg->data[byte_index] ^= mask;
+  return true;
+}
+
+bool Packet_Compare(const BitMessage_t* msg1, const BitMessage_t* msg2, bool* identical)
+{
+  if (msg1 == NULL || msg2 == NULL || identical == NULL) {
+    return false;
+  }
+
+  uint16_t bit_count1 = msg1->bit_count;
+  uint16_t bit_count2 = msg2->bit_count;
+
+  if (bit_count1 != bit_count2) {
+    *identical = false;
+    return true;
+  }
+
+  uint16_t byte_count = bit_count1 / 8;
+  uint8_t remaining_bits = bit_count1 % 8;
+
+  if (memcmp(msg1->data, msg2->data, byte_count) == 0) {
+    *identical = true;
+  }
+  else {
+    *identical = false;
+    return true;
+  }
+
+  uint8_t last_byte1 = msg1->data[byte_count] >> (7 - remaining_bits);
+  uint8_t last_byte2 = msg2->data[byte_count] >> (7 - remaining_bits);
+
+  *identical = last_byte1 == last_byte2;
+  return true;
+}
+
 uint16_t Packet_MinimumSize(uint16_t str_len)
 {
   size_t packet_size = 1;
@@ -215,7 +265,7 @@ bool addPreamble(BitMessage_t* bit_msg, Message_t* msg)
     return false;
   }
 
-  if (addChunk(bit_msg, modem_id, PACKET_SENDER_ID_BITS) == false) {
+  if (addChunk(bit_msg, msg->sender_id, PACKET_SENDER_ID_BITS) == false) {
     return false;
   }
 
@@ -236,11 +286,6 @@ bool addPreamble(BitMessage_t* bit_msg, Message_t* msg)
   }
 
   bit_msg->final_length += length_accomodated;
-  uint16_t error_length;
-  if (ErrorCorrection_CheckLength(&error_length) == false) {
-    return false;
-  }
-  bit_msg->final_length += error_length;
 
   if (Packet_AddBit(bit_msg, is_stationary) == false) {
     return false;
@@ -253,10 +298,6 @@ bool addPreamble(BitMessage_t* bit_msg, Message_t* msg)
 
 bool addMessage(BitMessage_t* bit_msg, Message_t* msg)
 {
-  if (msg->data_type == BITS) {
-    return false;
-  }
-
   for (uint16_t i = 0; i < msg->length_bits; i++) {
     uint16_t byte_index = i / 8;
     uint16_t bit_index = i % 8;
@@ -264,6 +305,7 @@ bool addMessage(BitMessage_t* bit_msg, Message_t* msg)
     if (Packet_AddBit(bit_msg, bit) == false)
       return false;
   }
+  bit_msg->data_len_bits = msg->length_bits;
   return true;
 }
 

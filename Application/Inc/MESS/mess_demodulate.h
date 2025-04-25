@@ -14,6 +14,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
+#include "mess_dsp_config.h"
 #include <stdbool.h>
 
 
@@ -70,7 +71,7 @@ typedef enum {
  *       considered to improve the detection when significant energy shifts occur
  * @see Modulate_GetFhbfskFrequency
  */
-bool Demodulate_Perform(DemodulationInfo_t* data);
+bool Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg);
 
 /**
  * @brief Registers demodulation parameters with the parameter management system

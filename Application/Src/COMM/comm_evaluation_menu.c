@@ -13,6 +13,7 @@
 
 #include "mess_main.h"
 #include "mess_evaluate.h"
+#include "mess_packet.h"
 
 #include "cfg_parameters.h"
 
@@ -40,12 +41,13 @@ void toggleEval(void* argument);
 void setEvalMsg(void* argument);
 void sendEvalFeedback(void* argument);
 void sendEvalTransducer(void* argument);
+void startFeedbackTests(void* argument);
 
 /* Private variables ---------------------------------------------------------*/
 
 static MenuID_t evalMenuChildren[] = {
-  MENU_ID_EVAL_TOGGLE,    MENU_ID_EVAL_SETMSG, MENU_ID_EVAL_FEEDBACK, 
-  MENU_ID_EVAL_TRANSDUCER
+  MENU_ID_EVAL_TOGGLE,      MENU_ID_EVAL_SETMSG,        MENU_ID_EVAL_FEEDBACK, 
+  MENU_ID_EVAL_TRANSDUCER,  MENU_ID_EVAL_FEEDBACKTESTS
 };
 
 static const MenuNode_t evalMenu = {
@@ -119,13 +121,28 @@ static const MenuNode_t evalTransducer = {
   .parameters = &evalTransducerParam
 };
 
+static ParamContext_t feedbackTestsParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_EVAL_FEEDBACKTESTS
+};
+static const MenuNode_t feedbackTests = {
+  .id = MENU_ID_EVAL_FEEDBACKTESTS,
+  .description = "Perform feedback network tests",
+  .handler = startFeedbackTests,
+  .parent_id = MENU_ID_EVAL,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &feedbackTestsParam
+};
+
 /* Exported function definitions ---------------------------------------------*/
 
 bool COMM_RegisterEvalMenu(void)
 {
   bool ret = registerMenu(&evalMenu) && registerMenu(&evalToggleMode) &&
              registerMenu(&evalSetMsg) && registerMenu(&evalFeedback) &&
-             registerMenu(&evalTransducer);
+             registerMenu(&evalTransducer) && registerMenu(&feedbackTests);
   return ret;
 }
 
@@ -155,6 +172,12 @@ void sendEvalFeedback(void* argument)
   msg.data_type = EVAL;
   Evaluate_CopyEvaluationMessage(&msg);
   msg.eval_info = NULL;
+  if (Param_GetUint8(PARAM_ID, &msg.sender_id) == false) {
+    COMM_TransmitData("\r\nError getting sender ID. Message not sent\r\n", 
+        CALC_LEN, context->comm_interface);
+    context->state->state = PARAM_STATE_COMPLETE;
+    return;
+  }
 
   if (MESS_AddMessageToTxQ(&msg) == pdPASS) {
     sprintf((char*) context->output_buffer, "\r\nSuccessfully added to feedback queue!\r\n\r\n");
@@ -177,6 +200,12 @@ void sendEvalTransducer(void* argument)
   msg.data_type = EVAL;
   Evaluate_CopyEvaluationMessage(&msg);
   msg.eval_info = NULL;
+  if (Param_GetUint8(PARAM_ID, &msg.sender_id) == false) {
+    COMM_TransmitData("\r\nError getting sender ID. Message not sent\r\n", 
+        CALC_LEN, context->comm_interface);
+    context->state->state = PARAM_STATE_COMPLETE;
+    return;
+  }
 
   if (MESS_AddMessageToTxQ(&msg) == pdPASS) {
     sprintf((char*) context->output_buffer, "\r\nSuccessfully added to ouput queue!\r\n\r\n");
@@ -185,6 +214,15 @@ void sendEvalTransducer(void* argument)
     sprintf((char*) context->output_buffer, "\r\nError adding message to output queue\r\n\r\n");
   }
   COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
+
+  context->state->state = PARAM_STATE_COMPLETE;
+}
+
+void startFeedbackTests(void* argument) 
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  osEventFlagsSet(print_event_handle, MESS_FEEDBACK_TESTS);
 
   context->state->state = PARAM_STATE_COMPLETE;
 }

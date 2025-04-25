@@ -365,7 +365,7 @@ void printReceivedMessage(Message_t msg)
   }
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 
-  sprintf((char*) out_buffer, "\r\nErrors Present: %s", msg.error_correction_error ? "Yes" : "No");
+  sprintf((char*) out_buffer, "\r\nErrors Present: %s", msg.error_detected ? "Yes" : "No");
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 
   sprintf((char*) out_buffer, "\r\nSender id: %u", msg.sender_id);

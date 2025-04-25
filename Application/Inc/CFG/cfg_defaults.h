@@ -16,7 +16,7 @@ extern "C" {
 #include "stm32h7xx_hal.h"
 #include "mess_input.h"
 #include "mess_main.h"
-#include "mess_error_correction.h"
+#include <mess_error_detection.h>
 #include "mess_demodulate.h"
 #include "mess_modulate.h"
 
@@ -93,9 +93,9 @@ extern "C" {
 #define MIN_STATIONARY_FLAG         (false)
 #define MAX_STATIONARY_FLAG         (true)
 
-#define DEFAULT_ERROR_CORRECTION    (CRC_16)
-#define MIN_ERROR_CORRECTION        0
-#define MAX_ERROR_CORRECTION        (NUM_ERROR_CORRECTION_METHODS - 1)
+#define DEFAULT_ERROR_DETECTION     (CRC_16)
+#define MIN_ERROR_DETECTION         0
+#define MAX_ERROR_DETECTION         (NUM_ERROR_DETECTION_METHODS - 1)
 
 #define DEFAULT_DEMOD_DECISION      (HISTORICAL_COMPARISON)
 #define MIN_DEMOD_DECISION          0

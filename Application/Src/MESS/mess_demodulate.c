@@ -53,19 +53,19 @@ static bool goertzel(DemodulationInfo_t* data);
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool Demodulate_Perform(DemodulationInfo_t* data)
+bool Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg)
 {
-  switch (mod_demod_method) {
+  switch (cfg->mod_demod_method) {
     case MOD_DEMOD_FSK:
-      data->f0 = fsk_f0;
-      data->f1 = fsk_f1;
+      data->f0 = cfg->fsk_f0;
+      data->f1 = cfg->fsk_f1;
       if (goertzel(data) == false) {
         return false;
       }
       break;
     case MOD_DEMOD_FHBFSK: {
-      data->f0 = Modulate_GetFhbfskFrequency(false, data->bit_index);
-      data->f1 = Modulate_GetFhbfskFrequency(true, data->bit_index);
+      data->f0 = Modulate_GetFhbfskFrequency(false, data->bit_index, cfg);
+      data->f1 = Modulate_GetFhbfskFrequency(true, data->bit_index, cfg);
       if (goertzel(data) == false) {
         return false;
       }
@@ -87,7 +87,7 @@ bool Demodulate_Perform(DemodulationInfo_t* data)
       // Expects nominally that the basic goertzel is correct, but switches predicted bit if there is a large swing
       // calculate current index
 
-      uint16_t num_tones = (mod_demod_method == MOD_DEMOD_FSK) ? 1 : fhbfsk_num_tones;
+      uint16_t num_tones = (cfg->mod_demod_method == MOD_DEMOD_FSK) ? 1 : cfg->fhbfsk_num_tones;
       uint16_t frequency_index = data->bit_index % num_tones;
 
       uint16_t buffer_raw_length = data->bit_index / num_tones;

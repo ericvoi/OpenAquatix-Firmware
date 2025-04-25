@@ -5,12 +5,13 @@
  *      Author: ericv
  */
 
-#ifndef MESS_MESS_ERROR_CORRECTION_H_
-#define MESS_MESS_ERROR_CORRECTION_H_
+#ifndef MESS_MESS_ERROR_DETECTION_H_
+#define MESS_MESS_ERROR_DETECTION_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
@@ -31,8 +32,9 @@ typedef enum {
   CHECKSUM_8,
   CHECKSUM_16,
   CHECKSUM_32,
-  NUM_ERROR_CORRECTION_METHODS
-} ErrorCorrectionMethod_t;
+  NO_ERROR_DETECTION,
+  NUM_ERROR_DETECTION_METHODS
+} ErrorDetectionMethod_t;
 
 /* Exported constants --------------------------------------------------------*/
 
@@ -56,9 +58,9 @@ typedef enum {
  * @return true if correction data was successfully added,
  *         false if calculation failed or correction method is invalid
  *
- * @see ErrorCorrection_CheckCorrection
+ * @see ErrorDetection_CheckDetection
  */
-bool ErrorCorrection_AddCorrection(BitMessage_t* bit_msg);
+bool ErrorDetection_AddDetection(BitMessage_t* bit_msg);
 
 /**
  * @brief Verifies error correction data in a bit message
@@ -72,7 +74,7 @@ bool ErrorCorrection_AddCorrection(BitMessage_t* bit_msg);
  * @return true if verification was performed successfully,
  *         false if verification failed or correction method is invalid
  */
-bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg, bool* error);
+bool ErrorDetection_CheckDetection(BitMessage_t* bit_msg, bool* error);
 
 /**
  * @brief Gets the bit length of the current error correction method
@@ -83,7 +85,7 @@ bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg, bool* error);
  * @return true if length was set successfully,
  *         false if the current correction method is invalid
  */
-bool ErrorCorrection_CheckLength(uint16_t* length);
+bool ErrorDetection_CheckLength(uint16_t* length);
 
 /**
  * @brief Registers error correction parameters with the system
@@ -92,7 +94,7 @@ bool ErrorCorrection_CheckLength(uint16_t* length);
  *
  * @return true if registration was successful, false otherwise
  */
-bool ErrorCorrection_RegisterParams(void);
+bool ErrorDetection_RegisterParams(void);
 
 /* Private defines -----------------------------------------------------------*/
 
@@ -100,4 +102,4 @@ bool ErrorCorrection_RegisterParams(void);
 }
 #endif
 
-#endif /* MESS_MESS_ERROR_CORRECTION_H_ */
+#endif /* MESS_MESS_ERROR_DETECTION_H_ */
