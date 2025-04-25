@@ -93,7 +93,7 @@ bool FeedbackTests_Check(Message_t* received_msg, BitMessage_t* received_bit_msg
  * @return true if doing a feedback test and false otherwise
  * @note If this returns false, then the configuration must be set to default
  */
-bool FeedbackTests_GetConfig(const DspConfig_t** cfg);
+bool FeedbackTests_GetConfig(DspConfig_t** cfg);
 
 /* Private defines -----------------------------------------------------------*/
 

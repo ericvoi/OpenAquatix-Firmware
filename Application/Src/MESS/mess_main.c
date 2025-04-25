@@ -181,29 +181,29 @@ void MESS_StartTask(void* argument)
           FeedbackTests_GetConfig(&cfg);
           BitMessage_t bit_msg;
           if (Packet_PrepareTx(&tx_msg, &bit_msg) == false) {
-            // TODO: log error
+            Error_Routine(ERROR_MESS_PROCESSING);
             break;
           }
           // Add ECC
           // Add feedback network test false bits
           if (FeedbackTests_CorruptMessage(&bit_msg) == false) {
-            // TODO: log error
+            Error_Routine(ERROR_MESS_PROCESSING);
             break;
           }
           message_length = bit_msg.bit_count;
           // convert to frequencies in message_sequence
           if (Modulate_ConvertToFrequency(&bit_msg, message_sequence, cfg) == false) {
-            // TODO: log error
+            Error_Routine(ERROR_MESS_PROCESSING);
             break;
           }
 
           if (Modulate_ApplyAmplitude(message_sequence, message_length) == false) {
-            // TODO: log error
+            Error_Routine(ERROR_MESS_PROCESSING);
             break;
           }
 
           if (Modulate_ApplyDuration(message_sequence, message_length, cfg) == false) {
-            // TODO: log error
+            Error_Routine(ERROR_MESS_PROCESSING);
             break;
           }
           DAC_SetWaveformSequence(message_sequence, message_length);

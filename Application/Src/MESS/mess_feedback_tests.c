@@ -33,7 +33,7 @@ typedef struct {
 } ReferenceMessage_t;
 
 typedef struct {
-  const DspConfig_t cfg;
+  DspConfig_t cfg;
   const ExpectedResult_t expected_result;
   ReferenceMessage_t* reference_message;
   const uint16_t errors_added;
@@ -45,6 +45,11 @@ typedef struct {
   uint16_t messages_with_header_errors;
   uint16_t failed_tests;
 } FeedbackTests_t;
+
+typedef enum {
+  SENT_MESSAGE,
+  DECODED_MESSAGE
+} LastAction_t;
 
 /* Private define ------------------------------------------------------------*/
 
@@ -237,6 +242,7 @@ static uint16_t total_tests;
 static bool performing_test = false;
 static uint16_t current_test = 0;
 static uint16_t call_count = 0;
+static LastAction_t last_action = DECODED_MESSAGE;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -278,6 +284,7 @@ void FeedbackTests_Start()
 {
   current_test = 0;
   performing_test = true;
+  last_action = DECODED_MESSAGE;
 
   // Reset statistics
   for (uint16_t i = 0; i < unique_tests; i++) {
@@ -291,7 +298,6 @@ void FeedbackTests_Start()
 
 void FeedbackTests_GetNext()
 {
-  static uint32_t last_message_send_time = 0;
   if (performing_test == false) {
     return;
   }
@@ -301,9 +307,7 @@ void FeedbackTests_GetNext()
     return;
   }
 
-  uint32_t current_time = osKernelGetTickCount();
-
-  if (current_time - last_message_send_time < 30) {
+  if (last_action == SENT_MESSAGE) {
     return;
   }
 
@@ -315,7 +319,7 @@ void FeedbackTests_GetNext()
 
   MESS_AddMessageToTxQ(&feedback_tests[test_index].reference_message->test_msg);
   call_count++;
-  last_message_send_time = osKernelGetTickCount();
+  last_action = SENT_MESSAGE;
 }
 
 bool FeedbackTests_CorruptMessage(BitMessage_t* bit_msg)
@@ -403,6 +407,7 @@ bool FeedbackTests_Check(Message_t* received_msg, BitMessage_t* received_bit_msg
   COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
 
   current_test++;
+  last_action = DECODED_MESSAGE;
 
   if (current_test >= total_tests) {
     performing_test = false;
@@ -413,7 +418,7 @@ bool FeedbackTests_Check(Message_t* received_msg, BitMessage_t* received_bit_msg
   return true;
 }
 
-bool FeedbackTests_GetConfig(const DspConfig_t** cfg)
+bool FeedbackTests_GetConfig(DspConfig_t** cfg)
 {
   if (performing_test == false) {
     return false;

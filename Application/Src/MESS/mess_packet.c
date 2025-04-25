@@ -168,7 +168,7 @@ bool Packet_FlipBit(BitMessage_t* bit_msg, uint16_t bit_index)
   if (bit_msg == NULL) {
     return false;
   }
-  if (bit_index > bit_msg->data_len_bits) {
+  if (bit_index >= bit_msg->final_length) {
     return false;
   }
 
@@ -286,11 +286,6 @@ bool addPreamble(BitMessage_t* bit_msg, Message_t* msg)
   }
 
   bit_msg->final_length += length_accomodated;
-  uint16_t error_length;
-  if (ErrorDetection_CheckLength(&error_length) == false) {
-    return false;
-  }
-  bit_msg->final_length += error_length;
 
   if (Packet_AddBit(bit_msg, is_stationary) == false) {
     return false;
