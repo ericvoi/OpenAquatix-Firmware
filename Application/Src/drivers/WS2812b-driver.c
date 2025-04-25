@@ -8,6 +8,7 @@
 /* Private includes ----------------------------------------------------------*/
 
 #include <string.h>
+#include "cfg_defaults.h"
 #include "stm32h7xx_hal.h"
 #include "WS2812b-driver.h"
 
@@ -32,13 +33,16 @@ typedef union {
 
 /* Private variables ---------------------------------------------------------*/
 
-static WS_LEDDATARGB WS_LED_DATA[WS_NUM_LEDS];
-static uint16_t	WS_DMA_BUF[WS_DMA_BUF_LEN];
-static volatile uint8_t WS_DMA_COMPLETE_FLAG;
+static WS_LEDDATARGB led_data;
+static WS_LEDDATARGB scaled_led_data;
+static uint16_t	ws_dma_buf[WS_DMA_BUF_LEN];
+static volatile uint8_t ws_dma_complete_flag;
 
 extern TIM_HandleTypeDef WS_TIM;
 
-/* Private function prototypes -----------------------------------------------*/
+void scaleRgb(uint8_t brightness);
+
+/* Exported function prototypes ----------------------------------------------*/
 
 HAL_StatusTypeDef WS_Init()
 {
@@ -48,54 +52,51 @@ HAL_StatusTypeDef WS_Init()
   if (halStatus != HAL_OK) return halStatus;
 
   // Clear DMA buffer
-  memset(WS_DMA_BUF, 0, sizeof(WS_DMA_BUF));
+  memset(ws_dma_buf, 0, sizeof(ws_dma_buf));
 
   // Set DMA Transfer ready flag
-  WS_DMA_COMPLETE_FLAG = 1;
+  ws_dma_complete_flag = 1;
 
-  WS_SetColour(0, 0, 0, 0);
-  WS_Update();
+  WS_SetColour(0, 0, 0);
+  WS_Update(255);
 
   return halStatus;
 }
 
-void WS_SetColour(uint8_t index, uint8_t r, uint8_t g, uint8_t b)
+void WS_SetColour(uint8_t r, uint8_t g, uint8_t b)
 {
-  if (index != 0) {
-    return;
-  }
-  WS_LED_DATA[index].colour.r = r;
-  WS_LED_DATA[index].colour.g = g;
-  WS_LED_DATA[index].colour.b = b;
+  led_data.colour.r = r;
+  led_data.colour.g = g;
+  led_data.colour.b = b;
 }
 
-HAL_StatusTypeDef WS_Update()
+HAL_StatusTypeDef WS_Update(uint8_t brightness)
 {
   // Check if previous DMA complete
-  if (WS_DMA_COMPLETE_FLAG == 0) {
+  if (ws_dma_complete_flag == 0) {
     return HAL_BUSY;
   }
 
-  memset(WS_DMA_BUF, 0, sizeof(WS_DMA_BUF));
+  memset(ws_dma_buf, 0, sizeof(ws_dma_buf));
 
-  uint16_t bufIndex = WS_RST_PERIODS;
+  scaleRgb(brightness);
 
-  for (uint8_t ledIndex = 0; ledIndex < WS_NUM_LEDS; ledIndex++) {
-    uint32_t ledData = WS_LED_DATA[ledIndex].data;
+  uint16_t buf_index = WS_RST_PERIODS;
 
-    for (int8_t byteIndex = 2; byteIndex >= 0; byteIndex--) {
-      uint8_t byte = (ledData >> (byteIndex * 8)) & 0xFF;
+  uint32_t raw_led_data = scaled_led_data.data;
 
-      // Convert LED data to PWM timing pulses required by WS2812B protocol
-      // Each bit becomes a specific pulse width in the DMA buffer
-      for (int8_t bit_index = 7; bit_index >= 0; bit_index--) {
-        WS_DMA_BUF[bufIndex++] = (byte & (1 << bit_index)) ? WS_HI_VAL : WS_LO_VAL;
-      }
+  for (int8_t byteIndex = 2; byteIndex >= 0; byteIndex--) {
+    uint8_t byte = (raw_led_data >> (byteIndex * 8)) & 0xFF;
+
+    // Convert LED data to PWM timing pulses required by WS2812B protocol
+    // Each bit becomes a specific pulse width in the DMA buffer
+    for (int8_t bit_index = 7; bit_index >= 0; bit_index--) {
+      ws_dma_buf[buf_index++] = (byte & (1 << bit_index)) ? WS_HI_VAL : WS_LO_VAL;
     }
   }
 
   HAL_StatusTypeDef halStatus = HAL_TIM_PWM_Start_DMA(&WS_TIM, WS_TIM_CHANNEL,
-      (uint32_t *) WS_DMA_BUF, WS_DMA_BUF_LEN);
+      (uint32_t *) ws_dma_buf, WS_DMA_BUF_LEN);
 
   return halStatus;
 }
@@ -104,5 +105,14 @@ void WS_Callback()
 {
   HAL_TIM_PWM_Stop_DMA(&WS_TIM, WS_TIM_CHANNEL);
 
-  WS_DMA_COMPLETE_FLAG = 1;
+  ws_dma_complete_flag = 1;
+}
+
+/* Private function prototypes -----------------------------------------------*/
+
+void scaleRgb(uint8_t brightness)
+{
+  scaled_led_data.colour.r = (uint16_t)led_data.colour.r * brightness / MAX_LED_BRIGHTNESS;
+  scaled_led_data.colour.g = (uint16_t)led_data.colour.g * brightness / MAX_LED_BRIGHTNESS;
+  scaled_led_data.colour.b = (uint16_t)led_data.colour.b * brightness / MAX_LED_BRIGHTNESS;
 }

@@ -14,6 +14,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
+#include <Stdbool.h>
 
 
 /* Private includes ----------------------------------------------------------*/
@@ -43,6 +44,7 @@ typedef enum {
 /* Exported functions prototypes ---------------------------------------------*/
 
 void Error_Routine(ErrorCodes_t error_code);
+bool Error_Exists(void);
 
 /* Private defines -----------------------------------------------------------*/
 
