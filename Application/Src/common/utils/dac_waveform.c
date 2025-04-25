@@ -46,7 +46,7 @@ typedef enum {
 /* Private variables ---------------------------------------------------------*/
 
 static uint16_t sine_table[SINE_POINTS];
-static uint32_t dac_buffer[DAC_BUFFER_SIZE];
+static uint32_t dac_buffer[DAC_BUFFER_SIZE] = {0};
 
 static WaveformControl_t wave_ctrl;
 static const WaveformStep_t* current_sequence = NULL;
@@ -58,6 +58,13 @@ static uint32_t current_symbol_duration_us = 0;
 static volatile uint32_t callback_count = 0;
 
 static uint16_t transition_length = DEFAULT_DAC_TRANSITION_LEN;
+
+// Output tone that flushes out the DAC and prevents the first message from being scrambled
+WaveformStep_t test_step = {
+    .duration_us = 1000000, // Any lower duration does not work
+    .freq_hz = 30000,
+    .relative_amplitude = 0.0
+};
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -85,9 +92,9 @@ bool DAC_InitWaveformGenerator(void)
   // Configure DAC and DMA here
   HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_2);
   HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
-  HAL_StatusTypeDef ret1 = HAL_TIM_Base_Start(&htim6);
+//  HAL_StatusTypeDef ret1 = HAL_TIM_Base_Start(&htim6);
 
-  return (ret1 == HAL_OK);
+  return true;
 }
 
 bool DAC_SetWaveformSequence(WaveformStep_t* sequence, uint32_t num_steps)
@@ -122,6 +129,9 @@ bool DAC_SetWaveformSequence(WaveformStep_t* sequence, uint32_t num_steps)
 bool DAC_StartWaveformOutput(uint32_t channel)
 {
   if (current_sequence == NULL) return false;
+
+  HAL_DAC_Stop_DMA(&hdac1, channel);
+  wave_ctrl.phase_accumulator = 0;
 
   dac_running = true;
   updateWaveformParameters(&current_sequence[0]);
@@ -170,6 +180,16 @@ bool DAC_RegisterParams()
   }
 
   return true;
+}
+
+void DAC_Flush()
+{
+  DAC_SetWaveformSequence(&test_step, 1);
+  DAC_StartWaveformOutput(DAC_CHANNEL_2);
+
+  while (dac_running == true) {
+    osDelay(1);
+  }
 }
 
 /* Private function definitions ----------------------------------------------*/

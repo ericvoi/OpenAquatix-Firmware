@@ -128,6 +128,7 @@ void MESS_StartTask(void* argument)
   // MESS_TaskState = LISTENING;
 
   osDelay(10);
+  DAC_Flush();
   ADC_StartInput();
   for (;;) {
     switch (MESS_TaskState) {
