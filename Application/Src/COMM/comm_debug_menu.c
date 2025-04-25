@@ -15,9 +15,7 @@
 #include "cfg_parameters.h"
 
 #include "sys_temperature.h"
-
-#include "WS2812b-driver.h"
-#include "PGA113-driver.h"
+#include "sys_led.h"
 
 #include "check_inputs.h"
 
@@ -289,8 +287,7 @@ void setLedColourHandler(void* argument)
         } else {
           // Received 3 valid rgb values so now set LED colour
 
-          WS_SetColour(0, red, green, blue);
-          WS_Update();
+          LED_ManualOverride(red, green, blue);
 
           context->state->state = PARAM_STATE_COMPLETE;
         }

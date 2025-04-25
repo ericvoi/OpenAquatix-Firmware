@@ -38,12 +38,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 
-typedef enum {
-  DRIVING_TRANSDUCER,
-  LISTENING,
-  PROCESSING,
-  CHANGING
-} ProcessingState_t;
+
 
 /* Private define ------------------------------------------------------------*/
 
@@ -61,7 +56,7 @@ static QueueHandle_t rx_queue = NULL; // Messages received
 static bool evaluation_mode = DEFAULT_EVAL_MODE_STATE;
 static uint8_t evaluation_message = DEFAULT_EVAL_MESSAGE;
 
-static ProcessingState_t MESS_TaskState = LISTENING;
+static ProcessingState_t task_state = LISTENING;
 
 static BitMessage_t input_bit_msg;
 
@@ -125,13 +120,12 @@ void MESS_StartTask(void* argument)
   FeedbackTests_Init();
   DAC_InitWaveformGenerator();
   switchState(LISTENING);
-  // MESS_TaskState = LISTENING;
 
   osDelay(10);
   DAC_Flush();
   ADC_StartInput();
   for (;;) {
-    switch (MESS_TaskState) {
+    switch (task_state) {
       case DRIVING_TRANSDUCER:
         // Currently driving transducer so listen to transducer feedback network
         if (DAC_IsRunning() == false) {
@@ -411,12 +405,17 @@ bool MESS_GetBitPeriod(float* bit_period_ms)
   return true;
 }
 
+ProcessingState_t MESS_GetState()
+{
+  return task_state;
+}
+
 /* Private function definitions ----------------------------------------------*/
 
 static void switchState(ProcessingState_t newState)
 {
   // First deactivate and clear all adcs, dacs, and all buffers except for the input buffer when transitioning from listening to processing
-  MESS_TaskState = CHANGING;
+  task_state = CHANGING;
   switch (newState) {
     case DRIVING_TRANSDUCER:
       ADC_StopAll();
@@ -431,7 +430,7 @@ static void switchState(ProcessingState_t newState)
       osDelay(10);
       Modulate_StartTransducerOutput();
       // start
-      MESS_TaskState = DRIVING_TRANSDUCER;
+      task_state = DRIVING_TRANSDUCER;
       break;
     case LISTENING:
       cfg = &default_config;
@@ -445,11 +444,11 @@ static void switchState(ProcessingState_t newState)
       switchTrReceive();
       osDelay(5);
       ADC_StartInput();
-      MESS_TaskState = LISTENING;
+      task_state = LISTENING;
       break;
     case PROCESSING:
       Packet_PrepareRx(&input_bit_msg);
-      MESS_TaskState = PROCESSING;
+      task_state = PROCESSING;
       break;
     default:
       break;

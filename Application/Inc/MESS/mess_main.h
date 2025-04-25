@@ -104,6 +104,13 @@ typedef struct {
   uint16_t bit_index;   // Index of the bit in the message
 } ProcessingData_t;
 
+typedef enum {
+  DRIVING_TRANSDUCER,
+  LISTENING,
+  PROCESSING,
+  CHANGING
+} ProcessingState_t;
+
 /* Exported constants --------------------------------------------------------*/
 
 #define MSG_QUEUE_SIZE    10
@@ -232,6 +239,16 @@ bool MESS_GetBandwidth(uint32_t* bandwidth, uint32_t* lower_freq, uint32_t* uppe
  * @return true always
  */
 bool MESS_GetBitPeriod(float* bit_period_ms);
+
+/**
+ * @brief State of the MESS task
+ *
+ * @return DRIVING_TRANSDUCER Driving the output transducer
+ * @return LISTENING Listening to the input for a message to start
+ * @return PROCESSING Decoding ongoing message
+ * @return CHANGING Changing between states
+ */
+ProcessingState_t MESS_GetState(void);
 
 /* Private defines -----------------------------------------------------------*/
 
