@@ -32,6 +32,8 @@
 #include "dac_waveform.h"
 #include "PGA113-driver.h"
 
+#include "mess_dac_resources.h"
+
 #include "main.h"
 #include <stdbool.h>
 #include <string.h>
@@ -56,7 +58,7 @@ static QueueHandle_t rx_queue = NULL; // Messages received
 static bool evaluation_mode = DEFAULT_EVAL_MODE_STATE;
 static uint8_t evaluation_message = DEFAULT_EVAL_MESSAGE;
 
-static ProcessingState_t task_state = LISTENING;
+static ProcessingState_t task_state = CHANGING;
 
 static BitMessage_t input_bit_msg;
 
@@ -74,6 +76,8 @@ static DspConfig_t default_config = {
     .error_detection_method = DEFAULT_ERROR_DETECTION
 };
 static DspConfig_t* cfg = &default_config;
+static BitMessage_t bit_msg;
+uint16_t message_length = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -90,9 +94,8 @@ void MESS_StartTask(void* argument)
 {
   (void)(argument);
   osEventFlagsClear(print_event_handle, 0xFFFFFFFF);
+  MessDacResource_Init();
   Message_t tx_msg;
-  WaveformStep_t message_sequence[PACKET_MAX_LENGTH_BITS];
-  uint16_t message_length = 0;
   EvalMessageInfo_t eval_info;
 
   if (Param_RegisterTask(MESS_TASK, "MESS") == false) {
@@ -118,17 +121,16 @@ void MESS_StartTask(void* argument)
   Feedback_Init();
   Evaluate_Init();
   FeedbackTests_Init();
-  DAC_InitWaveformGenerator();
   switchState(LISTENING);
 
   osDelay(10);
-  DAC_Flush();
+  Waveform_Flush();
   ADC_StartInput();
   for (;;) {
     switch (task_state) {
       case DRIVING_TRANSDUCER:
         // Currently driving transducer so listen to transducer feedback network
-        if (DAC_IsRunning() == false) {
+        if (Waveform_IsRunning() == false) {
           osDelay(1); // Lets the ADC finish in the case of feedback network
           HAL_TIM_Base_Stop(&htim6);
           if (in_feedback == true) {
@@ -174,7 +176,7 @@ void MESS_StartTask(void* argument)
 
         if (MESS_GetMessageFromTxQ(&tx_msg) == pdPASS) {
           FeedbackTests_GetConfig(&cfg);
-          BitMessage_t bit_msg;
+
           if (Packet_PrepareTx(&tx_msg, &bit_msg) == false) {
             Error_Routine(ERROR_MESS_PROCESSING);
             break;
@@ -187,27 +189,13 @@ void MESS_StartTask(void* argument)
           }
           message_length = bit_msg.bit_count;
           // convert to frequencies in message_sequence
-          if (Modulate_ConvertToFrequency(&bit_msg, message_sequence, cfg) == false) {
-            Error_Routine(ERROR_MESS_PROCESSING);
-            break;
-          }
-
-          if (Modulate_ApplyAmplitude(message_sequence, message_length) == false) {
-            Error_Routine(ERROR_MESS_PROCESSING);
-            break;
-          }
-
-          if (Modulate_ApplyDuration(message_sequence, message_length, cfg) == false) {
-            Error_Routine(ERROR_MESS_PROCESSING);
-            break;
-          }
-          DAC_SetWaveformSequence(message_sequence, message_length);
+          // Waveform_SetWaveformSequence(message_length);
           switch (tx_msg.type) {
             case MSG_TRANSMIT_TRANSDUCER:
               switchState(DRIVING_TRANSDUCER);
               break;
             case MSG_TRANSMIT_FEEDBACK:
-              DAC_StartWaveformOutput(DAC_CHANNEL_FEEDBACK);
+              Modulate_StartFeedbackOutput(message_length, cfg, &bit_msg);
               // Should automatically go to processing once waveform being received without intervention
               break;
             default:
@@ -428,13 +416,12 @@ static void switchState(ProcessingState_t newState)
       osDelay(1);
       switchTrTransmit();
       osDelay(10);
-      Modulate_StartTransducerOutput();
-      // start
+      Modulate_StartTransducerOutput(message_length, cfg, &bit_msg);
       task_state = DRIVING_TRANSDUCER;
       break;
     case LISTENING:
       cfg = &default_config;
-      DAC_StopWaveformOutput();
+      Waveform_StopWaveformOutput();
       HAL_TIM_Base_Stop(&htim6);
       HAL_DAC_Stop(&hdac1, DAC_CHANNEL_1);
       HAL_GPIO_WritePin(PAMP_MUTE_GPIO_Port, PAMP_MUTE_Pin, GPIO_PIN_SET);
@@ -547,10 +534,6 @@ static bool registerMessParams()
   if (Demodulate_RegisterParams() == false) {
     return false;
   } 
-
-  if (DAC_RegisterParams() == false) {
-    return false;
-  }
 
   if (Calibrate_RegisterParams() == false) {
     return false;

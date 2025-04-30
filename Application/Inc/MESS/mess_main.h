@@ -50,8 +50,6 @@ extern "C" {
 #define PACKET_MAX_LENGTH_BYTES           ((PACKET_MAX_LENGTH_BITS / 8) + 1)
 #define PACKET_DATA_MAX_LENGTH_BYTES      (PACKET_DATA_MAX_LENGTH_BITS / 8)
 
-#define TEST_PACKET_LENGTH                64
-
 typedef enum {
   MSG_RECEIVED_TRANSDUCER,     // Received message from the transducer
   MSG_TRANSMIT_TRANSDUCER,     // Message needs to be transmitted via transducer
@@ -113,7 +111,7 @@ typedef enum {
 
 /* Exported constants --------------------------------------------------------*/
 
-#define MSG_QUEUE_SIZE    10
+#define MSG_QUEUE_SIZE    4
 
 #define DAC_CHANNEL_TRANSDUCER  DAC_CHANNEL_1
 #define DAC_CHANNEL_FEEDBACK    DAC_CHANNEL_2
@@ -125,6 +123,7 @@ typedef enum {
   MESS_FREQ_RESP = 0x00000004,
   MESS_PRINT_WAVEFORM = 0x00000008,
   MESS_FEEDBACK_TESTS = 0x00000010,
+  MESS_DAC_READY = 0x00000020
 } MessageFlags_t;
 
 /* Exported macro ------------------------------------------------------------*/

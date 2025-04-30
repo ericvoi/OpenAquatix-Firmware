@@ -76,13 +76,14 @@ extern DMA_HandleTypeDef hdma_tim3_ch1;
 extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim6;
 extern TIM_HandleTypeDef htim16;
+extern TIM_HandleTypeDef htim17;
 extern DMA_HandleTypeDef hdma_uart5_rx;
 extern DMA_HandleTypeDef hdma_uart5_tx;
 extern UART_HandleTypeDef huart5;
 extern TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN EV */
-
+volatile unsigned long ulHighFrequencyTimerTicks = 0;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -496,6 +497,20 @@ void TIM16_IRQHandler(void)
   /* USER CODE BEGIN TIM16_IRQn 1 */
   SensorTimer_Tick();
   /* USER CODE END TIM16_IRQn 1 */
+}
+
+/**
+  * @brief This function handles TIM17 global interrupt.
+  */
+void TIM17_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM17_IRQn 0 */
+
+  /* USER CODE END TIM17_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim17);
+  /* USER CODE BEGIN TIM17_IRQn 1 */
+  ulHighFrequencyTimerTicks++;
+  /* USER CODE END TIM17_IRQn 1 */
 }
 
 /**

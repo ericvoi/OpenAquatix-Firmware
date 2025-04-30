@@ -102,7 +102,7 @@ bool Temperature_Process()
     return true;
   }
 
-  uint16_t remaining_length = (buf_index - processing_index - 1) % TEMPERATURE_BUFFER_SIZE;
+  uint16_t remaining_length = (processing_index - buf_index) & (TEMPERATURE_BUFFER_SIZE - 1);
 
   for (uint16_t i = 0; i < remaining_length; i++) {
     uint16_t index = (processing_index + i) % TEMPERATURE_BUFFER_SIZE;

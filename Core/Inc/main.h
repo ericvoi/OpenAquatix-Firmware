@@ -41,6 +41,7 @@ typedef enum {
   COMM_TASK,
   MESS_TASK,
   SYS_TASK,
+  DAC_TASK,
   NUM_TASKS
 } TaskIds_t;
 /* USER CODE END ET */

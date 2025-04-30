@@ -1,12 +1,12 @@
 /*
- * sys_error.h
+ * dac_main.h
  *
- *  Created on: Mar 11, 2025
+ *  Created on: Apr 28, 2025
  *      Author: ericv
  */
 
-#ifndef SYS_SYS_ERROR_H_
-#define SYS_SYS_ERROR_H_
+#ifndef DAC_DAC_MAIN_H_
+#define DAC_DAC_MAIN_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,7 +14,6 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
-#include <Stdbool.h>
 
 
 /* Private includes ----------------------------------------------------------*/
@@ -23,18 +22,9 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
-typedef enum {
-  ERROR_CFG_INIT,
-  ERROR_COMM_INIT,
-  ERROR_MESS_INIT,
-  ERROR_SYS_INIT,
-  ERROR_MESS_PROCESSING,
-  ERROR_FLASH,
-  ERROR_DAC_INIT,
-  ERROR_DAC_PROCESSING,
-  ERROR_MESS_DAC_RESOURCE,
-  ERROR_OTHER
-} ErrorCodes_t;
+#define DAC_FILL_FIRST_HALF   (1 << 0)
+#define DAC_FILL_LAST_HALF    (1 << 1)
+
 
 /* Exported constants --------------------------------------------------------*/
 
@@ -46,8 +36,7 @@ typedef enum {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-void Error_Routine(ErrorCodes_t error_code);
-bool Error_Exists(void);
+void DAC_StartTask(void* argument);
 
 /* Private defines -----------------------------------------------------------*/
 
@@ -55,4 +44,4 @@ bool Error_Exists(void);
 }
 #endif
 
-#endif /* SYS_SYS_ERROR_H_ */
+#endif /* DAC_DAC_MAIN_H_ */

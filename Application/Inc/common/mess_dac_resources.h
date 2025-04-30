@@ -1,12 +1,12 @@
 /*
- * sys_error.h
+ * mess_dac_resources.h
  *
- *  Created on: Mar 11, 2025
+ *  Created on: Apr 29, 2025
  *      Author: ericv
  */
 
-#ifndef SYS_SYS_ERROR_H_
-#define SYS_SYS_ERROR_H_
+#ifndef COMMON_MESS_DAC_RESOURCES_H_
+#define COMMON_MESS_DAC_RESOURCES_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,8 +14,9 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
-#include <Stdbool.h>
-
+#include "mess_packet.h"
+#include "mess_dsp_config.h"
+#include "dac_waveform.h"
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -23,18 +24,7 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
-typedef enum {
-  ERROR_CFG_INIT,
-  ERROR_COMM_INIT,
-  ERROR_MESS_INIT,
-  ERROR_SYS_INIT,
-  ERROR_MESS_PROCESSING,
-  ERROR_FLASH,
-  ERROR_DAC_INIT,
-  ERROR_DAC_PROCESSING,
-  ERROR_MESS_DAC_RESOURCE,
-  ERROR_OTHER
-} ErrorCodes_t;
+
 
 /* Exported constants --------------------------------------------------------*/
 
@@ -46,8 +36,10 @@ typedef enum {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-void Error_Routine(ErrorCodes_t error_code);
-bool Error_Exists(void);
+void MessDacResource_Init(void);
+void MessDacResource_RegisterMessageConfiguration(const DspConfig_t* new_cfg,
+    BitMessage_t* new_bit_msg);
+WaveformStep_t MessDacResource_GetStep(uint16_t current_step);
 
 /* Private defines -----------------------------------------------------------*/
 
@@ -55,4 +47,4 @@ bool Error_Exists(void);
 }
 #endif
 
-#endif /* SYS_SYS_ERROR_H_ */
+#endif /* COMMON_MESS_DAC_RESOURCES_H_ */

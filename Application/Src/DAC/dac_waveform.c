@@ -8,9 +8,13 @@
 /* Private includes ----------------------------------------------------------*/
 
 #include "dac_waveform.h"
+#include "dac_main.h"
 #include "mess_adc.h"
+#include "mess_modulate.h"
+#include "mess_dac_resources.h"
 #include "cfg_defaults.h"
 #include "cfg_parameters.h"
+#include "FreeRTOS.h"
 #include "cmsis_os.h"
 #include <stdbool.h>
 #include <string.h>
@@ -28,11 +32,6 @@ typedef struct {
   bool amplitude_transitioning;
 } WaveformControl_t;
 
-typedef enum {
-  FILL_FIRST_HALF,
-  FILL_LAST_HALF
-} FillType_t;
-
 /* Private define ------------------------------------------------------------*/
 
 #define SINE_POINTS         1024
@@ -45,13 +44,15 @@ typedef enum {
 
 /* Private variables ---------------------------------------------------------*/
 
+extern osThreadId_t dacTaskHandle;
+
 static uint16_t sine_table[SINE_POINTS];
 static uint32_t dac_buffer[DAC_BUFFER_SIZE] = {0};
 
 static WaveformControl_t wave_ctrl;
-static const WaveformStep_t* current_sequence = NULL;
-static uint32_t sequence_length = 0;
-static uint32_t current_step = 0;
+static WaveformStep_t current_waveform_step;
+static volatile uint32_t sequence_length = 0;
+static volatile uint16_t current_step = 0;
 static volatile bool dac_running = false;
 static uint32_t current_symbol_duration_us = 0;
 
@@ -69,14 +70,11 @@ WaveformStep_t test_step = {
 /* Private function prototypes -----------------------------------------------*/
 
 static void generateSineTable(void);
-static void updateWaveformParameters(const WaveformStep_t* step);
-static void fillDacBuffer(FillType_t type);
-static void halfFullDmaCallback(void);
-static void fullDmaCallback(void);
+static void updateWaveformParameters(void);
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool DAC_InitWaveformGenerator(void)
+bool Waveform_InitWaveformGenerator(void)
 {
   generateSineTable();
 
@@ -85,76 +83,48 @@ bool DAC_InitWaveformGenerator(void)
   callback_count = 0;
   current_step = 0;
   dac_running = false;
-  current_sequence = NULL;
   sequence_length = 0;
   current_symbol_duration_us = 0;
 
   // Configure DAC and DMA here
-  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_2);
-  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
-//  HAL_StatusTypeDef ret1 = HAL_TIM_Base_Start(&htim6);
+  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_FEEDBACK);
+  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_TRANSDUCER);
 
   return true;
 }
 
-bool DAC_SetWaveformSequence(WaveformStep_t* sequence, uint32_t num_steps)
+bool Waveform_SetWaveformSequence(uint16_t num_steps)
 {
-  if(! sequence || num_steps == 0) return false;
+  if(num_steps == 0) return false;
 
-  // Length of sequence must be a multiple of half the DAC buffer size
-  uint32_t length_multiple = DAC_BUFFER_SIZE / 2;
-  // Converts symbol length multiple into micro seconds
-  uint32_t length_multiple_us = length_multiple * DAC_SAMPLE_RATE / 1000000;
-
-  // Every symbol duration must be a multiple of half the DAC buffer duration in micro seconds
-  for (uint32_t i = 0; i < num_steps; i++) {
-    if ((sequence[i].duration_us % length_multiple_us) != 0) {
-      return false;
-    }
-
-    // Calculate phase increment for each step
-    // Phase increment determines how quickly we move through the sine table
-    // Formula: phase_inc = (freq * 2^PHASE_PRECISION) / sample_rate
-    sequence[i].phase_increment =
-        (((uint64_t) sequence[i].freq_hz) << PHASE_PRECISION) / DAC_SAMPLE_RATE;
-  }
-
-  current_sequence = sequence;
   sequence_length = num_steps;
   current_step = 0;
 
   return true;
 }
 
-bool DAC_StartWaveformOutput(uint32_t channel)
+bool Waveform_StartWaveformOutput(uint32_t channel)
 {
-  if (current_sequence == NULL) return false;
-
   HAL_DAC_Stop_DMA(&hdac1, channel);
   wave_ctrl.phase_accumulator = 0;
 
   dac_running = true;
-  updateWaveformParameters(&current_sequence[0]);
-  fillDacBuffer(FILL_FIRST_HALF);
-  fillDacBuffer(FILL_LAST_HALF);
+  updateWaveformParameters();
+  Waveform_FillBuffer(FILL_FIRST_HALF);
+  Waveform_FillBuffer(FILL_LAST_HALF);
 
   HAL_StatusTypeDef ret = HAL_DAC_Start_DMA(&hdac1, channel, (uint32_t*) dac_buffer,
                     DAC_BUFFER_SIZE, DAC_ALIGN_12B_R);
 
-  if (channel == DAC_CHANNEL_2) {
-    HAL_TIM_Base_Start(&htim6);
-  }
-
   return ret == HAL_OK;
 }
 
-bool DAC_StopWaveformOutput()
+bool Waveform_StopWaveformOutput()
 {
   // reset flags and end DMA transfer to ease DMA channels
   dac_running = false;
-  // current_sequence = NULL; // deprecated
-  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_2);
-  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_FEEDBACK);
+  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_TRANSDUCER);
 
   wave_ctrl.phase_accumulator = 0;
   wave_ctrl.current_amplitude = 0;
@@ -165,12 +135,12 @@ bool DAC_StopWaveformOutput()
   return true;
 }
 
-bool DAC_IsRunning()
+bool Waveform_IsRunning()
 {
   return dac_running;
 }
 
-bool DAC_RegisterParams()
+bool Waveform_RegisterParams()
 {
   uint32_t min = MIN_DAC_TRANSITION_LEN;
   uint32_t max = MAX_DAC_TRANSITION_LEN;
@@ -182,41 +152,37 @@ bool DAC_RegisterParams()
   return true;
 }
 
-void DAC_Flush()
+void Waveform_Flush()
 {
-  DAC_SetWaveformSequence(&test_step, 1);
-  DAC_StartWaveformOutput(DAC_CHANNEL_2);
+  Waveform_SetWaveformSequence(1);
+  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_FEEDBACK);
+  wave_ctrl.phase_accumulator = 0;
+
+  dac_running = true;
+  wave_ctrl.phase_increment = 0;
+
+  wave_ctrl.target_amplitude = test_step.relative_amplitude;
+  wave_ctrl.amplitude_step = 0;
+  wave_ctrl.amplitude_counter = 0;
+  wave_ctrl.amplitude_transitioning = false;
+
+  current_symbol_duration_us = 0;
+  memcpy(&current_waveform_step, &test_step, sizeof(WaveformStep_t));
+  Waveform_FillBuffer(FILL_FIRST_HALF);
+  Waveform_FillBuffer(FILL_LAST_HALF);
+
+  HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_FEEDBACK, (uint32_t*) dac_buffer,
+      DAC_BUFFER_SIZE, DAC_ALIGN_12B_R);
+
+  HAL_TIM_Base_Start(&htim6);
 
   while (dac_running == true) {
     osDelay(1);
   }
+  HAL_TIM_Base_Stop(&htim6);
 }
 
-/* Private function definitions ----------------------------------------------*/
-
-// Creates a sine table with 360/SINE_POINTS degree spacing between adjacent points centered at 2047. Table has one full sine wave
-static void generateSineTable(void)
-{
-  for(uint16_t i = 0; i < SINE_POINTS; i++) {
-    sine_table[i] = (uint16_t)(2047.0f * sinf(2.0f * M_PI * i / SINE_POINTS) + 2047.0f);
-  }
-}
-
-static void updateWaveformParameters(const WaveformStep_t* step)
-{
-  // Calculate new phase increment
-  wave_ctrl.phase_increment = step->phase_increment;
-
-  // Setup amplitude transition
-  wave_ctrl.target_amplitude = (uint32_t) (step->relative_amplitude * (float) DAC_MAX_VALUE);
-  wave_ctrl.amplitude_step = ((int32_t) wave_ctrl.target_amplitude - (int32_t) wave_ctrl.current_amplitude) / transition_length;
-  wave_ctrl.amplitude_counter = 0;
-  wave_ctrl.amplitude_transitioning = true;
-
-  current_symbol_duration_us = 0;
-}
-
-static void fillDacBuffer(FillType_t type)
+void Waveform_FillBuffer(FillType_t type)
 {
   // Flag that indicates that the next time this function is called it should terminate the DAC output
   static bool last_fill = false;
@@ -225,13 +191,13 @@ static void fillDacBuffer(FillType_t type)
 
   if (last_fill == true) {
     last_fill = false;
-    DAC_StopWaveformOutput();
+    Waveform_StopWaveformOutput();
     return;
   }
 
   // Final step check
   if (current_step == (sequence_length - 1)) {
-    if (current_symbol_duration_us >= current_sequence[current_step].duration_us) {
+    if (current_symbol_duration_us >= current_waveform_step.duration_us) {
       last_fill = true;
       return;
     }
@@ -243,10 +209,10 @@ static void fillDacBuffer(FillType_t type)
   const uint16_t start_index = i; // Absolute starting index to use
   const uint16_t end_index = (type == FILL_FIRST_HALF) ? DAC_BUFFER_SIZE / 2: DAC_BUFFER_SIZE;
 
-  if (current_symbol_duration_us >= current_sequence[current_step].duration_us) { // Current sequence step has gone on long enough
+  if (current_symbol_duration_us >= current_waveform_step.duration_us) { // Current sequence step has gone on long enough
     // start new symbol
     current_step++;
-    updateWaveformParameters(&current_sequence[current_step]);
+    updateWaveformParameters();
   }
 
   // Flag to change the output frequency has been set so perform amplitude transition
@@ -286,42 +252,64 @@ static void fillDacBuffer(FillType_t type)
   current_symbol_duration_us += DAC_BUFFER_SIZE * DAC_SAMPLE_RATE / 1000000 / 2;
 }
 
+/* Private function definitions ----------------------------------------------*/
+
+// Creates a sine table with 360/SINE_POINTS degree spacing between adjacent points centered at 2047. Table has one full sine wave
+static void generateSineTable(void)
+{
+  for(uint16_t i = 0; i < SINE_POINTS; i++) {
+    sine_table[i] = (uint16_t)(2047.0f * sinf(2.0f * M_PI * i / SINE_POINTS) + 2047.0f);
+  }
+}
+
+static void updateWaveformParameters()
+{
+  current_waveform_step = MessDacResource_GetStep(current_step);
+
+  // Calculate new phase increment
+  wave_ctrl.phase_increment = (((uint64_t)
+      current_waveform_step.freq_hz) << PHASE_PRECISION) / DAC_SAMPLE_RATE;
+
+  // Setup amplitude transition
+  wave_ctrl.target_amplitude = (uint32_t)
+      (current_waveform_step.relative_amplitude * (float) DAC_MAX_VALUE);
+  wave_ctrl.amplitude_step = ((int32_t) wave_ctrl.target_amplitude - (int32_t) wave_ctrl.current_amplitude) / transition_length;
+  wave_ctrl.amplitude_counter = 0;
+  wave_ctrl.amplitude_transitioning = true;
+
+  current_symbol_duration_us = 0;
+}
+
 // DMA callbacks
 void HAL_DAC_ConvHalfCpltCallbackCh1(DAC_HandleTypeDef *hdac)
 {
   (void)(hdac);
-  halfFullDmaCallback();
+  if (dac_running == true) {
+    osThreadFlagsSet(dacTaskHandle, DAC_FILL_FIRST_HALF);
+  }
 }
 
 void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac)
 {
   (void)(hdac);
-  fullDmaCallback();
+  if (dac_running == true) {
+    osThreadFlagsSet(dacTaskHandle, DAC_FILL_LAST_HALF);
+  }
 }
 
 void HAL_DACEx_ConvHalfCpltCallbackCh2(DAC_HandleTypeDef *hdac)
 {
   (void)(hdac);
-  halfFullDmaCallback();
+  if (dac_running == true) {
+    osThreadFlagsSet(dacTaskHandle, DAC_FILL_FIRST_HALF);
+  }
 }
 
 void HAL_DACEx_ConvCpltCallbackCh2(DAC_HandleTypeDef *hdac)
 {
   (void)(hdac);
-  fullDmaCallback();
-}
-
-static void halfFullDmaCallback(void)
-{
-  if(dac_running == true) {
-    fillDacBuffer(FILL_FIRST_HALF);
-  }
-}
-
-static void fullDmaCallback(void)
-{
-  if(dac_running == true) {
-    fillDacBuffer(FILL_LAST_HALF);
+  if (dac_running == true) {
+    osThreadFlagsSet(dacTaskHandle, DAC_FILL_LAST_HALF);
   }
 }
 

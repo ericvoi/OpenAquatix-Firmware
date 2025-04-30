@@ -30,6 +30,7 @@
 #include "mess_main.h"
 #include "cfg_main.h"
 #include "sys_main.h"
+#include "dac_main.h"
 #include "cfg_parameters.h"
 /* USER CODE END Includes */
 
@@ -73,6 +74,7 @@ TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim6;
 TIM_HandleTypeDef htim8;
 TIM_HandleTypeDef htim16;
+TIM_HandleTypeDef htim17;
 DMA_HandleTypeDef hdma_tim3_ch1;
 
 UART_HandleTypeDef huart5;
@@ -91,7 +93,7 @@ osThreadId_t messageTaskHandle;
 const osThreadAttr_t messageTask_attributes = {
   .name = "messageTask",
   .stack_size = 10000 * 4,
-  .priority = (osPriority_t) osPriorityHigh7,
+  .priority = (osPriority_t) osPriorityHigh6,
 };
 /* Definitions for sysTask */
 osThreadId_t sysTaskHandle;
@@ -113,6 +115,13 @@ const osThreadAttr_t configTask_attributes = {
   .name = "configTask",
   .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal,
+};
+/* Definitions for dacTask */
+osThreadId_t dacTaskHandle;
+const osThreadAttr_t dacTask_attributes = {
+  .name = "dacTask",
+  .stack_size = 1000 * 4,
+  .priority = (osPriority_t) osPriorityHigh7,
 };
 /* Definitions for dau_uart_mutex */
 osMutexId_t dau_uart_mutexHandle;
@@ -141,11 +150,13 @@ static void MX_TIM6_Init(void);
 static void MX_TIM8_Init(void);
 static void MX_ADC2_Init(void);
 static void MX_TIM16_Init(void);
+static void MX_TIM17_Init(void);
 void StartDefaultTask(void *argument);
 void startMessageProcessingTask(void *argument);
 void startSystemManagementTask(void *argument);
 void startCommunicationTask(void *argument);
 void startconfigTask(void *argument);
+void startDacTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -209,6 +220,7 @@ int main(void)
   MX_TIM8_Init();
   MX_ADC2_Init();
   MX_TIM16_Init();
+  MX_TIM17_Init();
   /* USER CODE BEGIN 2 */
   WS_Init();
 
@@ -260,6 +272,9 @@ int main(void)
 
   /* creation of configTask */
   configTaskHandle = osThreadNew(startconfigTask, NULL, &configTask_attributes);
+
+  /* creation of dacTask */
+  dacTaskHandle = osThreadNew(startDacTask, NULL, &dacTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -930,6 +945,38 @@ static void MX_TIM16_Init(void)
 }
 
 /**
+  * @brief TIM17 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM17_Init(void)
+{
+
+  /* USER CODE BEGIN TIM17_Init 0 */
+
+  /* USER CODE END TIM17_Init 0 */
+
+  /* USER CODE BEGIN TIM17_Init 1 */
+
+  /* USER CODE END TIM17_Init 1 */
+  htim17.Instance = TIM17;
+  htim17.Init.Prescaler = 240-1;
+  htim17.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim17.Init.Period = 100-1;
+  htim17.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim17.Init.RepetitionCounter = 0;
+  htim17.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim17) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM17_Init 2 */
+
+  /* USER CODE END TIM17_Init 2 */
+
+}
+
+/**
   * @brief UART5 Initialization Function
   * @param None
   * @retval None
@@ -1239,6 +1286,21 @@ void startconfigTask(void *argument)
   /* USER CODE BEGIN startconfigTask */
   CFG_StartTask(argument);
   /* USER CODE END startconfigTask */
+}
+
+/* USER CODE BEGIN Header_startDacTask */
+/**
+* @brief Function implementing the dacTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_startDacTask */
+void startDacTask(void *argument)
+{
+  /* USER CODE BEGIN startDacTask */
+  /* Infinite loop */
+  DAC_StartTask(argument);
+  /* USER CODE END startDacTask */
 }
 
  /* MPU Configuration */
