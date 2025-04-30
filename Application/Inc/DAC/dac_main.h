@@ -36,6 +36,16 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
+/**
+ * @brief Fills DAC DMA buffer
+ *
+ * Either fills the first half or the last half of the buffer when a signal
+ * received
+ *
+ * @param argument Task argument (unused)
+ *
+ * @note This is a long-running RTOS task that never returns
+ */
 void DAC_StartTask(void* argument);
 
 /* Private defines -----------------------------------------------------------*/

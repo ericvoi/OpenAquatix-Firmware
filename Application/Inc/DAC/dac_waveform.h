@@ -122,6 +122,11 @@ bool Waveform_RegisterParams(void);
  */
 void Waveform_Flush(void);
 
+/**
+ * @brief Fills half of the DAC DMA buffer
+ *
+ * @param type Fill the first or last half of the buffer
+ */
 void Waveform_FillBuffer(FillType_t type);
 
 /* Private defines -----------------------------------------------------------*/

@@ -146,7 +146,7 @@ typedef enum {
  * @param argument Task argument (unused)
  *
  * @note This is a long-running RTOS task that never returns
- * @note Uses several hardware peripherals including ADC, DAC, and PGA
+ * @note Uses several hardware peripherals including ADC and PGA
  */
 void MESS_StartTask(void* argument);
 
