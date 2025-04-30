@@ -10,11 +10,10 @@ The firmware in this repository is for the underwater acoustic modem found [here
 - Feedback networks for both the input and output networks to ensure that the system is calibrated
 
 # Application Overview
-The firmware for this project consists of a four-task FreeRTOS application that manages modulation, demodulation, external communication over USB or UART, system monitoring, and storing configuration data.
+The firmware for this project consists of a five-task FreeRTOS application that manages modulation, demodulation, external communication over USB or UART, system monitoring, and storing configuration data.
 
 ## Message Processing (MESS)
 This task handles all of the signal processing for both the input and output as well as handling the feedback networks which ensure calibration of the device. Task functions:
-- Modulating the DAC with DMA to generate an input signal for the power amplifier
 - Listening to the input ADC to determine when a message starts
 - Decoding received messages
 - Preparing packets with a sender id, message type, and message length
@@ -32,10 +31,10 @@ This task serves as the communication link for users and hosts a HMI over USB an
 ## System (SYS)
 This task is the central task and its primary purpose is to ensure that the system is operating as expected. Task functions:
 - Track power consumption (TODO)
-- Track temperature (TODO)
+- Track temperature
 - Track errors (TODO)
 - Check misc input GPIO pins (TODO)
-- Update status LED according to system state (TODO)
+- Update status LED according to system state
 - Determine overall system state and relay that to other tasks (TODO)
 - Act as the sole task in low-power modes (TODO)
 
@@ -43,3 +42,7 @@ This task is the central task and its primary purpose is to ensure that the syst
 This task facilitates the storage of all configuration parameters in flash memory. Task functions:
 - Load parameters from flash on boot
 - Update changed parameters to flash
+
+## DAC (DAC)
+This task's only purpose is to fill the DAC DMA buffers when notified by the DMA callback. Task functions:
+- Modulating the DAC with DMA to generate an input signal for the power amplifier
