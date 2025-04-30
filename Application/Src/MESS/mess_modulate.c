@@ -13,9 +13,11 @@
 #include "mess_packet.h"
 #include "mess_feedback.h"
 #include "mess_dsp_config.h"
+#include "mess_dac_resources.h"
 #include "cfg_parameters.h"
 #include "cfg_defaults.h"
 #include "stm32h7xx_hal.h"
+#include <string.h>
 
 /* Private typedef -----------------------------------------------------------*/
 
@@ -50,61 +52,49 @@ static float max_transducer_voltage = DEFAULT_MAX_TRANSDUCER_V;
 
 /* Private function prototypes -----------------------------------------------*/
 
-bool convertToFrequencyFsk(BitMessage_t* bit_msg, WaveformStep_t* message_sequence, const DspConfig_t* cfg);
-bool convertToFrequencyFhbfsk(BitMessage_t* bit_msg, WaveformStep_t* message_sequence, const DspConfig_t* cfg);
-uint32_t getFskFrequency(bool bit, const DspConfig_t* cfg);
+
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool Modulate_ConvertToFrequency(BitMessage_t* bit_msg, WaveformStep_t* message_sequence, const DspConfig_t* cfg)
+float Modulate_GetAmplitude(uint32_t freq_hz)
 {
-  switch (cfg->mod_demod_method) {
-    case MOD_DEMOD_FSK:
-      return convertToFrequencyFsk(bit_msg, message_sequence, cfg);
-      break;
-    case MOD_DEMOD_FHBFSK:
-      return convertToFrequencyFhbfsk(bit_msg, message_sequence, cfg);
-      break;
-    default:
-      break;
-  }
-  return true;
+  (void)(freq_hz);
+  return output_amplitude;
 }
 
-bool Modulate_ApplyAmplitude(WaveformStep_t* message_sequence, uint16_t len)
-{
-  float amplitude = output_amplitude;
-  for (uint16_t i = 0; i < len; i++) {
-    message_sequence[i].relative_amplitude = amplitude;
-  }
-  return true;
-}
-
-bool Modulate_ApplyDuration(WaveformStep_t* message_sequence, uint16_t len, const DspConfig_t* cfg)
-{
-  for (uint16_t i = 0; i < len; i++) {
-    message_sequence[i].duration_us = (uint32_t) roundf(1000000.0f / cfg->baud_rate);
-  }
-  return true;
-}
-
-bool Modulate_StartTransducerOutput()
+bool Modulate_StartTransducerOutput(uint16_t num_steps, const DspConfig_t* new_cfg, BitMessage_t* new_bit_msg)
 {
   HAL_TIM_Base_Stop(&htim6);
   ADC_StopAll();
-  DAC_StopWaveformOutput();
+  Waveform_StopWaveformOutput();
   osDelay(1);
+  MessDacResource_RegisterMessageConfiguration(new_cfg, new_bit_msg);
+  Waveform_SetWaveformSequence(num_steps);
   if (ADC_StartFeedback() == false) {
     return false;
   }
-  if (DAC_StartWaveformOutput(DAC_CHANNEL_1) == false) {
+  if (Waveform_StartWaveformOutput(DAC_CHANNEL_TRANSDUCER) == false) {
     return false;
   }
   osDelay(150);
+  return HAL_TIM_Base_Start(&htim6) == HAL_OK;
+}
+
+bool Modulate_StartFeedbackOutput(uint16_t num_steps, const DspConfig_t* new_cfg, BitMessage_t* new_bit_msg)
+{
+  HAL_TIM_Base_Stop(&htim6);
+  Waveform_StopWaveformOutput();
+  osDelay(1);
+  MessDacResource_RegisterMessageConfiguration(new_cfg, new_bit_msg);
+  Waveform_SetWaveformSequence(num_steps);
+  if (Waveform_StartWaveformOutput(DAC_CHANNEL_FEEDBACK) == false) {
+    return false;
+  }
   HAL_StatusTypeDef ret = HAL_TIM_Base_Start(&htim6);
   return ret == HAL_OK;
 }
 
+// TODO: properly deprecate
 void Modulate_TestOutput()
 {
   test_sequence[0].duration_us = 1000;
@@ -114,16 +104,17 @@ void Modulate_TestOutput()
   test_sequence[1].freq_hz = 33000;
   test_sequence[1].relative_amplitude = output_amplitude;
 
-  DAC_SetWaveformSequence(test_sequence, 2);
+//  Waveform_SetWaveformSequence(test_sequence, 2);
 }
 
+// TODO: properly deprecate
 void Modulate_TestFrequencyResponse()
 {
   test_sequence[0].duration_us = FEEDBACK_TEST_DURATION_MS * 1000;
   test_sequence[0].freq_hz = test_freq;
   test_sequence[0].relative_amplitude = output_amplitude;
 
-  DAC_SetWaveformSequence(test_sequence, 1);
+//  Waveform_SetWaveformSequence(test_sequence, 1);
 }
 
 uint32_t Modulate_GetFhbfskFrequency(bool bit, uint16_t bit_index, const DspConfig_t* cfg)
@@ -136,6 +127,11 @@ uint32_t Modulate_GetFhbfskFrequency(bool bit, uint16_t bit_index, const DspConf
   uint32_t frequency_index = 2 * ((bit_index / cfg->fhbfsk_dwell_time) % cfg->fhbfsk_num_tones);
   frequency_index += bit;
   return start_freq + frequency_separation * frequency_index;
+}
+
+uint32_t Modulate_GetFskFrequency(bool bit, const DspConfig_t* cfg)
+{
+  return (bit) ? cfg->fsk_f1 : cfg->fsk_f0;
 }
 
 bool Modulate_RegisterParams()
@@ -201,32 +197,3 @@ bool Modulate_RegisterParams()
 
 
 /* Private function definitions ----------------------------------------------*/
-
-bool convertToFrequencyFsk(BitMessage_t* bit_msg, WaveformStep_t* message_sequence, const DspConfig_t* cfg)
-{
-  for (uint16_t i = 0; i < bit_msg->bit_count; i++) {
-    bool bit;
-    if (Packet_GetBit(bit_msg, i, &bit) == false) {
-      return false;
-    }
-    message_sequence[i].freq_hz = getFskFrequency(bit, cfg);
-  }
-  return true;
-}
-
-bool convertToFrequencyFhbfsk(BitMessage_t* bit_msg, WaveformStep_t* message_sequence, const DspConfig_t* cfg)
-{
-  for (uint16_t i = 0; i < bit_msg->bit_count; i++) {
-    bool bit;
-    if (Packet_GetBit(bit_msg, i, &bit) == false) {
-      return false;
-    }
-    message_sequence[i].freq_hz = Modulate_GetFhbfskFrequency(bit, i, cfg);
-  }
-  return true;
-}
-
-uint32_t getFskFrequency(bool bit, const DspConfig_t* cfg)
-{
-  return (bit) ? cfg->fsk_f1 : cfg->fsk_f0;
-}

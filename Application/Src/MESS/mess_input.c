@@ -217,9 +217,6 @@ bool Input_SegmentBlocks(const DspConfig_t* cfg)
 }
 
 // looks for an analysis block that have not been analyzed
-// TODO: Address possibility for overflow in eval_info
-// The eval_info arrays need bounds checking against bit_msg->bit_count
-// to prevent buffer overrun when processing long messages
 bool Input_ProcessBlocks(BitMessage_t* bit_msg, EvalMessageInfo_t* eval_info, const DspConfig_t* cfg)
 {
   if (bit_msg == NULL || eval_info == NULL) {
@@ -237,10 +234,12 @@ bool Input_ProcessBlocks(BitMessage_t* bit_msg, EvalMessageInfo_t* eval_info, co
     if (Packet_AddBit(bit_msg, analysis_blocks[analysis_start_index].decoded_bit) == false) {
       return false;
     }
-    eval_info->energy_f0[bit_msg->bit_count - 1] = analysis_blocks[analysis_start_index].energy_f0;
-    eval_info->energy_f1[bit_msg->bit_count - 1] = analysis_blocks[analysis_start_index].energy_f1;
-    eval_info->f0[bit_msg->bit_count - 1] = analysis_blocks[analysis_start_index].f0;
-    eval_info->f1[bit_msg->bit_count - 1] = analysis_blocks[analysis_start_index].f1;
+    if (bit_msg->bit_count <= EVAL_MESSAGE_LENGTH) {
+      eval_info->energy_f0[bit_msg->bit_count - 1] = analysis_blocks[analysis_start_index].energy_f0;
+      eval_info->energy_f1[bit_msg->bit_count - 1] = analysis_blocks[analysis_start_index].energy_f1;
+      eval_info->f0[bit_msg->bit_count - 1] = analysis_blocks[analysis_start_index].f0;
+      eval_info->f1[bit_msg->bit_count - 1] = analysis_blocks[analysis_start_index].f1;
+    }
 
     analysis_start_index = (analysis_start_index + 1) % MAX_ANALYSIS_BUFFER_SIZE;
     if (analysis_length == 0) {
@@ -516,7 +515,7 @@ bool messageStartWithFrequency(const DspConfig_t* cfg)
     arm_max_f32(&fft_mag_sq_buffer[1], FFT_SIZE / 2 - 1, &fft_analysis[fft_analysis_index].maximum, &fft_analysis[fft_analysis_index].max_index);
 
     fft_analysis[fft_analysis_index].frequency0_amplitude = fft_mag_sq_buffer[frequency_check_index_0];
-    fft_analysis[fft_analysis_index].frequency1_amplitude = fft_mag_sq_buffer[frequency_check_index_0];
+    fft_analysis[fft_analysis_index].frequency1_amplitude = fft_mag_sq_buffer[frequency_check_index_1];
 
 
     fft_analysis_index = (fft_analysis_index + 1) & analysis_mask;

@@ -27,8 +27,12 @@ typedef struct {
   uint32_t freq_hz;
   float relative_amplitude;
   uint32_t duration_us;
-  uint32_t phase_increment;
 } WaveformStep_t;
+
+typedef enum {
+  FILL_FIRST_HALF,
+  FILL_LAST_HALF
+} FillType_t;
 
 /* Exported constants --------------------------------------------------------*/
 
@@ -53,7 +57,7 @@ extern TIM_HandleTypeDef htim6;  // Timer for sequence timing
  *
  * @note Must be called before any other DAC waveform functions
  */
-bool DAC_InitWaveformGenerator(void);
+bool Waveform_InitWaveformGenerator(void);
 
 /**
  * @brief Configures a sequence of waveform steps for generation
@@ -70,7 +74,7 @@ bool DAC_InitWaveformGenerator(void);
  * @note Each step's duration must be a multiple of half the DAC buffer duration
  *       (currently DAC_BUFFER_SIZE/2 * DAC_SAMPLE_RATE/1000000 microseconds)
  */
-bool DAC_SetWaveformSequence(WaveformStep_t* sequence, uint32_t num_steps);
+bool Waveform_SetWaveformSequence(uint16_t num_steps);
 
 /**
  * @brief Starts the waveform output on the specified DAC channel
@@ -82,9 +86,9 @@ bool DAC_SetWaveformSequence(WaveformStep_t* sequence, uint32_t num_steps);
  *
  * @return true if output started successfully, false if no sequence is set or DMA failed
  *
- * @pre DAC_SetWaveformSequence must be called successfully before this function
+ * @pre Waveform_SetWaveformSequence must be called successfully before this function
  */
-bool DAC_StartWaveformOutput(uint32_t channel);
+bool Waveform_StartWaveformOutput(uint32_t channel);
 
 /**
  * @brief Stops all DAC waveform output
@@ -93,14 +97,14 @@ bool DAC_StartWaveformOutput(uint32_t channel);
  *
  * @return true (operation always succeeds)
  */
-bool DAC_StopWaveformOutput(void);
+bool Waveform_StopWaveformOutput(void);
 
 /**
  * @brief Checks if the DAC waveform generator is currently running
  *
  * @return true if DAC is actively generating waveforms, false otherwise
  */
-bool DAC_IsRunning(void);
+bool Waveform_IsRunning(void);
 
 /**
  * @brief Registers module parameters with the parameter system
@@ -109,14 +113,21 @@ bool DAC_IsRunning(void);
  *
  * @return true if parameter registration succeeds, false otherwise
  */
-bool DAC_RegisterParams(void);
+bool Waveform_RegisterParams(void);
 
 /**
  * @brief Sends a flushing message through the dac
  *
  * @note This must be called before starting the DAC
  */
-void DAC_Flush(void);
+void Waveform_Flush(void);
+
+/**
+ * @brief Fills half of the DAC DMA buffer
+ *
+ * @param type Fill the first or last half of the buffer
+ */
+void Waveform_FillBuffer(FillType_t type);
 
 /* Private defines -----------------------------------------------------------*/
 

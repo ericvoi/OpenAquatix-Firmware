@@ -42,43 +42,7 @@ typedef enum {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-/**
- * @brief Converts bit message to frequency sequence using the configured modulation method
- *
- * Maps bits to appropriate frequencies according to the selected modulation scheme
- * (FSK or FHBFSK) by delegating to the corresponding conversion function.
- *
- * @param bit_msg Pointer to bit message structure to be converted
- * @param message_sequence Pointer to output waveform step array to store the result
- *
- * @return true if conversion was successful, false otherwise
- */
-bool Modulate_ConvertToFrequency(BitMessage_t* bit_msg, WaveformStep_t* message_sequence, const DspConfig_t* cfg);
-
-/**
- * @brief Applies the configured amplitude to all waveform steps in the sequence
- *
- * Sets the relative_amplitude field of each waveform step to the global output_amplitude value.
- *
- * @param message_sequence Pointer to waveform step array
- * @param len Number of steps in the sequence
- *
- * @return true if operation was successful
- */
-bool Modulate_ApplyAmplitude(WaveformStep_t* message_sequence, uint16_t len);
-
-/**
- * @brief Sets duration for all waveform steps based on the configured baud rate
- *
- * Calculates step duration in microseconds as 1,000,000/baud_rate and applies
- * it to each waveform step in the sequence.
- *
- * @param message_sequence Pointer to waveform step array
- * @param len Number of steps in the sequence
- *
- * @return true if operation was successful
- */
-bool Modulate_ApplyDuration(WaveformStep_t* message_sequence, uint16_t len, const DspConfig_t* cfg);
+float Modulate_GetAmplitude(uint32_t freq_hz);
 
 /**
  * @brief Initializes and starts the transducer output subsystem
@@ -89,7 +53,9 @@ bool Modulate_ApplyDuration(WaveformStep_t* message_sequence, uint16_t len, cons
  *
  * @return true if all peripherals started successfully, false otherwise
  */
-bool Modulate_StartTransducerOutput();
+bool Modulate_StartTransducerOutput(uint16_t num_steps, const DspConfig_t* new_cfg, BitMessage_t* new_bit_msg);
+
+bool Modulate_StartFeedbackOutput(uint16_t num_steps, const DspConfig_t* new_cfg, BitMessage_t* new_bit_msg);
 
 /**
  * @brief Generates a simple two-frequency test sequence for transducer testing
@@ -120,6 +86,8 @@ void Modulate_TestFrequencyResponse();
  * @return The calculated frequency in Hertz
  */
 uint32_t Modulate_GetFhbfskFrequency(bool bit, uint16_t bit_index, const DspConfig_t* cfg);
+
+uint32_t Modulate_GetFskFrequency(bool bit, const DspConfig_t* cfg);
 
 /**
  * @brief Registers modulation parameters with the parameter system for HMI access

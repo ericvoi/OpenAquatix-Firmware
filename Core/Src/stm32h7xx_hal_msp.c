@@ -405,10 +405,7 @@ void HAL_DAC_MspInit(DAC_HandleTypeDef* hdac)
     hdma_dac1_ch1.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
     hdma_dac1_ch1.Init.Mode = DMA_CIRCULAR;
     hdma_dac1_ch1.Init.Priority = DMA_PRIORITY_VERY_HIGH;
-    hdma_dac1_ch1.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
-    hdma_dac1_ch1.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
-    hdma_dac1_ch1.Init.MemBurst = DMA_MBURST_SINGLE;
-    hdma_dac1_ch1.Init.PeriphBurst = DMA_PBURST_SINGLE;
+    hdma_dac1_ch1.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
     if (HAL_DMA_Init(&hdma_dac1_ch1) != HAL_OK)
     {
       Error_Handler();
@@ -848,6 +845,20 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
 
     /* USER CODE END TIM16_MspInit 1 */
   }
+  else if(htim_base->Instance==TIM17)
+  {
+    /* USER CODE BEGIN TIM17_MspInit 0 */
+
+    /* USER CODE END TIM17_MspInit 0 */
+    /* Peripheral clock enable */
+    __HAL_RCC_TIM17_CLK_ENABLE();
+    /* TIM17 interrupt Init */
+    HAL_NVIC_SetPriority(TIM17_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(TIM17_IRQn);
+    /* USER CODE BEGIN TIM17_MspInit 1 */
+
+    /* USER CODE END TIM17_MspInit 1 */
+  }
 
 }
 
@@ -947,6 +958,20 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
     /* USER CODE BEGIN TIM16_MspDeInit 1 */
 
     /* USER CODE END TIM16_MspDeInit 1 */
+  }
+  else if(htim_base->Instance==TIM17)
+  {
+    /* USER CODE BEGIN TIM17_MspDeInit 0 */
+
+    /* USER CODE END TIM17_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_TIM17_CLK_DISABLE();
+
+    /* TIM17 interrupt DeInit */
+    HAL_NVIC_DisableIRQ(TIM17_IRQn);
+    /* USER CODE BEGIN TIM17_MspDeInit 1 */
+
+    /* USER CODE END TIM17_MspDeInit 1 */
   }
 
 }

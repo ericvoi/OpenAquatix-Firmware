@@ -40,6 +40,9 @@ void Error_Routine(ErrorCodes_t error_code)
     case ERROR_MESS_INIT:
     case ERROR_SYS_INIT:
     case ERROR_MESS_PROCESSING:
+    case ERROR_DAC_INIT:
+    case ERROR_DAC_PROCESSING:
+    case ERROR_MESS_DAC_RESOURCE:
       break;
     default:
       break;
