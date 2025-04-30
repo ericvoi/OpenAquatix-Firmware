@@ -35,6 +35,7 @@
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
+typedef StaticTask_t osStaticThreadDef_t;
 /* USER CODE BEGIN PTD */
 
 /* USER CODE END PTD */
@@ -83,44 +84,74 @@ DMA_HandleTypeDef hdma_uart5_tx;
 
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
+uint32_t defaultTaskBuffer[ 200 ];
+osStaticThreadDef_t defaultTaskControlBlock;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 200 * 4,
+  .cb_mem = &defaultTaskControlBlock,
+  .cb_size = sizeof(defaultTaskControlBlock),
+  .stack_mem = &defaultTaskBuffer[0],
+  .stack_size = sizeof(defaultTaskBuffer),
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for messageTask */
 osThreadId_t messageTaskHandle;
+uint32_t messageTaskBuffer[ 4000 ];
+osStaticThreadDef_t messageTaskControlBlock;
 const osThreadAttr_t messageTask_attributes = {
   .name = "messageTask",
-  .stack_size = 10000 * 4,
+  .cb_mem = &messageTaskControlBlock,
+  .cb_size = sizeof(messageTaskControlBlock),
+  .stack_mem = &messageTaskBuffer[0],
+  .stack_size = sizeof(messageTaskBuffer),
   .priority = (osPriority_t) osPriorityHigh6,
 };
 /* Definitions for sysTask */
 osThreadId_t sysTaskHandle;
+uint32_t sysTaskBuffer[ 200 ];
+osStaticThreadDef_t sysTaskControlBlock;
 const osThreadAttr_t sysTask_attributes = {
   .name = "sysTask",
-  .stack_size = 200 * 4,
+  .cb_mem = &sysTaskControlBlock,
+  .cb_size = sizeof(sysTaskControlBlock),
+  .stack_mem = &sysTaskBuffer[0],
+  .stack_size = sizeof(sysTaskBuffer),
   .priority = (osPriority_t) osPriorityNormal7,
 };
 /* Definitions for commTask */
 osThreadId_t commTaskHandle;
+uint32_t commTaskBuffer[ 3000 ];
+osStaticThreadDef_t commTaskControlBlock;
 const osThreadAttr_t commTask_attributes = {
   .name = "commTask",
-  .stack_size = 3000 * 4,
+  .cb_mem = &commTaskControlBlock,
+  .cb_size = sizeof(commTaskControlBlock),
+  .stack_mem = &commTaskBuffer[0],
+  .stack_size = sizeof(commTaskBuffer),
   .priority = (osPriority_t) osPriorityNormal6,
 };
 /* Definitions for configTask */
 osThreadId_t configTaskHandle;
+uint32_t configTaskBuffer[ 512 ];
+osStaticThreadDef_t configTaskControlBlock;
 const osThreadAttr_t configTask_attributes = {
   .name = "configTask",
-  .stack_size = 512 * 4,
+  .cb_mem = &configTaskControlBlock,
+  .cb_size = sizeof(configTaskControlBlock),
+  .stack_mem = &configTaskBuffer[0],
+  .stack_size = sizeof(configTaskBuffer),
   .priority = (osPriority_t) osPriorityBelowNormal,
 };
 /* Definitions for dacTask */
 osThreadId_t dacTaskHandle;
+uint32_t dacTaskBuffer[ 1000 ];
+osStaticThreadDef_t dacTaskControlBlock;
 const osThreadAttr_t dacTask_attributes = {
   .name = "dacTask",
-  .stack_size = 1000 * 4,
+  .cb_mem = &dacTaskControlBlock,
+  .cb_size = sizeof(dacTaskControlBlock),
+  .stack_mem = &dacTaskBuffer[0],
+  .stack_size = sizeof(dacTaskBuffer),
   .priority = (osPriority_t) osPriorityHigh7,
 };
 /* Definitions for dau_uart_mutex */
