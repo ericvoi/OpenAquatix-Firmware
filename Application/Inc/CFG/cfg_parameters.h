@@ -64,6 +64,8 @@ typedef enum {
   PARAM_LED_ENABLE,
   PARAM_AGC_ENABLE,
   PARAM_FIXED_PGA_GAIN,
+  PARAM_ECC_PREAMBLE,
+  PARAM_ECC_MESSAGE,
   // Add new parameters here and nowhere else
   NUM_PARAM
 } ParamIds_t;

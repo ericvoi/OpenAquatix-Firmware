@@ -19,6 +19,7 @@
 #include "cmsis_os.h"
 
 #include "check_inputs.h"
+#include "number_utils.h"
 #include "usb_comm.h"
 
 #include <stdio.h>
@@ -57,7 +58,6 @@ void transmitInt(FunctionContext_t* context, bool is_feedback);
 void transmitFloat(FunctionContext_t* context, bool is_feedback);
 
 bool parseHexString(FunctionContext_t* context, uint16_t* num_bytes, uint8_t* decoded_bytes);
-bool isPowerOf2(uint16_t x);
 void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_feedback);
 
 /* Private variables ---------------------------------------------------------*/
@@ -520,7 +520,7 @@ bool parseHexString(FunctionContext_t* context, uint16_t* num_bytes, uint8_t* de
     ptr_index++;
   }
 
-  if (isPowerOf2(*num_bytes) == true && high_digit == true &&
+  if (NumberUtils_IsPowerOf2(*num_bytes) == true && high_digit == true &&
       *num_bytes <= PACKET_DATA_MAX_LENGTH_BYTES) {
     return true;
   }
@@ -532,11 +532,6 @@ bool parseHexString(FunctionContext_t* context, uint16_t* num_bytes, uint8_t* de
         context->comm_interface);
     return false;
   }
-}
-
-bool isPowerOf2(uint16_t x)
-{
-  return (x != 0) && ((x & (x - 1)) == 0);
 }
 
 void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_feedback)

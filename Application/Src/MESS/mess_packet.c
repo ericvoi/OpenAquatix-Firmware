@@ -42,7 +42,7 @@ bool getData(BitMessage_t* bit_msg, uint16_t* start_position, uint8_t num_bits, 
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool Packet_PrepareTx(Message_t* msg, BitMessage_t* bit_msg)
+bool Packet_PrepareTx(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* cfg)
 {
   if (msg == NULL || bit_msg == NULL) {
     return false;
@@ -62,12 +62,15 @@ bool Packet_PrepareTx(Message_t* msg, BitMessage_t* bit_msg)
     return false;
   }
 
+  bit_msg->combined_message_len = bit_msg->final_length;
+
   // Add the error correction bits as specified by the user
   if (msg->data_type != EVAL) {
-    if (ErrorDetection_AddDetection(bit_msg) == false) {
+    if (ErrorDetection_AddDetection(bit_msg, cfg) == false) {
       return false;
     }
   }
+
   return true;
 }
 
@@ -80,17 +83,8 @@ bool Packet_PrepareRx(BitMessage_t* bit_msg)
 
 bool Packet_AddBit(BitMessage_t* bit_msg, bool bit)
 {
-  if (bit_msg->bit_count >= PACKET_MAX_LENGTH_BITS) {
+  if (Packet_SetBit(bit_msg, bit_msg->bit_count, bit) == false) {
     return false;
-  }
-
-  uint8_t byte_index = bit_msg->bit_count / 8;
-  uint8_t bit_position = bit_msg-> bit_count % 8;
-
-  if (bit == true) {
-    bit_msg->data[byte_index] |= (1 << (7 - bit_position));
-  } else {
-    bit_msg->data[byte_index] &= ~(1 << (7 - bit_position));
   }
 
   bit_msg->bit_count++;
@@ -181,6 +175,23 @@ bool Packet_FlipBit(BitMessage_t* bit_msg, uint16_t bit_index)
   return true;
 }
 
+bool Packet_SetBit(BitMessage_t* bit_msg, uint16_t bit_index, bool bit)
+{
+  if (bit_msg->bit_count >= PACKET_MAX_LENGTH_BITS) {
+    return false;
+  }
+
+  uint8_t byte_index = bit_index / 8;
+  uint8_t bit_position = bit_index % 8;
+
+  if (bit == true) {
+    bit_msg->data[byte_index] |= (1 << (7 - bit_position));
+  } else {
+    bit_msg->data[byte_index] &= ~(1 << (7 - bit_position));
+  }
+  return true;
+}
+
 bool Packet_Compare(const BitMessage_t* msg1, const BitMessage_t* msg2, bool* identical)
 {
   if (msg1 == NULL || msg2 == NULL || identical == NULL) {
@@ -253,6 +264,7 @@ void initPacket(BitMessage_t* bit_msg)
   bit_msg->sender_id = 255;
   bit_msg->contents_data_type = UNKNOWN;
   bit_msg->final_length = 0;
+  bit_msg->preamble_length_ecc = 0;
   bit_msg->stationary_flag = false;
   bit_msg->preamble_received = false;
   bit_msg->fully_received = false;

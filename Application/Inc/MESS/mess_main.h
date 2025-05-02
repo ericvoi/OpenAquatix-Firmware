@@ -25,7 +25,7 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
-#define EVAL_MESSAGE_LENGTH 100
+#define EVAL_MESSAGE_LENGTH               100
 
 #define PACKET_SENDER_ID_BITS             4
 #define PACKET_MESSAGE_TYPE_BITS          4
@@ -47,7 +47,7 @@ extern "C" {
                                            PACKET_DATA_MAX_LENGTH_BITS + \
                                            PACKET_MAX_ERROR_CORRECTION_BITS)
 
-#define PACKET_MAX_LENGTH_BYTES           ((PACKET_MAX_LENGTH_BITS / 8) + 1)
+#define PACKET_MAX_LENGTH_BYTES           ((PACKET_MAX_LENGTH_BITS + 7) / 8)
 #define PACKET_DATA_MAX_LENGTH_BYTES      (PACKET_DATA_MAX_LENGTH_BITS / 8)
 
 typedef enum {
@@ -67,12 +67,6 @@ typedef enum {
   UNKNOWN,
   EVAL
 } MessageData_t;
-
-typedef enum {
-  MOD_DEMOD_FSK,
-  MOD_DEMOD_FHBFSK,
-  NUM_MOD_DEMOD_METHODS
-} ModDemodMethod_t;
 
 typedef struct {
   uint16_t len_bits; // length of evaluation message

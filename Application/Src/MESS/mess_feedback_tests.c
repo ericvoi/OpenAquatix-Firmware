@@ -29,7 +29,6 @@ typedef enum {
 
 typedef struct {
   Message_t test_msg;
-  BitMessage_t bit_msg;
 } ReferenceMessage_t;
 
 typedef struct {
@@ -70,9 +69,6 @@ static ReferenceMessage_t reference_messages[] = {
             .data_type = BITS,
             .sender_id = 1,
             .eval_info = NULL
-        },
-        .bit_msg = {
-            .bit_count = 0
         }
     },
     {
@@ -83,9 +79,6 @@ static ReferenceMessage_t reference_messages[] = {
             .data_type = BITS,
             .sender_id = 1,
             .eval_info = NULL
-        },
-        .bit_msg = {
-            .bit_count = 0
         }
     },
     {
@@ -96,9 +89,6 @@ static ReferenceMessage_t reference_messages[] = {
             .data_type = BITS,
             .sender_id = 1,
             .eval_info = NULL
-        },
-        .bit_msg = {
-            .bit_count = 0
         }
     },
     {
@@ -109,9 +99,6 @@ static ReferenceMessage_t reference_messages[] = {
             .data_type = BITS,
             .sender_id = 1,
             .eval_info = NULL
-        },
-        .bit_msg = {
-            .bit_count = 0
         }
     },
     {
@@ -123,9 +110,6 @@ static ReferenceMessage_t reference_messages[] = {
             .data_type = BITS,
             .sender_id = 1,
             .eval_info = NULL
-        },
-        .bit_msg = {
-            .bit_count = 0
         }
     },
     {
@@ -139,9 +123,6 @@ static ReferenceMessage_t reference_messages[] = {
             .data_type = BITS,
             .sender_id = 1,
             .eval_info = NULL
-        },
-        .bit_msg = {
-            .bit_count = 0
         }
     },
     {
@@ -159,9 +140,6 @@ static ReferenceMessage_t reference_messages[] = {
             .data_type = BITS,
             .sender_id = 1,
             .eval_info = NULL
-        },
-        .bit_msg = {
-            .bit_count = 0
         }
     },
     {
@@ -187,15 +165,9 @@ static ReferenceMessage_t reference_messages[] = {
             .data_type = BITS,
             .sender_id = 1,
             .eval_info = NULL
-        },
-        .bit_msg = {
-            .bit_count = 0
         }
     }
 };
-
-static const uint16_t num_reference_messages = sizeof(reference_messages) / sizeof(reference_messages[0]);
-
 
 static FeedbackTests_t feedback_tests[] = {
     {
@@ -268,13 +240,6 @@ bool FeedbackTests_Init()
     }
 
     total_tests += repetitions;
-  }
-
-  for (uint8_t i = 0; i < num_reference_messages; i++) {
-    if (Packet_PrepareTx(&reference_messages[i].test_msg,
-        &reference_messages[i].bit_msg) == false) {
-      return false;
-    }
   }
 
   return true;
@@ -368,9 +333,16 @@ bool FeedbackTests_Check(Message_t* received_msg, BitMessage_t* received_bit_msg
     return false;
   }
 
+  BitMessage_t bit_msg;
+
+  if (Packet_PrepareTx(&feedback_tests[test_index].reference_message->test_msg,
+      &bit_msg, &feedback_tests[test_index].cfg) == false) {
+    return false;
+  }
+
   // Compares the bit messages to see if the bits match up
   bool identical_bits;
-  if (Packet_Compare(&feedback_tests[test_index].reference_message->bit_msg,
+  if (Packet_Compare(&bit_msg,
       received_bit_msg, &identical_bits) == false) {
     return false;
   }
@@ -392,18 +364,20 @@ bool FeedbackTests_Check(Message_t* received_msg, BitMessage_t* received_bit_msg
     feedback_tests[test_index].messages_with_errors_detected++;
   }
 
-  if (received_bit_msg->data_len_bits != feedback_tests[test_index].reference_message->bit_msg.data_len_bits) {
+  if (received_bit_msg->data_len_bits != bit_msg.data_len_bits) {
     feedback_tests[test_index].messages_with_incorrect_length++;
   }
 
-  if (testFailed(feedback_tests[test_index].expected_result, received_msg, ! identical_bits) == true) {
+  if (testFailed(feedback_tests[test_index].expected_result, received_msg,
+      ! identical_bits) == true) {
     feedback_tests[test_index].failed_tests++;
   }
 
   // check if the message matches what was sent and print output
 
   char output_buffer[64];
-  snprintf(output_buffer, 256, "\rCompleted Test %u/%u", current_test + 1, total_tests);
+  snprintf(output_buffer, 256, "\rCompleted Test %u/%u", current_test + 1,
+      total_tests);
   COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
 
   current_test++;

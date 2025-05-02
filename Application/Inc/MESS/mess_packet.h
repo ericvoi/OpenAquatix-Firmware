@@ -15,6 +15,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
 #include "mess_main.h"
+#include "mess_dsp_config.h"
 #include <stdbool.h>
 
 
@@ -31,11 +32,20 @@ typedef struct {
   uint8_t sender_id;
   uint16_t data_len_bits;
   MessageData_t contents_data_type;
-  uint16_t final_length;
+  uint16_t preamble_length_ecc;
+  uint16_t final_length; // includes ecc
+  uint16_t non_preamble_length_ecc;
+  uint16_t non_preamble_length;
+  uint16_t combined_message_len; // not including ecc
   bool stationary_flag;
   bool preamble_received; // Set when first preamble number of bits received and decoded
   bool fully_received;    // Set when message bit count > final bit count
   bool added_to_queue;    // Set when message decoded and "done with"
+  bool error_preamble;
+  bool error_message;
+  bool error_entire_message;
+  bool corrected_error_preamble;
+  bool corrected_error_message;
 } BitMessage_t;
 
 /* Exported constants --------------------------------------------------------*/
@@ -55,14 +65,15 @@ typedef struct {
  * 1. Initializes the bit packet
  * 2. Adds preamble (skipped for EVAL type messages)
  * 3. Adds message payload
- * 4. Applies error correction coding (skipped for EVAL type messages)
+ * 4. Applies error detection coding (skipped for EVAL type messages)
  *
  * @param msg Pointer to the message to be transmitted
  * @param bit_msg Pointer to the bit message structure to be filled
+ * @param cfg Configuration data for the message
  *
  * @return true if preparation succeeded, false on any failure
  */
-bool Packet_PrepareTx(Message_t* msg, BitMessage_t* bit_msg);
+bool Packet_PrepareTx(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* cfg);
 
 /**
  * @brief Initializes a bit message structure for receiving incoming data
@@ -183,6 +194,17 @@ bool Packet_Get32(BitMessage_t* bit_msg, uint16_t* start_position, uint32_t* dat
  * @return true if successful, false if invalid inputs
  */
 bool Packet_FlipBit(BitMessage_t* bit_msg, uint16_t bit_index);
+
+/**
+ * @brief Sets bit at a certain position
+ *
+ * @param bit_msg Pointer to the bit message structure
+ * @param bit_index Index where the bit should be set
+ * @param bit Value of the bit
+ *
+ * @return true if successful, false otherwise
+ */
+bool Packet_SetBit(BitMessage_t* bit_msg, uint16_t bit_index, bool bit);
 
 /**
  * @brief Compares the data in 2 bit messages
