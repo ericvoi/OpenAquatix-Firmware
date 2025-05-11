@@ -13,6 +13,7 @@
 #include "mess_packet.h"
 #include "mess_main.h"
 #include "mess_modulate.h"
+#include "mess_error_correction.h"
 #include "cfg_defaults.h"
 #include "cfg_parameters.h"
 #include "usb_comm.h"
@@ -253,7 +254,7 @@ bool Input_ProcessBlocks(BitMessage_t* bit_msg, EvalMessageInfo_t* eval_info, co
 
 // Goes through message to see if enough bits have been received to decode the
 // length and data type
-bool Input_DecodeBits(BitMessage_t* bit_msg, bool evaluation_mode)
+bool Input_DecodeBits(BitMessage_t* bit_msg, bool evaluation_mode, const DspConfig_t* cfg)
 {
   if (bit_msg == NULL) {
     return false;
@@ -264,8 +265,20 @@ bool Input_DecodeBits(BitMessage_t* bit_msg, bool evaluation_mode)
     return true;
   }
 
+  // Packet preamble length with ECC has not been calculated yet
+  if (bit_msg->preamble_length_ecc == 0) {
+    bit_msg->preamble_length_ecc = ErrorCorrection_GetLength(
+        PACKET_PREAMBLE_LENGTH_BITS, cfg->ecc_method_preamble);
+  }
+
   if (bit_msg->preamble_received == false) { // Still looking for preamble
-    if (bit_msg->bit_count >= PACKET_PREAMBLE_LENGTH_BITS) {
+    if (bit_msg->bit_count >= bit_msg->preamble_length_ecc) {
+
+      if (ErrorCorrection_CheckCorrection(bit_msg, cfg, true,
+          &bit_msg->error_preamble, &bit_msg->corrected_error_preamble) == false) {
+        return false;
+      }
+
       // Keeps track of where in the preamble we are
       uint16_t bit_index = 0;
       // The first set of bytes in the message correspond to the sender's id
@@ -285,13 +298,18 @@ bool Input_DecodeBits(BitMessage_t* bit_msg, bool evaluation_mode)
         return false;
       }
       bit_msg->data_len_bits = 8 << packet_length;
-      bit_msg->final_length = 8 << packet_length;
-      bit_msg->final_length += PACKET_PREAMBLE_LENGTH_BITS;
       uint16_t error_bits_length;
-      if (ErrorDetection_CheckLength(&error_bits_length) == false) {
+      if (ErrorDetection_CheckLength(&error_bits_length, cfg) == false) {
         return false;
       }
-      bit_msg->final_length += error_bits_length;
+      bit_msg->non_preamble_length = 8 << packet_length;
+      bit_msg->non_preamble_length += error_bits_length;
+      bit_msg->non_preamble_length_ecc = ErrorCorrection_GetLength(
+          bit_msg->non_preamble_length, cfg->ecc_method_message);
+      bit_msg->final_length = bit_msg->non_preamble_length_ecc;
+      bit_msg->final_length += ErrorCorrection_GetLength(
+          PACKET_PREAMBLE_LENGTH_BITS, cfg->ecc_method_preamble);
+      // final length (add preamble)
       // The fourth set of bytes in the message correspond to the stationary flag
       if (Packet_Get8BitChunk(bit_msg, &bit_index, PACKET_STATIONARY_BITS,
           (uint8_t*) &bit_msg->stationary_flag) == false) {

@@ -29,7 +29,6 @@ typedef enum {
 
 typedef struct {
   Message_t test_msg;
-  BitMessage_t bit_msg;
 } ReferenceMessage_t;
 
 typedef struct {
@@ -70,9 +69,6 @@ static ReferenceMessage_t reference_messages[] = {
             .data_type = BITS,
             .sender_id = 1,
             .eval_info = NULL
-        },
-        .bit_msg = {
-            .bit_count = 0
         }
     },
     {
@@ -83,9 +79,6 @@ static ReferenceMessage_t reference_messages[] = {
             .data_type = BITS,
             .sender_id = 1,
             .eval_info = NULL
-        },
-        .bit_msg = {
-            .bit_count = 0
         }
     },
     {
@@ -96,9 +89,6 @@ static ReferenceMessage_t reference_messages[] = {
             .data_type = BITS,
             .sender_id = 1,
             .eval_info = NULL
-        },
-        .bit_msg = {
-            .bit_count = 0
         }
     },
     {
@@ -109,9 +99,6 @@ static ReferenceMessage_t reference_messages[] = {
             .data_type = BITS,
             .sender_id = 1,
             .eval_info = NULL
-        },
-        .bit_msg = {
-            .bit_count = 0
         }
     },
     {
@@ -123,9 +110,6 @@ static ReferenceMessage_t reference_messages[] = {
             .data_type = BITS,
             .sender_id = 1,
             .eval_info = NULL
-        },
-        .bit_msg = {
-            .bit_count = 0
         }
     },
     {
@@ -139,9 +123,6 @@ static ReferenceMessage_t reference_messages[] = {
             .data_type = BITS,
             .sender_id = 1,
             .eval_info = NULL
-        },
-        .bit_msg = {
-            .bit_count = 0
         }
     },
     {
@@ -159,9 +140,6 @@ static ReferenceMessage_t reference_messages[] = {
             .data_type = BITS,
             .sender_id = 1,
             .eval_info = NULL
-        },
-        .bit_msg = {
-            .bit_count = 0
         }
     },
     {
@@ -187,15 +165,9 @@ static ReferenceMessage_t reference_messages[] = {
             .data_type = BITS,
             .sender_id = 1,
             .eval_info = NULL
-        },
-        .bit_msg = {
-            .bit_count = 0
         }
     }
 };
-
-static const uint16_t num_reference_messages = sizeof(reference_messages) / sizeof(reference_messages[0]);
-
 
 static FeedbackTests_t feedback_tests[] = {
     {
@@ -208,7 +180,9 @@ static FeedbackTests_t feedback_tests[] = {
             .fhbfsk_freq_spacing = 1,
             .fhbfsk_num_tones = 10,
             .fhbfsk_dwell_time = 1,
-            .error_detection_method = CRC_16
+            .error_detection_method = CRC_16,
+            .ecc_method_preamble = NO_ECC,
+            .ecc_method_message = NO_ECC
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[2],
@@ -225,12 +199,33 @@ static FeedbackTests_t feedback_tests[] = {
             .fhbfsk_freq_spacing = 1,
             .fhbfsk_num_tones = 10,
             .fhbfsk_dwell_time = 1,
-            .error_detection_method = CRC_16
+            .error_detection_method = CRC_16,
+            .ecc_method_preamble = NO_ECC,
+            .ecc_method_message = NO_ECC
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[2],
+        .errors_added = 0,
+        .repetitions = 1
+    },
+    {
+        .cfg = {
+            .baud_rate = 1000.0f,
+            .mod_demod_method = MOD_DEMOD_FSK,
+            .fsk_f0 = 30000,
+            .fsk_f1 = 33000,
+            .fc = 31000,
+            .fhbfsk_freq_spacing = 1,
+            .fhbfsk_num_tones = 10,
+            .fhbfsk_dwell_time = 1,
+            .error_detection_method = CRC_16,
+            .ecc_method_preamble = HAMMING_CODE,
+            .ecc_method_message = HAMMING_CODE
+        },
+        .expected_result = IDENTICAL,
+        .reference_message = &reference_messages[4],
         .errors_added = 1,
-        .repetitions = 10
+        .repetitions = 20
     }
 };
 
@@ -268,13 +263,6 @@ bool FeedbackTests_Init()
     }
 
     total_tests += repetitions;
-  }
-
-  for (uint8_t i = 0; i < num_reference_messages; i++) {
-    if (Packet_PrepareTx(&reference_messages[i].test_msg,
-        &reference_messages[i].bit_msg) == false) {
-      return false;
-    }
   }
 
   return true;
@@ -368,9 +356,16 @@ bool FeedbackTests_Check(Message_t* received_msg, BitMessage_t* received_bit_msg
     return false;
   }
 
+  BitMessage_t bit_msg;
+
+  if (Packet_PrepareTx(&feedback_tests[test_index].reference_message->test_msg,
+      &bit_msg, &feedback_tests[test_index].cfg) == false) {
+    return false;
+  }
+
   // Compares the bit messages to see if the bits match up
   bool identical_bits;
-  if (Packet_Compare(&feedback_tests[test_index].reference_message->bit_msg,
+  if (Packet_Compare(&bit_msg,
       received_bit_msg, &identical_bits) == false) {
     return false;
   }
@@ -392,18 +387,20 @@ bool FeedbackTests_Check(Message_t* received_msg, BitMessage_t* received_bit_msg
     feedback_tests[test_index].messages_with_errors_detected++;
   }
 
-  if (received_bit_msg->data_len_bits != feedback_tests[test_index].reference_message->bit_msg.data_len_bits) {
+  if (received_bit_msg->data_len_bits != bit_msg.data_len_bits) {
     feedback_tests[test_index].messages_with_incorrect_length++;
   }
 
-  if (testFailed(feedback_tests[test_index].expected_result, received_msg, ! identical_bits) == true) {
+  if (testFailed(feedback_tests[test_index].expected_result, received_msg,
+      ! identical_bits) == true) {
     feedback_tests[test_index].failed_tests++;
   }
 
   // check if the message matches what was sent and print output
 
   char output_buffer[64];
-  snprintf(output_buffer, 256, "\rCompleted Test %u/%u", current_test + 1, total_tests);
+  snprintf(output_buffer, 256, "\rCompleted Test %u/%u", current_test + 1,
+      total_tests);
   COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
 
   current_test++;
@@ -542,8 +539,9 @@ static void printStatistics(void)
     const DspConfig_t* cfg = &feedback_tests[i].cfg;
 
     snprintf(output_buffer, 128, "Baud rate: %.2f\r\nMod/Demod method: %u\r\n"
-        "error detection method: %u\r\n", cfg->baud_rate,
-        cfg->mod_demod_method, cfg->error_detection_method);
+        "Error detection method: %u\r\nError correction method: %u %u\r\n", 
+        cfg->baud_rate, cfg->mod_demod_method, cfg->error_detection_method,
+        cfg->ecc_method_preamble, cfg->ecc_method_message);
     COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
 
     if (cfg->mod_demod_method == MOD_DEMOD_FSK) {
@@ -552,8 +550,8 @@ static void printStatistics(void)
       COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
     }
     else if (cfg->mod_demod_method == MOD_DEMOD_FHBFSK) {
-      snprintf(output_buffer, 128, "fc: %lu\r\nfrequency spacing: %hu\r\n"
-          "tones: %hu\r\ndwell: %hu\r\n", cfg->fc, cfg->fhbfsk_freq_spacing,
+      snprintf(output_buffer, 128, "fc: %lu\r\nFrequency spacing: %hu\r\n"
+          "Tones: %hu\r\nDwell: %hu\r\n", cfg->fc, cfg->fhbfsk_freq_spacing,
           cfg->fhbfsk_num_tones, cfg->fhbfsk_dwell_time);
       COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
     }

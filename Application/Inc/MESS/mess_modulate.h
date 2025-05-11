@@ -53,9 +53,25 @@ float Modulate_GetAmplitude(uint32_t freq_hz);
  *
  * @return true if all peripherals started successfully, false otherwise
  */
-bool Modulate_StartTransducerOutput(uint16_t num_steps, const DspConfig_t* new_cfg, BitMessage_t* new_bit_msg);
+bool Modulate_StartTransducerOutput(uint16_t num_steps, 
+                                    const DspConfig_t* new_cfg, 
+                                    BitMessage_t* new_bit_msg);
 
-bool Modulate_StartFeedbackOutput(uint16_t num_steps, const DspConfig_t* new_cfg, BitMessage_t* new_bit_msg);
+/**
+ * @brief Implements all processes needed to start modulating via feedback
+ * 
+ * Stops all used peripherals, registers the message, and then starts
+ * peripherals again in a controlled sequence
+ * 
+ * @param num_steps The number of steps in the bit message sequence
+ * @param new_cfg The configuration to use for the next modulation
+ * @param new_bit_msg The bit message to send out through the feedback network
+ * 
+ * @return true if all peripherals successfully started, false otherwise
+ */
+bool Modulate_StartFeedbackOutput(uint16_t num_steps, 
+                                  const DspConfig_t* new_cfg, 
+                                  BitMessage_t* new_bit_msg);
 
 /**
  * @brief Generates a simple two-frequency test sequence for transducer testing
@@ -82,11 +98,25 @@ void Modulate_TestFrequencyResponse();
  *
  * @param bit The bit value (0 or 1)
  * @param bit_index The position of the bit in the message
+ * @param cfg Configuration information
  *
  * @return The calculated frequency in Hertz
  */
-uint32_t Modulate_GetFhbfskFrequency(bool bit, uint16_t bit_index, const DspConfig_t* cfg);
+uint32_t Modulate_GetFhbfskFrequency(bool bit, 
+                                     uint16_t bit_index, 
+                                     const DspConfig_t* cfg);
 
+/**
+ * @brief Calculates the frequency for a given bit using FSK modulation
+ * 
+ * Implements Frequency-Shift Keying by returing the frequency corresponding to
+ * a bit
+ * 
+ * @param bit The bit value (1 or 0)
+ * @param cfg Configuration information
+ * 
+ * @return The calculated frequency in Hertz
+ */
 uint32_t Modulate_GetFskFrequency(bool bit, const DspConfig_t* cfg);
 
 /**

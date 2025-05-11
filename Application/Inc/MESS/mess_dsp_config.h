@@ -14,14 +14,39 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
-#include "mess_main.h"
-#include "mess_error_detection.h"
+
 
 /* Private includes ----------------------------------------------------------*/
 
 
 
 /* Exported types ------------------------------------------------------------*/
+
+typedef enum {
+  MOD_DEMOD_FSK,
+  MOD_DEMOD_FHBFSK,
+  // Place others as needed here
+  NUM_MOD_DEMOD_METHODS
+} ModDemodMethod_t;
+
+typedef enum {
+  NO_ERROR_DETECTION,
+  CRC_8,
+  CRC_16,
+  CRC_32,
+  CHECKSUM_8,
+  CHECKSUM_16,
+  CHECKSUM_32,
+  // Place others as needed here
+  NUM_ERROR_DETECTION_METHODS
+} ErrorDetectionMethod_t;
+
+typedef enum {
+  NO_ECC,
+  HAMMING_CODE,
+  // Place others as needed here
+  NUM_ECC_METHODS
+} ErrorCorrectionMethod_t;
 
 // Struct for all configuration parameters that are relevant for feedback tests
 // Other configuration parameters belong to modules
@@ -34,7 +59,9 @@ typedef struct {
   uint8_t fhbfsk_freq_spacing;
   uint8_t fhbfsk_num_tones;
   uint8_t fhbfsk_dwell_time;
-  ErrorDetectionMethod_t error_detection_method; // TODO
+  ErrorDetectionMethod_t error_detection_method;
+  ErrorCorrectionMethod_t ecc_method_preamble;
+  ErrorCorrectionMethod_t ecc_method_message;
 } DspConfig_t;
 
 

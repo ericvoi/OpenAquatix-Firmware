@@ -16,9 +16,10 @@ extern "C" {
 #include "stm32h7xx_hal.h"
 #include "mess_input.h"
 #include "mess_main.h"
-#include <mess_error_detection.h>
+#include "mess_error_detection.h"
 #include "mess_demodulate.h"
 #include "mess_modulate.h"
+#include "mess_error_correction.h"
 
 #include "PGA113-driver.h"
 
@@ -168,6 +169,11 @@ extern "C" {
 #define DEFAULT_FIXED_PGA_GAIN      (PGA_GAIN_1)
 #define MIN_FIXED_PGA_GAIN          0
 #define MAX_FIXED_PGA_GAIN          (PGA_NUM_CODES - 1)
+
+#define DEFAULT_ECC_PREAMBLE        (HAMMING_CODE)
+#define DEFAULT_ECC_MESSAGE         (HAMMING_CODE)
+#define MIN_ECC_METHOD              0
+#define MAX_ECC_METHOD              (NUM_ECC_METHODS - 1)
 
 /* Exported macro ------------------------------------------------------------*/
 

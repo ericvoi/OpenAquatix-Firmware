@@ -351,6 +351,7 @@ void printReceivedMessage(Message_t msg)
         }
         out_buffer[i * 9 - 1] = ' ';
       }
+      out_buffer[msg.length_bits / 8 * 9 - 1] = '\0';
       break;
     case INTEGER:
       sprintf((char*) out_buffer, "%u", *((unsigned int*) &msg.data[0]));

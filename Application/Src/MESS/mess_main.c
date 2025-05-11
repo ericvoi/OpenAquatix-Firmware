@@ -73,11 +73,13 @@ static DspConfig_t default_config = {
     .fhbfsk_freq_spacing = DEFAULT_FHBFSK_FREQ_SPACING,
     .fhbfsk_num_tones = DEFAULT_FHBFSK_NUM_TONES,
     .fhbfsk_dwell_time = DEFAULT_FHBFSK_DWELL_TIME,
-    .error_detection_method = DEFAULT_ERROR_DETECTION
+    .error_detection_method = DEFAULT_ERROR_DETECTION,
+    .ecc_method_preamble = DEFAULT_ECC_PREAMBLE,
+    .ecc_method_message = DEFAULT_ECC_MESSAGE
 };
 static DspConfig_t* cfg = &default_config;
 static BitMessage_t bit_msg;
-uint16_t message_length = 0;
+static uint16_t message_length = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -177,11 +179,16 @@ void MESS_StartTask(void* argument)
         if (MESS_GetMessageFromTxQ(&tx_msg) == pdPASS) {
           FeedbackTests_GetConfig(&cfg);
 
-          if (Packet_PrepareTx(&tx_msg, &bit_msg) == false) {
+          if (Packet_PrepareTx(&tx_msg, &bit_msg, cfg) == false) {
             Error_Routine(ERROR_MESS_PROCESSING);
             break;
           }
           // Add ECC
+          if (tx_msg.data_type != EVAL) { // TODO: enable ECC to be tested in evaluation mode
+            if (ErrorCorrection_AddCorrection(&bit_msg, cfg) == false) {
+              Error_Routine(ERROR_MESS_PROCESSING);
+            }
+          }
           // Add feedback network test false bits
           if (FeedbackTests_CorruptMessage(&bit_msg) == false) {
             Error_Routine(ERROR_MESS_PROCESSING);
@@ -189,7 +196,6 @@ void MESS_StartTask(void* argument)
           }
           message_length = bit_msg.bit_count;
           // convert to frequencies in message_sequence
-          // Waveform_SetWaveformSequence(message_length);
           switch (tx_msg.type) {
             case MSG_TRANSMIT_TRANSDUCER:
               switchState(DRIVING_TRANSDUCER);
@@ -228,7 +234,7 @@ void MESS_StartTask(void* argument)
           Error_Routine(ERROR_MESS_PROCESSING);
           break;
         }
-        if (Input_DecodeBits(&input_bit_msg, evaluation_mode) == false) {
+        if (Input_DecodeBits(&input_bit_msg, evaluation_mode, cfg) == false) {
           Error_Routine(ERROR_MESS_PROCESSING);
           break;
         }
@@ -259,6 +265,11 @@ void MESS_StartTask(void* argument)
             rx_msg.sender_id = input_bit_msg.sender_id;
 
             // perform correction
+            if (ErrorCorrection_CheckCorrection(&input_bit_msg, cfg, false,
+                &input_bit_msg.error_message,
+                &input_bit_msg.corrected_error_message) == false) {
+              Error_Routine(ERROR_MESS_PROCESSING);
+            }
             // decode message
             if (Input_DecodeMessage(&input_bit_msg, &rx_msg) == false) {
               Error_Routine(ERROR_MESS_PROCESSING);
@@ -266,7 +277,7 @@ void MESS_StartTask(void* argument)
             }
 
             if (ErrorDetection_CheckDetection(&input_bit_msg,
-                &rx_msg.error_detected) == false) {
+                &rx_msg.error_detected, cfg) == false) {
               Error_Routine(ERROR_MESS_PROCESSING);
               break;
             }
@@ -546,67 +557,100 @@ static bool registerMessMainParams()
   float min_f = MIN_BAUD_RATE;
   float max_f = MAX_BAUD_RATE;
   if (Param_Register(PARAM_BAUD, "baud rate", PARAM_TYPE_FLOAT,
-                     &default_config.baud_rate, sizeof(float), &min_f, &max_f) == false) {
+                     &default_config.baud_rate, sizeof(float),
+                     &min_f, &max_f) == false) {
     return false;
   }
 
   uint32_t min_u32 = MIN_FSK_FREQUENCY;
   uint32_t max_u32 = MAX_FSK_FREQUENCY;
   if (Param_Register(PARAM_FSK_F0, "FSK 0 frequency", PARAM_TYPE_UINT32,
-                     &default_config.fsk_f0, sizeof(uint32_t), &min_u32, &max_u32) == false) {
+                     &default_config.fsk_f0, sizeof(uint32_t),
+                     &min_u32, &max_u32) == false) {
     return false;
   }
   if (Param_Register(PARAM_FSK_F1, "FSK 1 frequency", PARAM_TYPE_UINT32,
-                     &default_config.fsk_f1, sizeof(uint32_t), &min_u32, &max_u32) == false) {
+                     &default_config.fsk_f1, sizeof(uint32_t),
+                     &min_u32, &max_u32) == false) {
     return false;
   }
 
   min_u32 = MIN_MOD_DEMOD_METHOD;
   max_u32 = MAX_MOD_DEMOD_METHOD;
   if (Param_Register(PARAM_MOD_DEMOD_METHOD, "mod/demod method", PARAM_TYPE_UINT8,
-                     &default_config.mod_demod_method, sizeof(uint8_t), &min_u32, &max_u32) == false) {
+                     &default_config.mod_demod_method, sizeof(uint8_t),
+                     &min_u32, &max_u32) == false) {
     return false;
   }
 
   min_u32 = MIN_FC;
   max_u32 = MAX_FC;
   if (Param_Register(PARAM_FC, "center frequency", PARAM_TYPE_UINT32,
-                     &default_config.fc, sizeof(uint32_t), &min_u32, &max_u32) == false) {
+                     &default_config.fc, sizeof(uint32_t),
+                     &min_u32, &max_u32) == false) {
     return false;
   }
 
   min_u32 = MIN_FHBFSK_FREQ_SPACING;
   max_u32 = MAX_FHBFSK_FREQ_SPACING;
   if (Param_Register(PARAM_FHBFSK_FREQ_SPACING, "frequency spacing", PARAM_TYPE_UINT8,
-                     &default_config.fhbfsk_freq_spacing, sizeof(uint8_t), &min_u32, &max_u32) == false) {
+                     &default_config.fhbfsk_freq_spacing, sizeof(uint8_t),
+                     &min_u32, &max_u32) == false) {
     return false;
   }
 
   min_u32 = MIN_FHBFSK_DWELL_TIME;
   max_u32 = MAX_FHBFSK_DWELL_TIME;
   if (Param_Register(PARAM_FHBFSK_DWELL_TIME, "dwell time", PARAM_TYPE_UINT8,
-                     &default_config.fhbfsk_dwell_time, sizeof(uint8_t), &min_u32, &max_u32) == false) {
+                     &default_config.fhbfsk_dwell_time, sizeof(uint8_t),
+                     &min_u32, &max_u32) == false) {
     return false;
   }
 
   min_u32 = MIN_FHBFSK_NUM_TONES;
   max_u32 = MAX_FHBFSK_NUM_TONES;
   if (Param_Register(PARAM_FHBFSK_NUM_TONES, "number of tones", PARAM_TYPE_UINT8,
-                     &default_config.fhbfsk_num_tones, sizeof(uint8_t), &min_u32, &max_u32) == false) {
+                     &default_config.fhbfsk_num_tones, sizeof(uint8_t),
+                     &min_u32, &max_u32) == false) {
     return false;
   }
 
   min_u32 = (uint32_t) MIN_EVAL_MODE_STATE;
   max_u32 = (uint32_t) MAX_EVAL_MODE_STATE;
   if (Param_Register(PARAM_EVAL_MODE_ON, "evaluation mode", PARAM_TYPE_UINT8,
-                     &evaluation_mode, sizeof(uint8_t), &min_u32, &max_u32) == false) {
+                     &evaluation_mode, sizeof(uint8_t),
+                     &min_u32, &max_u32) == false) {
     return false;
   }
 
   min_u32 = MIN_EVAL_MESSAGE;
   max_u32 = MAX_EVAL_MESSAGE;
   if (Param_Register(PARAM_EVAL_MESSAGE, "evaluation message", PARAM_TYPE_UINT8,
-                     &evaluation_message, sizeof(uint8_t), &min_u32, &max_u32) == false) {
+                     &evaluation_message, sizeof(uint8_t),
+                     &min_u32, &max_u32) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_ERROR_DETECTION;
+  max_u32 = MAX_ERROR_DETECTION;
+  if (Param_Register(PARAM_ERROR_DETECTION, "error detection method", PARAM_TYPE_UINT8,
+                     &default_config.error_detection_method, sizeof(uint8_t),
+                     &min_u32, &max_u32) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_ECC_METHOD;
+  max_u32 = MAX_ECC_METHOD;
+  if (Param_Register(PARAM_ECC_PREAMBLE, "preamble ECC", PARAM_TYPE_UINT8,
+                     &default_config.ecc_method_preamble, sizeof(uint8_t),
+                     &min_u32, &max_u32) == false) {
+    return false;
+  }
+
+  // Using the same bounds as ^
+  if (Param_Register(PARAM_ECC_MESSAGE, "message ECC", PARAM_TYPE_UINT8,
+                     &default_config.ecc_method_message, sizeof(uint8_t),
+                     &min_u32, &max_u32) == false) {
     return false;
   }
 

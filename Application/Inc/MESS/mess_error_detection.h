@@ -16,6 +16,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
 #include "mess_packet.h"
+#include "mess_dsp_config.h"
 #include <stdbool.h>
 
 
@@ -25,16 +26,7 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
-typedef enum {
-  CRC_8,
-  CRC_16,
-  CRC_32,
-  CHECKSUM_8,
-  CHECKSUM_16,
-  CHECKSUM_32,
-  NO_ERROR_DETECTION,
-  NUM_ERROR_DETECTION_METHODS
-} ErrorDetectionMethod_t;
+
 
 /* Exported constants --------------------------------------------------------*/
 
@@ -54,13 +46,14 @@ typedef enum {
  * of the message accordingly.
  *
  * @param bit_msg Pointer to the bit message to modify
+ * @param cfg DSP Configuration
  *
  * @return true if correction data was successfully added,
  *         false if calculation failed or correction method is invalid
  *
  * @see ErrorDetection_CheckDetection
  */
-bool ErrorDetection_AddDetection(BitMessage_t* bit_msg);
+bool ErrorDetection_AddDetection(BitMessage_t* bit_msg, const DspConfig_t* cfg);
 
 /**
  * @brief Verifies error correction data in a bit message
@@ -70,22 +63,24 @@ bool ErrorDetection_AddDetection(BitMessage_t* bit_msg);
  *
  * @param bit_msg Pointer to the bit message to check
  * @param error Output parameter set to true if an error is detected
+ * @param cfg DSP Configuration
  *
  * @return true if verification was performed successfully,
  *         false if verification failed or correction method is invalid
  */
-bool ErrorDetection_CheckDetection(BitMessage_t* bit_msg, bool* error);
+bool ErrorDetection_CheckDetection(BitMessage_t* bit_msg, bool* error, const DspConfig_t* cfg);
 
 /**
  * @brief Gets the bit length of the current error correction method
  *
  * @param length Output parameter to receive the bit length of the
  *               current error correction method
+ * @param cfg DSP Configuration
  *
  * @return true if length was set successfully,
  *         false if the current correction method is invalid
  */
-bool ErrorDetection_CheckLength(uint16_t* length);
+bool ErrorDetection_CheckLength(uint16_t* length, const DspConfig_t* cfg);
 
 /**
  * @brief Registers error correction parameters with the system

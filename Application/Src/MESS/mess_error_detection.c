@@ -27,7 +27,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-static ErrorDetectionMethod_t error_detection_method = DEFAULT_ERROR_DETECTION;
+
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -47,12 +47,13 @@ bool checkChecksum32(BitMessage_t* bit_msg, bool* error);
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool ErrorDetection_AddDetection(BitMessage_t* bit_msg)
+bool ErrorDetection_AddDetection(BitMessage_t* bit_msg, const DspConfig_t* cfg)
 {
-  switch (error_detection_method) {
+  switch (cfg->error_detection_method) {
     case CRC_8:
       uint8_t crc_8;
       bit_msg->final_length += 8;
+      bit_msg->combined_message_len += 8;
       if (calculateCrc8(bit_msg, &crc_8) == false) {
         return false;
       }
@@ -60,6 +61,7 @@ bool ErrorDetection_AddDetection(BitMessage_t* bit_msg)
     case CRC_16:
       uint16_t crc_16;
       bit_msg->final_length += 16;
+      bit_msg->combined_message_len += 16;
       if (calculateCrc16(bit_msg, &crc_16) == false) {
         return false;
       }
@@ -67,6 +69,7 @@ bool ErrorDetection_AddDetection(BitMessage_t* bit_msg)
     case CRC_32:
       uint32_t crc_32;
       bit_msg->final_length += 32;
+      bit_msg->combined_message_len += 32;
       if (calculateCrc32(bit_msg, &crc_32) == false) {
         return false;
       }
@@ -74,6 +77,7 @@ bool ErrorDetection_AddDetection(BitMessage_t* bit_msg)
     case CHECKSUM_8:
       uint8_t checksum_8;
       bit_msg->final_length += 8;
+      bit_msg->combined_message_len += 8;
       if (calculateChecksum8(bit_msg, &checksum_8) == false) {
         return false;
       }
@@ -81,6 +85,7 @@ bool ErrorDetection_AddDetection(BitMessage_t* bit_msg)
     case CHECKSUM_16:
       uint16_t checksum_16;
       bit_msg->final_length += 16;
+      bit_msg->combined_message_len += 16;
       if (calculateChecksum16(bit_msg, &checksum_16) == false) {
         return false;
       }
@@ -88,6 +93,7 @@ bool ErrorDetection_AddDetection(BitMessage_t* bit_msg)
     case CHECKSUM_32:
       uint32_t checksum_32;
       bit_msg->final_length += 32;
+      bit_msg->combined_message_len += 32;
       if (calculateChecksum32(bit_msg, &checksum_32) == false) {
         return false;
       }
@@ -99,9 +105,9 @@ bool ErrorDetection_AddDetection(BitMessage_t* bit_msg)
   }
 }
 
-bool ErrorDetection_CheckDetection(BitMessage_t* bit_msg, bool* error)
+bool ErrorDetection_CheckDetection(BitMessage_t* bit_msg, bool* error, const DspConfig_t* cfg)
 {
-  switch (error_detection_method) {
+  switch (cfg->error_detection_method) {
     case CRC_8:
       return checkCrc8(bit_msg, error);
     case CRC_16:
@@ -121,9 +127,9 @@ bool ErrorDetection_CheckDetection(BitMessage_t* bit_msg, bool* error)
   }
 }
 
-bool ErrorDetection_CheckLength(uint16_t* length)
+bool ErrorDetection_CheckLength(uint16_t* length, const DspConfig_t* cfg)
 {
-  switch (error_detection_method) {
+  switch (cfg->error_detection_method) {
     case CRC_8:
     case CHECKSUM_8:
       *length = 8;
@@ -146,13 +152,6 @@ bool ErrorDetection_CheckLength(uint16_t* length)
 
 bool ErrorDetection_RegisterParams(void)
 {
-  uint32_t min_u32 = MIN_ERROR_DETECTION;
-  uint32_t max_u32 = MAX_ERROR_DETECTION;
-  if (Param_Register(PARAM_ERROR_CORRECTION, "error correction method", PARAM_TYPE_UINT8,
-      &error_detection_method, sizeof(uint8_t), &min_u32, &max_u32) == false) {
-    return false;
-  }
-
   return true;
 }
 
@@ -167,8 +166,8 @@ bool calculateCrc8(BitMessage_t* bit_msg, uint8_t* crc)
   uint8_t polynomial = 0x07;
   *crc = 0;
 
-  uint16_t byte_count = (bit_msg->final_length - 8) / 8;
-  uint16_t remaining_bits = (bit_msg->final_length - 8) % 8;
+  uint16_t byte_count = (bit_msg->combined_message_len - 8) / 8;
+  uint16_t remaining_bits = (bit_msg->combined_message_len - 8) % 8;
 
   for (uint16_t i = 0; i < byte_count; i++) {
     *crc ^= bit_msg->data[i];
@@ -208,8 +207,8 @@ bool calculateCrc16(BitMessage_t* bit_msg, uint16_t* crc)
   uint16_t polynomial = 0x1021;
   *crc = 0xFFFF;
 
-  uint16_t byte_count = (bit_msg->final_length - 16) / 8;
-  uint16_t remaining_bits = (bit_msg->final_length - 16) % 8;
+  uint16_t byte_count = (bit_msg->combined_message_len - 16) / 8;
+  uint16_t remaining_bits = (bit_msg->combined_message_len - 16) % 8;
 
   for (uint16_t i = 0; i < byte_count; i++) {
     *crc ^= (uint16_t) bit_msg->data[i] << 8;
@@ -249,8 +248,8 @@ bool calculateCrc32(BitMessage_t* bit_msg, uint32_t* crc)
   uint32_t polynomial = 0x04C11DB7;
   *crc = 0xFFFFFFFF;
 
-  uint16_t byte_count = (bit_msg->final_length - 32) / 8;
-  uint16_t remaining_bits = (bit_msg->final_length - 32) % 8;
+  uint16_t byte_count = (bit_msg->combined_message_len - 32) / 8;
+  uint16_t remaining_bits = (bit_msg->combined_message_len - 32) % 8;
 
   for (uint16_t i = 0; i < byte_count; i++) {
     *crc ^= (uint32_t) bit_msg->data[i] << 24;
@@ -289,8 +288,8 @@ bool calculateChecksum8(BitMessage_t* bit_msg, uint8_t* checksum)
 
   *checksum = 0;
 
-  uint16_t chunk_count = (bit_msg->final_length - 8) / 8;
-  uint16_t remaining_bits = (bit_msg->final_length - 8) % 8;
+  uint16_t chunk_count = (bit_msg->combined_message_len - 8) / 8;
+  uint16_t remaining_bits = (bit_msg->combined_message_len - 8) % 8;
 
   for (uint16_t i = 0; i < chunk_count; i++) {
     uint8_t chunk = *(((uint8_t*) bit_msg->data) + i);
@@ -312,8 +311,8 @@ bool calculateChecksum16(BitMessage_t* bit_msg, uint16_t* checksum)
 
   *checksum = 0;
 
-  uint16_t chunk_count = (bit_msg->final_length - 16) / 16;
-  uint16_t remaining_bits = (bit_msg->final_length - 16) % 16;
+  uint16_t chunk_count = (bit_msg->combined_message_len - 16) / 16;
+  uint16_t remaining_bits = (bit_msg->combined_message_len - 16) % 16;
 
   for (uint16_t i = 0; i < chunk_count; i++) {
     uint16_t chunk = *(((uint16_t*) bit_msg->data) + i);
@@ -338,8 +337,8 @@ bool calculateChecksum32(BitMessage_t* bit_msg, uint32_t* checksum)
 
   *checksum = 0;
 
-  uint16_t chunk_count = (bit_msg->final_length - 32) / 32;
-  uint16_t remaining_bits = (bit_msg->final_length - 32) % 32;
+  uint16_t chunk_count = (bit_msg->combined_message_len - 32) / 32;
+  uint16_t remaining_bits = (bit_msg->combined_message_len - 32) % 32;
 
   for (uint16_t i = 0; i < chunk_count; i++) {
     uint32_t chunk = *(((uint32_t*) bit_msg->data) + i);
@@ -373,7 +372,7 @@ bool checkCrc8(BitMessage_t* bit_msg, bool* error)
     return false;
   }
   uint8_t actual_crc;
-  uint16_t start_position = bit_msg->final_length - 8;
+  uint16_t start_position = bit_msg->combined_message_len - 8;
   if (Packet_Get8(bit_msg, &start_position, &actual_crc) == false) {
     return false;
   }
@@ -391,7 +390,7 @@ bool checkCrc16(BitMessage_t* bit_msg, bool* error)
     return false;
   }
   uint16_t actual_crc;
-  uint16_t start_position = bit_msg->final_length - 16;
+  uint16_t start_position = bit_msg->combined_message_len - 16;
   if (Packet_Get16(bit_msg, &start_position, &actual_crc) == false) {
     return false;
   }
@@ -409,7 +408,7 @@ bool checkCrc32(BitMessage_t* bit_msg, bool* error)
     return false;
   }
   uint32_t actual_crc;
-  uint16_t start_position = bit_msg->final_length - 32;
+  uint16_t start_position = bit_msg->combined_message_len - 32;
   if (Packet_Get32(bit_msg, &start_position, &actual_crc) == false) {
     return false;
   }
@@ -427,7 +426,7 @@ bool checkChecksum8(BitMessage_t* bit_msg, bool* error)
     return false;
   }
   uint8_t actual_checksum;
-  uint16_t start_position = bit_msg->final_length - 8;
+  uint16_t start_position = bit_msg->combined_message_len - 8;
   if (Packet_Get8(bit_msg, &start_position, &actual_checksum) == false) {
     return false;
   }
@@ -445,7 +444,7 @@ bool checkChecksum16(BitMessage_t* bit_msg, bool* error)
     return false;
   }
   uint16_t actual_checksum;
-  uint16_t start_position = bit_msg->final_length - 16;
+  uint16_t start_position = bit_msg->combined_message_len - 16;
   if (Packet_Get16(bit_msg, &start_position, &actual_checksum) == false) {
     return false;
   }
@@ -463,7 +462,7 @@ bool checkChecksum32(BitMessage_t* bit_msg, bool* error)
     return false;
   }
   uint32_t actual_checksum;
-  uint16_t start_position = bit_msg->final_length - 32;
+  uint16_t start_position = bit_msg->combined_message_len - 32;
   if (Packet_Get32(bit_msg, &start_position, &actual_checksum) == false) {
     return false;
   }
