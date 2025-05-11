@@ -80,6 +80,8 @@ bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg, const DspConfig_t* c
 {
   *error_detected = false;
   *error_corrected = false;
+  bit_msg->combined_message_len = bit_msg->non_preamble_length +
+        PACKET_PREAMBLE_LENGTH_BITS;
   if (is_preamble) {
     switch (cfg->ecc_method_preamble) {
       case NO_ECC:
@@ -188,6 +190,10 @@ bool decodeHamming(BitMessage_t* bit_msg, bool is_preamble, bool* error_detected
       (bit_msg->non_preamble_length);
   uint16_t ecc_len = calculateNumParityBits(raw_len) + raw_len;
 
+  if (is_preamble == true) {
+    bit_msg->final_length = ecc_len;
+  }
+
   uint16_t syndrome = 0;
   uint16_t parity_bits = 0;
   while ((1 << parity_bits) < ecc_len) {
@@ -231,9 +237,6 @@ bool decodeHamming(BitMessage_t* bit_msg, bool is_preamble, bool* error_detected
       if (decoded_pos >= raw_len) break;
     }
   }
-
-  bit_msg->combined_message_len = bit_msg->non_preamble_length +
-      PACKET_PREAMBLE_LENGTH_BITS;
 
   return true;
 }

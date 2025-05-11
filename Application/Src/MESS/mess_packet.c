@@ -198,8 +198,8 @@ bool Packet_Compare(const BitMessage_t* msg1, const BitMessage_t* msg2, bool* id
     return false;
   }
 
-  uint16_t bit_count1 = msg1->bit_count;
-  uint16_t bit_count2 = msg2->bit_count;
+  uint16_t bit_count1 = msg1->combined_message_len;
+  uint16_t bit_count2 = msg2->combined_message_len;
 
   if (bit_count1 != bit_count2) {
     *identical = false;
