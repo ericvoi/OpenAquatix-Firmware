@@ -62,7 +62,9 @@ float Modulate_GetAmplitude(uint32_t freq_hz)
   return output_amplitude;
 }
 
-bool Modulate_StartTransducerOutput(uint16_t num_steps, const DspConfig_t* new_cfg, BitMessage_t* new_bit_msg)
+bool Modulate_StartTransducerOutput(uint16_t num_steps, 
+                                    const DspConfig_t* new_cfg, 
+                                    BitMessage_t* new_bit_msg)
 {
   HAL_TIM_Base_Stop(&htim6);
   ADC_StopAll();
@@ -80,7 +82,9 @@ bool Modulate_StartTransducerOutput(uint16_t num_steps, const DspConfig_t* new_c
   return HAL_TIM_Base_Start(&htim6) == HAL_OK;
 }
 
-bool Modulate_StartFeedbackOutput(uint16_t num_steps, const DspConfig_t* new_cfg, BitMessage_t* new_bit_msg)
+bool Modulate_StartFeedbackOutput(uint16_t num_steps, 
+                                  const DspConfig_t* new_cfg, 
+                                  BitMessage_t* new_bit_msg)
 {
   HAL_TIM_Base_Stop(&htim6);
   Waveform_StopWaveformOutput();
@@ -117,14 +121,18 @@ void Modulate_TestFrequencyResponse()
 //  Waveform_SetWaveformSequence(test_sequence, 1);
 }
 
-uint32_t Modulate_GetFhbfskFrequency(bool bit, uint16_t bit_index, const DspConfig_t* cfg)
+uint32_t Modulate_GetFhbfskFrequency(bool bit, 
+                                     uint16_t bit_index, 
+                                     const DspConfig_t* cfg)
 {
   uint32_t frequency_separation = cfg->fhbfsk_freq_spacing * cfg->baud_rate;
 
-  uint32_t start_freq = cfg->fc - frequency_separation * (2 * cfg->fhbfsk_num_tones - 1) / 2;
+  uint32_t start_freq = cfg->fc - 
+      frequency_separation * (2 * cfg->fhbfsk_num_tones - 1) / 2;
   start_freq = (start_freq / frequency_separation) * frequency_separation;
 
-  uint32_t frequency_index = 2 * ((bit_index / cfg->fhbfsk_dwell_time) % cfg->fhbfsk_num_tones);
+  uint32_t frequency_index = 2 * 
+      ((bit_index / cfg->fhbfsk_dwell_time) % cfg->fhbfsk_num_tones);
   frequency_index += bit;
   return start_freq + frequency_separation * frequency_index;
 }

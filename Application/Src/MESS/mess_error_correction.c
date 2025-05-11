@@ -44,7 +44,8 @@ static void copyBufferToMessage(BitMessage_t* bit_msg, uint16_t new_len);
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool ErrorCorrection_AddCorrection(BitMessage_t* bit_msg, const DspConfig_t* cfg)
+bool ErrorCorrection_AddCorrection(BitMessage_t* bit_msg, 
+                                   const DspConfig_t* cfg)
 {
   uint16_t bits_added = 0;
   clearBuffer();
@@ -76,7 +77,11 @@ bool ErrorCorrection_AddCorrection(BitMessage_t* bit_msg, const DspConfig_t* cfg
   return true;
 }
 
-bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg, const DspConfig_t* cfg, bool is_preamble, bool* error_detected, bool* error_corrected)
+bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg, 
+                                     const DspConfig_t* cfg, 
+                                     bool is_preamble, 
+                                     bool* error_detected, 
+                                     bool* error_corrected)
 {
   *error_detected = false;
   *error_corrected = false;
@@ -108,7 +113,8 @@ bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg, const DspConfig_t* c
   }
 }
 
-uint16_t ErrorCorrection_GetLength(const uint16_t length, const ErrorCorrectionMethod_t method)
+uint16_t ErrorCorrection_GetLength(const uint16_t length, 
+                                   const ErrorCorrectionMethod_t method)
 {
   switch (method) {
     case NO_ECC:
@@ -142,7 +148,8 @@ bool addHamming(BitMessage_t* bit_msg, bool is_preamble, uint16_t* bits_added)
       continue;
     }
     bool bit_to_add;
-    if (Packet_GetBit(bit_msg, start_raw_index + message_bits_added++, &bit_to_add) == false) {
+    if (Packet_GetBit(bit_msg, start_raw_index + message_bits_added++, 
+                      &bit_to_add) == false) {
       return false;
     }
     if (setBitInBuffer(bit_to_add, start_ecc_index + i) == false) {
@@ -179,7 +186,10 @@ bool addHamming(BitMessage_t* bit_msg, bool is_preamble, uint16_t* bits_added)
   return true;
 }
 
-bool decodeHamming(BitMessage_t* bit_msg, bool is_preamble, bool* error_detected, bool* error_corrected)
+bool decodeHamming(BitMessage_t* bit_msg, 
+                   bool is_preamble, 
+                   bool* error_detected, 
+                   bool* error_corrected)
 {
   uint16_t start_raw_index = is_preamble ? 0 : PACKET_PREAMBLE_LENGTH_BITS;
   uint16_t start_ecc_index = is_preamble ? 0 :

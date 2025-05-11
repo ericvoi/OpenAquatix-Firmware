@@ -47,7 +47,19 @@ extern "C" {
                                            PACKET_DATA_MAX_LENGTH_BITS + \
                                            PACKET_MAX_ERROR_CORRECTION_BITS)
 
-#define PACKET_MAX_LENGTH_BYTES           ((PACKET_MAX_LENGTH_BITS + 7) / 8)
+// Since there are multiple instances of BitMessage_t (The only time where the
+// packet max length in bytes is used), a static allocation was preferred over
+// a dynamic one that takes into account the actual number of bytes needed.
+// This method will tend to overallocate memory and could cause insufficient
+// memory if stronger, non-linear ECC is added to the preamble. The use of a
+// factor is based on the idea that convolutional codes will add the most 
+// number of errors to a message and they add bits as a multiplicative factor
+#define FACTOR_FOR_ECC                    2
+
+// TODO: Add a check to see if the number of bytes is sufficient
+#define PACKET_MAX_LENGTH_BYTES           (((PACKET_MAX_LENGTH_BITS + 7) / 8) * \
+                                          FACTOR_FOR_ECC)
+// The data max length does not have ECC applied and is sanitized for a user
 #define PACKET_DATA_MAX_LENGTH_BYTES      (PACKET_DATA_MAX_LENGTH_BITS / 8)
 
 typedef enum {
