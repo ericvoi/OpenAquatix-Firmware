@@ -633,12 +633,13 @@ static bool registerMessMainParams()
 
   min_u32 = MIN_ECC_METHOD;
   max_u32 = MAX_ECC_METHOD;
-  if (Param_Register(PARAM_ECC_PREAMBLE, "premable ECC", PARAM_TYPE_UINT8,
+  if (Param_Register(PARAM_ECC_PREAMBLE, "preamble ECC", PARAM_TYPE_UINT8,
                      &default_config.ecc_method_preamble, sizeof(uint8_t),
                      &min_u32, &max_u32) == false) {
     return false;
   }
 
+  // Using the same bounds as ^
   if (Param_Register(PARAM_ECC_MESSAGE, "message ECC", PARAM_TYPE_UINT8,
                      &default_config.ecc_method_message, sizeof(uint8_t),
                      &min_u32, &max_u32) == false) {

@@ -25,24 +25,26 @@ extern "C" {
 typedef enum {
   MOD_DEMOD_FSK,
   MOD_DEMOD_FHBFSK,
+  // Place others as needed here
   NUM_MOD_DEMOD_METHODS
 } ModDemodMethod_t;
 
 typedef enum {
+  NO_ERROR_DETECTION,
   CRC_8,
   CRC_16,
   CRC_32,
   CHECKSUM_8,
   CHECKSUM_16,
   CHECKSUM_32,
-  NO_ERROR_DETECTION,
+  // Place others as needed here
   NUM_ERROR_DETECTION_METHODS
 } ErrorDetectionMethod_t;
 
 typedef enum {
   NO_ECC,
   HAMMING_CODE,
-  // Others as needed
+  // Place others as needed here
   NUM_ECC_METHODS
 } ErrorCorrectionMethod_t;
 

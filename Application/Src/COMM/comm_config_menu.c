@@ -36,6 +36,8 @@
 /* Private function prototypes -----------------------------------------------*/
 
 void setErrorCorrection(void* argument);
+void setPremableEcc(void* argument);
+void setMessageEcc(void* argument);
 void setModulationMethod(void* argument);
 void setFskF0(void* argument);
 void setFskF1(void* argument);
@@ -104,10 +106,12 @@ static const MenuNode_t configMenu = {
 /* Sub menus -----------------------------------------------------------------*/
 
 static MenuID_t univConfigMenuChildren[] = {
-  MENU_ID_CFG_UNIV_ERR,     MENU_ID_CFG_UNIV_MOD,      MENU_ID_CFG_UNIV_FSK,   
-  MENU_ID_CFG_UNIV_FHBFSK,  MENU_ID_CFG_UNIV_BAUD,      MENU_ID_CFG_UNIV_FC,    
-  MENU_ID_CFG_UNIV_BP,      MENU_ID_CFG_UNIV_BANDWIDTH, MENU_ID_CFG_UNIV_EXP,   
-  MENU_ID_CFG_UNIV_IMP
+  MENU_ID_CFG_UNIV_ERR,         MENU_ID_CFG_UNIV_ECCPREAMBLE, 
+  MENU_ID_CFG_UNIV_ECCMESSAGE,  MENU_ID_CFG_UNIV_MOD,      
+  MENU_ID_CFG_UNIV_FSK,         MENU_ID_CFG_UNIV_FHBFSK,  
+  MENU_ID_CFG_UNIV_BAUD,        MENU_ID_CFG_UNIV_FC,    
+  MENU_ID_CFG_UNIV_BP,          MENU_ID_CFG_UNIV_BANDWIDTH, 
+  MENU_ID_CFG_UNIV_EXP,         MENU_ID_CFG_UNIV_IMP
 };
 static const MenuNode_t univConfigMenu = {
   .id = MENU_ID_CFG_UNIV,
@@ -225,6 +229,36 @@ static const MenuNode_t univConfigErr = {
   .num_children = 0,
   .access_level = 0,
   .parameters = &univConfigErrParam
+};
+
+static ParamContext_t univConfigEccPreambleParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_UNIV_ECCPREAMBLE
+};
+static const MenuNode_t univConfigEccPreamble = {
+  .id = MENU_ID_CFG_UNIV_ECCPREAMBLE,
+  .description = "Preamble ECC",
+  .handler = setPremableEcc,
+  .parent_id = MENU_ID_CFG_UNIV,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &univConfigEccPreambleParam
+};
+
+static ParamContext_t univConfigEccMessageParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_UNIV_ECCMESSAGE
+};
+static const MenuNode_t univConfigEccMessage = {
+  .id = MENU_ID_CFG_UNIV_ECCMESSAGE,
+  .description = "Message ECC",
+  .handler = setMessageEcc,
+  .parent_id = MENU_ID_CFG_UNIV,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &univConfigEccMessageParam
 };
 
 static ParamContext_t univConfigModParam = {
@@ -1000,7 +1034,8 @@ bool COMM_RegisterConfigurationMenu()
              registerMenu(&modPwrConfigTarget) && registerMenu(&modPwrConfigR) &&
              registerMenu(&modPwrConfigC0) && registerMenu(&modPwrConfigL0) &&
              registerMenu(&modPwrConfigC1) && registerMenu(&demodConfigUseAgc) &&
-             registerMenu(&demodConfigFixedGain);
+             registerMenu(&demodConfigFixedGain) && registerMenu(&univConfigEccPreamble) &&
+             registerMenu(&univConfigEccMessage);
 
   return ret;
 }
@@ -1010,11 +1045,29 @@ bool COMM_RegisterConfigurationMenu()
 void setErrorCorrection(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  char* descriptors[] = {"CRC-8",      "CRC-16",      "CRC-32", 
-                         "Checksum-8", "Checksum-16", "Checksum-32",
-                         "None"};
+  char* descriptors[] = {"None",
+                         "CRC-8",      "CRC-16",      "CRC-32", 
+                         "Checksum-8", "Checksum-16", "Checksum-32"};
 
-  COMMLoops_LoopEnum(context, PARAM_ERROR_CORRECTION, descriptors, 
+  COMMLoops_LoopEnum(context, PARAM_ERROR_DETECTION, descriptors, 
+    sizeof(descriptors) / sizeof(descriptors[0]));
+}
+
+void setPremableEcc(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+  char* descriptors[] = {"None", "1-bit Hamming Code"};
+
+  COMMLoops_LoopEnum(context, PARAM_ECC_PREAMBLE, descriptors,
+    sizeof(descriptors) / sizeof(descriptors[0]));
+}
+
+void setMessageEcc(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+  char* descriptors[] = {"None", "1-bit Hamming Code"};
+
+  COMMLoops_LoopEnum(context, PARAM_ECC_MESSAGE, descriptors,
     sizeof(descriptors) / sizeof(descriptors[0]));
 }
 

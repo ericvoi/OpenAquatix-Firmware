@@ -45,7 +45,7 @@ static ParamIds_t imp_exp_parameters[] = {
     PARAM_FHBFSK_FREQ_SPACING,
     PARAM_FHBFSK_DWELL_TIME,
     PARAM_FHBFSK_NUM_TONES,
-    PARAM_ERROR_CORRECTION
+    PARAM_ERROR_DETECTION
 };
 
 static const uint16_t num_param = sizeof(imp_exp_parameters) / sizeof(imp_exp_parameters[0]);
