@@ -35,7 +35,7 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-void setErrorCorrection(void* argument);
+void setErrorDetection(void* argument);
 void setPremableEcc(void* argument);
 void setMessageEcc(void* argument);
 void setModulationMethod(void* argument);
@@ -223,7 +223,7 @@ static ParamContext_t univConfigErrParam = {
 static const MenuNode_t univConfigErr = {
   .id = MENU_ID_CFG_UNIV_ERR,
   .description = "Error Detection Scheme",
-  .handler = setErrorCorrection,
+  .handler = setErrorDetection,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
   .num_children = 0,
@@ -1042,7 +1042,7 @@ bool COMM_RegisterConfigurationMenu()
 
 /* Private function definitions ----------------------------------------------*/
 
-void setErrorCorrection(void* argument)
+void setErrorDetection(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
   char* descriptors[] = {"None",

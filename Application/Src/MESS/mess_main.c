@@ -631,6 +631,14 @@ static bool registerMessMainParams()
     return false;
   }
 
+  min_u32 = MIN_ERROR_DETECTION;
+  max_u32 = MAX_ERROR_DETECTION;
+  if (Param_Register(PARAM_ERROR_DETECTION, "error detection method", PARAM_TYPE_UINT8,
+                     &default_config.error_detection_method, sizeof(uint8_t),
+                     &min_u32, &max_u32) == false) {
+    return false;
+  }
+
   min_u32 = MIN_ECC_METHOD;
   max_u32 = MAX_ECC_METHOD;
   if (Param_Register(PARAM_ECC_PREAMBLE, "preamble ECC", PARAM_TYPE_UINT8,
