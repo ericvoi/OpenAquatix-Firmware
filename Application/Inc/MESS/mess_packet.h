@@ -37,6 +37,7 @@ typedef struct {
   uint16_t non_preamble_length_ecc;
   uint16_t non_preamble_length;
   uint16_t combined_message_len; // not including ecc
+  float normalized_vitrebi_error_metric; // Only set when the ecc method uses convoltuional codes
   bool stationary_flag;
   bool preamble_received; // Set when first preamble number of bits received and decoded
   bool fully_received;    // Set when message bit count > final bit count

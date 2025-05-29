@@ -19,7 +19,12 @@
 
 /* Private define ------------------------------------------------------------*/
 
-
+// x^2 + x^1 + 1
+#define CRC_8_POLYNOMIAL  0x07U 
+// x^12 + x^5 + 1
+#define CRC_16_POLYNOMIAL 0x1021U
+// x^26 + x^23 + x^22 + x^16 + x^12 + x^11 + x^10 + x^8 + x^7 + x^5 + x^4 + x^2 + x^1 + 1
+#define CRC_32_POLYNOMIAL 0x04C11DB7U 
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -163,7 +168,7 @@ bool calculateCrc8(BitMessage_t* bit_msg, uint8_t* crc)
     return false;
   }
 
-  uint8_t polynomial = 0x07;
+  uint8_t polynomial = CRC_8_POLYNOMIAL;
   *crc = 0;
 
   uint16_t byte_count = (bit_msg->combined_message_len - 8) / 8;
@@ -204,7 +209,7 @@ bool calculateCrc16(BitMessage_t* bit_msg, uint16_t* crc)
     return false;
   }
 
-  uint16_t polynomial = 0x1021;
+  uint16_t polynomial = CRC_16_POLYNOMIAL;
   *crc = 0xFFFF;
 
   uint16_t byte_count = (bit_msg->combined_message_len - 16) / 8;
@@ -245,7 +250,7 @@ bool calculateCrc32(BitMessage_t* bit_msg, uint32_t* crc)
     return false;
   }
 
-  uint32_t polynomial = 0x04C11DB7;
+  uint32_t polynomial = CRC_32_POLYNOMIAL;
   *crc = 0xFFFFFFFF;
 
   uint16_t byte_count = (bit_msg->combined_message_len - 32) / 8;

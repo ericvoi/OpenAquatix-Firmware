@@ -39,13 +39,13 @@ extern "C" {
 
 #define PACKET_DATA_MIN_LENGTH_BITS       (8 * 1)   // If the packet length is 0
 #define PACKET_DATA_MAX_LENGTH_BITS       (8 * 128) // If the packet length is 7
-#define PACKET_MAX_ERROR_CORRECTION_BITS  32
+#define PACKET_MAX_ERROR_DETECTION_BITS  32
 #define PACKET_MAX_LENGTH_BITS            (PACKET_SENDER_ID_BITS + \
                                            PACKET_MESSAGE_TYPE_BITS + \
                                            PACKET_LENGTH_BITS + \
                                            PACKET_STATIONARY_BITS + \
                                            PACKET_DATA_MAX_LENGTH_BITS + \
-                                           PACKET_MAX_ERROR_CORRECTION_BITS)
+                                           PACKET_MAX_ERROR_DETECTION_BITS)
 
 // Since there are multiple instances of BitMessage_t (The only time where the
 // packet max length in bytes is used), a static allocation was preferred over

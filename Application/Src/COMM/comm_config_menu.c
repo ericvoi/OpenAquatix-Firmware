@@ -1056,7 +1056,7 @@ void setErrorDetection(void* argument)
 void setPremableEcc(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  char* descriptors[] = {"None", "1-bit Hamming Code"};
+  char* descriptors[] = {"None", "1-bit Hamming Code", "1:2 Convolutional Code (JANUS)"};
 
   COMMLoops_LoopEnum(context, PARAM_ECC_PREAMBLE, descriptors,
     sizeof(descriptors) / sizeof(descriptors[0]));
@@ -1065,7 +1065,7 @@ void setPremableEcc(void* argument)
 void setMessageEcc(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  char* descriptors[] = {"None", "1-bit Hamming Code"};
+  char* descriptors[] = {"None", "1-bit Hamming Code", "1:2 Convolutional Code (JANUS)"};
 
   COMMLoops_LoopEnum(context, PARAM_ECC_MESSAGE, descriptors,
     sizeof(descriptors) / sizeof(descriptors[0]));
