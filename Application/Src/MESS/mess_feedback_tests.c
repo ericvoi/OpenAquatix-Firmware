@@ -226,6 +226,25 @@ static FeedbackTests_t feedback_tests[] = {
         .reference_message = &reference_messages[4],
         .errors_added = 1,
         .repetitions = 20
+    },
+    {
+      .cfg = {
+          .baud_rate = 1000.0f,
+          .mod_demod_method = MOD_DEMOD_FSK,
+          .fsk_f0 = 29000,
+          .fsk_f1 = 33000,
+          .fc = 31000,
+          .fhbfsk_freq_spacing = 1,
+          .fhbfsk_num_tones = 10,
+          .fhbfsk_dwell_time = 1,
+          .error_detection_method = CRC_16,
+          .ecc_method_preamble = JANUS_CONVOLUTIONAL,
+          .ecc_method_message = JANUS_CONVOLUTIONAL
+      },
+      .expected_result = IDENTICAL,
+      .reference_message = &reference_messages[4],
+      .errors_added = 2,
+      .repetitions = 20
     }
 };
 
@@ -437,12 +456,11 @@ bool getTestIndex(uint16_t* index)
   uint16_t counter = 0;
   for (uint16_t i = 0; i < unique_tests; i++)
   {
-    if (current_test <= counter) {
+    counter += feedback_tests[i].repetitions;
+    if (current_test <= (counter - 1)) {
       *index = i;
       return true;
     }
-
-    counter += feedback_tests[i].repetitions;
   }
   if (current_test >= total_tests) {
     return false;

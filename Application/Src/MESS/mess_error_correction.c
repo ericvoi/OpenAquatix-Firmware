@@ -159,9 +159,11 @@ bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg,
         *error_corrected = false;
         return true;
       case HAMMING_CODE:
-        return decodeHamming(bit_msg, true, error_detected, error_corrected, cfg);
+        return decodeHamming(bit_msg, true, error_detected, error_corrected,
+                             cfg);
       case JANUS_CONVOLUTIONAL:
-        return decodeJanusConvolutional(bit_msg, true, error_detected, error_corrected, cfg);
+        return decodeJanusConvolutional(bit_msg, true, error_detected,
+                                        error_corrected, cfg);
       default:
         return false;
     }
@@ -173,9 +175,11 @@ bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg,
         *error_corrected = false;
         return true;
       case HAMMING_CODE:
-        return decodeHamming(bit_msg, false, error_detected, error_corrected, cfg);
+        return decodeHamming(bit_msg, false, error_detected, error_corrected,
+                             cfg);
       case JANUS_CONVOLUTIONAL:
-        return decodeJanusConvolutional(bit_msg, false, error_detected, error_corrected, cfg); 
+        return decodeJanusConvolutional(bit_msg, false, error_detected,
+                                        error_corrected, cfg);
       default:
         return false;
     }
@@ -261,6 +265,7 @@ bool decodeHamming(BitMessage_t* bit_msg,
                    bool* error_corrected,
                    const DspConfig_t* cfg)
 {
+  (void) (error_detected);
   SectionInfo_t section_info;
   calculateSectionInfo(&section_info, bit_msg, cfg, is_preamble);
 
@@ -392,7 +397,7 @@ bool decodeJanusConvolutional(BitMessage_t* bit_msg,
     }
   } 
 
-  uint16_t remaining_bits = MIN(section_info.raw_len, JANUS_TRACEBACK_LENGTH);
+  uint16_t remaining_bits = MIN(section_info.raw_len, JANUS_TRACEBACK_LENGTH - 1);
 
   for (uint16_t i = 0; i < remaining_bits; i++) {
     bool bit;
@@ -405,7 +410,8 @@ bool decodeJanusConvolutional(BitMessage_t* bit_msg,
     output_bit_index++;
   }
 
-  bit_msg->normalized_vitrebi_error_metric = (float) janus_decoder.error_metric / (section_info.ecc_len / 2.0f);
+  bit_msg->normalized_vitrebi_error_metric =
+      (float) janus_decoder.error_metric / (section_info.ecc_len / 2.0f);
 
   *error_detected = bit_msg->normalized_vitrebi_error_metric != 0.0f;
   *error_corrected = *error_detected;
@@ -430,7 +436,8 @@ void janusConvEncoderInit(ConvEncoder_t* encoder)
 
 void janusConvEncodeBit(ConvEncoder_t* encoder, bool input_bit, bool output_bits[2])
 {
-  encoder->register_state = ((encoder->register_state << 1) | (input_bit & 0x0001)) & 0x01FF;
+  encoder->register_state =
+      ((encoder->register_state << 1) | (input_bit & 0x0001)) & 0x01FF;
   uint16_t state = encoder->register_state;
 
   output_bits[0] = __builtin_parity(state & CE_G1_JANUS);
@@ -486,7 +493,9 @@ void janusCalculateOutput(uint16_t state, bool input_bit, bool output[2])
   output[1] = __builtin_parity(full_state & CE_G2_JANUS);
 }
 
-void janusVitrebiDecodePair(JanusVitrebiDecoder_t* decoder, bool received_bit1, bool received_bit2)
+void janusVitrebiDecodePair(JanusVitrebiDecoder_t* decoder,
+                            bool received_bit1,
+                            bool received_bit2)
 {
   for (uint16_t i = 0; i < JANUS_NUM_STATES; i++) {
     decoder->next_path_metrics[i] = JANUS_MAX_METRIC;
@@ -563,11 +572,11 @@ void clearBuffer(void)
 
 bool setBitInBuffer(bool bit, uint16_t position)
 {
-  if (position >= PACKET_MAX_LENGTH_BITS) {
+  if (position >= sizeof(message_buffer) * 8) {
     return false;
   }
 
-  uint8_t byte_index = position / 8;
+  uint16_t byte_index = position / 8;
   uint8_t bit_position = position % 8;
 
   if (bit == true) {
@@ -580,7 +589,7 @@ bool setBitInBuffer(bool bit, uint16_t position)
 
 bool getBitFromBuffer(uint16_t position, bool* bit)
 {
-  if (position >= PACKET_MAX_LENGTH_BITS) {
+  if (position >= sizeof(message_buffer) * 8) {
     return false;
   }
 
@@ -599,7 +608,10 @@ void copyBufferToMessage(BitMessage_t* bit_msg, uint16_t new_len)
   bit_msg->final_length = new_len;
 }
 
-static void calculateSectionInfo(SectionInfo_t* section_info, const BitMessage_t* bit_msg, const DspConfig_t* cfg, bool is_preamble)
+static void calculateSectionInfo(SectionInfo_t* section_info,
+                                 const BitMessage_t* bit_msg,
+                                 const DspConfig_t* cfg,
+                                 bool is_preamble)
 {
   section_info->section_length = is_preamble ? PACKET_PREAMBLE_LENGTH_BITS :
       (bit_msg->final_length - PACKET_PREAMBLE_LENGTH_BITS);

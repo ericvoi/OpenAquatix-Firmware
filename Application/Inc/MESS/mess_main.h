@@ -39,11 +39,10 @@ extern "C" {
 
 #define PACKET_DATA_MIN_LENGTH_BITS       (8 * 1)   // If the packet length is 0
 #define PACKET_DATA_MAX_LENGTH_BITS       (8 * 128) // If the packet length is 7
-#define PACKET_MAX_ERROR_DETECTION_BITS  32
-#define PACKET_MAX_LENGTH_BITS            (PACKET_SENDER_ID_BITS + \
-                                           PACKET_MESSAGE_TYPE_BITS + \
-                                           PACKET_LENGTH_BITS + \
-                                           PACKET_STATIONARY_BITS + \
+#define PACKET_MAX_ERROR_DETECTION_BITS   32
+// This is the number of bits in the *raw* message and is not to be used for
+// any ecc operation
+#define PACKET_MAX_LENGTH_BITS            (PACKET_PREAMBLE_LENGTH_BITS + \
                                            PACKET_DATA_MAX_LENGTH_BITS + \
                                            PACKET_MAX_ERROR_DETECTION_BITS)
 
@@ -55,9 +54,12 @@ extern "C" {
 // factor is based on the idea that convolutional codes will add the most 
 // number of errors to a message and they add bits as a multiplicative factor
 #define FACTOR_FOR_ECC                    2
+// At most 8 bits are added to flush the encoder in the janus convolutional encoder
+#define ADDED_ECC_BITS                    8
 
 // TODO: Add a check to see if the number of bytes is sufficient
-#define PACKET_MAX_LENGTH_BYTES           (((PACKET_MAX_LENGTH_BITS + 7) / 8) * \
+#define PACKET_MAX_LENGTH_BYTES           (((PACKET_MAX_LENGTH_BITS + \
+                                          ADDED_ECC_BITS * 2 + 7) / 8) * \
                                           FACTOR_FOR_ECC)
 // The data max length does not have ECC applied and is sanitized for a user
 #define PACKET_DATA_MAX_LENGTH_BYTES      (PACKET_DATA_MAX_LENGTH_BITS / 8)
