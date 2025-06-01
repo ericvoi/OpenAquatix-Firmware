@@ -46,7 +46,6 @@ typedef struct {
 #define JANUS_NUM_STATES        (1 << (JANUS_CONSTRAINT_LENGTH - 1)) // 256 states
 #define JANUS_TRACEBACK_LENGTH  (JANUS_CONSTRAINT_LENGTH * 5)
 #define JANUS_MAX_METRIC        (100000.0f)
-#define JANUS_DECISION_LAG      (JANUS_CONSTRAINT_LENGTH * 3)
 
 #define JANUS_SOFT_DECISION     (false) // true to use soft decision and false otherwise
 
