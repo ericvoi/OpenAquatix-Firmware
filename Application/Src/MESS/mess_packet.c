@@ -177,11 +177,11 @@ bool Packet_FlipBit(BitMessage_t* bit_msg, uint16_t bit_index)
 
 bool Packet_SetBit(BitMessage_t* bit_msg, uint16_t bit_index, bool bit)
 {
-  if (bit_msg->bit_count >= PACKET_MAX_LENGTH_BITS) {
+  if (bit_msg->bit_count >= PACKET_MAX_LENGTH_BYTES * 8) {
     return false;
   }
 
-  uint8_t byte_index = bit_index / 8;
+  uint16_t byte_index = bit_index / 8;
   uint8_t bit_position = bit_index % 8;
 
   if (bit == true) {

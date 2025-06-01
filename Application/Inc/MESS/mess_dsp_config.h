@@ -44,6 +44,7 @@ typedef enum {
 typedef enum {
   NO_ECC,
   HAMMING_CODE,
+  JANUS_CONVOLUTIONAL,
   // Place others as needed here
   NUM_ECC_METHODS
 } ErrorCorrectionMethod_t;
