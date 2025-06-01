@@ -76,7 +76,7 @@ typedef struct {
 
 static DemodulationInfo_t analysis_blocks[MAX_ANALYSIS_BUFFER_SIZE];
 
-static uint16_t input_buffer[PROCESSING_BUFFER_SIZE];
+static uint16_t input_buffer[PROCESSING_BUFFER_SIZE] __attribute__((section(".dtcm")));
 
 static volatile uint16_t buffer_start_index = 0;
 static volatile uint16_t buffer_end_index = 0;

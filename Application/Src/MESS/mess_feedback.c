@@ -27,7 +27,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-static uint16_t feedback_buffer[PROCESSING_BUFFER_SIZE];
+static uint16_t feedback_buffer[PROCESSING_BUFFER_SIZE] __attribute__((section(".dtcm")));
 
 static volatile uint16_t feedback_buffer_start_index = 0;
 static volatile uint16_t feedback_buffer_end_index = 0;

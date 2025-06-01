@@ -173,6 +173,11 @@ SECTIONS
     libm.a ( * )
     libgcc.a ( * )
   }
+  
+  .dtcm :
+  {
+    KEEP(*(.dtcm))
+  } >DTCMRAM
 
   .ARM.attributes 0 : { *(.ARM.attributes) }
 }
