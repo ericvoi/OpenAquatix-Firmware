@@ -5,6 +5,9 @@
  *      Author: ericv
  */
 
+ // Important note: All error correction codes must not require the input bit
+ // sequence to be byte aligned.
+
 /* Private includes ----------------------------------------------------------*/
 
 #include "main.h"
@@ -82,7 +85,7 @@ static void janusVitrebiInit(JanusVitrebiDecoder_t* decoder);
 static float janusComputeBranchMetric(bool received_bit1, bool received_bit2,
                                       bool expected_bit1, bool expected_bit2);
 static void janusCalculateOutput(uint16_t state, bool input_bit, bool output[2]);
-static void janusVitrebiDecodePair(JanusVitrebiDecoder_t* decoder, bool received_bit1, bool received_bit2);
+static void janusVitrebiDecodePair(JanusVitrebiDecoder_t* decoder, bool received_bit1, bool received_bit2, bool is_flush_bit);
 static bool janusVitrebiTraceback(JanusVitrebiDecoder_t* decoder, bool* bit, uint16_t bit_index);
 static uint16_t janusVitrebiFindBestState(JanusVitrebiDecoder_t* decoder);
 
@@ -203,6 +206,25 @@ uint16_t ErrorCorrection_GetLength(const uint16_t length,
 
 /* Private function definitions ----------------------------------------------*/
 
+/*
+ * Hamming codes work by placing parity bits at bit positions that are powers
+ * of 2. The number of parity bits for a given number of message bits is given
+ * by 2^parity_bits >= data_bits + parity_bits + 1. The bit positions that are 
+ * checked by this parity bit are all the bits where this bit is set. For 
+ * example, parity bit 3 at 0x04 or 0b00000100 checks all bit posiitons 
+ * following the convention 0bxxxxx1xx. Bit position indices include parity
+ * bits
+ * 
+ * Example bit sequence: 0100
+ * Data bit indices are (3 5 6 7)
+ * Requires 3 parity bits since 2^3 = 8 = 4 + 3 + 1
+ * Note: bit positions are 1-indexed
+ * p1 (bit position 1): 1*0 + 1*1 + 0*0 + 1*0 = 1
+ * p2 (bit position 2): 1*0 + 0*1 + 1*0 + 1*0 = 0
+ * p3 (bit position 4): 0*0 + 1*1 + 1*0 + 1*0 = 1
+ * 
+ * Encoded message: 1001100
+ */
 bool addHamming(BitMessage_t* bit_msg, 
                 bool is_preamble, 
                 uint16_t* bits_added, 
@@ -259,6 +281,24 @@ bool addHamming(BitMessage_t* bit_msg,
   return true;
 }
 
+/*
+ * Decosing a hamming code message works by checking to see if each parity
+ * condition in the received message still holds. If a parity condition does
+ * not hold then it is known that there is a bit error at a position where the
+ * bit index corresponding to the parity bit checked is set. For example, in a
+ * message where there is one bit error and the first parity check on parity
+ * bit 1 (bit position 0x01) fails, then the bit error is at an odd location.
+ * 
+ * Following the encoding example, 1001100 -> 1001101 (1 bit error at position 7)
+ * New parity bits (first bit is the extra parity bit):
+ * p1 (bit position 1 checking 1, 3, 5, 7): 1 + 0 + 1 + 1= 1
+ * p2 (bit position 2 checking 2, 3, 6, 7): 0 + 0 + 0 + 1= 1
+ * p3 (bit position 4 checking 4, 5, 6, 7): 0 + 1 + 1 + 1= 1
+ * 
+ * Parity check fails for all parity bits meaning that the bit error occurs at
+ * a position that satisfies xx1, x1x, and 1xx. This is 111 or bit position 7,
+ * precisely where the error was!
+ */
 bool decodeHamming(BitMessage_t* bit_msg, 
                    bool is_preamble, 
                    bool* error_detected, 
@@ -316,6 +356,43 @@ bool decodeHamming(BitMessage_t* bit_msg,
   return true;
 }
 
+/*
+ * This convolutional code follows the code set out by the JANUS standard in
+ * ANEP-87 (https://nso.nato.int/nso/nsdd/main/standards?search=ANEP-87)
+ * 
+ * Creating a convolutional code is relatively straightforward and, in essence,
+ * is simply outputting parity bits that correspond to a message. The number of
+ * parity bits outputted by the encoder is always greater than the number of
+ * input bits and JANUS uses a 1:2 encoder so 2 bits are outputted for every
+ * input bit. These two output bits are parity bits corresponding to the input
+ * bit stream using the polynomials g1 and g2 that define which bits in the
+ * previous K number of bits are used to determine parity. K is the constraint
+ * length and defines how many bits to look back on. For example, a polynomial
+ * 0b00001011 has a constraint length of 4.
+ * 
+ * Take the message 1101 (MSB first) with polynomials 1101 and 1001
+ * Bit 0 (register state: 1)
+ * g1(0) = 1*0 + 1*0 + 0*0 + 1*1 = 1
+ * g2(0) = 1*0 + 0*0 + 0*0 + 1*1 = 1
+ * Bit 1 (register state: 11)
+ * g1(1) = 1*0 + 1*0 + 0*1 + 1*1 = 1
+ * g2(1) = 1*0 + 0*0 + 0*1 + 1*1 = 1
+ * Bit 2 (register state: 110)
+ * g1(2) = 1*0 + 1*1 + 0*1 + 1*0 = 1
+ * g2(2) = 1*0 + 0*1 + 0*1 + 1*0 = 0
+ * Bit 3 (register state: 1101)
+ * g1(3) = 1*1 + 1*1 + 0*0 + 1*1 = 1
+ * g2(3) = 1*1 + 0*1 + 0*0 + 1*1 = 0
+ * 
+ * So the output message is 11 11 10 10 (not including any flush bits)
+ * 
+ * A common method to increase reliability is to flush the encoder by adding
+ * zeroes to the end of the data to flush the encoder and make the last bits
+ * impact more bits as otherwise there decoding reliability goes down. JANUS
+ * uses 8 flush bits (K - 1). Note: in the standard, they say that the zeroes
+ * are prepended but this means that they are added before encoding *not* that
+ * the zeroes are added to the start of the data stream.
+ */
 bool addJanusConvolutional(BitMessage_t* bit_msg, 
                            bool is_preamble, 
                            uint16_t* bits_added, 
@@ -361,6 +438,31 @@ bool addJanusConvolutional(BitMessage_t* bit_msg,
   return true;
 }
 
+/*
+ * Decoding a convolutionally encoded message uses a highest likelihood method
+ * to determine the most likley bit sequence corresponding to a received 
+ * bit stream. For each pair of input bits, two possible pairs are computed:
+ * one for if the latest bit corresponding to the pair is a 0 and another for 
+ * the 1 case. The Hamming distance between the received pair and the expected
+ * pair (if the bit was a 1 or 0 given previous state history). This is
+ * repeated for every previous state (if it has a valid path to it) and an
+ * accumulated error metric is tracked. Bits are decoded by tracking a history
+ * of 45 (K*5) received bit pairs. When a bit needs to be decoded (bit pair
+ * history is full) a traceback occurs where the lowest accumulated error
+ * metric path is traced back to find the bit desired.
+ * 
+ * A special case is applied to the final 16 received bits as these are known
+ * to correspond to 0 bits. The decoding process for these bits proceeds as if
+ * only a 0 was sent. There are other methods for this, but this one was 
+ * selected due to its simplicity. JANUS does not specify a method to decode
+ * the final bits and an evaluate of BER vs noise should be done to determine
+ * the optimal way to deal with the final flush bits. An alternative method is
+ * to determine the encoder output for each of the 256 states after being
+ * flushed with 8 bits and then determine the number of bit errors. The
+ * encoder output can then be compared to the final 16 bits received to
+ * determine an error metric. This can then be used in conjunction with each
+ * of the path metrics to determine the best path. 
+ */
 bool decodeJanusConvolutional(BitMessage_t* bit_msg, 
                               bool is_preamble, 
                               bool* error_detected, 
@@ -373,7 +475,10 @@ bool decodeJanusConvolutional(BitMessage_t* bit_msg,
 
   uint16_t output_bit_index = 0;
 
+  // Decode all received bits and decide bits that we have enough information for
   for (uint16_t i = 0; i < section_info.ecc_len; i += 2) {
+    // Flush bits are handled by forcing the decoding process to only use a 0
+    bool is_flush_bit = i >= (section_info.ecc_len - 2 * JANUS_FLUSH_LENGTH);
     uint16_t bit_position = section_info.start_ecc_index + i;
     bool bit1, bit2;
     if (Packet_GetBit(bit_msg, bit_position, &bit1) == false) {
@@ -383,8 +488,10 @@ bool decodeJanusConvolutional(BitMessage_t* bit_msg,
       return false;
     }
 
-    janusVitrebiDecodePair(&janus_decoder, bit1, bit2);
+    janusVitrebiDecodePair(&janus_decoder, bit1, bit2, is_flush_bit);
 
+    // Only decode bits if we absolutely have to. Waiting any longer would
+    // result in the history buffer being overwritten
     if (janus_decoder.traceback_index >= JANUS_TRACEBACK_LENGTH) {
       bool bit;
       if (janusVitrebiTraceback(&janus_decoder, &bit, output_bit_index) == false) {
@@ -397,8 +504,9 @@ bool decodeJanusConvolutional(BitMessage_t* bit_msg,
     }
   } 
 
+  // There are no more input bits so no more information can be gathered about
+  // the sequence.
   uint16_t remaining_bits = MIN(section_info.raw_len, JANUS_TRACEBACK_LENGTH - 1);
-
   for (uint16_t i = 0; i < remaining_bits; i++) {
     bool bit;
     if (janusVitrebiTraceback(&janus_decoder, &bit, output_bit_index) == false) {
@@ -436,6 +544,7 @@ void janusConvEncoderInit(ConvEncoder_t* encoder)
 
 void janusConvEncodeBit(ConvEncoder_t* encoder, bool input_bit, bool output_bits[2])
 {
+  // Latest K (9) bits
   encoder->register_state =
       ((encoder->register_state << 1) | (input_bit & 0x0001)) & 0x01FF;
   uint16_t state = encoder->register_state;
@@ -495,8 +604,10 @@ void janusCalculateOutput(uint16_t state, bool input_bit, bool output[2])
 
 void janusVitrebiDecodePair(JanusVitrebiDecoder_t* decoder,
                             bool received_bit1,
-                            bool received_bit2)
+                            bool received_bit2,
+                            bool is_flush_bit)
 {
+  // Prevents paths with no path to them from being reached
   for (uint16_t i = 0; i < JANUS_NUM_STATES; i++) {
     decoder->next_path_metrics[i] = JANUS_MAX_METRIC;
   }
@@ -504,11 +615,12 @@ void janusVitrebiDecodePair(JanusVitrebiDecoder_t* decoder,
   uint16_t tb_index = decoder->traceback_index % JANUS_TRACEBACK_LENGTH;
 
   for (uint16_t current_state = 0; current_state < JANUS_NUM_STATES; current_state++) {
-    // States with infinite metrics are ignored
+    // States with infinite metrics are ignored since they dont have a path to them
     if (decoder->path_metrics[current_state] >= JANUS_MAX_METRIC) continue;
 
-    // Calculate branch metrics as if actual bit was either 0 or 1
-    for (uint8_t input_bit = 0; input_bit <= 1; input_bit++) {
+    // Calculate branch metrics as if actual bit was each of its possibilities
+    uint8_t max_bit = is_flush_bit ? 0 : 1;
+    for (uint8_t input_bit = 0; input_bit <= max_bit; input_bit++) {
       bool expected_output[2];
       janusCalculateOutput(current_state, input_bit, expected_output);
 
@@ -544,6 +656,7 @@ bool janusVitrebiTraceback(JanusVitrebiDecoder_t* decoder, bool* bit, uint16_t b
 
   for (uint16_t i = 0; i < available_symbols; i++) {
     uint16_t tb_index = (decoder->traceback_index - 1 - i) % JANUS_TRACEBACK_LENGTH;
+    // The traceback points to to the previous state
     current_state = decoder->traceback[tb_index][current_state];
   }
 
