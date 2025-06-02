@@ -19,11 +19,11 @@
 
 /* Private define ------------------------------------------------------------*/
 
-// x^2 + x^1 + 1
+// x^8 + x^2 + x^1 + 1
 #define CRC_8_POLYNOMIAL  0x07U 
-// x^12 + x^5 + 1
-#define CRC_16_POLYNOMIAL 0x1021U
-// x^26 + x^23 + x^22 + x^16 + x^12 + x^11 + x^10 + x^8 + x^7 + x^5 + x^4 + x^2 + x^1 + 1
+// x^16 + x^15 + x^2 + 1
+#define CRC_16_POLYNOMIAL 0x8005U
+// x^32 + x^26 + x^23 + x^22 + x^16 + x^12 + x^11 + x^10 + x^8 + x^7 + x^5 + x^4 + x^2 + x^1 + 1
 #define CRC_32_POLYNOMIAL 0x04C11DB7U 
 
 /* Private macro -------------------------------------------------------------*/
@@ -54,51 +54,46 @@ bool checkChecksum32(BitMessage_t* bit_msg, bool* error);
 
 bool ErrorDetection_AddDetection(BitMessage_t* bit_msg, const DspConfig_t* cfg)
 {
+  uint16_t len;
+  if (ErrorDetection_CheckLength(&len, cfg) == false) {
+    return false;
+  }
+  bit_msg->final_length += len;
+  bit_msg->combined_message_len += len;
+  bit_msg->cargo.raw_len += len;
   switch (cfg->error_detection_method) {
     case CRC_8:
       uint8_t crc_8;
-      bit_msg->final_length += 8;
-      bit_msg->combined_message_len += 8;
       if (calculateCrc8(bit_msg, &crc_8) == false) {
         return false;
       }
       return Packet_Add8(bit_msg, crc_8);
     case CRC_16:
       uint16_t crc_16;
-      bit_msg->final_length += 16;
-      bit_msg->combined_message_len += 16;
       if (calculateCrc16(bit_msg, &crc_16) == false) {
         return false;
       }
       return Packet_Add16(bit_msg, crc_16);
     case CRC_32:
       uint32_t crc_32;
-      bit_msg->final_length += 32;
-      bit_msg->combined_message_len += 32;
       if (calculateCrc32(bit_msg, &crc_32) == false) {
         return false;
       }
       return Packet_Add32(bit_msg, crc_32);
     case CHECKSUM_8:
       uint8_t checksum_8;
-      bit_msg->final_length += 8;
-      bit_msg->combined_message_len += 8;
       if (calculateChecksum8(bit_msg, &checksum_8) == false) {
         return false;
       }
       return Packet_Add8(bit_msg, checksum_8);
     case CHECKSUM_16:
       uint16_t checksum_16;
-      bit_msg->final_length += 16;
-      bit_msg->combined_message_len += 16;
       if (calculateChecksum16(bit_msg, &checksum_16) == false) {
         return false;
       }
       return Packet_Add16(bit_msg, checksum_16);
     case CHECKSUM_32:
       uint32_t checksum_32;
-      bit_msg->final_length += 32;
-      bit_msg->combined_message_len += 32;
       if (calculateChecksum32(bit_msg, &checksum_32) == false) {
         return false;
       }

@@ -14,7 +14,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
-
+#include <stdbool.h>
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -51,6 +51,7 @@ typedef enum {
 
 // Struct for all configuration parameters that are relevant for feedback tests
 // Other configuration parameters belong to modules
+// IMPORTANT: Any modification to parameters here must be reflected in the feedback tests
 typedef struct {
   float baud_rate;
   ModDemodMethod_t mod_demod_method;
@@ -63,6 +64,7 @@ typedef struct {
   ErrorDetectionMethod_t error_detection_method;
   ErrorCorrectionMethod_t ecc_method_preamble;
   ErrorCorrectionMethod_t ecc_method_message;
+  bool use_interleaver;
 } DspConfig_t;
 
 

@@ -25,6 +25,13 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
+typedef struct {
+  uint16_t raw_len;
+  uint16_t ecc_len;
+  uint16_t raw_start_index;
+  uint16_t ecc_start_index;
+} SectionInfo_t;
+
 
 typedef struct {
   uint8_t data[PACKET_MAX_LENGTH_BYTES];
@@ -32,10 +39,9 @@ typedef struct {
   uint8_t sender_id;
   uint16_t data_len_bits;
   MessageData_t contents_data_type;
-  uint16_t preamble_length_ecc;
+  SectionInfo_t preamble;
+  SectionInfo_t cargo;
   uint16_t final_length; // includes ecc
-  uint16_t non_preamble_length_ecc;
-  uint16_t non_preamble_length;
   uint16_t combined_message_len; // not including ecc
   float normalized_vitrebi_error_metric; // Only set when the ecc method uses convoltuional codes
   bool stationary_flag;
@@ -80,10 +86,11 @@ bool Packet_PrepareTx(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* 
  * @brief Initializes a bit message structure for receiving incoming data
  *
  * @param bit_msg Pointer to the bit message structure to initialize
+ * @param cfg Configuration values used for decoding input messages
  *
  * @return true if initialization succeeded
  */
-bool Packet_PrepareRx(BitMessage_t* bit_msg);
+bool Packet_PrepareRx(BitMessage_t* bit_msg, const DspConfig_t* cfg);
 
 /**
  * @brief Adds a single bit to a bit message
@@ -107,7 +114,7 @@ bool Packet_AddBit(BitMessage_t* bit_msg, bool bit);
  *
  * @return true if successful, false if position is out of bounds
  */
-bool Packet_GetBit(BitMessage_t* bit_msg, uint16_t position, bool* bit);
+bool Packet_GetBit(const BitMessage_t* bit_msg, uint16_t position, bool* bit);
 
 /**
  * @brief Extracts an arbitrary-length chunk of bits (up to 8) from a bit message
@@ -226,6 +233,20 @@ bool Packet_Compare(const BitMessage_t* msg1, const BitMessage_t* msg2, bool* id
  * @return The minimum packet size (always a power of 2)
  */
 uint16_t Packet_MinimumSize(uint16_t str_len);
+
+/**
+ * @brief copies the contents of one data array from the src to dest
+ *
+ * @param src_msg Message to copy data from
+ * @param dest_msg Message to copy data to (modified)
+ * @param start_index Bit index to start copy at
+ * @param length Length in bits of the section to copy
+ *
+ * @return true if successful, false otherwise
+ *
+ * @note Does not copy other information from the struct besides data array
+ */
+bool Packet_Copy(const BitMessage_t* src_msg, BitMessage_t* dest_msg, const uint16_t start_index, const uint16_t length);
 
 /**
  * @brief Registers modem parameters with the parameter subsystem for HMI access

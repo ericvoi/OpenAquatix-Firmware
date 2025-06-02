@@ -170,6 +170,7 @@ static ReferenceMessage_t reference_messages[] = {
 };
 
 static FeedbackTests_t feedback_tests[] = {
+  // Base FH-BFSK test
     {
         .cfg = {
             .baud_rate = 100.0f,
@@ -182,13 +183,15 @@ static FeedbackTests_t feedback_tests[] = {
             .fhbfsk_dwell_time = 1,
             .error_detection_method = CRC_16,
             .ecc_method_preamble = NO_ECC,
-            .ecc_method_message = NO_ECC
+            .ecc_method_message = NO_ECC,
+            .use_interleaver = false
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[2],
         .errors_added = 0,
         .repetitions = 1
     },
+    // Base FSK test
     {
         .cfg = {
             .baud_rate = 100.0f,
@@ -201,13 +204,15 @@ static FeedbackTests_t feedback_tests[] = {
             .fhbfsk_dwell_time = 1,
             .error_detection_method = CRC_16,
             .ecc_method_preamble = NO_ECC,
-            .ecc_method_message = NO_ECC
+            .ecc_method_message = NO_ECC,
+            .use_interleaver = false
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[2],
         .errors_added = 0,
         .repetitions = 1
     },
+    // Base Hamming code test
     {
         .cfg = {
             .baud_rate = 1000.0f,
@@ -220,13 +225,15 @@ static FeedbackTests_t feedback_tests[] = {
             .fhbfsk_dwell_time = 1,
             .error_detection_method = CRC_16,
             .ecc_method_preamble = HAMMING_CODE,
-            .ecc_method_message = HAMMING_CODE
+            .ecc_method_message = HAMMING_CODE,
+            .use_interleaver = false
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[4],
         .errors_added = 1,
         .repetitions = 20
     },
+    // Base convolutional code test
     {
       .cfg = {
           .baud_rate = 1000.0f,
@@ -239,12 +246,55 @@ static FeedbackTests_t feedback_tests[] = {
           .fhbfsk_dwell_time = 1,
           .error_detection_method = CRC_16,
           .ecc_method_preamble = JANUS_CONVOLUTIONAL,
-          .ecc_method_message = JANUS_CONVOLUTIONAL
+          .ecc_method_message = JANUS_CONVOLUTIONAL,
+          .use_interleaver = false
       },
       .expected_result = IDENTICAL,
       .reference_message = &reference_messages[4],
       .errors_added = 2,
       .repetitions = 20
+    },
+    // Base interleaver test
+    {
+      .cfg = {
+          .baud_rate = 1000.0f,
+          .mod_demod_method = MOD_DEMOD_FSK,
+          .fsk_f0 = 29000,
+          .fsk_f1 = 33000,
+          .fc = 31000,
+          .fhbfsk_freq_spacing = 1,
+          .fhbfsk_num_tones = 10,
+          .fhbfsk_dwell_time = 1,
+          .error_detection_method = CRC_16,
+          .ecc_method_preamble = NO_ECC,
+          .ecc_method_message = NO_ECC,
+          .use_interleaver = true
+      },
+      .expected_result = IDENTICAL,
+      .reference_message = &reference_messages[4],
+      .errors_added = 0,
+      .repetitions = 1
+    },
+    // Advanced interleaver/convolutional test (long)
+    {
+      .cfg = {
+          .baud_rate = 1000.0f,
+          .mod_demod_method = MOD_DEMOD_FSK,
+          .fsk_f0 = 29000,
+          .fsk_f1 = 33000,
+          .fc = 31000,
+          .fhbfsk_freq_spacing = 1,
+          .fhbfsk_num_tones = 10,
+          .fhbfsk_dwell_time = 1,
+          .error_detection_method = CRC_16,
+          .ecc_method_preamble = JANUS_CONVOLUTIONAL,
+          .ecc_method_message = JANUS_CONVOLUTIONAL,
+          .use_interleaver = true
+      },
+      .expected_result = IDENTICAL,
+      .reference_message = &reference_messages[7],
+      .errors_added = 5,
+      .repetitions = 1
     }
 };
 
@@ -560,6 +610,9 @@ static void printStatistics(void)
         "Error detection method: %u\r\nError correction method: %u %u\r\n", 
         cfg->baud_rate, cfg->mod_demod_method, cfg->error_detection_method,
         cfg->ecc_method_preamble, cfg->ecc_method_message);
+    COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
+
+    snprintf(output_buffer, 128, "interleaver: %u\r\n", cfg->use_interleaver);
     COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
 
     if (cfg->mod_demod_method == MOD_DEMOD_FSK) {

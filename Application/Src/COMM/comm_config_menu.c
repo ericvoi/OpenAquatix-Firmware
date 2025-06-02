@@ -48,6 +48,7 @@ void setBaudRate(void* argument);
 void setCenterFrequency(void* argument);
 void getBitPeriod(void* argument);
 void getBandwidth(void* argument);
+void toggleInterleaver(void* argument);
 void printConfigOptions(void* argument);
 void importConfiOptions(void* argument);
 void setDacTransitionDuration(void* argument);
@@ -111,7 +112,8 @@ static MenuID_t univConfigMenuChildren[] = {
   MENU_ID_CFG_UNIV_FSK,         MENU_ID_CFG_UNIV_FHBFSK,  
   MENU_ID_CFG_UNIV_BAUD,        MENU_ID_CFG_UNIV_FC,    
   MENU_ID_CFG_UNIV_BP,          MENU_ID_CFG_UNIV_BANDWIDTH, 
-  MENU_ID_CFG_UNIV_EXP,         MENU_ID_CFG_UNIV_IMP
+  MENU_ID_CFG_UNIV_INTERLEAVER, MENU_ID_CFG_UNIV_EXP, 
+  MENU_ID_CFG_UNIV_IMP
 };
 static const MenuNode_t univConfigMenu = {
   .id = MENU_ID_CFG_UNIV,
@@ -363,6 +365,21 @@ static const MenuNode_t univConfigBandwidth = {
   .num_children = 0,
   .access_level = 0,
   .parameters = &univConfigBandwidthParam
+};
+
+static ParamContext_t univConfigInterleaverParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_UNIV_INTERLEAVER
+};
+static const MenuNode_t univConfigInterleaver = {
+  .id = MENU_ID_CFG_UNIV_INTERLEAVER,
+  .description = "Toggle Interleaver",
+  .handler = toggleInterleaver,
+  .parent_id = MENU_ID_CFG_UNIV,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &univConfigInterleaverParam
 };
 
 static ParamContext_t univConfigExportParam = {
@@ -1014,7 +1031,7 @@ bool COMM_RegisterConfigurationMenu()
              registerMenu(&univConfigExport) && registerMenu(&univConfigImport) && 
              registerMenu(&setStationary) && registerMenu(&modConfigDacTransition) &&
              registerMenu(&modConfigCalMenu) && registerMenu(&modConfigFeedbackMenu) && 
-             registerMenu(&modConfigMethod) && 
+             registerMenu(&modConfigMethod) && registerMenu(&univConfigInterleaver) &&
              registerMenu(&demodConfigCalMenu) && 
              registerMenu(&dauConfigSleep) && registerMenu(&ledConfigBrightness) &&
              registerMenu(&ledConfigToggle) && registerMenu(&modCalConfigLowFreq) &&
@@ -1254,6 +1271,13 @@ void getBandwidth(void* argument)
   COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
 
   context->state->state = PARAM_STATE_COMPLETE;
+}
+
+void toggleInterleaver(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  COMMLoops_LoopToggle(context, PARAM_USE_INTERLEAVER);
 }
 
 void printConfigOptions(void* argument)

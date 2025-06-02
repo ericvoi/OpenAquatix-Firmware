@@ -35,7 +35,7 @@ static bool is_stationary = DEFAULT_STATIONARY_FLAG;
 
 bool addPreamble(BitMessage_t* bit_msg, Message_t* msg);
 bool addMessage(BitMessage_t* bit_msg, Message_t* msg);
-void initPacket(BitMessage_t* bit_msg);
+void initPacket(BitMessage_t* bit_msg, const DspConfig_t* cfg);
 bool addChunk(BitMessage_t* bit_msg, uint8_t chunk, uint8_t chunk_size);
 bool addData(BitMessage_t* bit_msg, void* data, uint8_t num_bits);
 bool getData(BitMessage_t* bit_msg, uint16_t* start_position, uint8_t num_bits, void* data);
@@ -48,7 +48,7 @@ bool Packet_PrepareTx(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* 
     return false;
   }
 
-  initPacket(bit_msg);
+  initPacket(bit_msg, cfg);
 
   // Add preamble to bit packet
   if (msg->data_type != EVAL) {
@@ -71,12 +71,16 @@ bool Packet_PrepareTx(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* 
     }
   }
 
+  bit_msg->combined_message_len = bit_msg->preamble.raw_len + bit_msg->cargo.raw_len;
+  bit_msg->cargo.ecc_len = ErrorCorrection_GetLength(bit_msg->cargo.raw_len, cfg->ecc_method_message);
+  bit_msg->final_length = bit_msg->preamble.ecc_len + bit_msg->cargo.ecc_len;
+
   return true;
 }
 
-bool Packet_PrepareRx(BitMessage_t* bit_msg)
+bool Packet_PrepareRx(BitMessage_t* bit_msg, const DspConfig_t* cfg)
 {
-  initPacket(bit_msg);
+  initPacket(bit_msg, cfg);
 
   return true;
 }
@@ -91,7 +95,7 @@ bool Packet_AddBit(BitMessage_t* bit_msg, bool bit)
   return true;
 }
 
-bool Packet_GetBit(BitMessage_t* bit_msg, uint16_t position, bool* bit)
+bool Packet_GetBit(const BitMessage_t* bit_msg, uint16_t position, bool* bit)
 {
   if (position >= bit_msg->bit_count) {
     return false;
@@ -177,7 +181,7 @@ bool Packet_FlipBit(BitMessage_t* bit_msg, uint16_t bit_index)
 
 bool Packet_SetBit(BitMessage_t* bit_msg, uint16_t bit_index, bool bit)
 {
-  if (bit_msg->bit_count >= PACKET_MAX_LENGTH_BYTES * 8) {
+  if (bit_index >= PACKET_MAX_LENGTH_BYTES * 8) {
     return false;
   }
 
@@ -217,8 +221,8 @@ bool Packet_Compare(const BitMessage_t* msg1, const BitMessage_t* msg2, bool* id
     return true;
   }
 
-  uint8_t last_byte1 = msg1->data[byte_count] >> (7 - remaining_bits);
-  uint8_t last_byte2 = msg2->data[byte_count] >> (7 - remaining_bits);
+  uint8_t last_byte1 = msg1->data[byte_count] >> (8 - remaining_bits);
+  uint8_t last_byte2 = msg2->data[byte_count] >> (8 - remaining_bits);
 
   *identical = last_byte1 == last_byte2;
   return true;
@@ -234,6 +238,20 @@ uint16_t Packet_MinimumSize(uint16_t str_len)
   }
 
   return packet_size;
+}
+
+bool Packet_Copy(const BitMessage_t* src_msg, BitMessage_t* dest_msg, const uint16_t start_index, const uint16_t length)
+{
+  for (uint16_t i = start_index; i < start_index + length; i++) {
+    bool bit;
+    if (Packet_GetBit(src_msg, i, &bit) == false) {
+      return false;
+    }
+    if (Packet_SetBit(dest_msg, i, bit) == false) {
+      return false;
+    }
+  }
+  return true;
 }
 
 bool Packet_RegisterParams()
@@ -257,14 +275,25 @@ bool Packet_RegisterParams()
 
 /* Private function definitions ----------------------------------------------*/
 
-void initPacket(BitMessage_t* bit_msg)
+void initPacket(BitMessage_t* bit_msg, const DspConfig_t* cfg)
 {
   memset(bit_msg->data, 0, sizeof(bit_msg->data));
   bit_msg->bit_count = 0;
   bit_msg->sender_id = 255;
   bit_msg->contents_data_type = UNKNOWN;
   bit_msg->final_length = 0;
-  bit_msg->preamble_length_ecc = 0;
+
+  bit_msg->preamble.raw_len = PACKET_PREAMBLE_LENGTH_BITS;
+  bit_msg->preamble.ecc_len = ErrorCorrection_GetLength(bit_msg->preamble.raw_len, cfg->ecc_method_preamble);
+  bit_msg->preamble.raw_start_index = 0;
+  bit_msg->preamble.ecc_start_index = 0;
+
+  // Cant calculate lengths without decoding the preamble first
+  bit_msg->cargo.raw_len = 0;
+  bit_msg->cargo.ecc_len = 0;
+  bit_msg->cargo.raw_start_index = bit_msg->preamble.raw_start_index + bit_msg->preamble.raw_len;
+  bit_msg->cargo.ecc_start_index = bit_msg->preamble.ecc_start_index + bit_msg->preamble.ecc_len;
+
   bit_msg->stationary_flag = false;
   bit_msg->preamble_received = false;
   bit_msg->fully_received = false;
@@ -298,6 +327,7 @@ bool addPreamble(BitMessage_t* bit_msg, Message_t* msg)
   }
 
   bit_msg->final_length += length_accomodated;
+  bit_msg->cargo.raw_len = length_accomodated; // modified later
 
   if (Packet_AddBit(bit_msg, is_stationary) == false) {
     return false;
@@ -383,4 +413,3 @@ bool getData(BitMessage_t* bit_msg, uint16_t* start_position, uint8_t num_bits, 
   *start_position += num_bits;
   return true;
 }
-// TODO: Add the error correction codes to the messages. Implement error correction functions to find crcs and checksums
