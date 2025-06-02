@@ -23,14 +23,6 @@ typedef struct {
   uint16_t register_state;
 } ConvEncoder_t;
 
-typedef struct {
-  uint16_t section_length;
-  uint16_t start_raw_index;
-  uint16_t start_ecc_index;
-  uint16_t raw_len;
-  uint16_t ecc_len;
-} SectionInfo_t;
-
 /* Private define ------------------------------------------------------------*/
 
 /* 1:2 convolutional encoder defines -----------------------------------------*/
@@ -68,11 +60,11 @@ static JanusVitrebiDecoder_t janus_decoder;
 
 /* Private function prototypes -----------------------------------------------*/
 
-static bool addHamming(BitMessage_t* bit_msg, bool is_preamble, uint16_t* bits_added, const DspConfig_t* cfg);
-static bool decodeHamming(BitMessage_t* bit_msg, bool is_preamble, bool* error_detected, bool* error_corrected, const DspConfig_t* cfg);
+static bool addHamming(BitMessage_t* bit_msg, bool is_preamble, uint16_t* bits_added);
+static bool decodeHamming(BitMessage_t* bit_msg, bool is_preamble, bool* error_detected, bool* error_corrected);
 
-static bool addJanusConvolutional(BitMessage_t* bit_msg, bool is_preamble, uint16_t* bits_added, const DspConfig_t* cfg);
-static bool decodeJanusConvolutional(BitMessage_t* bit_msg, bool is_preamble, bool* error_detected, bool* error_corrected, const DspConfig_t* cfg);
+static bool addJanusConvolutional(BitMessage_t* bit_msg, bool is_preamble, uint16_t* bits_added);
+static bool decodeJanusConvolutional(BitMessage_t* bit_msg, bool is_preamble, bool* error_detected, bool* error_corrected);
 
 // Hamming functions
 static uint16_t calculateNumParityBits(const uint16_t num_bits);
@@ -93,7 +85,6 @@ static void clearBuffer(void);
 static bool setBitInBuffer(bool bit, uint16_t position);
 static bool getBitFromBuffer(uint16_t position, bool* bit);
 static void copyBufferToMessage(BitMessage_t* bit_msg, uint16_t new_len);
-static void calculateSectionInfo(SectionInfo_t* section_info, const BitMessage_t* bit_msg, const DspConfig_t* cfg, bool is_preamble);
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -106,12 +97,12 @@ bool ErrorCorrection_AddCorrection(BitMessage_t* bit_msg,
     case NO_ECC:
       return true;
     case HAMMING_CODE:
-      if (addHamming(bit_msg, true, &bits_added, cfg) == false) {
+      if (addHamming(bit_msg, true, &bits_added) == false) {
         return false;
       }
       break;
     case JANUS_CONVOLUTIONAL:
-      if (addJanusConvolutional(bit_msg, true, &bits_added, cfg) == false) {
+      if (addJanusConvolutional(bit_msg, true, &bits_added) == false) {
         return false;
       }
       break;
@@ -123,12 +114,12 @@ bool ErrorCorrection_AddCorrection(BitMessage_t* bit_msg,
     case NO_ECC:
       return true;
     case HAMMING_CODE:
-      if (addHamming(bit_msg, false, &bits_added, cfg) == false) {
+      if (addHamming(bit_msg, false, &bits_added) == false) {
         return false;
       }
       break;
     case JANUS_CONVOLUTIONAL:
-      if (addJanusConvolutional(bit_msg, false, &bits_added, cfg) == false) {
+      if (addJanusConvolutional(bit_msg, false, &bits_added) == false) {
         return false;
       }
       break;
@@ -147,12 +138,10 @@ bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg,
 {
   *error_detected = false;
   *error_corrected = false;
-  bit_msg->combined_message_len = bit_msg->non_preamble_length +
-        PACKET_PREAMBLE_LENGTH_BITS;
+  bit_msg->combined_message_len = bit_msg->preamble.raw_len +
+        bit_msg->cargo.raw_len;
   if (is_preamble == true) {
-    SectionInfo_t section_info;
-    calculateSectionInfo(&section_info, bit_msg, cfg, is_preamble);
-    bit_msg->final_length = section_info.ecc_len;
+    bit_msg->final_length = bit_msg->preamble.ecc_len;
   }
   if (is_preamble) {
     switch (cfg->ecc_method_preamble) {
@@ -161,11 +150,10 @@ bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg,
         *error_corrected = false;
         return true;
       case HAMMING_CODE:
-        return decodeHamming(bit_msg, true, error_detected, error_corrected,
-                             cfg);
+        return decodeHamming(bit_msg, true, error_detected, error_corrected);
       case JANUS_CONVOLUTIONAL:
         return decodeJanusConvolutional(bit_msg, true, error_detected,
-                                        error_corrected, cfg);
+                                        error_corrected);
       default:
         return false;
     }
@@ -177,11 +165,10 @@ bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg,
         *error_corrected = false;
         return true;
       case HAMMING_CODE:
-        return decodeHamming(bit_msg, false, error_detected, error_corrected,
-                             cfg);
+        return decodeHamming(bit_msg, false, error_detected, error_corrected);
       case JANUS_CONVOLUTIONAL:
         return decodeJanusConvolutional(bit_msg, false, error_detected,
-                                        error_corrected, cfg);
+                                        error_corrected);
       default:
         return false;
     }
@@ -226,32 +213,29 @@ uint16_t ErrorCorrection_GetLength(const uint16_t length,
  */
 bool addHamming(BitMessage_t* bit_msg, 
                 bool is_preamble, 
-                uint16_t* bits_added, 
-                const DspConfig_t* cfg)
+                uint16_t* bits_added)
 {
-  SectionInfo_t section_info;
-  calculateSectionInfo(&section_info, bit_msg, cfg, is_preamble);
+  SectionInfo_t section_info = is_preamble ? bit_msg->preamble : bit_msg->cargo;
   
-  uint16_t parity_bits = calculateNumParityBits(section_info.section_length);
+  uint16_t parity_bits = calculateNumParityBits(section_info.raw_len);
 
-  uint16_t final_length = section_info.section_length + parity_bits;
   uint16_t message_bits_added = 0;
   // Add message bits to mesage
-  for (uint16_t i = 0; i < final_length; i++) {
+  for (uint16_t i = 0; i < section_info.ecc_len; i++) {
     if (NumberUtils_IsPowerOf2(i + 1) == true) {
       continue;
     }
     bool bit_to_add;
-    if (Packet_GetBit(bit_msg, section_info.start_raw_index + message_bits_added++, 
+    if (Packet_GetBit(bit_msg, section_info.raw_start_index + message_bits_added++, 
                       &bit_to_add) == false) {
       return false;
     }
-    if (setBitInBuffer(bit_to_add, section_info.start_ecc_index + i) == false) {
+    if (setBitInBuffer(bit_to_add, section_info.ecc_start_index + i) == false) {
       return false;
     }
-    if (message_bits_added >= section_info.section_length) break;
+    if (message_bits_added >= section_info.raw_len) break;
   }
-  if (message_bits_added != section_info.section_length) {
+  if (message_bits_added != section_info.raw_len) {
     return false;
   }
 
@@ -260,23 +244,23 @@ bool addHamming(BitMessage_t* bit_msg,
     uint16_t parity_pos = (1 << p) - 1;
     bool parity = false;
 
-    for (uint16_t i = parity_pos; i < final_length; i++) {
+    for (uint16_t i = parity_pos; i < section_info.ecc_len; i++) {
       if ((i + 1) & (1 << p)) {
         bool bit;
-        if (getBitFromBuffer(i + section_info.start_ecc_index, &bit) == false) {
+        if (getBitFromBuffer(i + section_info.ecc_start_index, &bit) == false) {
           return false;
         }
         parity ^= bit;
       }
     }
 
-    if (setBitInBuffer(parity, parity_pos + section_info.start_ecc_index) == false) {
+    if (setBitInBuffer(parity, parity_pos + section_info.ecc_start_index) == false) {
       return false;
     }
   }
 
 
-  *bits_added += final_length;
+  *bits_added += section_info.ecc_len;
   return true;
 }
 
@@ -301,12 +285,10 @@ bool addHamming(BitMessage_t* bit_msg,
 bool decodeHamming(BitMessage_t* bit_msg, 
                    bool is_preamble, 
                    bool* error_detected, 
-                   bool* error_corrected,
-                   const DspConfig_t* cfg)
+                   bool* error_corrected)
 {
   (void) (error_detected);
-  SectionInfo_t section_info;
-  calculateSectionInfo(&section_info, bit_msg, cfg, is_preamble);
+  SectionInfo_t section_info = is_preamble ? bit_msg->preamble : bit_msg->cargo;
 
   uint16_t syndrome = 0;
   uint16_t parity_bits = 0;
@@ -317,7 +299,7 @@ bool decodeHamming(BitMessage_t* bit_msg,
     for (uint16_t i = 0; i < section_info.ecc_len; i++) {
       if ((i + 1) & (1 << p)) {
         bool bit;
-        if (Packet_GetBit(bit_msg, i + section_info.start_ecc_index, &bit) == false) {
+        if (Packet_GetBit(bit_msg, i + section_info.ecc_start_index, &bit) == false) {
           return false;
         }
         parity ^= bit;
@@ -331,7 +313,7 @@ bool decodeHamming(BitMessage_t* bit_msg,
   }
 
   if (syndrome != 0 && syndrome < section_info.ecc_len) {
-    if (Packet_FlipBit(bit_msg, section_info.start_ecc_index + syndrome - 1) == false) {
+    if (Packet_FlipBit(bit_msg, section_info.ecc_start_index + syndrome - 1) == false) {
       return false;
     }
     *error_corrected = true;
@@ -341,10 +323,10 @@ bool decodeHamming(BitMessage_t* bit_msg,
   for (uint16_t i = 0; i < section_info.ecc_len; i++) {
     if (NumberUtils_IsPowerOf2(i + 1) == false) {
       bool bit;
-      if (Packet_GetBit(bit_msg, i + section_info.start_ecc_index, &bit) == false) {
+      if (Packet_GetBit(bit_msg, i + section_info.ecc_start_index, &bit) == false) {
         return false;
       }
-      if (Packet_SetBit(bit_msg, decoded_pos + section_info.start_raw_index, bit) == false) {
+      if (Packet_SetBit(bit_msg, decoded_pos + section_info.raw_start_index, bit) == false) {
         return false;
       }
       decoded_pos++;
@@ -394,21 +376,19 @@ bool decodeHamming(BitMessage_t* bit_msg,
  */
 bool addJanusConvolutional(BitMessage_t* bit_msg, 
                            bool is_preamble, 
-                           uint16_t* bits_added, 
-                           const DspConfig_t* cfg)
+                           uint16_t* bits_added)
 {
   ConvEncoder_t encoder;
   janusConvEncoderInit(&encoder);
-  SectionInfo_t section_info;
-  calculateSectionInfo(&section_info, bit_msg, cfg, is_preamble);
+  SectionInfo_t section_info = is_preamble ? bit_msg->preamble : bit_msg->cargo;
 
   bool output_bits[2];
-  uint16_t output_index = section_info.start_ecc_index;
+  uint16_t output_index = section_info.ecc_start_index;
 
   // First add the actual message bits
-  for (uint16_t i = 0; i < section_info.section_length; i++) {
+  for (uint16_t i = 0; i < section_info.raw_len; i++) {
     bool input_bit;
-    if (Packet_GetBit(bit_msg, i + section_info.start_raw_index, &input_bit) == false) {
+    if (Packet_GetBit(bit_msg, i + section_info.raw_start_index, &input_bit) == false) {
       return false;
     }
 
@@ -465,11 +445,9 @@ bool addJanusConvolutional(BitMessage_t* bit_msg,
 bool decodeJanusConvolutional(BitMessage_t* bit_msg, 
                               bool is_preamble, 
                               bool* error_detected, 
-                              bool* error_corrected,
-                              const DspConfig_t* cfg)
+                              bool* error_corrected)
 {
-  SectionInfo_t section_info;
-  calculateSectionInfo(&section_info, bit_msg, cfg, is_preamble);
+  SectionInfo_t section_info = is_preamble ? bit_msg->preamble : bit_msg->cargo;
   janusVitrebiInit(&janus_decoder);
 
   uint16_t output_bit_index = 0;
@@ -478,7 +456,7 @@ bool decodeJanusConvolutional(BitMessage_t* bit_msg,
   for (uint16_t i = 0; i < section_info.ecc_len; i += 2) {
     // Flush bits are handled by forcing the decoding process to only use a 0
     bool is_flush_bit = i >= (section_info.ecc_len - 2 * JANUS_FLUSH_LENGTH);
-    uint16_t bit_position = section_info.start_ecc_index + i;
+    uint16_t bit_position = section_info.ecc_start_index + i;
     bool bit1, bit2;
     if (Packet_GetBit(bit_msg, bit_position, &bit1) == false) {
       return false;
@@ -496,7 +474,7 @@ bool decodeJanusConvolutional(BitMessage_t* bit_msg,
       if (janusVitrebiTraceback(&janus_decoder, &bit, output_bit_index) == false) {
         return false;
       }
-      if (Packet_SetBit(bit_msg, section_info.start_raw_index + output_bit_index, bit) == false) {
+      if (Packet_SetBit(bit_msg, section_info.raw_start_index + output_bit_index, bit) == false) {
         return false;
       }
       output_bit_index++;
@@ -511,7 +489,7 @@ bool decodeJanusConvolutional(BitMessage_t* bit_msg,
     if (janusVitrebiTraceback(&janus_decoder, &bit, output_bit_index) == false) {
       return false;
     }
-    if (Packet_SetBit(bit_msg, section_info.start_raw_index + output_bit_index, bit) == false) {
+    if (Packet_SetBit(bit_msg, section_info.raw_start_index + output_bit_index, bit) == false) {
       return false;
     }
     output_bit_index++;
@@ -718,20 +696,4 @@ void copyBufferToMessage(BitMessage_t* bit_msg, uint16_t new_len)
   memcpy(bit_msg->data, message_buffer, sizeof(message_buffer) / sizeof(message_buffer[0]));
   bit_msg->bit_count = new_len;
   bit_msg->final_length = new_len;
-}
-
-static void calculateSectionInfo(SectionInfo_t* section_info,
-                                 const BitMessage_t* bit_msg,
-                                 const DspConfig_t* cfg,
-                                 bool is_preamble)
-{
-  section_info->section_length = is_preamble ? PACKET_PREAMBLE_LENGTH_BITS :
-      (bit_msg->final_length - PACKET_PREAMBLE_LENGTH_BITS);
-  section_info->start_raw_index = is_preamble ? 0 : PACKET_PREAMBLE_LENGTH_BITS;
-  section_info->start_ecc_index = is_preamble ? 0 : 
-      ErrorCorrection_GetLength(section_info->start_raw_index, cfg->ecc_method_preamble);
-  section_info->raw_len = is_preamble ? PACKET_PREAMBLE_LENGTH_BITS :
-      (bit_msg->non_preamble_length);
-  section_info->ecc_len = ErrorCorrection_GetLength(section_info->raw_len,
-      is_preamble ? cfg->ecc_method_preamble : cfg->ecc_method_message);
 }

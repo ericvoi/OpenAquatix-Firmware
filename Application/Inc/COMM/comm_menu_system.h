@@ -47,6 +47,7 @@ typedef enum {
   MENU_ID_CFG_UNIV_FC,          // Center frequency used 
   MENU_ID_CFG_UNIV_BP,          // Bit period used in the baud rate. Currently the inverse of ^^
   MENU_ID_CFG_UNIV_BANDWIDTH,   // Bandwidth
+  MENU_ID_CFG_UNIV_INTERLEAVER, // Whether to use the JANUS interleaver
   MENU_ID_CFG_UNIV_EXP,         // Export the configuration options used
   MENU_ID_CFG_UNIV_IMP,         // Import configuration options
   MENU_ID_CFG_MOD,              // Waveform modulation parameters

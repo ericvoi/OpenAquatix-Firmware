@@ -66,6 +66,7 @@ typedef enum {
   PARAM_FIXED_PGA_GAIN,
   PARAM_ECC_PREAMBLE,
   PARAM_ECC_MESSAGE,
+  PARAM_USE_INTERLEAVER,
   // Add new parameters here and nowhere else
   NUM_PARAM
 } ParamIds_t;

@@ -14,6 +14,7 @@
 #include "mess_main.h"
 #include "mess_modulate.h"
 #include "mess_error_correction.h"
+#include "mess_interleaver.h"
 #include "cfg_defaults.h"
 #include "cfg_parameters.h"
 #include "usb_comm.h"
@@ -94,8 +95,8 @@ static char print_waveform_start_sequence[WAVEFORM_PRINT_PREAMBLE_SIZE] = {'D', 
 static char print_waveform_last_sequence[WAVEFORM_PRINT_PREAMBLE_SIZE] = {'T', 'E', 'R', 'M'};
 static char print_waveform_end_data[WAVEFORM_PRINT_PREAMBLE_SIZE] = {0xAA, 0xBB, 0xCC, 0xDD};
 
-static float fft_input_buffer[FFT_SIZE];
-static float fft_output_buffer[FFT_SIZE];
+static float fft_input_buffer[FFT_SIZE] __attribute__((section(".dtcm")));
+static float fft_output_buffer[FFT_SIZE] __attribute__((section(".dtcm")));
 static float fft_mag_sq_buffer[FFT_SIZE / 2];
 
 static FFTInfo_t fft_analysis[FFT_ANALYSIS_BUFF_SIZE];
@@ -265,14 +266,12 @@ bool Input_DecodeBits(BitMessage_t* bit_msg, bool evaluation_mode, const DspConf
     return true;
   }
 
-  // Packet preamble length with ECC has not been calculated yet
-  if (bit_msg->preamble_length_ecc == 0) {
-    bit_msg->preamble_length_ecc = ErrorCorrection_GetLength(
-        PACKET_PREAMBLE_LENGTH_BITS, cfg->ecc_method_preamble);
-  }
-
   if (bit_msg->preamble_received == false) { // Still looking for preamble
-    if (bit_msg->bit_count >= bit_msg->preamble_length_ecc) {
+    if (bit_msg->bit_count >= bit_msg->preamble.ecc_len) {
+
+      if (Interleaver_Undo(bit_msg, cfg, true) == false) {
+        return false;
+      }
 
       if (ErrorCorrection_CheckCorrection(bit_msg, cfg, true,
           &bit_msg->error_preamble, &bit_msg->corrected_error_preamble) == false) {
@@ -302,13 +301,12 @@ bool Input_DecodeBits(BitMessage_t* bit_msg, bool evaluation_mode, const DspConf
       if (ErrorDetection_CheckLength(&error_bits_length, cfg) == false) {
         return false;
       }
-      bit_msg->non_preamble_length = 8 << packet_length;
-      bit_msg->non_preamble_length += error_bits_length;
-      bit_msg->non_preamble_length_ecc = ErrorCorrection_GetLength(
-          bit_msg->non_preamble_length, cfg->ecc_method_message);
-      bit_msg->final_length = bit_msg->non_preamble_length_ecc;
-      bit_msg->final_length += ErrorCorrection_GetLength(
-          PACKET_PREAMBLE_LENGTH_BITS, cfg->ecc_method_preamble);
+      bit_msg->cargo.raw_len = 8 << packet_length;
+      bit_msg->cargo.raw_len += error_bits_length;
+      bit_msg->cargo.ecc_len = ErrorCorrection_GetLength(
+          bit_msg->cargo.raw_len, cfg->ecc_method_message);
+      bit_msg->final_length = bit_msg->preamble.ecc_len;
+      bit_msg->final_length += bit_msg->cargo.ecc_len;
       // final length (add preamble)
       // The fourth set of bytes in the message correspond to the stationary flag
       if (Packet_Get8BitChunk(bit_msg, &bit_index, PACKET_STATIONARY_BITS,
@@ -317,7 +315,7 @@ bool Input_DecodeBits(BitMessage_t* bit_msg, bool evaluation_mode, const DspConf
       }
 
       // Asserts that the amount of bits read == the amount of bits in the preamble
-      if (bit_index != PACKET_PREAMBLE_LENGTH_BITS) {
+      if (bit_index != bit_msg->preamble.raw_len) {
         return false;
       }
 

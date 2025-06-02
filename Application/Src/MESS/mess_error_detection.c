@@ -59,6 +59,7 @@ bool ErrorDetection_AddDetection(BitMessage_t* bit_msg, const DspConfig_t* cfg)
       uint8_t crc_8;
       bit_msg->final_length += 8;
       bit_msg->combined_message_len += 8;
+      bit_msg->cargo.raw_len += 8;
       if (calculateCrc8(bit_msg, &crc_8) == false) {
         return false;
       }
@@ -67,6 +68,7 @@ bool ErrorDetection_AddDetection(BitMessage_t* bit_msg, const DspConfig_t* cfg)
       uint16_t crc_16;
       bit_msg->final_length += 16;
       bit_msg->combined_message_len += 16;
+      bit_msg->cargo.raw_len += 16;
       if (calculateCrc16(bit_msg, &crc_16) == false) {
         return false;
       }
@@ -75,6 +77,7 @@ bool ErrorDetection_AddDetection(BitMessage_t* bit_msg, const DspConfig_t* cfg)
       uint32_t crc_32;
       bit_msg->final_length += 32;
       bit_msg->combined_message_len += 32;
+      bit_msg->cargo.raw_len += 32;
       if (calculateCrc32(bit_msg, &crc_32) == false) {
         return false;
       }
@@ -83,6 +86,7 @@ bool ErrorDetection_AddDetection(BitMessage_t* bit_msg, const DspConfig_t* cfg)
       uint8_t checksum_8;
       bit_msg->final_length += 8;
       bit_msg->combined_message_len += 8;
+      bit_msg->cargo.raw_len += 8;
       if (calculateChecksum8(bit_msg, &checksum_8) == false) {
         return false;
       }
@@ -91,6 +95,7 @@ bool ErrorDetection_AddDetection(BitMessage_t* bit_msg, const DspConfig_t* cfg)
       uint16_t checksum_16;
       bit_msg->final_length += 16;
       bit_msg->combined_message_len += 16;
+      bit_msg->cargo.raw_len += 16;
       if (calculateChecksum16(bit_msg, &checksum_16) == false) {
         return false;
       }
@@ -99,6 +104,7 @@ bool ErrorDetection_AddDetection(BitMessage_t* bit_msg, const DspConfig_t* cfg)
       uint32_t checksum_32;
       bit_msg->final_length += 32;
       bit_msg->combined_message_len += 32;
+      bit_msg->cargo.raw_len += 32;
       if (calculateChecksum32(bit_msg, &checksum_32) == false) {
         return false;
       }

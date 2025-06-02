@@ -22,6 +22,7 @@
 #include "mess_calibration.h"
 #include "mess_dsp_config.h"
 #include "mess_feedback_tests.h"
+#include "mess_interleaver.h"
 
 #include "sys_error.h"
 
@@ -75,7 +76,8 @@ static DspConfig_t default_config = {
     .fhbfsk_dwell_time = DEFAULT_FHBFSK_DWELL_TIME,
     .error_detection_method = DEFAULT_ERROR_DETECTION,
     .ecc_method_preamble = DEFAULT_ECC_PREAMBLE,
-    .ecc_method_message = DEFAULT_ECC_MESSAGE
+    .ecc_method_message = DEFAULT_ECC_MESSAGE,
+    .use_interleaver = DEFAULT_INTERLEAVER_STATE
 };
 static DspConfig_t* cfg = &default_config;
 static BitMessage_t bit_msg;
@@ -184,15 +186,19 @@ void MESS_StartTask(void* argument)
             break;
           }
           // Add ECC
-          if (tx_msg.data_type != EVAL) { // TODO: enable ECC to be tested in evaluation mode
+          if (tx_msg.data_type != EVAL) {
+            // TODO: enable ECC to be tested in evaluation mode
             if (ErrorCorrection_AddCorrection(&bit_msg, cfg) == false) {
               Error_Routine(ERROR_MESS_PROCESSING);
             }
-          }
-          // Add feedback network test false bits
-          if (FeedbackTests_CorruptMessage(&bit_msg) == false) {
-            Error_Routine(ERROR_MESS_PROCESSING);
-            break;
+            // Add feedback network test false bits
+            if (FeedbackTests_CorruptMessage(&bit_msg) == false) {
+              Error_Routine(ERROR_MESS_PROCESSING);
+              break;
+            }
+            if (Interleaver_Apply(&bit_msg, cfg) == false) {
+              Error_Routine(ERROR_MESS_PROCESSING);
+            }
           }
           message_length = bit_msg.bit_count;
           // convert to frequencies in message_sequence
@@ -263,6 +269,10 @@ void MESS_StartTask(void* argument)
             rx_msg.data_type = input_bit_msg.contents_data_type;
             rx_msg.eval_info = &eval_info;
             rx_msg.sender_id = input_bit_msg.sender_id;
+
+            if (Interleaver_Undo(&input_bit_msg, cfg, false) == false) {
+              Error_Routine(ERROR_MESS_PROCESSING);
+            }
 
             // perform correction
             if (ErrorCorrection_CheckCorrection(&input_bit_msg, cfg, false,
@@ -445,7 +455,7 @@ static void switchState(ProcessingState_t newState)
       task_state = LISTENING;
       break;
     case PROCESSING:
-      Packet_PrepareRx(&input_bit_msg);
+      Packet_PrepareRx(&input_bit_msg, cfg);
       task_state = PROCESSING;
       break;
     default:
@@ -650,6 +660,14 @@ static bool registerMessMainParams()
   // Using the same bounds as ^
   if (Param_Register(PARAM_ECC_MESSAGE, "message ECC", PARAM_TYPE_UINT8,
                      &default_config.ecc_method_message, sizeof(uint8_t),
+                     &min_u32, &max_u32) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_INTERLEAVER_STATE;
+  max_u32 = MAX_INTERLEAVER_STATE;
+  if (Param_Register(PARAM_USE_INTERLEAVER, "message interleaving", PARAM_TYPE_UINT8,
+                     &default_config.use_interleaver, sizeof(bool),
                      &min_u32, &max_u32) == false) {
     return false;
   }

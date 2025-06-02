@@ -175,6 +175,10 @@ extern "C" {
 #define MIN_ECC_METHOD              0
 #define MAX_ECC_METHOD              (NUM_ECC_METHODS - 1)
 
+#define DEFAULT_INTERLEAVER_STATE   (false)
+#define MIN_INTERLEAVER_STATE       (false)
+#define MAX_INTERLEAVER_STATE       (true)
+
 /* Exported macro ------------------------------------------------------------*/
 
 

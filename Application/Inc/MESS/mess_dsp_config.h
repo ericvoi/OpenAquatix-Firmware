@@ -14,7 +14,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
-
+#include <stdbool.h>
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -63,6 +63,7 @@ typedef struct {
   ErrorDetectionMethod_t error_detection_method;
   ErrorCorrectionMethod_t ecc_method_preamble;
   ErrorCorrectionMethod_t ecc_method_message;
+  bool use_interleaver;
 } DspConfig_t;
 
 
