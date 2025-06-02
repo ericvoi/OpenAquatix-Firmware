@@ -71,7 +71,9 @@ bool Packet_PrepareTx(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* 
     }
   }
 
+  bit_msg->combined_message_len = bit_msg->preamble.raw_len + bit_msg->cargo.raw_len;
   bit_msg->cargo.ecc_len = ErrorCorrection_GetLength(bit_msg->cargo.raw_len, cfg->ecc_method_message);
+  bit_msg->final_length = bit_msg->preamble.ecc_len + bit_msg->cargo.ecc_len;
 
   return true;
 }
