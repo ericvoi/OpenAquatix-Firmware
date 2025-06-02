@@ -36,6 +36,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 
+// List of all parameters that are exported. New parameters can be added
+// anywhere in the list and parameters do not need to be in order
 static ParamIds_t imp_exp_parameters[] = {
     PARAM_BAUD,
     PARAM_FSK_F0,
@@ -47,7 +49,8 @@ static ParamIds_t imp_exp_parameters[] = {
     PARAM_FHBFSK_NUM_TONES,
     PARAM_ERROR_DETECTION,
     PARAM_ECC_PREAMBLE,
-    PARAM_ECC_MESSAGE
+    PARAM_ECC_MESSAGE,
+    PARAM_USE_INTERLEAVER
 };
 
 static const uint16_t num_param = sizeof(imp_exp_parameters) / sizeof(imp_exp_parameters[0]);
