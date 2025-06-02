@@ -219,8 +219,8 @@ bool Packet_Compare(const BitMessage_t* msg1, const BitMessage_t* msg2, bool* id
     return true;
   }
 
-  uint8_t last_byte1 = msg1->data[byte_count] >> (7 - remaining_bits);
-  uint8_t last_byte2 = msg2->data[byte_count] >> (7 - remaining_bits);
+  uint8_t last_byte1 = msg1->data[byte_count] >> (8 - remaining_bits);
+  uint8_t last_byte2 = msg2->data[byte_count] >> (8 - remaining_bits);
 
   *identical = last_byte1 == last_byte2;
   return true;

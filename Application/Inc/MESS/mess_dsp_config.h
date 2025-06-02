@@ -51,6 +51,7 @@ typedef enum {
 
 // Struct for all configuration parameters that are relevant for feedback tests
 // Other configuration parameters belong to modules
+// IMPORTANT: Any modification to parameters here must be reflected in the feedback tests
 typedef struct {
   float baud_rate;
   ModDemodMethod_t mod_demod_method;
