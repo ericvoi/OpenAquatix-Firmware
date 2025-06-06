@@ -50,9 +50,22 @@ static float parallel_c1_nf = DEFAULT_C1;
 
 static float max_transducer_voltage = DEFAULT_MAX_TRANSDUCER_V;
 
+static const uint8_t galois_matrix[3][12] = {
+  {1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1},
+  {2,  4,  8,  3,  6, 12, 11,  9,  5, 10,  7,  1},
+  {4,  3, 12,  9, 10,  1,  4,  3, 12,  9, 10,  1}
+}
+
+extern const uint16_t primes[50];
+static const num_primes = sizeof(primes) / sizeof(primes[0]);
+
 /* Private function prototypes -----------------------------------------------*/
 
-
+uint32_t getFhbfskSeqeunceNumber(uint32_t normalized_bit_index, const DspConfig_t* cfg);
+uint32_t incrementSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequences);
+uint32_t galoisSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequences);
+uint32_t primeSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequences);
+bool isPrime(uint16_t num);
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -131,9 +144,8 @@ uint32_t Modulate_GetFhbfskFrequency(bool bit,
       frequency_separation * (2 * cfg->fhbfsk_num_tones - 1) / 2;
   start_freq = (start_freq / frequency_separation) * frequency_separation;
 
-  uint32_t frequency_index = 2 * 
-      ((bit_index / cfg->fhbfsk_dwell_time) % cfg->fhbfsk_num_tones);
-  frequency_index += bit;
+  uint32_t sequence_number = getFhbfskSeqeunceNumber(bit_index / cfg->fhbfsk_dwell_time, cfg);
+  uint32_t frequency_index = 2 * sequence_number + bit;
   return start_freq + frequency_separation * frequency_index;
 }
 
@@ -205,3 +217,95 @@ bool Modulate_RegisterParams()
 
 
 /* Private function definitions ----------------------------------------------*/
+
+uint32_t getFhbfskSeqeunceNumber(uint32_t normalized_bit_index, const DspConfig_t* cfg)
+{
+  switch (cfg->fhbfsk_hopper) {
+    case HOPPER_INCREMENT:
+      return incrementSequenceNumber(normalized_bit_index, cfg->fhbfsk_num_tones);
+    case HOPPER_GALOIS:
+      return galoisSequenceNumber(normalized_bit_index, cfg->fhbfsk_num_tones);
+    case HOPPER_PRIME:
+      return primeSequenceNumber(normalized_bit_index, cfg->fhbfsk_num_tones);
+    default:
+      return incrementSequenceNumber(normalized_bit_index, cfg->fhbfsk_num_tones);
+  }
+}
+
+uint32_t incrementSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequences)
+{
+  return normalized_bit_index % num_sequences;
+}
+
+// TODO: generalize to any prime number of sequences
+uint32_t galoisSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequences)
+{
+  if (num_sequences != 13) {
+    return incrementSequenceNumber(normalized_bit_index, num_sequences);
+  }
+
+  uint16_t i = (normalized_bit_index / 12) % (13 * 12);
+  uint16_t j = normalized_bit_index % 12;
+  uint16_t Pi[3] = {0, i / 13 + 1, i % 13};
+
+  uint32_t sequence_number = 0;
+
+  for (uint8_t k = 0; k < 3; k++) {
+    sequence_number += Pi[k] * galois_matrix[k][j];
+  }
+
+  return sequence_number % 13;
+}
+
+uint32_t primeSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequences)
+{
+  // Cache variables initialized to "unset"
+  static uint32_t last_num_sequences = 0;
+  static uint16_t last_hop_amount = 0;
+
+  // Check if either unset cache or if there is a cache hit
+  if (last_num_sequences != num_sequences || last_num_sequences == 0) {
+    // Compute the hop amount for a given sequence number
+    last_num_sequences = num_sequences;
+    if (isPrime(num_sequences) == true) {
+      // Already one is prime so maximize orthogonality (power of 2 hopping)
+      for (uint16_t i = 0; i < 8; i++) {
+        uint16_t candidate = 1 << i;
+        if (candidate > num_sequences) {
+          last_hop_amount = candidate;
+          break;
+        }
+        if (candidate * candidate >= num_sequences - 1) {
+          last_hop_amount = 1;
+          break;
+        }
+        last_hop_amount = 1;
+      }
+    } else {
+      // Need to find a suitable prime number hopping depth
+      for (uint16_t i = 0; i < num_primes; i++) {
+        if (primes[i] >= num_sequences) {
+          last_hop_amount = 1;
+        }
+        if ((primes[i] * primes[i] > num_sequences) && (num_sequences % primes[i] != 0)) {
+          last_hop_amount = primes[i];
+        }
+      }
+    }
+  }
+
+  return (last_hop_amount * normalized_bit_index) % num_sequences;
+}
+
+bool isPrime(uint16_t num)
+{
+  for (uint16_t i = 0; i < num_primes; i++) {
+    if (primes[i] == num) {
+      return true;
+    }
+    if (primes[i] > num) {
+      break;
+    }
+  }
+  return false;
+}

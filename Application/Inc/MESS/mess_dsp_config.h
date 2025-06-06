@@ -49,6 +49,14 @@ typedef enum {
   NUM_ECC_METHODS
 } ErrorCorrectionMethod_t;
 
+typedef enum {
+  HOPPER_INCREMENT,
+  HOPPER_GALOIS,
+  HOPPER_PRIME,
+  // Others as needed...
+  NUM_HOPPERS
+} FhbfskHopperMethod_t;
+
 // Struct for all configuration parameters that are relevant for feedback tests
 // Other configuration parameters belong to modules
 // IMPORTANT: Any modification to parameters here must be reflected in the feedback tests
@@ -65,6 +73,7 @@ typedef struct {
   ErrorCorrectionMethod_t ecc_method_preamble;
   ErrorCorrectionMethod_t ecc_method_message;
   bool use_interleaver;
+  FhbfskHopperMethod_t fhbfsk_hopper;
 } DspConfig_t;
 
 
