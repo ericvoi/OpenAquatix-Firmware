@@ -141,7 +141,8 @@ bool Param_LoadInit(void);
  * @warning The value_ptr, min, and max pointers must remain valid for the lifetime of the parameter
  */
 bool Param_Register(ParamIds_t id, const char* name, ParamType_t type,
-                    void* value_ptr, size_t value_size, void* min, void* max);
+                    void* value_ptr, size_t value_size, void* min, void* max,
+                    void (*callback)(void));
 
 /**
  * @brief Retrieves a parameter value by ID

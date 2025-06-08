@@ -151,28 +151,28 @@ bool Demodulate_RegisterParams()
   uint32_t min_u32 = MIN_DEMOD_DECISION;
   uint32_t max_u32 = MAX_DEMOD_DECISION;
   if (Param_Register(PARAM_DEMODULATION_DECISION, "the demodulation method", PARAM_TYPE_UINT8,
-                     &decision_method, sizeof(uint8_t), &min_u32, &max_u32) == false) {
+                     &decision_method, sizeof(uint8_t), &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
   min_u32 = MIN_DEMOD_CAL_LOWER_F;
   max_u32 = MAX_DEMOD_CAL_LOWER_F;
   if (Param_Register(PARAM_DEMOD_CAL_LOWER_FREQ, "demod cal lower frequency", PARAM_TYPE_UINT32,
-                     &lower_calibration_frequency, sizeof(uint32_t), &min_u32, &max_u32) == false) {
+                     &lower_calibration_frequency, sizeof(uint32_t), &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
   min_u32 = MIN_DEMOD_CAL_LOWER_F;
   max_u32 = MAX_DEMOD_CAL_LOWER_F;
   if (Param_Register(PARAM_DEMOD_CAL_UPPER_FREQ, "demod cal upper frequency", PARAM_TYPE_UINT32,
-                     &upper_calibration_frequency, sizeof(uint32_t), &min_u32, &max_u32) == false) {
+                     &upper_calibration_frequency, sizeof(uint32_t), &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
   float min_f = MIN_HIST_CMP_THRESH;
   float max_f = MAX_HIST_CMP_THRESH;
   if (Param_Register(PARAM_HISTORICAL_COMPARISON_THRESHOLD, "significant shift threshold", PARAM_TYPE_FLOAT,
-                     &significant_shift_threshold, sizeof(float), &min_f, &max_f) == false) {
+                     &significant_shift_threshold, sizeof(float), &min_f, &max_f, NULL) == false) {
     return false;
   }
 

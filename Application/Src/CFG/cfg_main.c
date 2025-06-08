@@ -31,6 +31,7 @@ typedef enum {
 
 osEventFlagsId_t param_events = NULL;
 static osEventFlagsId_t flash_events;
+static volatile uint32_t cfg_number = 1;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -114,6 +115,16 @@ void CFG_WaitLoadComplete()
 void CFG_SetFlashSaveFlag()
 {
   osEventFlagsSet(flash_events, FLASH_SAVE_REQUESTED);
+}
+
+void CFG_IncrementVersionNumber()
+{
+  cfg_number++;
+}
+
+uint32_t CFG_GetVersionNumber()
+{
+  return cfg_number;
 }
 
 /* Private function definitions ----------------------------------------------*/

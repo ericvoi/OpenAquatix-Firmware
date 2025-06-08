@@ -29,6 +29,7 @@
 #include "cfg_main.h"
 #include "cfg_parameters.h"
 #include "cfg_defaults.h"
+#include "cfg_callbacks.h"
 
 #include "dac_waveform.h"
 #include "PGA113-driver.h"
@@ -442,6 +443,7 @@ static void switchState(ProcessingState_t newState)
       break;
     case LISTENING:
       cfg = &default_config;
+      CFG_IncrementVersionNumber();
       Waveform_StopWaveformOutput();
       HAL_TIM_Base_Stop(&htim6);
       HAL_DAC_Stop(&hdac1, DAC_CHANNEL_1);
@@ -568,7 +570,7 @@ static bool registerMessMainParams()
   float max_f = MAX_BAUD_RATE;
   if (Param_Register(PARAM_BAUD, "baud rate", PARAM_TYPE_FLOAT,
                      &default_config.baud_rate, sizeof(float),
-                     &min_f, &max_f) == false) {
+                     &min_f, &max_f, NULL) == false) {
     return false;
   }
 
@@ -576,12 +578,12 @@ static bool registerMessMainParams()
   uint32_t max_u32 = MAX_FSK_FREQUENCY;
   if (Param_Register(PARAM_FSK_F0, "FSK 0 frequency", PARAM_TYPE_UINT32,
                      &default_config.fsk_f0, sizeof(uint32_t),
-                     &min_u32, &max_u32) == false) {
+                     &min_u32, &max_u32, NULL) == false) {
     return false;
   }
   if (Param_Register(PARAM_FSK_F1, "FSK 1 frequency", PARAM_TYPE_UINT32,
                      &default_config.fsk_f1, sizeof(uint32_t),
-                     &min_u32, &max_u32) == false) {
+                     &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
@@ -589,7 +591,7 @@ static bool registerMessMainParams()
   max_u32 = MAX_MOD_DEMOD_METHOD;
   if (Param_Register(PARAM_MOD_DEMOD_METHOD, "mod/demod method", PARAM_TYPE_UINT8,
                      &default_config.mod_demod_method, sizeof(uint8_t),
-                     &min_u32, &max_u32) == false) {
+                     &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
@@ -597,7 +599,7 @@ static bool registerMessMainParams()
   max_u32 = MAX_FC;
   if (Param_Register(PARAM_FC, "center frequency", PARAM_TYPE_UINT32,
                      &default_config.fc, sizeof(uint32_t),
-                     &min_u32, &max_u32) == false) {
+                     &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
@@ -605,7 +607,7 @@ static bool registerMessMainParams()
   max_u32 = MAX_FHBFSK_FREQ_SPACING;
   if (Param_Register(PARAM_FHBFSK_FREQ_SPACING, "frequency spacing", PARAM_TYPE_UINT8,
                      &default_config.fhbfsk_freq_spacing, sizeof(uint8_t),
-                     &min_u32, &max_u32) == false) {
+                     &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
@@ -613,7 +615,7 @@ static bool registerMessMainParams()
   max_u32 = MAX_FHBFSK_DWELL_TIME;
   if (Param_Register(PARAM_FHBFSK_DWELL_TIME, "dwell time", PARAM_TYPE_UINT8,
                      &default_config.fhbfsk_dwell_time, sizeof(uint8_t),
-                     &min_u32, &max_u32) == false) {
+                     &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
@@ -621,7 +623,7 @@ static bool registerMessMainParams()
   max_u32 = MAX_FHBFSK_NUM_TONES;
   if (Param_Register(PARAM_FHBFSK_NUM_TONES, "number of tones", PARAM_TYPE_UINT8,
                      &default_config.fhbfsk_num_tones, sizeof(uint8_t),
-                     &min_u32, &max_u32) == false) {
+                     &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
@@ -629,7 +631,7 @@ static bool registerMessMainParams()
   max_u32 = (uint32_t) MAX_EVAL_MODE_STATE;
   if (Param_Register(PARAM_EVAL_MODE_ON, "evaluation mode", PARAM_TYPE_UINT8,
                      &evaluation_mode, sizeof(uint8_t),
-                     &min_u32, &max_u32) == false) {
+                     &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
@@ -637,7 +639,7 @@ static bool registerMessMainParams()
   max_u32 = MAX_EVAL_MESSAGE;
   if (Param_Register(PARAM_EVAL_MESSAGE, "evaluation message", PARAM_TYPE_UINT8,
                      &evaluation_message, sizeof(uint8_t),
-                     &min_u32, &max_u32) == false) {
+                     &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
@@ -645,7 +647,7 @@ static bool registerMessMainParams()
   max_u32 = MAX_ERROR_DETECTION;
   if (Param_Register(PARAM_ERROR_DETECTION, "error detection method", PARAM_TYPE_UINT8,
                      &default_config.error_detection_method, sizeof(uint8_t),
-                     &min_u32, &max_u32) == false) {
+                     &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
@@ -653,14 +655,14 @@ static bool registerMessMainParams()
   max_u32 = MAX_ECC_METHOD;
   if (Param_Register(PARAM_ECC_PREAMBLE, "preamble ECC", PARAM_TYPE_UINT8,
                      &default_config.ecc_method_preamble, sizeof(uint8_t),
-                     &min_u32, &max_u32) == false) {
+                     &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
   // Using the same bounds as ^
   if (Param_Register(PARAM_ECC_MESSAGE, "message ECC", PARAM_TYPE_UINT8,
                      &default_config.ecc_method_message, sizeof(uint8_t),
-                     &min_u32, &max_u32) == false) {
+                     &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
@@ -668,7 +670,7 @@ static bool registerMessMainParams()
   max_u32 = MAX_INTERLEAVER_STATE;
   if (Param_Register(PARAM_USE_INTERLEAVER, "message interleaving", PARAM_TYPE_UINT8,
                      &default_config.use_interleaver, sizeof(bool),
-                     &min_u32, &max_u32) == false) {
+                     &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
