@@ -32,6 +32,7 @@ typedef struct {
     struct {int32_t min; int32_t max;} i32;
     struct {float min; float max;} f;
   } limits;
+  void (*callback)(void);
   bool is_modified;
 } Parameter_t;
 
@@ -78,6 +79,8 @@ static osMutexId_t param_mutex = NULL;
 
 static uint32_t num_erases;
 static uint32_t next_write_addr = FLASH_PARAM_ADDR;
+
+static bool flash_load_complete = false;
 
 // static uint32_t param_crc = 0; TODO
 
@@ -148,12 +151,15 @@ bool Param_LoadInit(void)
     parameters[i].is_modified = false;
   }
 
+  flash_load_complete = true;
+
   return true;
 }
 
 // Note: min and max MUST be 32 bytes for uint16, int16, int8 and uint8
 bool Param_Register(ParamIds_t id, const char* name, ParamType_t type,
-                    void* value_ptr, size_t value_size, void* min, void* max)
+                    void* value_ptr, size_t value_size, void* min, void* max,
+                    void (*callback)(void))
 {
 
   if (value_ptr == NULL) {
@@ -172,6 +178,7 @@ bool Param_Register(ParamIds_t id, const char* name, ParamType_t type,
     param->type = type;
     param->value_ptr = value_ptr;
     param->value_size = value_size;
+    param->callback = callback;
     param->is_modified = false;
 
     switch (type) {
@@ -252,7 +259,7 @@ bool Param_GetFloat(ParamIds_t id, float* value)
   return Param_GetValue(id, value);
 }
 
-char* Param_GetName (ParamIds_t id)
+char* Param_GetName(ParamIds_t id)
 {
   char* param_name = NULL;
   if (osMutexAcquire(param_mutex, osWaitForever) == osOK) {
@@ -398,7 +405,11 @@ bool Param_SetValue(ParamIds_t id, const void* value)
         if (memcmp(param->value_ptr, value, param->value_size) != 0) {
           memcpy(param->value_ptr, value, param->value_size);
           param->is_modified = true;
+          if ((param->callback != NULL) && (flash_load_complete == true)) {
+            (*param->callback)();
+          }
           CFG_SetFlashSaveFlag();
+          CFG_IncrementVersionNumber();
         }
         success = true;
       }

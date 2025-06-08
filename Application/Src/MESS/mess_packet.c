@@ -259,14 +259,14 @@ bool Packet_RegisterParams()
   uint32_t min_u32 = MIN_ID;
   uint32_t max_u32 = MAX_ID;
   if (Param_Register(PARAM_ID, "the modem identifier", PARAM_TYPE_UINT8,
-      &modem_id, sizeof(uint8_t), &min_u32, &max_u32) == false) {
+      &modem_id, sizeof(uint8_t), &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
   min_u32 = MIN_STATIONARY_FLAG;
   max_u32 = MAX_STATIONARY_FLAG;
   if (Param_Register(PARAM_STATIONARY_FLAG, "stationary flag", PARAM_TYPE_UINT8,
-      &is_stationary, sizeof(uint8_t), &min_u32, &max_u32) == false) {
+      &is_stationary, sizeof(uint8_t), &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 

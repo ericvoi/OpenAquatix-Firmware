@@ -145,7 +145,7 @@ bool Waveform_RegisterParams()
   uint32_t min = MIN_DAC_TRANSITION_LEN;
   uint32_t max = MAX_DAC_TRANSITION_LEN;
   if (Param_Register(PARAM_DAC_TRANSITION_LEN, "DAC transition duration (us)", PARAM_TYPE_UINT16,
-                     &transition_length, sizeof(uint16_t), &min, &max) == false) {
+                     &transition_length, sizeof(uint16_t), &min, &max, NULL) == false) {
     return false;
   }
 

@@ -129,14 +129,14 @@ bool LED_RegisterParams()
   uint32_t min = MIN_LED_BRIGHTNESS;
   uint32_t max = MAX_LED_BRIGHTNESS;
   if (Param_Register(PARAM_LED_BRIGHTNESS, "RGB LED brightness", PARAM_TYPE_UINT8,
-                     &led_brightness, sizeof(uint8_t), &min, &max) == false) {
+                     &led_brightness, sizeof(uint8_t), &min, &max, NULL) == false) {
     return false;
   }
 
   min = MIN_LED_STATE;
   max = MAX_LED_STATE;
   if (Param_Register(PARAM_LED_ENABLE, "the onboard RGB LED", PARAM_TYPE_UINT8,
-                     &led_enable, sizeof(bool), &min, &max) == false) {
+                     &led_enable, sizeof(bool), &min, &max, NULL) == false) {
     return false;
   }
 

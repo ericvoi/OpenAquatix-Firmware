@@ -14,6 +14,8 @@
 
 #include "comm_main.h"
 
+#include "cfg_main.h"
+
 #include "cmsis_os.h"
 
 #include <stdbool.h>
@@ -495,6 +497,7 @@ bool FeedbackTests_GetConfig(DspConfig_t** cfg)
     return false;
   }
 
+  CFG_IncrementVersionNumber();
   *cfg = &feedback_tests[test_index].cfg;
   return true;
 }
