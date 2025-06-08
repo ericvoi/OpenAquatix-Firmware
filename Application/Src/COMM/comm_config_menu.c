@@ -44,6 +44,7 @@ void setFskF1(void* argument);
 void setFhbfskFreqSpacing(void* argument);
 void setFhbfskDwell(void* argument);
 void setFhbfskTones(void* argument);
+void setFhbfskHopper(void* argument);
 void setBaudRate(void* argument);
 void setCenterFrequency(void* argument);
 void getBitPeriod(void* argument);
@@ -293,8 +294,8 @@ static const MenuNode_t univConfigFskMenu = {
 };
 
 static MenuID_t univConfigFhbfskChildren[] = {
-  MENU_ID_CFG_UNIV_FHBFSK_FSEP, MENU_ID_CFG_UNIV_FHBFSK_DWELL,
-  MENU_ID_CFG_UNIV_FHBFSK_TONES
+  MENU_ID_CFG_UNIV_FHBFSK_FSEP,  MENU_ID_CFG_UNIV_FHBFSK_DWELL,
+  MENU_ID_CFG_UNIV_FHBFSK_TONES, MENU_ID_CFG_UNIV_FHBFSK_HOPP
 };
 static const MenuNode_t univConfigFhbskMenu = {
   .id = MENU_ID_CFG_UNIV_FHBFSK,
@@ -717,6 +718,21 @@ static const MenuNode_t univFhbfskConfigTones = {
   .parameters = &univFhbfskConfigTonesParam
 };
 
+static ParamContext_t univFhbfskConfigHopperParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_UNIV_FHBFSK_HOPP
+};
+static const MenuNode_t univFhbfskConfigHopper = {
+  .id = MENU_ID_CFG_UNIV_FHBFSK_HOPP,
+  .description = "Set Frequency Hopper",
+  .handler = setFhbfskHopper,
+  .parent_id = MENU_ID_CFG_UNIV_FHBFSK,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &univFhbfskConfigHopperParam
+};
+
 static ParamContext_t modCalConfigLowFreqParam = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_MOD_CAL_LOWFREQ
@@ -1032,7 +1048,7 @@ bool COMM_RegisterConfigurationMenu()
              registerMenu(&setStationary) && registerMenu(&modConfigDacTransition) &&
              registerMenu(&modConfigCalMenu) && registerMenu(&modConfigFeedbackMenu) && 
              registerMenu(&modConfigMethod) && registerMenu(&univConfigInterleaver) &&
-             registerMenu(&demodConfigCalMenu) && 
+             registerMenu(&demodConfigCalMenu) && registerMenu(&univFhbfskConfigHopper) &&
              registerMenu(&dauConfigSleep) && registerMenu(&ledConfigBrightness) &&
              registerMenu(&ledConfigToggle) && registerMenu(&modCalConfigLowFreq) &&
              registerMenu(&modCalConfigUpperFreq) && registerMenu(&modCalConfigTvr) && 
@@ -1131,6 +1147,17 @@ void setFhbfskTones(void* argument)
   FunctionContext_t* context = (FunctionContext_t*) argument;
 
   COMMLoops_LoopUint8(context, PARAM_FHBFSK_NUM_TONES);
+}
+
+void setFhbfskHopper(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  char *descriptors[] = {"Increment by 1", "Galois Field arithmetic (JANUS)", 
+                         "Prime selector"};
+
+  COMMLoops_LoopEnum(context, PARAM_FHBFSK_HOPPER, descriptors, 
+      sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
 void setBaudRate(void* argument)

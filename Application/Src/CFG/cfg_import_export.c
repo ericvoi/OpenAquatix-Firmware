@@ -50,7 +50,8 @@ static ParamIds_t imp_exp_parameters[] = {
     PARAM_ERROR_DETECTION,
     PARAM_ECC_PREAMBLE,
     PARAM_ECC_MESSAGE,
-    PARAM_USE_INTERLEAVER
+    PARAM_USE_INTERLEAVER,
+    PARAM_FHBFSK_HOPPER
 };
 
 static const uint16_t num_param = sizeof(imp_exp_parameters) / sizeof(imp_exp_parameters[0]);

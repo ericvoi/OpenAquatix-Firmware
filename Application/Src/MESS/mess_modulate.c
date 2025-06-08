@@ -54,10 +54,10 @@ static const uint8_t galois_matrix[3][12] = {
   {1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1},
   {2,  4,  8,  3,  6, 12, 11,  9,  5, 10,  7,  1},
   {4,  3, 12,  9, 10,  1,  4,  3, 12,  9, 10,  1}
-}
+};
 
 extern const uint16_t primes[50];
-static const num_primes = sizeof(primes) / sizeof(primes[0]);
+static const uint16_t num_primes = sizeof(primes) / sizeof(primes[0]);
 
 /* Private function prototypes -----------------------------------------------*/
 
