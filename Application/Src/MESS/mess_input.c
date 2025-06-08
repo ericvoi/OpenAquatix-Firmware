@@ -17,6 +17,7 @@
 #include "mess_interleaver.h"
 #include "cfg_defaults.h"
 #include "cfg_parameters.h"
+#include "cfg_main.h"
 #include "usb_comm.h"
 #include "PGA113-driver.h"
 #include "cmsis_os.h"
@@ -442,20 +443,20 @@ bool Input_RegisterParams()
   uint32_t min = MIN_MSG_START_FCN;
   uint32_t max = MAX_MSG_START_FCN;
   if (Param_Register(PARAM_MSG_START_FCN, "message start function", PARAM_TYPE_UINT8,
-                     &message_start_function, sizeof(uint8_t), &min, &max) == false) {
+                     &message_start_function, sizeof(uint8_t), &min, &max, NULL) == false) {
     return false;
   }
 
   min = MIN_AGC_STATE;
   max = MAX_AGC_STATE;
   if (Param_Register(PARAM_AGC_ENABLE, "automatic gain control", PARAM_TYPE_UINT8,
-                     &automatic_gain_control, sizeof(uint8_t), &min, &max) == false) {
+                     &automatic_gain_control, sizeof(uint8_t), &min, &max, NULL) == false) {
     return false;
   }
   min = MIN_FIXED_PGA_GAIN;
   max = MAX_FIXED_PGA_GAIN;
   if (Param_Register(PARAM_FIXED_PGA_GAIN, "the fixed PGA gain code", PARAM_TYPE_UINT8,
-                     &fixed_pga_gain, sizeof(uint8_t), &min, &max) == false) {
+                     &fixed_pga_gain, sizeof(uint8_t), &min, &max, NULL) == false) {
     return false;
   }
 
@@ -655,6 +656,15 @@ bool printReceivedWaveform(char* preamble_sequence)
 
 void updateFrequencyIndices(const DspConfig_t* cfg)
 {
+  static uint32_t previous_version_number = 0; 
+  uint32_t current_version_number = CFG_GetVersionNumber(); 
+
+  if (current_version_number == previous_version_number) {
+    return; // No updated needed
+  }
+
+  previous_version_number = current_version_number;
+
   uint32_t frequency0, frequency1;
 
   if (cfg->mod_demod_method == MOD_DEMOD_FSK) {
