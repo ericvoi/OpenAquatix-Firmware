@@ -678,7 +678,7 @@ static bool registerMessMainParams()
   max_u32 = MAX_FHBFSK_HOPPER;
   if (Param_Register(PARAM_FHBFSK_HOPPER, "hopper method", PARAM_TYPE_UINT8,
                      &default_config.fhbfsk_hopper, sizeof(uint8_t), 
-                     &min_u32, &max_u32) == false) {
+                     &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 

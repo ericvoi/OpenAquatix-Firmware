@@ -18,14 +18,31 @@
 #include "cfg_defaults.h"
 #include "stm32h7xx_hal.h"
 #include <string.h>
+#include <limits.h>
 
 /* Private typedef -----------------------------------------------------------*/
 
+typedef enum {
+  GALOIS_PRIME,
+  GALOIS_CYCLIC,
+  GALOIS_NON_CYCLIC
+} GaloisClassification_t;
 
+typedef struct {
+  uint8_t Q;
+  uint8_t alpha;
+  uint8_t K;
+  GaloisClassification_t type;
+} GaloisParameters_t;
 
 /* Private define ------------------------------------------------------------*/
 
+// This value must not be changed as it JANUS standard (ANEP-87) only when Q=13.
+// Changing this value will break JANUS compatibility
+#define GALOIS_JANUS_K        3
+#define GALOIS_ARBITRARY_K    3
 
+#define THRESHOLD_FOR_MODULUS (UINT32_MAX / 8) // The highest alpha is 7
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -50,10 +67,37 @@ static float parallel_c1_nf = DEFAULT_C1;
 
 static float max_transducer_voltage = DEFAULT_MAX_TRANSDUCER_V;
 
-static const uint8_t galois_matrix[3][12] = {
-  {1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1},
-  {2,  4,  8,  3,  6, 12, 11,  9,  5, 10,  7,  1},
-  {4,  3, 12,  9, 10,  1,  4,  3, 12,  9, 10,  1}
+static const GaloisParameters_t galois_map[MAX_FHBFSK_NUM_TONES - MIN_FHBFSK_NUM_TONES + 1] = {
+// Q  alpha       K               type
+  {2,  1, GALOIS_ARBITRARY_K, GALOIS_PRIME},      // 2
+  {3,  2, GALOIS_ARBITRARY_K, GALOIS_PRIME},      // 3
+  {4,  3, GALOIS_ARBITRARY_K, GALOIS_CYCLIC},     // 4
+  {5,  2, GALOIS_ARBITRARY_K, GALOIS_PRIME},      // 5
+  {6,  5, GALOIS_ARBITRARY_K, GALOIS_CYCLIC},     // 6
+  {7,  3, GALOIS_ARBITRARY_K, GALOIS_PRIME},      // 7
+  {7,  3, GALOIS_ARBITRARY_K, GALOIS_NON_CYCLIC}, // 8
+  {9,  2, GALOIS_ARBITRARY_K, GALOIS_CYCLIC},     // 9
+  {10, 3, GALOIS_ARBITRARY_K, GALOIS_CYCLIC},     // 10
+  {11, 2, GALOIS_ARBITRARY_K, GALOIS_PRIME},      // 11
+  {11, 2, GALOIS_ARBITRARY_K, GALOIS_NON_CYCLIC}, // 12
+  {13, 2, GALOIS_JANUS_K,     GALOIS_PRIME},      // 13
+  {14, 3, GALOIS_ARBITRARY_K, GALOIS_CYCLIC},     // 14
+  {14, 3, GALOIS_ARBITRARY_K, GALOIS_NON_CYCLIC}, // 15
+  {14, 3, GALOIS_ARBITRARY_K, GALOIS_NON_CYCLIC}, // 16
+  {17, 3, GALOIS_ARBITRARY_K, GALOIS_PRIME},      // 17
+  {18, 5, GALOIS_ARBITRARY_K, GALOIS_CYCLIC},     // 18
+  {19, 2, GALOIS_ARBITRARY_K, GALOIS_PRIME},      // 19
+  {19, 2, GALOIS_ARBITRARY_K, GALOIS_CYCLIC},     // 20
+  {19, 2, GALOIS_ARBITRARY_K, GALOIS_CYCLIC},     // 21
+  {22, 7, GALOIS_ARBITRARY_K, GALOIS_CYCLIC},     // 22
+  {23, 5, GALOIS_ARBITRARY_K, GALOIS_PRIME},      // 23
+  {23, 5, GALOIS_ARBITRARY_K, GALOIS_NON_CYCLIC}, // 24
+  {25, 2, GALOIS_ARBITRARY_K, GALOIS_CYCLIC},     // 25
+  {26, 7, GALOIS_ARBITRARY_K, GALOIS_CYCLIC},     // 26
+  {27, 2, GALOIS_ARBITRARY_K, GALOIS_CYCLIC},     // 27
+  {27, 2, GALOIS_ARBITRARY_K, GALOIS_NON_CYCLIC}, // 28
+  {29, 2, GALOIS_ARBITRARY_K, GALOIS_PRIME},      // 29
+  {29, 2, GALOIS_ARBITRARY_K, GALOIS_NON_CYCLIC}  // 30
 };
 
 extern const uint16_t primes[50];
@@ -65,6 +109,8 @@ uint32_t getFhbfskSeqeunceNumber(uint32_t normalized_bit_index, const DspConfig_
 uint32_t incrementSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequences);
 uint32_t galoisSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequences);
 uint32_t primeSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequences);
+uint32_t pow_i(uint32_t value, uint32_t power);
+uint32_t pow_mod(uint32_t value, uint32_t power, uint32_t modulus);
 bool isPrime(uint16_t num);
 
 /* Exported function definitions ---------------------------------------------*/
@@ -264,24 +310,35 @@ uint32_t incrementSequenceNumber(uint32_t normalized_bit_index, uint16_t num_seq
   return normalized_bit_index % num_sequences;
 }
 
-// TODO: generalize to any prime number of sequences
+// TODO: implement a caching system for the previous bit index
 uint32_t galoisSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequences)
 {
-  if (num_sequences != 13) {
-    return incrementSequenceNumber(normalized_bit_index, num_sequences);
+  if ((num_sequences < MIN_FHBFSK_NUM_TONES) || (num_sequences > MIN_FHBFSK_NUM_TONES)) {
+    return false;
   }
 
-  uint16_t i = (normalized_bit_index / 12) % (13 * 12);
-  uint16_t j = normalized_bit_index % 12;
-  uint16_t Pi[3] = {0, i / 13 + 1, i % 13};
+  GaloisParameters_t sequence = galois_map[num_sequences - MIN_FHBFSK_NUM_TONES];
 
-  uint32_t sequence_number = 0;
+  uint8_t column = normalized_bit_index % (sequence.Q - 1);
+  uint32_t i = normalized_bit_index / (sequence.Q - 1);
+  i = i % ((uint32_t) sequence.Q * (sequence.Q - 1));
 
-  for (uint8_t k = 0; k < 3; k++) {
-    sequence_number += Pi[k] * galois_matrix[k][j];
+  uint32_t intermediate_sequence_number = 0;
+  // Skip the first row since Pi(0) = 0 always
+  for (uint8_t row = 1; row < sequence.K; row++) {
+    uint32_t base_row_value = pow_i(sequence.alpha, row);
+    uint32_t G_value = pow_mod(base_row_value, column, sequence.Q - 1);
+
+    uint32_t denom = pow_i(sequence.Q, sequence.K - row - 1);
+    uint32_t Pi_value = i / denom;
+    if (row == 1) {
+      Pi_value += 1;
+    }
+    Pi_value = Pi_value % sequence.Q;
+    intermediate_sequence_number += (Pi_value + G_value) % sequence.Q;
   }
 
-  return sequence_number % 13;
+  return intermediate_sequence_number % sequence.Q;
 }
 
 uint32_t primeSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequences)
@@ -322,6 +379,27 @@ uint32_t primeSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequenc
   }
 
   return (last_hop_amount * normalized_bit_index) % num_sequences;
+}
+
+uint32_t pow_i(uint32_t value, uint32_t power)
+{
+  uint32_t x = 1;
+  for (uint8_t i = 0; i < power; i++) {
+    x *= value;
+  }
+  return x;
+}
+
+uint32_t pow_mod(uint32_t value, uint32_t power, uint32_t modulus)
+{
+  uint32_t x = 1;
+  for (uint8_t i = 0; i < power; i++) {
+    if (x > THRESHOLD_FOR_MODULUS) {
+      x = x % modulus;
+    }
+    x *= value;
+  }
+  return x % modulus;
 }
 
 bool isPrime(uint16_t num)
