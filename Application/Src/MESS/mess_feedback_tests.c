@@ -186,7 +186,8 @@ static FeedbackTests_t feedback_tests[] = {
             .error_detection_method = CRC_16,
             .ecc_method_preamble = NO_ECC,
             .ecc_method_message = NO_ECC,
-            .use_interleaver = false
+            .use_interleaver = false,
+            .fhbfsk_hopper = HOPPER_INCREMENT
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[2],
@@ -207,7 +208,8 @@ static FeedbackTests_t feedback_tests[] = {
             .error_detection_method = CRC_16,
             .ecc_method_preamble = NO_ECC,
             .ecc_method_message = NO_ECC,
-            .use_interleaver = false
+            .use_interleaver = false,
+            .fhbfsk_hopper = HOPPER_INCREMENT
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[2],
@@ -228,7 +230,8 @@ static FeedbackTests_t feedback_tests[] = {
             .error_detection_method = CRC_16,
             .ecc_method_preamble = HAMMING_CODE,
             .ecc_method_message = HAMMING_CODE,
-            .use_interleaver = false
+            .use_interleaver = false,
+            .fhbfsk_hopper = HOPPER_INCREMENT
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[4],
@@ -249,7 +252,8 @@ static FeedbackTests_t feedback_tests[] = {
           .error_detection_method = CRC_16,
           .ecc_method_preamble = JANUS_CONVOLUTIONAL,
           .ecc_method_message = JANUS_CONVOLUTIONAL,
-          .use_interleaver = false
+          .use_interleaver = false,
+          .fhbfsk_hopper = HOPPER_INCREMENT
       },
       .expected_result = IDENTICAL,
       .reference_message = &reference_messages[4],
@@ -270,7 +274,8 @@ static FeedbackTests_t feedback_tests[] = {
           .error_detection_method = CRC_16,
           .ecc_method_preamble = NO_ECC,
           .ecc_method_message = NO_ECC,
-          .use_interleaver = true
+          .use_interleaver = true,
+          .fhbfsk_hopper = HOPPER_INCREMENT
       },
       .expected_result = IDENTICAL,
       .reference_message = &reference_messages[4],
@@ -291,7 +296,8 @@ static FeedbackTests_t feedback_tests[] = {
           .error_detection_method = CRC_16,
           .ecc_method_preamble = JANUS_CONVOLUTIONAL,
           .ecc_method_message = JANUS_CONVOLUTIONAL,
-          .use_interleaver = true
+          .use_interleaver = true,
+          .fhbfsk_hopper = HOPPER_INCREMENT
       },
       .expected_result = IDENTICAL,
       .reference_message = &reference_messages[7],
