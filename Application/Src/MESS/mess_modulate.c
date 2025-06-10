@@ -193,37 +193,10 @@ uint32_t Modulate_GetFhbfskFrequency(bool bit,
                                      uint16_t bit_index, 
                                      const DspConfig_t* cfg)
 {
-  uint32_t freq_spacing;
-  float baud_rate;
-  uint32_t fc;
-  uint8_t num_tones;
-  uint8_t dwell_time;
-  // cfg is NULL when setting defaults for values
-  if (cfg == NULL) {
-    if (Param_GetUint32(PARAM_FHBFSK_FREQ_SPACING, &freq_spacing) == false) {
-      freq_spacing = DEFAULT_FHBFSK_FREQ_SPACING;
-    }
-    if (Param_GetFloat(PARAM_BAUD, &baud_rate) == false) {
-      baud_rate = DEFAULT_BAUD_RATE;
-    }
-    if (Param_GetUint32(PARAM_FC, &fc) == false) {
-      fc = DEFAULT_FC;
-    }
-    if (Param_GetUint8(PARAM_FHBFSK_DWELL_TIME, &dwell_time) == false) {
-      dwell_time = DEFAULT_FHBFSK_DWELL_TIME;
-    }
-  } 
-  else {
-    freq_spacing = cfg->fhbfsk_freq_spacing;
-    baud_rate = cfg->baud_rate;
-    fc = cfg->fc;
-    num_tones = cfg->fhbfsk_num_tones;
-    dwell_time = cfg->fhbfsk_dwell_time;
-  }
-  uint32_t frequency_separation = (uint32_t) (freq_spacing * baud_rate);
+  uint32_t frequency_separation = (uint32_t) (cfg->fhbfsk_freq_spacing * cfg->baud_rate);
 
-  uint32_t start_freq = fc - 
-      frequency_separation * (2 * num_tones - 1) / 2;
+  uint32_t start_freq = cfg->fc - 
+      cfg->fhbfsk_freq_spacing * (2 * cfg->fhbfsk_num_tones - 1) / 2;
   start_freq = (start_freq / frequency_separation) * frequency_separation;
 
   uint32_t sequence_number = getFhbfskSeqeunceNumber(bit_index / cfg->fhbfsk_dwell_time, cfg);
