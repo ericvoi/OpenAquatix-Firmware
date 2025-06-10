@@ -18,7 +18,6 @@
 #include "cfg_defaults.h"
 #include "stm32h7xx_hal.h"
 #include <string.h>
-#include <limits.h>
 
 /* Private typedef -----------------------------------------------------------*/
 
