@@ -179,6 +179,10 @@ extern "C" {
 #define MIN_INTERLEAVER_STATE       (false)
 #define MAX_INTERLEAVER_STATE       (true)
 
+#define DEFAULT_FHBFSK_HOPPER       (HOPPER_GALOIS)
+#define MIN_FHBFSK_HOPPER           0
+#define MAX_FHBFSK_HOPPER           (NUM_HOPPERS - 1)
+
 /* Exported macro ------------------------------------------------------------*/
 
 

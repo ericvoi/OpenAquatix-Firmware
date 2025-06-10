@@ -43,6 +43,7 @@ typedef enum {
   MENU_ID_CFG_UNIV_FHBFSK_FSEP, // Integer frequency separation to use in the FHBFSK scheme
   MENU_ID_CFG_UNIV_FHBFSK_DWELL,// Number of bit periods to dwell on a tone in FHBFSK
   MENU_ID_CFG_UNIV_FHBFSK_TONES,// Number of tones to use in the FHBFSK modulations scheme
+  MENU_ID_CFG_UNIV_FHBFSK_HOPP, // Frequency hopping method to use
   MENU_ID_CFG_UNIV_BAUD,        // Raw baud rate used for transmission
   MENU_ID_CFG_UNIV_FC,          // Center frequency used 
   MENU_ID_CFG_UNIV_BP,          // Bit period used in the baud rate. Currently the inverse of ^^
