@@ -141,7 +141,7 @@ bool deinterleave(uint16_t start_index, uint16_t length,
 }
 
 /**
- * Following the JANUS standard (ANEP-87)The interleaver depth (D) must meet
+ * Following the JANUS standard (ANEP-87) The interleaver depth (D) must meet
  * the following two criteria:
  * 1. D^2 > L where L is the length of the section with ECC
  * 2. D is not a factor of L
