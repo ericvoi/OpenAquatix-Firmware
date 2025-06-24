@@ -25,12 +25,12 @@ extern "C" {
 /* Exported types ------------------------------------------------------------*/
 
 typedef struct {
-  uint16_t* data_buf;
   uint16_t buf_len;          // length of data_buf
   uint16_t data_len;         // Length of the relevant part of data_buf
   uint16_t data_start_index;
+  uint16_t chip_index;       // includes synchronization sequence (if applicable)
   uint16_t bit_index;
-  bool decoded_bit;          // TODO: Change to have an undetermined state
+  bool decoded_bit;
   bool analysis_done;
   uint32_t f0;
   uint32_t f1;

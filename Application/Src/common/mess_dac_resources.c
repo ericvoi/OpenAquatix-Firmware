@@ -10,6 +10,7 @@
 #include "mess_dac_resources.h"
 #include "mess_dsp_config.h"
 #include "mess_modulate.h"
+#include "mess_sync.h"
 #include "dac_waveform.h"
 #include "sys_error.h"
 #include "cmsis_os.h"
@@ -66,8 +67,16 @@ WaveformStep_t MessDacResource_GetStep(uint16_t current_step)
     Error_Routine(ERROR_MESS_DAC_RESOURCE);
     return waveform_step;
   }
-  if (Packet_GetBit(&bit_msg, current_step, &bit) == false) {
-    return waveform_step;
+  uint16_t sync_steps = Sync_NumSteps(&cfg);
+  if (current_step >= sync_steps) {
+    if (Packet_GetBit(&bit_msg, current_step - sync_steps, &bit) == false) {
+      return waveform_step;
+    }
+  }
+  else {
+    if (Sync_GetStep(&cfg, &waveform_step, &bit, current_step) == false) {
+      return waveform_step;
+    }
   }
   switch (cfg.mod_demod_method) {
     case MOD_DEMOD_FSK:
@@ -84,6 +93,11 @@ WaveformStep_t MessDacResource_GetStep(uint16_t current_step)
   waveform_step.duration_us = (uint32_t) roundf(1000000.0f / cfg.baud_rate);
   osMutexRelease(mess_dac_resource_mutex);
   return waveform_step;
+}
+
+uint16_t MessDacResource_SyncSteps()
+{
+  return Sync_NumSteps(&cfg);
 }
 
 /* Private function definitions ----------------------------------------------*/

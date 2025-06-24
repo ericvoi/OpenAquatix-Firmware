@@ -36,7 +36,6 @@ extern "C" {
 /* Exported functions prototypes ---------------------------------------------*/
 
 bool Feedback_Init();
-void Feedback_IncrementEndIndex();
 void Feedback_DumpData();
 
 /* Private defines -----------------------------------------------------------*/

@@ -28,7 +28,8 @@ extern "C" {
 /* Exported constants --------------------------------------------------------*/
 
 #define ADC_BUFFER_SIZE           1024 
-#define PROCESSING_BUFFER_SIZE    16384 // must be a power of 2
+#define PROCESSING_BUFFER_SIZE    (1 << 14) // 16384
+#define PROCESSING_BUFFER_MASK    (PROCESSING_BUFFER_SIZE - 1)
 
 #define ADC_SAMPLING_RATE         120000  // 120 kHz
 
@@ -38,6 +39,14 @@ extern ADC_HandleTypeDef hadc1;
 extern ADC_HandleTypeDef hadc2;
 extern ADC_HandleTypeDef hadc3;
 extern TIM_HandleTypeDef htim8;
+
+extern volatile uint16_t input_head_pos;
+extern volatile uint16_t input_tail_pos;
+extern uint16_t input_buffer[PROCESSING_BUFFER_SIZE];
+
+extern volatile uint16_t feedback_head_pos;
+extern volatile uint16_t feedback_tail_pos;
+extern uint16_t feedback_buffer[PROCESSING_BUFFER_SIZE];
 
 
 /* Exported functions prototypes ---------------------------------------------*/
@@ -51,28 +60,6 @@ extern TIM_HandleTypeDef htim8;
  * @return true if initialization succeeds, false otherwise
  */
 bool ADC_Init();
-
-/**
- * @brief Registers an external buffer for storing input ADC conversions
- *
- * @param in_buffer Pointer to the buffer where input ADC values will be stored
- *
- * @return true if registration succeeds, false if a buffer is already registered
- *
- * @note Can only be called once successfully until the module is reset
- */
-bool ADC_RegisterInputBuffer(uint16_t* in_buffer);
-
-/**
- * @brief Registers an external buffer for storing feedback ADC conversions
- *
- * @param fb_buffer Pointer to the buffer where feedback ADC values will be stored
- *
- * @return true if registration succeeds, false if a buffer is already registered
- *
- * @note Can only be called once successfully until the module is reset
- */
-bool ADC_RegisterFeedbackBuffer(uint16_t* fb_buffer);
 
 /**
  * @brief Starts ADC conversions on the input channel using DMA
@@ -120,7 +107,96 @@ bool ADC_StopInput();
  */
 bool ADC_StopAll();
 
+/**
+ * @brief Resets input buffer head and tail to 0, and sets buffer to 0
+ * 
+ */
+void ADC_InputClear();
+
+/**
+ * @brief Resets feedback buffer head and tail to 0, and sets buffer to 0
+ * 
+ */
+void ADC_FeedbackClear();
+
 /* Private defines -----------------------------------------------------------*/
+
+// Inline functions to interface with the input ADC buffer
+// Note: always_inline used to force basic optimization in low optimization
+// levels to get the required performance in debug modes
+
+static inline __attribute__((always_inline)) uint16_t ADC_InputAvailableSamples(void) 
+{
+  return (input_head_pos - input_tail_pos) & PROCESSING_BUFFER_MASK;
+}
+
+static inline __attribute__((always_inline)) void ADC_InputTailAdvance(uint16_t num_samples) 
+{
+  input_tail_pos = (input_tail_pos + num_samples) & PROCESSING_BUFFER_MASK;
+}
+
+static inline __attribute((always_inline)) void ADC_InputSetTail(uint16_t tail_location)
+{
+  input_tail_pos = tail_location;
+}
+
+static inline __attribute__((always_inline)) uint16_t ADC_InputGetData(uint16_t offset) 
+{
+  return input_buffer[(input_tail_pos + offset) & PROCESSING_BUFFER_MASK];
+}
+
+static inline __attribute__((always_inline)) uint16_t ADC_InputGetDataAbsolute(uint16_t position)
+{
+  return input_buffer[position];
+}
+
+static inline __attribute__((always_inline)) uint16_t ADC_InputGetTail(void)
+{
+  return input_tail_pos;
+}
+
+static inline __attribute__((always_inline)) uint16_t ADC_InputGetHead(void)
+{
+  return input_head_pos;
+}
+
+// Inline functions to interface with the feedback ADC buffer
+
+static inline __attribute__((always_inline)) uint16_t ADC_FeedbackAvailableSamples(void) 
+{
+  return (feedback_head_pos - feedback_tail_pos) & PROCESSING_BUFFER_MASK;
+}
+
+static inline __attribute__((always_inline)) void ADC_FeedbackTailAdvance(uint16_t num_samples) 
+{
+  feedback_tail_pos = (feedback_tail_pos + num_samples) & PROCESSING_BUFFER_MASK;
+}
+
+static inline __attribute((always_inline)) void ADC_FeedbackSetTail(uint16_t tail_location)
+{
+  feedback_tail_pos = tail_location;
+}
+
+static inline __attribute__((always_inline)) uint16_t ADC_FeedbackGetData(uint16_t offset) 
+{
+  return feedback_buffer[(feedback_tail_pos + offset) & PROCESSING_BUFFER_MASK];
+}
+
+static inline __attribute__((always_inline)) uint16_t ADC_FeedbackGetDataAbsolute(uint16_t position)
+{
+  return feedback_buffer[position];
+}
+
+static inline __attribute__((always_inline)) uint16_t ADC_FeedbackGetTail(void)
+{
+  return feedback_tail_pos;
+}
+
+static inline __attribute__((always_inline)) uint16_t ADC_FeedbackGetHead(void)
+{
+  return feedback_head_pos;
+}
+
 
 #ifdef __cplusplus
 }

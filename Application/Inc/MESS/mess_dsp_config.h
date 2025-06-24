@@ -53,9 +53,16 @@ typedef enum {
   HOPPER_INCREMENT,
   HOPPER_GALOIS,
   HOPPER_PRIME,
-  // Others as needed...
+  // Place others as needed here
   NUM_HOPPERS
 } FhbfskHopperMethod_t;
+
+typedef enum {
+  NO_SYNC,
+  SYNC_PN_32_JANUS,
+  // Place others as needed here
+  NUM_SYNC_METHODS
+} SynchronizationMethod_t;
 
 // Struct for all configuration parameters that are relevant for feedback tests
 // Other configuration parameters belong to modules
@@ -74,6 +81,7 @@ typedef struct {
   ErrorCorrectionMethod_t ecc_method_message;
   bool use_interleaver;
   FhbfskHopperMethod_t fhbfsk_hopper;
+  SynchronizationMethod_t sync_method;
 } DspConfig_t;
 
 

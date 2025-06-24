@@ -180,8 +180,8 @@ static void MX_UART5_Init(void);
 static void MX_TIM6_Init(void);
 static void MX_TIM8_Init(void);
 static void MX_ADC2_Init(void);
-static void MX_TIM16_Init(void);
 static void MX_TIM17_Init(void);
+static void MX_TIM16_Init(void);
 void StartDefaultTask(void *argument);
 void startMessageProcessingTask(void *argument);
 void startSystemManagementTask(void *argument);
@@ -250,8 +250,8 @@ int main(void)
   MX_TIM6_Init();
   MX_TIM8_Init();
   MX_ADC2_Init();
-  MX_TIM16_Init();
   MX_TIM17_Init();
+  MX_TIM16_Init();
   /* USER CODE BEGIN 2 */
   WS_Init();
 

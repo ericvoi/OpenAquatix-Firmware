@@ -95,9 +95,11 @@ bool Waveform_InitWaveformGenerator(void)
 
 bool Waveform_SetWaveformSequence(uint16_t num_steps)
 {
-  if(num_steps == 0) return false;
+  if (num_steps == 0) return false;
 
-  sequence_length = num_steps;
+  uint16_t sync_steps = MessDacResource_SyncSteps();
+
+  sequence_length = num_steps + sync_steps;
   current_step = 0;
 
   return true;

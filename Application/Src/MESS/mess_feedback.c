@@ -27,10 +27,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-static uint16_t feedback_buffer[PROCESSING_BUFFER_SIZE] __attribute__((section(".dtcm")));
 
-static volatile uint16_t feedback_buffer_start_index = 0;
-static volatile uint16_t feedback_buffer_end_index = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -40,16 +37,8 @@ static volatile uint16_t feedback_buffer_end_index = 0;
 
 bool Feedback_Init()
 {
-  feedback_buffer_start_index = 0;
-  feedback_buffer_end_index = 0;
-  if (ADC_RegisterFeedbackBuffer(feedback_buffer) == false) return false;
-
+  ADC_FeedbackClear();
   return true;
-}
-
-void Feedback_IncrementEndIndex()
-{
-  feedback_buffer_end_index = (feedback_buffer_end_index + ADC_BUFFER_SIZE / 2) % PROCESSING_BUFFER_SIZE;
 }
 
 void Feedback_DumpData()
@@ -62,13 +51,12 @@ void Feedback_DumpData()
     print_index = 0;
 
     for (uint16_t j = 0; j < PRINT_CHUNK_SIZE && (i + j) < data_len; j++) {
-      print_index += sprintf(&print_buffer[print_index], "%u\r\n", feedback_buffer[i + j]);
+      print_index += sprintf(&print_buffer[print_index], "%u\r\n", ADC_FeedbackGetDataAbsolute(i + j));
     }
 
     COMM_TransmitData(print_buffer, print_index, COMM_USB);
   }
-  memset(feedback_buffer, 0, PROCESSING_BUFFER_SIZE * sizeof(uint16_t));
-  feedback_buffer_end_index = 0;
+  ADC_FeedbackClear();
 }
 
 /* Private function definitions ----------------------------------------------*/

@@ -187,7 +187,8 @@ static FeedbackTests_t feedback_tests[] = {
             .ecc_method_preamble = NO_ECC,
             .ecc_method_message = NO_ECC,
             .use_interleaver = false,
-            .fhbfsk_hopper = HOPPER_INCREMENT
+            .fhbfsk_hopper = HOPPER_INCREMENT,
+            .sync_method = NO_SYNC
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[2],
@@ -209,7 +210,8 @@ static FeedbackTests_t feedback_tests[] = {
             .ecc_method_preamble = NO_ECC,
             .ecc_method_message = NO_ECC,
             .use_interleaver = false,
-            .fhbfsk_hopper = HOPPER_INCREMENT
+            .fhbfsk_hopper = HOPPER_INCREMENT,
+            .sync_method = NO_SYNC
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[2],
@@ -231,7 +233,8 @@ static FeedbackTests_t feedback_tests[] = {
             .ecc_method_preamble = HAMMING_CODE,
             .ecc_method_message = HAMMING_CODE,
             .use_interleaver = false,
-            .fhbfsk_hopper = HOPPER_INCREMENT
+            .fhbfsk_hopper = HOPPER_INCREMENT,
+            .sync_method = NO_SYNC
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[4],
@@ -253,7 +256,8 @@ static FeedbackTests_t feedback_tests[] = {
           .ecc_method_preamble = JANUS_CONVOLUTIONAL,
           .ecc_method_message = JANUS_CONVOLUTIONAL,
           .use_interleaver = false,
-          .fhbfsk_hopper = HOPPER_INCREMENT
+          .fhbfsk_hopper = HOPPER_INCREMENT,
+          .sync_method = NO_SYNC
       },
       .expected_result = IDENTICAL,
       .reference_message = &reference_messages[4],
@@ -275,7 +279,8 @@ static FeedbackTests_t feedback_tests[] = {
           .ecc_method_preamble = NO_ECC,
           .ecc_method_message = NO_ECC,
           .use_interleaver = true,
-          .fhbfsk_hopper = HOPPER_INCREMENT
+          .fhbfsk_hopper = HOPPER_INCREMENT,
+          .sync_method = NO_SYNC
       },
       .expected_result = IDENTICAL,
       .reference_message = &reference_messages[4],
@@ -297,13 +302,36 @@ static FeedbackTests_t feedback_tests[] = {
           .ecc_method_preamble = JANUS_CONVOLUTIONAL,
           .ecc_method_message = JANUS_CONVOLUTIONAL,
           .use_interleaver = true,
-          .fhbfsk_hopper = HOPPER_INCREMENT
+          .fhbfsk_hopper = HOPPER_INCREMENT,
+          .sync_method = NO_SYNC
       },
       .expected_result = IDENTICAL,
       .reference_message = &reference_messages[7],
       .errors_added = 5,
       .repetitions = 1
-    }
+    },
+    {
+      .cfg = {
+          .baud_rate = 1000.0f,
+          .mod_demod_method = MOD_DEMOD_FSK,
+          .fsk_f0 = 29000,
+          .fsk_f1 = 33000,
+          .fc = 31000,
+          .fhbfsk_freq_spacing = 1,
+          .fhbfsk_num_tones = 10,
+          .fhbfsk_dwell_time = 1,
+          .error_detection_method = CRC_16,
+          .ecc_method_preamble = NO_ECC,
+          .ecc_method_message = NO_ECC,
+          .use_interleaver = false,
+          .fhbfsk_hopper = HOPPER_GALOIS,
+          .sync_method = SYNC_PN_32_JANUS
+      },
+      .expected_result = IDENTICAL,
+      .reference_message = &reference_messages[4],
+      .errors_added = 0,
+      .repetitions = 1
+    },
 };
 
 // change to be dependent so that errors can be injected multiple times for single case
@@ -410,7 +438,9 @@ bool FeedbackTests_CorruptMessage(BitMessage_t* bit_msg)
 
   uint16_t error_indices[num_errors];
 
-  if (generateUniqueIndices(error_indices, num_errors, 0, bit_msg->bit_count - 1) == false) {
+  if (generateUniqueIndices(error_indices, num_errors, 
+      bit_msg->preamble.ecc_start_index, 
+      bit_msg->preamble.ecc_start_index + bit_msg->final_length - 1) == false) {
     return false;
   }
 

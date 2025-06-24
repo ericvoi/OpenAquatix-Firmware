@@ -9,6 +9,7 @@
 
 #include <mess_error_detection.h>
 #include "mess_packet.h"
+#include "mess_sync.h"
 #include "cfg_defaults.h"
 #include "cfg_parameters.h"
 #include <stdbool.h>
