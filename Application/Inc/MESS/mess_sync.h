@@ -15,6 +15,8 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 
 #include "mess_dsp_config.h"
+#include "mess_packet.h"
+#include "dac_waveform.h"
 #include <stdbool.h>
 
 /* Private includes ----------------------------------------------------------*/
@@ -35,7 +37,8 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-bool Sync_Add(const DspConfig_t* cfg);
+bool Sync_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, bool* bit, uint16_t step);
+uint16_t Sync_NumSteps(const DspConfig_t* cfg);
 bool Sync_Synchronize(const DspConfig_t* cfg);
 
 /* Private defines -----------------------------------------------------------*/

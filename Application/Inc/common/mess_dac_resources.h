@@ -61,6 +61,8 @@ void MessDacResource_RegisterMessageConfiguration(const DspConfig_t* new_cfg,
  */
 WaveformStep_t MessDacResource_GetStep(uint16_t current_step);
 
+uint16_t MessDacResource_SyncSteps(void);
+
 /* Private defines -----------------------------------------------------------*/
 
 #ifdef __cplusplus

@@ -15,6 +15,7 @@
 #include "mess_modulate.h"
 #include "mess_error_correction.h"
 #include "mess_interleaver.h"
+#include "mess_sync.h"
 #include "cfg_defaults.h"
 #include "cfg_parameters.h"
 #include "cfg_main.h"
@@ -127,6 +128,7 @@ static bool checkFftConditions(uint16_t check_length, float multiplier);
 static uint16_t findStartPosition(uint16_t analysis_index, uint16_t check_length);
 static bool printReceivedWaveform(char* preamble_sequence);
 static void updateFrequencyIndices(const DspConfig_t* cfg);
+static uint32_t totalWaitSamples(const DspConfig_t* cfg);
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -164,16 +166,44 @@ bool Input_Init()
 
 bool Input_DetectMessageStart(const DspConfig_t* cfg)
 {
-  switch (message_start_function) {
-    case MSG_START_AMPLITUDE:
-      return messageStartWithThreshold();
-      break;
-    case MSG_START_FREQUENCY:
-      return messageStartWithFrequency(cfg);
-      break;
-    default:
-      return messageStartWithFrequency(cfg);
+  static bool message_detected = false;
+  static uint32_t samples_waited = 0;
+  if (message_detected == false) {
+    switch (message_start_function) {
+      case MSG_START_AMPLITUDE:
+        if (messageStartWithThreshold() == true) {
+          message_detected = true;
+        }
+        break;
+      case MSG_START_FREQUENCY:
+        if (messageStartWithFrequency(cfg) == true) {
+          message_detected = true;
+        }
+        break;
+      default:
+        if (messageStartWithFrequency(cfg) == true) {
+          message_detected = true;
+        }
+    }
   }
+  if (message_detected == true) {
+    uint32_t samples_to_wait = totalWaitSamples(cfg);
+    if (samples_to_wait == 0) {
+      message_detected = false;
+      samples_waited = 0;
+      return true;
+    }
+    uint16_t new_samples = ADC_InputAvailableSamples();
+    if (new_samples + samples_waited >= samples_to_wait) {
+      ADC_InputTailAdvance((uint16_t) (samples_to_wait - samples_waited));
+      message_detected = false;
+      samples_waited = 0;
+      return true;
+    }
+    ADC_InputTailAdvance(new_samples);
+    samples_waited += new_samples;
+  }
+  return false;
 }
 
 // Segments blocks and adds them to array of blocks to be processed
@@ -670,4 +700,10 @@ void updateFrequencyIndices(const DspConfig_t* cfg)
       return;
     }
   }
+}
+
+static uint32_t totalWaitSamples(const DspConfig_t* cfg)
+{
+  uint16_t num_steps = Sync_NumSteps(cfg);
+  return (uint32_t) (((uint32_t) num_steps * ADC_SAMPLING_RATE) / cfg->baud_rate);
 }

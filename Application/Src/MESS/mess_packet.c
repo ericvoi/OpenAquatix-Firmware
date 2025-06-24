@@ -51,12 +51,6 @@ bool Packet_PrepareTx(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* 
 
   initPacket(bit_msg, cfg);
 
-  if (msg->data_type != EVAL) {
-    if (Sync_Add(cfg) == false) {
-      return false;
-    }
-  }
-
   // Add preamble to bit packet
   if (msg->data_type != EVAL) {
     if (addPreamble(bit_msg, msg) == false) {
