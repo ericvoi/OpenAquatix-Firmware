@@ -85,8 +85,8 @@ bool Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg)
      */
     case HISTORICAL_COMPARISON:
       // Expects nominally that the basic goertzel is correct, but switches predicted bit if there is a large swing
-      // calculate current index
 
+      // calculate current index
       uint16_t num_tones = (cfg->mod_demod_method == MOD_DEMOD_FSK) ? 1 : cfg->fhbfsk_num_tones;
       uint16_t frequency_index = data->bit_index % num_tones;
 
@@ -201,14 +201,15 @@ bool goertzel(DemodulationInfo_t* data)
 
   for (uint16_t i = 0; i < data->data_len; i++) {
     uint16_t index = (i + data->data_start_index) & mask;
+    float data_value = (float) ADC_InputGetDataAbsolute(index);
 
     // Goertzel algorithm for F0
-    q0_f0 = coeff_f0 * q1_f0 - q2_f0 + data->data_buf[index];
+    q0_f0 = coeff_f0 * q1_f0 - q2_f0 + data_value;
     q2_f0 = q1_f0;
     q1_f0 = q0_f0;
 
     // Goertzel algorithm for F1
-    q0_f1 = coeff_f1 * q1_f1 - q2_f1 + data->data_buf[index];
+    q0_f1 = coeff_f1 * q1_f1 - q2_f1 + data_value;
     q2_f1 = q1_f1;
     q1_f1 = q0_f1;
   }

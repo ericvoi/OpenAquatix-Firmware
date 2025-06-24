@@ -57,15 +57,6 @@ typedef enum {
 bool Input_Init();
 
 /**
- * @brief Increments the buffer end index after new ADC data has been received
- *
- * Updates the circular buffer end pointer to incorporate newly received samples.
- *
- * @warning Does not currently check for buffer overflow conditions
- */
-void Input_IncrementEndIndex();
-
-/**
  * @brief Detects the start of an acoustic message in the input stream
  *
  * Applies the currently configured detection method (amplitude or frequency-based)

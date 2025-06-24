@@ -78,7 +78,8 @@ static DspConfig_t default_config = {
     .error_detection_method = DEFAULT_ERROR_DETECTION,
     .ecc_method_preamble = DEFAULT_ECC_PREAMBLE,
     .ecc_method_message = DEFAULT_ECC_MESSAGE,
-    .use_interleaver = DEFAULT_INTERLEAVER_STATE
+    .use_interleaver = DEFAULT_INTERLEAVER_STATE,
+    .sync_method = DEFAULT_SYNC_METHOD
 };
 static DspConfig_t* cfg = &default_config;
 static BitMessage_t bit_msg;
@@ -678,6 +679,14 @@ static bool registerMessMainParams()
   max_u32 = MAX_FHBFSK_HOPPER;
   if (Param_Register(PARAM_FHBFSK_HOPPER, "hopper method", PARAM_TYPE_UINT8,
                      &default_config.fhbfsk_hopper, sizeof(uint8_t), 
+                     &min_u32, &max_u32, NULL) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_SYNC_METHOD;
+  max_u32 = MAX_SYNC_METHOD;
+  if (Param_Register(PARAM_SYNC_METHOD, "synchronization method", PARAM_TYPE_UINT8,
+                     &default_config.sync_method, sizeof(uint8_t),
                      &min_u32, &max_u32, NULL) == false) {
     return false;
   }

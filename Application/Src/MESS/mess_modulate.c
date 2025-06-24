@@ -118,7 +118,7 @@ uint32_t getFhbfskSeqeunceNumber(uint32_t normalized_bit_index, const DspConfig_
 uint32_t incrementSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequences);
 uint32_t galoisSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequences);
 uint32_t primeSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequences);
-uint32_t pow_i(uint32_t base, uint32_t power);
+uint32_t pow_u(uint32_t base, uint32_t power);
 uint32_t pow_mod(uint32_t base, uint32_t power, uint32_t modulus);
 bool isPrime(uint16_t num);
 
@@ -329,7 +329,7 @@ uint32_t galoisSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequen
   // Skip the first row since Pi(0) = 0 always
   for (uint8_t row = 1; row < sequence.K; row++) {
     // The base row value is the value at G(row, 0)
-    uint32_t base_row_value = pow_i(sequence.alpha, row);
+    uint32_t base_row_value = pow_u(sequence.alpha, row);
     // Value at G(row, column)
     uint32_t G_value = pow_mod(base_row_value, column + 1, sequence.Q);
 
@@ -337,7 +337,7 @@ uint32_t galoisSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequen
 
     // The calculation for Pi has been extended to arbitrary K by following
     // the sequence {0, i/Q^(K - row - 1) + 1, i/Q^(K - row - 2), ..., i} % Q
-    uint32_t denom = pow_i(sequence.Q, sequence.K - row - 1);
+    uint32_t denom = pow_u(sequence.Q, sequence.K - row - 1);
     uint32_t Pi_value = i / denom;
     // Specified by JANUS as increasing orthogonality. Generalized to first
     // non-zero element
@@ -402,7 +402,7 @@ uint32_t primeSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequenc
   return (last_hop_amount * normalized_bit_index) % num_sequences;
 }
 
-uint32_t pow_i(uint32_t base, uint32_t power)
+uint32_t pow_u(uint32_t base, uint32_t power)
 {
   uint32_t x = 1;
   for (uint8_t i = 0; i < power; i++) {

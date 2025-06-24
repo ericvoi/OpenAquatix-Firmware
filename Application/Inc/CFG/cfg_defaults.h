@@ -183,6 +183,10 @@ extern "C" {
 #define MIN_FHBFSK_HOPPER           0
 #define MAX_FHBFSK_HOPPER           (NUM_HOPPERS - 1)
 
+#define DEFAULT_SYNC_METHOD         (NO_SYNC)
+#define MIN_SYNC_METHOD             0
+#define MAX_SYNC_METHOD             (NUM_SYNC_METHODS - 1)
+
 /* Exported macro ------------------------------------------------------------*/
 
 

@@ -78,11 +78,6 @@ typedef struct {
 
 static DemodulationInfo_t analysis_blocks[MAX_ANALYSIS_BUFFER_SIZE];
 
-static uint16_t input_buffer[PROCESSING_BUFFER_SIZE] __attribute__((section(".dtcm")));
-
-static volatile uint16_t buffer_start_index = 0;
-static volatile uint16_t buffer_end_index = 0;
-
 static volatile uint16_t analysis_count1 = 0;
 static volatile uint16_t analysis_count2 = 0;
 
@@ -125,7 +120,6 @@ static PgaGain_t fixed_pga_gain = DEFAULT_FIXED_PGA_GAIN;
 
 /* Private function prototypes -----------------------------------------------*/
 
-static uint16_t getBufferLength(void);
 static bool messageStartWithThreshold(void);
 static bool messageStartWithFrequency(const DspConfig_t* cfg);
 static float frequencyToIndex(float frequency);
@@ -138,15 +132,12 @@ static void updateFrequencyIndices(const DspConfig_t* cfg);
 
 bool Input_Init()
 {
-  buffer_start_index = 0;
-  buffer_end_index = 0;
   bit_index = 0;
   for (uint8_t i = 0; i < MAX_ANALYSIS_BUFFER_SIZE; i++) {
     analysis_blocks[i].analysis_done = true;
   }
-  if (ADC_RegisterInputBuffer(input_buffer) == false) return false;
 
-  memset(input_buffer, 0, PROCESSING_BUFFER_SIZE * sizeof(uint16_t));
+  ADC_InputClear();
 
   max_frequency_threshold_length = 0;
 
@@ -171,12 +162,6 @@ bool Input_Init()
   return ret == ARM_MATH_SUCCESS;
 }
 
-//TODO: add check for overflowing buffer
-void Input_IncrementEndIndex()
-{
-  buffer_end_index = (buffer_end_index + ADC_BUFFER_SIZE / 2) % PROCESSING_BUFFER_SIZE;
-}
-
 bool Input_DetectMessageStart(const DspConfig_t* cfg)
 {
   switch (message_start_function) {
@@ -195,15 +180,14 @@ bool Input_DetectMessageStart(const DspConfig_t* cfg)
 bool Input_SegmentBlocks(const DspConfig_t* cfg)
 {
   uint16_t analysis_buffer_length = (uint16_t) ((float) ADC_SAMPLING_RATE / cfg->baud_rate);
-  while (getBufferLength() >= analysis_buffer_length) {
+  while (ADC_InputAvailableSamples() >= analysis_buffer_length) {
 
     analysis_count1++;
 
     uint16_t analysis_index = (analysis_start_index + analysis_length) % MAX_ANALYSIS_BUFFER_SIZE;
-    analysis_blocks[analysis_index].data_buf = input_buffer;
     analysis_blocks[analysis_index].buf_len = PROCESSING_BUFFER_SIZE;
     analysis_blocks[analysis_index].data_len = analysis_buffer_length;
-    analysis_blocks[analysis_index].data_start_index = buffer_start_index;
+    analysis_blocks[analysis_index].data_start_index = ADC_InputGetTail();
     analysis_blocks[analysis_index].bit_index = bit_index++;
     analysis_blocks[analysis_index].decoded_bit = false;
     analysis_blocks[analysis_index].analysis_done = false;
@@ -214,7 +198,7 @@ bool Input_SegmentBlocks(const DspConfig_t* cfg)
       return false; // overflow of analysis buffers
     }
 
-    buffer_start_index = (buffer_start_index + analysis_buffer_length) % PROCESSING_BUFFER_SIZE;
+    ADC_InputTailAdvance(analysis_buffer_length);
   }
   return true;
 }
@@ -347,14 +331,12 @@ bool Input_DecodeMessage(BitMessage_t* input_bit_msg, Message_t* msg)
 
 void Input_Reset()
 {
-  buffer_start_index = 0;
-  buffer_end_index = 0;
+  ADC_InputClear();
   analysis_start_index = 0;
   analysis_length = 0;
   fft_analysis_index = 0;
   fft_analysis_length = 0;
   bit_index = 0;
-  memset(input_buffer, 0, PROCESSING_BUFFER_SIZE * sizeof(uint16_t));
 }
 
 void Input_PrintNoise()
@@ -362,13 +344,14 @@ void Input_PrintNoise()
   char print_buffer[PRINT_CHUNK_SIZE * 7 + 1]; // Accommodates max uint16 length + \r\n + 1
   uint16_t print_index = 0;
   COMM_TransmitData("\b\b\r\n\r\n", 6, COMM_USB);
+  // This entire loop does not do any wrap around so it is imperative that the
+  // print buffer size does not exceed the processing buffer size
   for (uint16_t i = 0; i < PRINT_BUFFER_SIZE; i += PRINT_CHUNK_SIZE) {
     print_index = 0;
 
     for (uint16_t j = 0; j < PRINT_CHUNK_SIZE && (i + j) < PRINT_BUFFER_SIZE; j++) {
-      print_index += sprintf(&print_buffer[print_index], "%u\r\n", input_buffer[i + j]);
+      print_index += sprintf(&print_buffer[print_index], "%u\r\n", ADC_InputGetDataAbsolute(i + j));
     }
-
 
     COMM_TransmitData((uint8_t*) print_buffer, print_index, COMM_USB);
   }
@@ -385,7 +368,7 @@ bool Input_PrintWaveform(bool* print_next_waveform, bool fully_received)
   static bool previous_fully_received = false;
   static uint32_t message_end_time;
 
-  uint16_t new_length = (buffer_end_index - print_waveform_start_index) & mask;
+  uint16_t new_length = (ADC_InputGetHead() - print_waveform_start_index) & mask;
   if (new_length > 8000) {
     return false;
   }
@@ -466,31 +449,15 @@ bool Input_RegisterParams()
 
 /* Private function definitions ----------------------------------------------*/
 
-static uint16_t getBufferLength()
-{
-  uint16_t buffer_length;
-
-  if (buffer_end_index >= buffer_start_index) {
-    buffer_length = buffer_end_index - buffer_start_index;
-  }
-  else {
-    buffer_length = PROCESSING_BUFFER_SIZE - (buffer_start_index - buffer_end_index);
-  }
-  return buffer_length;
-}
-
 bool messageStartWithThreshold()
 {
-  uint16_t end_index = buffer_end_index;
-  if (buffer_start_index == buffer_end_index) return false; // no new data to process
+  if (ADC_InputAvailableSamples() == 0) return false; // no new data to process
 
-  static const uint16_t mask = PROCESSING_BUFFER_SIZE - 1;
-
-  while (buffer_start_index != end_index) {
-    if (input_buffer[buffer_start_index] > AMPLITUDE_THRESHOLD) {
+  while (ADC_InputAvailableSamples() != 0) {
+    if (ADC_InputGetData(0) > AMPLITUDE_THRESHOLD) {
       return true;
     }
-    buffer_start_index = (buffer_start_index + 1) & mask;
+    ADC_InputTailAdvance(1);
   }
 
   return false;
@@ -498,20 +465,16 @@ bool messageStartWithThreshold()
 
 bool messageStartWithFrequency(const DspConfig_t* cfg)
 {
-  static const uint16_t buffer_mask = PROCESSING_BUFFER_SIZE - 1;
   static const uint16_t analysis_mask = FFT_ANALYSIS_BUFF_SIZE - 1;
-  uint16_t end_index = buffer_end_index;
 
-  uint16_t difference = (end_index - buffer_start_index) & buffer_mask;
-
-  if (difference < FFT_SIZE) return false;
+  if (ADC_InputAvailableSamples() < FFT_SIZE) return false;
 
   updateFrequencyIndices(cfg);
 
   do {
     // Prepare buffer
     for (uint16_t i = 0; i < FFT_SIZE; i++) {
-      fft_input_buffer[i] = (float) input_buffer[(buffer_start_index + i) & buffer_mask];
+      fft_input_buffer[i] = (float) ADC_InputGetData(i);
     }
 
     arm_rfft_fast_f32(&fft_handle, fft_input_buffer, fft_output_buffer, 0);
@@ -524,7 +487,7 @@ bool messageStartWithFrequency(const DspConfig_t* cfg)
       fft_mag_sq_buffer[i] = real * real + imag * imag;
     }
 
-    fft_analysis[fft_analysis_index].start_index = buffer_start_index;
+    fft_analysis[fft_analysis_index].start_index = ADC_InputGetTail();
     fft_analysis[fft_analysis_index].length = FFT_SIZE;
     // skip the dc component to avoid overwhelming
     arm_mean_f32(&fft_mag_sq_buffer[1], FFT_SIZE / 2 - 1, &fft_analysis[fft_analysis_index].average);
@@ -538,15 +501,13 @@ bool messageStartWithFrequency(const DspConfig_t* cfg)
     fft_analysis_index = (fft_analysis_index + 1) & analysis_mask;
     fft_analysis_length += 1;
 
-    buffer_start_index = (buffer_start_index + FFT_SIZE / FFT_OVERLAP) & buffer_mask;
+    ADC_InputTailAdvance(FFT_SIZE / FFT_OVERLAP);
     if (fft_analysis_length >= FFT_ANALYSIS_BUFF_SIZE) {
       // TODO: log error
       return false;
     }
 
-    difference = (end_index - buffer_start_index) & buffer_mask;
-
-  } while (difference > FFT_SIZE);
+  } while (ADC_InputAvailableSamples() > FFT_SIZE);
 
   if (fft_analysis_length < 1) return false;
 
@@ -582,8 +543,9 @@ bool checkFftConditions(uint16_t check_length, float multiplier)
         (fft_analysis[index].frequency1_amplitude > multiplier)) {
       check_count++;
       if (check_count >= check_length) {
-        buffer_start_index = findStartPosition((index - check_length + 1) & analysis_mask, check_length);
-        print_waveform_start_index = (buffer_start_index - WAVEFORM_BACK_AMOUNT) & buffer_mask;
+        uint16_t new_tail = findStartPosition((index - check_length + 1) & analysis_mask, check_length);
+        ADC_InputSetTail(new_tail);
+        print_waveform_start_index = (new_tail - WAVEFORM_BACK_AMOUNT) & buffer_mask;
         return true;
       }
     } else {
@@ -638,7 +600,7 @@ bool printReceivedWaveform(char* preamble_sequence)
   }
 
   for (uint16_t i = 0; i < WAVEFORM_PRINT_CHUNK_SIZE_UINT16; i++) {
-    uint16_t data = input_buffer[(print_waveform_start_index + i) & mask];
+    uint16_t data = ADC_InputGetDataAbsolute((print_waveform_start_index + i) & mask);
     print_waveform_out_buffer[out_buffer_index++] = data & 0xFF;
     print_waveform_out_buffer[out_buffer_index++] = (data >> 8) & 0xFF;
   }

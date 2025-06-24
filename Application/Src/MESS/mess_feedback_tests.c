@@ -410,7 +410,9 @@ bool FeedbackTests_CorruptMessage(BitMessage_t* bit_msg)
 
   uint16_t error_indices[num_errors];
 
-  if (generateUniqueIndices(error_indices, num_errors, 0, bit_msg->bit_count - 1) == false) {
+  if (generateUniqueIndices(error_indices, num_errors, 
+      bit_msg->preamble.ecc_start_index, 
+      bit_msg->preamble.ecc_start_index + bit_msg->final_length - 1) == false) {
     return false;
   }
 

@@ -54,6 +54,7 @@ bool Interleaver_Apply(BitMessage_t* bit_msg, const DspConfig_t* cfg)
   }
   // First interleave the preamble separately following the JANUS standard
   BitMessage_t buffer_bit_msg;
+  buffer_bit_msg.bit_count = bit_msg->bit_count;
   if (interleave(bit_msg->preamble.ecc_start_index, bit_msg->preamble.ecc_len,
                  bit_msg, &buffer_bit_msg) == false) {
     return false;
@@ -73,6 +74,7 @@ bool Interleaver_Undo(BitMessage_t* bit_msg, const DspConfig_t* cfg, bool is_pre
     return true;
   }
   BitMessage_t buffer_bit_msg;
+  buffer_bit_msg.bit_count = bit_msg->bit_count;
   SectionInfo_t section_info = is_preamble ? bit_msg->preamble : bit_msg->cargo;
 
   return deinterleave(section_info.ecc_start_index, section_info.ecc_len,

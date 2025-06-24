@@ -68,6 +68,7 @@ typedef enum {
   PARAM_ECC_MESSAGE,
   PARAM_USE_INTERLEAVER,
   PARAM_FHBFSK_HOPPER,
+  PARAM_SYNC_METHOD,
   // Add new parameters just above here and nowhere else
   NUM_PARAM
 } ParamIds_t;
