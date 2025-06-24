@@ -64,8 +64,8 @@ bool Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg)
       }
       break;
     case MOD_DEMOD_FHBFSK: {
-      data->f0 = Modulate_GetFhbfskFrequency(false, data->bit_index, cfg);
-      data->f1 = Modulate_GetFhbfskFrequency(true, data->bit_index, cfg);
+      data->f0 = Modulate_GetFhbfskFrequency(false, data->chip_index, cfg);
+      data->f1 = Modulate_GetFhbfskFrequency(true, data->chip_index, cfg);
       if (goertzel(data) == false) {
         return false;
       }

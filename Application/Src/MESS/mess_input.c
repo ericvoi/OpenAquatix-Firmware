@@ -214,10 +214,13 @@ bool Input_SegmentBlocks(const DspConfig_t* cfg)
 
     analysis_count1++;
 
+    uint16_t sync_chips = Sync_NumSteps(cfg);
+
     uint16_t analysis_index = (analysis_start_index + analysis_length) % MAX_ANALYSIS_BUFFER_SIZE;
     analysis_blocks[analysis_index].buf_len = PROCESSING_BUFFER_SIZE;
     analysis_blocks[analysis_index].data_len = analysis_buffer_length;
     analysis_blocks[analysis_index].data_start_index = ADC_InputGetTail();
+    analysis_blocks[analysis_index].chip_index = bit_index + sync_chips;
     analysis_blocks[analysis_index].bit_index = bit_index++;
     analysis_blocks[analysis_index].decoded_bit = false;
     analysis_blocks[analysis_index].analysis_done = false;
