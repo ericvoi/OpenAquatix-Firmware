@@ -50,6 +50,7 @@ void setCenterFrequency(void* argument);
 void getBitPeriod(void* argument);
 void getBandwidth(void* argument);
 void toggleInterleaver(void* argument);
+void setSynchronizer(void* argument);
 void printConfigOptions(void* argument);
 void importConfiOptions(void* argument);
 void setDacTransitionDuration(void* argument);
@@ -113,8 +114,8 @@ static MenuID_t univConfigMenuChildren[] = {
   MENU_ID_CFG_UNIV_FSK,         MENU_ID_CFG_UNIV_FHBFSK,  
   MENU_ID_CFG_UNIV_BAUD,        MENU_ID_CFG_UNIV_FC,    
   MENU_ID_CFG_UNIV_BP,          MENU_ID_CFG_UNIV_BANDWIDTH, 
-  MENU_ID_CFG_UNIV_INTERLEAVER, MENU_ID_CFG_UNIV_EXP, 
-  MENU_ID_CFG_UNIV_IMP
+  MENU_ID_CFG_UNIV_INTERLEAVER, MENU_ID_CFG_UNIV_SYNC,
+  MENU_ID_CFG_UNIV_EXP,         MENU_ID_CFG_UNIV_IMP
 };
 static const MenuNode_t univConfigMenu = {
   .id = MENU_ID_CFG_UNIV,
@@ -381,6 +382,21 @@ static const MenuNode_t univConfigInterleaver = {
   .num_children = 0,
   .access_level = 0,
   .parameters = &univConfigInterleaverParam
+};
+
+static ParamContext_t univConfigSyncParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_UNIV_SYNC
+};
+static const MenuNode_t univConfigSync = {
+  .id = MENU_ID_CFG_UNIV_SYNC,
+  .description = "Set Synchronization Method",
+  .handler = setSynchronizer,
+  .parent_id = MENU_ID_CFG_UNIV,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &univConfigSyncParam
 };
 
 static ParamContext_t univConfigExportParam = {
@@ -1058,7 +1074,7 @@ bool COMM_RegisterConfigurationMenu()
              registerMenu(&modFbConfigRatio) && registerMenu(&demodConfigSigShift) &&
              registerMenu(&demodCalConfigRatio) && registerMenu(&demodCalConfigPerform) && 
              registerMenu(&demodCalConfigLowFreq) && registerMenu(&demodCalConfigUpperFreq) && 
-             registerMenu(&demodCalConfigExport) && 
+             registerMenu(&demodCalConfigExport) && registerMenu(&univConfigSync) &&
              registerMenu(&demodConfigStartFcn) && registerMenu(&univFskConfigF0) &&
              registerMenu(&univFskConfigF1) && registerMenu(&univFhbfskConfigFreqSpacing) &&
              registerMenu(&univFhbfskConfigDwell) && registerMenu(&univConfigBandwidth) &&
@@ -1305,6 +1321,16 @@ void toggleInterleaver(void* argument)
   FunctionContext_t* context = (FunctionContext_t*) argument;
 
   COMMLoops_LoopToggle(context, PARAM_USE_INTERLEAVER);
+}
+
+void setSynchronizer(void* argument) 
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  char* descriptors[] = {"None", "JANUS 32-chips"};
+
+  COMMLoops_LoopEnum(context, PARAM_SYNC_METHOD, descriptors,
+    sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
 void printConfigOptions(void* argument)
