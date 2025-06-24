@@ -37,8 +37,33 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
+/**
+ * @brief Returns the necessary information for modulating a synchronization
+ * seqeunce
+ * 
+ * @param cfg Configuration struct to use
+ * @param waveform_step Parameters of the waveform to use for modulation (modified)
+ * @param bit Bit to modulate. Used for FSK/FH-BFSK based synchronization
+ * @param step current step
+ * @return true if successful, false otherwise
+ */
 bool Sync_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, bool* bit, uint16_t step);
+
+/**
+ * @brief Returns number of steps in the synchronization sequence
+ * 
+ * @param cfg Configuration struct to use
+ * @return uint16_t Number of steps in the synchronziation sequence
+ */
 uint16_t Sync_NumSteps(const DspConfig_t* cfg);
+
+/**
+ * @brief Syncrhonizes the receiver and sender (NOT IMPLEMENTED YET)
+ * 
+ * @param cfg 
+ * @return true 
+ * @return false 
+ */
 bool Sync_Synchronize(const DspConfig_t* cfg);
 
 /* Private defines -----------------------------------------------------------*/

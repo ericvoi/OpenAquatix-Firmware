@@ -61,6 +61,13 @@ void MessDacResource_RegisterMessageConfiguration(const DspConfig_t* new_cfg,
  */
 WaveformStep_t MessDacResource_GetStep(uint16_t current_step);
 
+/**
+ * @brief Number of steps in the synchronization sequence
+ * 
+ * Useful when no cfg is available
+ * 
+ * @return uint16_t Number of steps
+ */
 uint16_t MessDacResource_SyncSteps(void);
 
 /* Private defines -----------------------------------------------------------*/

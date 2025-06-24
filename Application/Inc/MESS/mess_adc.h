@@ -107,13 +107,23 @@ bool ADC_StopInput();
  */
 bool ADC_StopAll();
 
+/**
+ * @brief Resets input buffer head and tail to 0, and sets buffer to 0
+ * 
+ */
 void ADC_InputClear();
 
+/**
+ * @brief Resets feedback buffer head and tail to 0, and sets buffer to 0
+ * 
+ */
 void ADC_FeedbackClear();
 
 /* Private defines -----------------------------------------------------------*/
 
 // Inline functions to interface with the input ADC buffer
+// Note: always_inline used to force basic optimization in low optimization
+// levels to get the required performance in debug modes
 
 static inline __attribute__((always_inline)) uint16_t ADC_InputAvailableSamples(void) 
 {
