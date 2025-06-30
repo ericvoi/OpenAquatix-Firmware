@@ -34,7 +34,7 @@ static uint16_t adc_buffer[ADC_BUFFER_SIZE]; // shared ADC buffer for both feedb
 
 volatile uint16_t input_head_pos = 0;
 volatile uint16_t input_tail_pos = 0;
-uint16_t input_buffer[PROCESSING_BUFFER_SIZE] __attribute__((section(".dtcm")));;
+float input_buffer[PROCESSING_BUFFER_SIZE] __attribute__((section(".dtcm")));;
 
 volatile uint16_t feedback_head_pos = 0;
 volatile uint16_t feedback_tail_pos = 0;
@@ -110,7 +110,7 @@ void ADC_InputClear()
 {
   input_head_pos = 0;
   input_tail_pos = 0;
-  memset(input_buffer, 0, PROCESSING_BUFFER_SIZE * sizeof(uint16_t));
+  memset(input_buffer, 0, PROCESSING_BUFFER_SIZE * sizeof(float));
 }
 
 void ADC_FeedbackClear()
@@ -132,17 +132,11 @@ void addToInputBuffer(bool firstHalf)
     input_sample_lost = true;
   }
 
-  if (input_head_pos + ADC_BUFFER_SIZE / 2 > PROCESSING_BUFFER_SIZE) {
-    uint16_t first_block_size = PROCESSING_BUFFER_SIZE - input_head_pos;
-    memcpy(&input_buffer[input_head_pos], &adc_buffer[dma_buf_start_index], first_block_size * sizeof(uint16_t));
-    uint16_t second_block_size = ADC_BUFFER_SIZE / 2 - first_block_size;
-    memcpy(&input_buffer[0], &adc_buffer[first_block_size + dma_buf_start_index], second_block_size * sizeof(uint16_t));
+  for (uint16_t i = 0; i < ADC_BUFFER_SIZE / 2; i++) {
+    uint16_t dma_index = dma_buf_start_index + i;
+    input_buffer[input_head_pos] = (float) adc_buffer[dma_index];
+    input_head_pos = (input_head_pos + 1) & PROCESSING_BUFFER_MASK;
   }
-  else {
-    memcpy(&input_buffer[input_head_pos], &adc_buffer[dma_buf_start_index], (ADC_BUFFER_SIZE / 2) * sizeof(uint16_t));
-  }
-
-  input_head_pos = (input_head_pos + ADC_BUFFER_SIZE / 2) & PROCESSING_BUFFER_MASK;
 }
 
 void addToFeedbackBuffer(bool firstHalf)
@@ -162,7 +156,7 @@ void addToFeedbackBuffer(bool firstHalf)
     memcpy(&feedback_buffer[0], &adc_buffer[first_block_size + dma_buf_start_index], second_block_size * sizeof(uint16_t));
   }
   else {
-    memcpy(&input_buffer[feedback_head_pos], &adc_buffer[dma_buf_start_index], (ADC_BUFFER_SIZE / 2) * sizeof(uint16_t));
+    memcpy(&feedback_buffer[feedback_head_pos], &adc_buffer[dma_buf_start_index], (ADC_BUFFER_SIZE / 2) * sizeof(uint16_t));
   }
 
   input_head_pos = (input_head_pos + ADC_BUFFER_SIZE / 2) & PROCESSING_BUFFER_MASK;

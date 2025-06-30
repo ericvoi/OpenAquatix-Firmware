@@ -201,7 +201,7 @@ bool goertzel(DemodulationInfo_t* data)
 
   for (uint16_t i = 0; i < data->data_len; i++) {
     uint16_t index = (i + data->data_start_index) & mask;
-    float data_value = (float) ADC_InputGetDataAbsolute(index);
+    float data_value = ADC_InputGetDataAbsolute(index);
 
     // Goertzel algorithm for F0
     q0_f0 = coeff_f0 * q1_f0 - q2_f0 + data_value;
