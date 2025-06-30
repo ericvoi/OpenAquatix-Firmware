@@ -482,9 +482,13 @@ static bool handleFlags()
     osEventFlagsClear(print_event_handle, MESS_PRINT_WAVEFORM);
     print_next_waveform = true;
   }
-  else if (flags & MESS_FEEDBACK_TESTS){
+  else if (flags & MESS_FEEDBACK_TESTS) {
     osEventFlagsClear(print_event_handle, MESS_FEEDBACK_TESTS);
     FeedbackTests_Start();
+  }
+  else if (flags & MESS_INPUT_FFT) {
+    osEventFlagsClear(print_event_handle, MESS_INPUT_FFT);
+    Input_NoiseFft();
   }
   return true;
 }

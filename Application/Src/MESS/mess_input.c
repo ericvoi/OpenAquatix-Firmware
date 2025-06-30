@@ -57,7 +57,7 @@ typedef struct {
 
 #define AMPLITUDE_THRESHOLD       (2500.0f)
 
-#define FFT_SIZE                  64
+#define MSG_START_FFT_SIZE        64
 #define FFT_ANALYSIS_BUFF_SIZE    512
 #define FFT_OVERLAP               4
 
@@ -70,6 +70,10 @@ typedef struct {
 #define WAVEFORM_PRINT_PREAMBLE_SIZE      4
 #define WAVEFORM_PRINT_BUFFER_SIZE        (WAVEFORM_PRINT_CHUNK_SIZE_BYTES + \
                                           WAVEFORM_PRINT_PREAMBLE_SIZE * 2)
+
+#define NOISE_FFT_BLOCK_SIZE              128
+// The number of ADC sampels to perform analysis on
+#define NOISE_FFT_SAMPLES                 12800 // 100 blocks
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -92,16 +96,17 @@ static char print_waveform_start_sequence[WAVEFORM_PRINT_PREAMBLE_SIZE] = {'D', 
 static char print_waveform_last_sequence[WAVEFORM_PRINT_PREAMBLE_SIZE] = {'T', 'E', 'R', 'M'};
 static char print_waveform_end_data[WAVEFORM_PRINT_PREAMBLE_SIZE] = {0xAA, 0xBB, 0xCC, 0xDD};
 
-static float fft_input_buffer[FFT_SIZE] __attribute__((section(".dtcm")));
-static float fft_output_buffer[FFT_SIZE] __attribute__((section(".dtcm")));
-static float fft_mag_sq_buffer[FFT_SIZE / 2];
+static float fft_input_buffer[MSG_START_FFT_SIZE] __attribute__((section(".dtcm")));
+static float fft_output_buffer[MSG_START_FFT_SIZE] __attribute__((section(".dtcm")));
+static float fft_mag_sq_buffer[MSG_START_FFT_SIZE / 2];
 
 static FFTInfo_t fft_analysis[FFT_ANALYSIS_BUFF_SIZE];
 
 static uint16_t fft_analysis_index = 0;
 static uint16_t fft_analysis_length = 0;
 
-static arm_rfft_fast_instance_f32 fft_handle;
+static arm_rfft_fast_instance_f32 fft_handle64;
+static arm_rfft_fast_instance_f32 fft_handle128;
 
 static FrequencyThresholds_t frequency_thresholds[] = {
     {.raw_amplitude_threshold = 80, .length_us = 2500},
@@ -123,7 +128,8 @@ static PgaGain_t fixed_pga_gain = DEFAULT_FIXED_PGA_GAIN;
 
 static bool messageStartWithThreshold(void);
 static bool messageStartWithFrequency(const DspConfig_t* cfg);
-static float frequencyToIndex(float frequency);
+static float frequencyToIndex(float frequency, uint16_t fft_size);
+static float indexToFrequency(float index, uint16_t fft_size);
 static bool checkFftConditions(uint16_t check_length, float multiplier);
 static uint16_t findStartPosition(uint16_t analysis_index, uint16_t check_length);
 static bool printReceivedWaveform(char* preamble_sequence);
@@ -145,10 +151,10 @@ bool Input_Init()
 
   for (uint16_t i = 0; i < unique_frequency_conditions; i++) {
     frequency_thresholds[i].energy_threshold = (float) frequency_thresholds[i].raw_amplitude_threshold *
-        frequency_thresholds[i].raw_amplitude_threshold * FFT_SIZE / 2.0f;
+        frequency_thresholds[i].raw_amplitude_threshold * MSG_START_FFT_SIZE / 2.0f;
 
     uint32_t ns_per_sample = 1000000000 / ADC_SAMPLING_RATE;
-    frequency_thresholds[i].num_samples = frequency_thresholds[i].length_us * 1000 / ns_per_sample * FFT_OVERLAP / FFT_SIZE + 1;
+    frequency_thresholds[i].num_samples = frequency_thresholds[i].length_us * 1000 / ns_per_sample * FFT_OVERLAP / MSG_START_FFT_SIZE + 1;
 
     if (frequency_thresholds[i].num_samples > max_frequency_threshold_length) {
       max_frequency_threshold_length = frequency_thresholds[i].num_samples;
@@ -157,11 +163,18 @@ bool Input_Init()
     frequency_thresholds[i].hits = 0;
   }
 
-  fft_handle.fftLenRFFT = FFT_SIZE;
+  fft_handle64.fftLenRFFT = MSG_START_FFT_SIZE;
+  arm_status ret = arm_rfft_64_fast_init_f32(&fft_handle64);
+  if (ret != ARM_MATH_SUCCESS) {
+    return false;
+  }
 
-  arm_status ret = arm_rfft_64_fast_init_f32(&fft_handle);
-
-  return ret == ARM_MATH_SUCCESS;
+  fft_handle128.fftLenRFFT = NOISE_FFT_BLOCK_SIZE;
+  ret = arm_rfft_128_fast_init_f32(&fft_handle128);
+  if (ret != ARM_MATH_SUCCESS) {
+    return false;
+  }
+  return true;
 }
 
 bool Input_DetectMessageStart(const DspConfig_t* cfg)
@@ -374,9 +387,11 @@ void Input_Reset()
 
 void Input_PrintNoise()
 {
-  // When called in a high noise environemtn without this delay, the data can
-  // be unset since the buffer is cleared when a message is completed
-  osDelay(10);
+  uint16_t timeout_count = 0;
+  while (ADC_InputGetHead() < PRINT_BUFFER_SIZE) {
+    osDelay(1);
+    if (++timeout_count > 100) return;
+  }
   ADC_StopInput();
   char print_buffer[PRINT_CHUNK_SIZE * 7 + 1]; // Accommodates max uint16 length + \r\n + 1
   uint16_t print_index = 0;
@@ -447,6 +462,46 @@ bool Input_PrintWaveform(bool* print_next_waveform, bool fully_received)
   return true;
 }
 
+void Input_NoiseFft()
+{
+  uint16_t timeout_count = 0;
+  while (ADC_InputGetHead() < NOISE_FFT_SAMPLES) {
+    osDelay(1);
+    if (++timeout_count > 500) {
+      return;
+    }
+  }
+  ADC_StopInput();
+
+  float fft_in_buf[NOISE_FFT_BLOCK_SIZE];
+  float fft_out_buf[NOISE_FFT_BLOCK_SIZE];
+  float fft_sums[NOISE_FFT_BLOCK_SIZE / 2] = {0.0f};
+
+  for (uint16_t i = 0; i < NOISE_FFT_SAMPLES; i += NOISE_FFT_BLOCK_SIZE) {
+    memcpy(&fft_in_buf[0], &input_buffer[i], NOISE_FFT_BLOCK_SIZE * sizeof(float));
+    arm_rfft_fast_f32(&fft_handle128, fft_in_buf, fft_out_buf, 0);
+
+    fft_sums[0] += fft_output_buffer[0];
+    for (uint16_t j = 1; j < NOISE_FFT_BLOCK_SIZE / 2; j++) {
+      float real = fft_output_buffer[2 * i];
+      float imag = fft_output_buffer[2 * i + 1];
+
+      fft_sums[i] += sqrtf(real * real + imag * imag);
+    }
+  }
+
+  COMM_TransmitData("\b\b\r\n\r\n", 6, COMM_USB);
+
+  for (uint16_t i = 0; i < NOISE_FFT_BLOCK_SIZE / 2; i++) {
+    char out_buf[32];
+    sprintf(out_buf, "%.2f, %.2f\r\n", indexToFrequency(i, NOISE_FFT_BLOCK_SIZE), 
+        fft_sums[i] / (NOISE_FFT_SAMPLES / NOISE_FFT_BLOCK_SIZE));
+
+    COMM_TransmitData(out_buf, CALC_LEN, COMM_USB);
+  }
+  ADC_StartInput();
+}
+
 bool Input_UpdatePgaGain()
 {
   // TODO: add automatic gain control
@@ -505,20 +560,20 @@ bool messageStartWithFrequency(const DspConfig_t* cfg)
 {
   static const uint16_t analysis_mask = FFT_ANALYSIS_BUFF_SIZE - 1;
 
-  if (ADC_InputAvailableSamples() < FFT_SIZE) return false;
+  if (ADC_InputAvailableSamples() < MSG_START_FFT_SIZE) return false;
 
   updateFrequencyIndices(cfg);
 
   do {
     // Prepare buffer
-    for (uint16_t i = 0; i < FFT_SIZE; i++) {
+    for (uint16_t i = 0; i < MSG_START_FFT_SIZE; i++) {
       fft_input_buffer[i] = ADC_InputGetData(i);
     }
 
-    arm_rfft_fast_f32(&fft_handle, fft_input_buffer, fft_output_buffer, 0);
+    arm_rfft_fast_f32(&fft_handle64, fft_input_buffer, fft_output_buffer, 0);
 
     fft_mag_sq_buffer[0] = fft_output_buffer[0] * fft_output_buffer[0];
-    for (uint16_t i = 1; i < FFT_SIZE / 2; i++) {
+    for (uint16_t i = 1; i < MSG_START_FFT_SIZE / 2; i++) {
       float real = fft_output_buffer[2 * i];
       float imag = fft_output_buffer[2 * i + 1];
 
@@ -526,11 +581,11 @@ bool messageStartWithFrequency(const DspConfig_t* cfg)
     }
 
     fft_analysis[fft_analysis_index].start_index = ADC_InputGetTail();
-    fft_analysis[fft_analysis_index].length = FFT_SIZE;
+    fft_analysis[fft_analysis_index].length = MSG_START_FFT_SIZE;
     // skip the dc component to avoid overwhelming
-    arm_mean_f32(&fft_mag_sq_buffer[1], FFT_SIZE / 2 - 1, &fft_analysis[fft_analysis_index].average);
+    arm_mean_f32(&fft_mag_sq_buffer[1], MSG_START_FFT_SIZE / 2 - 1, &fft_analysis[fft_analysis_index].average);
     // skip the dc component since it will always dominate
-    arm_max_f32(&fft_mag_sq_buffer[1], FFT_SIZE / 2 - 1, &fft_analysis[fft_analysis_index].maximum, &fft_analysis[fft_analysis_index].max_index);
+    arm_max_f32(&fft_mag_sq_buffer[1], MSG_START_FFT_SIZE / 2 - 1, &fft_analysis[fft_analysis_index].maximum, &fft_analysis[fft_analysis_index].max_index);
 
     fft_analysis[fft_analysis_index].frequency0_amplitude = fft_mag_sq_buffer[frequency_check_index_0];
     fft_analysis[fft_analysis_index].frequency1_amplitude = fft_mag_sq_buffer[frequency_check_index_1];
@@ -539,13 +594,13 @@ bool messageStartWithFrequency(const DspConfig_t* cfg)
     fft_analysis_index = (fft_analysis_index + 1) & analysis_mask;
     fft_analysis_length += 1;
 
-    ADC_InputTailAdvance(FFT_SIZE / FFT_OVERLAP);
+    ADC_InputTailAdvance(MSG_START_FFT_SIZE / FFT_OVERLAP);
     if (fft_analysis_length >= FFT_ANALYSIS_BUFF_SIZE) {
       // TODO: log error
       return false;
     }
 
-  } while (ADC_InputAvailableSamples() > FFT_SIZE);
+  } while (ADC_InputAvailableSamples() > MSG_START_FFT_SIZE);
 
   if (fft_analysis_length < 1) return false;
 
@@ -561,9 +616,14 @@ bool messageStartWithFrequency(const DspConfig_t* cfg)
   return false;
 }
 
-float frequencyToIndex(float frequency)
+float frequencyToIndex(float frequency, uint16_t fft_size)
 {
-  return frequency * FFT_SIZE / ((float) ADC_SAMPLING_RATE);
+  return frequency * fft_size / ((float) ADC_SAMPLING_RATE);
+}
+
+static float indexToFrequency(float index, uint16_t fft_size)
+{
+  return ADC_SAMPLING_RATE * index / ((float) fft_size);
 }
 
 bool checkFftConditions(uint16_t check_length, float multiplier)
@@ -598,7 +658,7 @@ static uint16_t findStartPosition(uint16_t analysis_index, uint16_t check_length
   static const uint16_t analysis_mask = FFT_ANALYSIS_BUFF_SIZE - 1;
   static const uint16_t buffer_mask = PROCESSING_BUFFER_SIZE - 1;
   if (check_length == 1) {
-    return (fft_analysis[analysis_index].start_index + FFT_SIZE / 2) & analysis_mask;
+    return (fft_analysis[analysis_index].start_index + MSG_START_FFT_SIZE / 2) & analysis_mask;
   }
 
   float first_amplitude;
@@ -616,10 +676,10 @@ static uint16_t findStartPosition(uint16_t analysis_index, uint16_t check_length
 
   // Large increase in the amplitude between successive analysis
   if (second_amplitude / first_amplitude > ratio_threshold) {
-    return (fft_analysis[analysis_index].start_index + FFT_SIZE - FFT_SIZE / FFT_OVERLAP) & buffer_mask;
+    return (fft_analysis[analysis_index].start_index + MSG_START_FFT_SIZE - MSG_START_FFT_SIZE / FFT_OVERLAP) & buffer_mask;
   }
   else {
-    return (fft_analysis[analysis_index].start_index + FFT_SIZE / 2) & buffer_mask;
+    return (fft_analysis[analysis_index].start_index + MSG_START_FFT_SIZE / 2) & buffer_mask;
   }
 }
 
@@ -677,8 +737,8 @@ void updateFrequencyIndices(const DspConfig_t* cfg)
     frequency1 = Modulate_GetFhbfskFrequency(true, 0, cfg);
   }
 
-  float index0 = frequencyToIndex(frequency0);
-  float index1 = frequencyToIndex(frequency1);
+  float index0 = frequencyToIndex(frequency0, MSG_START_FFT_SIZE);
+  float index1 = frequencyToIndex(frequency1, MSG_START_FFT_SIZE);
 
   frequency_check_index_0 = (uint16_t) roundf(index0);
   frequency_check_index_1 = (uint16_t) roundf(index1);

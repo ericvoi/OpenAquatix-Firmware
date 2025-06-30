@@ -152,6 +152,8 @@ void Input_PrintNoise();
  */
 bool Input_PrintWaveform(bool* print_next_waveform, bool fully_received);
 
+void Input_NoiseFft();
+
 bool Input_UpdatePgaGain();
 
 /**
