@@ -374,6 +374,10 @@ void Input_Reset()
 
 void Input_PrintNoise()
 {
+  // When called in a high noise environemtn without this delay, the data can
+  // be unset since the buffer is cleared when a message is completed
+  osDelay(10);
+  ADC_StopInput();
   char print_buffer[PRINT_CHUNK_SIZE * 7 + 1]; // Accommodates max uint16 length + \r\n + 1
   uint16_t print_index = 0;
   COMM_TransmitData("\b\b\r\n\r\n", 6, COMM_USB);
@@ -388,6 +392,7 @@ void Input_PrintNoise()
 
     COMM_TransmitData((uint8_t*) print_buffer, print_index, COMM_USB);
   }
+  ADC_StartInput();
 }
 
 bool Input_PrintWaveform(bool* print_next_waveform, bool fully_received)

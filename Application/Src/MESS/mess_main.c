@@ -90,7 +90,7 @@ static uint16_t message_length = 0;
 static void switchState(ProcessingState_t newState);
 static void switchTrTransmit();
 static void switchTrReceive();
-static MessageFlags_t checkFlags();
+static bool handleFlags();
 static bool registerMessParams();
 static bool registerMessMainParams();
 
@@ -152,30 +152,9 @@ void MESS_StartTask(void* argument)
           Error_Routine(ERROR_MESS_PROCESSING);
           break;
         }
-        // Wait for an edge/chirp or send a message if received
-        MessageFlags_t flags = checkFlags();
 
-        switch (flags) {
-          case MESS_PRINT_REQUEST:
-            osEventFlagsClear(print_event_handle, MESS_PRINT_REQUEST);
-            Input_PrintNoise();
-            osEventFlagsSet(print_event_handle, MESS_PRINT_COMPLETE);
-            break;
-          case MESS_FREQ_RESP:
-            osEventFlagsClear(print_event_handle, MESS_FREQ_RESP);
-            Modulate_TestFrequencyResponse();
-            in_feedback = true;
-            switchState(DRIVING_TRANSDUCER);
-            break;
-          case MESS_PRINT_WAVEFORM:
-            osEventFlagsClear(print_event_handle, MESS_PRINT_WAVEFORM);
-            print_next_waveform = true;
-            break;
-          case MESS_FEEDBACK_TESTS:
-            osEventFlagsClear(print_event_handle, MESS_FEEDBACK_TESTS);
-            FeedbackTests_Start();
-          default:
-            break;
+        if (handleFlags() == false) {
+          Error_Routine(ERROR_MESS_PROCESSING);
         }
 
         FeedbackTests_GetNext();
@@ -476,60 +455,38 @@ static void switchTrReceive()
   HAL_GPIO_WritePin(GPIOD, TR_CTRL_Pin, GPIO_PIN_SET);
 }
 
-static MessageFlags_t checkFlags()
+static bool handleFlags()
 {
-  uint32_t flags;
-  if (print_event_handle == NULL) {
-    return 0;
-  }
-  flags = osEventFlagsWait(print_event_handle, MESS_PRINT_REQUEST, osFlagsWaitAny, 0);
+  uint32_t flags = osEventFlagsWait(print_event_handle, ! 0, osFlagsWaitAny, 0);
 
   if (flags == osFlagsErrorResource) {
-    // Normal nothing returned. Do nothing
-  }
-  else if (flags & 0x80000000U) {
-    // TODO: log error
-  }
-  else if ((flags & MESS_PRINT_REQUEST) == MESS_PRINT_REQUEST) {
-    return MESS_PRINT_REQUEST;
+    return true;
   }
 
-  flags = osEventFlagsWait(print_event_handle, MESS_FREQ_RESP, osFlagsWaitAny, 0);
-
-  if (flags == osFlagsErrorResource) {
-    // Normal nothing returned. Do nothing
-  }
-  else if (flags & 0x80000000U) {
-    // TODO: log error
-  }
-  else if ((flags & MESS_FREQ_RESP) == MESS_FREQ_RESP) {
-    return MESS_FREQ_RESP;
+  if (flags & 0x80000000U) {
+    return false;
   }
 
-  flags = osEventFlagsWait(print_event_handle, MESS_PRINT_WAVEFORM, osFlagsWaitAny, 0);
-
-  if (flags == osFlagsErrorResource) {
-    // Normal nothing returned. Do nothing
+  if (flags & MESS_PRINT_REQUEST) {
+    osEventFlagsClear(print_event_handle, MESS_PRINT_REQUEST);
+    Input_PrintNoise();
+    osEventFlagsSet(print_event_handle, MESS_PRINT_COMPLETE);
   }
-  else if (flags & 0x80000000U) {
-    // TODO: log error
+  else if (flags & MESS_FREQ_RESP) {
+    osEventFlagsClear(print_event_handle, MESS_FREQ_RESP);
+    Modulate_TestFrequencyResponse();
+    in_feedback = true;
+    switchState(DRIVING_TRANSDUCER);
   }
-  else if ((flags & MESS_PRINT_WAVEFORM) == MESS_PRINT_WAVEFORM) {
-    return MESS_PRINT_WAVEFORM;
+  else if (flags & MESS_PRINT_WAVEFORM) {
+    osEventFlagsClear(print_event_handle, MESS_PRINT_WAVEFORM);
+    print_next_waveform = true;
   }
-
-  flags = osEventFlagsWait(print_event_handle, MESS_FEEDBACK_TESTS, osFlagsWaitAny, 0);
-
-  if (flags == osFlagsErrorResource) {
-    // Normal nothing returned. Do nothing
+  else if (flags & MESS_FEEDBACK_TESTS){
+    osEventFlagsClear(print_event_handle, MESS_FEEDBACK_TESTS);
+    FeedbackTests_Start();
   }
-  else if (flags & 0x80000000U) {
-    // TODO: log error
-  }
-  else if ((flags & MESS_FEEDBACK_TESTS) == MESS_FEEDBACK_TESTS) {
-    return MESS_FEEDBACK_TESTS;
-  }
-  return 0;
+  return true;
 }
 
 static bool registerMessParams()
