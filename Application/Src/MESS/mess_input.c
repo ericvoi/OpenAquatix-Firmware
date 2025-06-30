@@ -55,7 +55,7 @@ typedef struct {
 #define PRINT_BUFFER_SIZE         1000
 #define PRINT_CHUNK_SIZE          50
 
-#define AMPLITUDE_THRESHOLD       2500
+#define AMPLITUDE_THRESHOLD       (2500.0f)
 
 #define FFT_SIZE                  64
 #define FFT_ANALYSIS_BUFF_SIZE    512
@@ -383,7 +383,7 @@ void Input_PrintNoise()
     print_index = 0;
 
     for (uint16_t j = 0; j < PRINT_CHUNK_SIZE && (i + j) < PRINT_BUFFER_SIZE; j++) {
-      print_index += sprintf(&print_buffer[print_index], "%u\r\n", ADC_InputGetDataAbsolute(i + j));
+      print_index += sprintf(&print_buffer[print_index], "%.0f\r\n", ADC_InputGetDataAbsolute(i + j));
     }
 
     COMM_TransmitData((uint8_t*) print_buffer, print_index, COMM_USB);
@@ -507,7 +507,7 @@ bool messageStartWithFrequency(const DspConfig_t* cfg)
   do {
     // Prepare buffer
     for (uint16_t i = 0; i < FFT_SIZE; i++) {
-      fft_input_buffer[i] = (float) ADC_InputGetData(i);
+      fft_input_buffer[i] = ADC_InputGetData(i);
     }
 
     arm_rfft_fast_f32(&fft_handle, fft_input_buffer, fft_output_buffer, 0);
@@ -633,7 +633,8 @@ bool printReceivedWaveform(char* preamble_sequence)
   }
 
   for (uint16_t i = 0; i < WAVEFORM_PRINT_CHUNK_SIZE_UINT16; i++) {
-    uint16_t data = ADC_InputGetDataAbsolute((print_waveform_start_index + i) & mask);
+    // Back converted to u16 so it is easier to transfer over limited data rates
+    uint16_t data = (uint16_t) ADC_InputGetDataAbsolute((print_waveform_start_index + i) & mask);
     print_waveform_out_buffer[out_buffer_index++] = data & 0xFF;
     print_waveform_out_buffer[out_buffer_index++] = (data >> 8) & 0xFF;
   }

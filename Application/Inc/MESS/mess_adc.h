@@ -42,7 +42,7 @@ extern TIM_HandleTypeDef htim8;
 
 extern volatile uint16_t input_head_pos;
 extern volatile uint16_t input_tail_pos;
-extern uint16_t input_buffer[PROCESSING_BUFFER_SIZE];
+extern float input_buffer[PROCESSING_BUFFER_SIZE];
 
 extern volatile uint16_t feedback_head_pos;
 extern volatile uint16_t feedback_tail_pos;
@@ -140,12 +140,12 @@ static inline __attribute((always_inline)) void ADC_InputSetTail(uint16_t tail_l
   input_tail_pos = tail_location;
 }
 
-static inline __attribute__((always_inline)) uint16_t ADC_InputGetData(uint16_t offset) 
+static inline __attribute__((always_inline)) float ADC_InputGetData(uint16_t offset) 
 {
   return input_buffer[(input_tail_pos + offset) & PROCESSING_BUFFER_MASK];
 }
 
-static inline __attribute__((always_inline)) uint16_t ADC_InputGetDataAbsolute(uint16_t position)
+static inline __attribute__((always_inline)) float ADC_InputGetDataAbsolute(uint16_t position)
 {
   return input_buffer[position];
 }
