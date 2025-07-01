@@ -465,6 +465,8 @@ bool Input_PrintWaveform(bool* print_next_waveform, bool fully_received)
 void Input_NoiseFft()
 {
   uint16_t timeout_count = 0;
+  uint16_t peak_index = 0;
+  float peak_magnitude = 0;
   while (ADC_InputGetHead() < NOISE_FFT_SAMPLES) {
     osDelay(1);
     if (++timeout_count > 500) {
@@ -486,7 +488,13 @@ void Input_NoiseFft()
       float real = fft_out_buf[2 * j];
       float imag = fft_out_buf[2 * j + 1];
 
-      fft_sums[j] += sqrtf(real * real + imag * imag) / NOISE_FFT_BLOCK_SIZE;
+      float mag = sqrtf(real * real + imag * imag) / NOISE_FFT_BLOCK_SIZE;
+      fft_sums[j] += mag;
+
+      if (mag > peak_magnitude) {
+        peak_index = j;
+        peak_magnitude = mag;
+      }
     }
   }
 
@@ -494,13 +502,18 @@ void Input_NoiseFft()
 
   COMM_TransmitData("Frequency, Amplitude\r\n", CALC_LEN, COMM_USB);
 
+  char out_buf[80];
   for (uint16_t i = 0; i < NOISE_FFT_BLOCK_SIZE / 2; i++) {
-    char out_buf[32];
     sprintf(out_buf, "%.2f, %.2f\r\n", indexToFrequency(i, NOISE_FFT_BLOCK_SIZE), 
         fft_sums[i] / (NOISE_FFT_SAMPLES / NOISE_FFT_BLOCK_SIZE));
 
     COMM_TransmitData(out_buf, CALC_LEN, COMM_USB);
   }
+
+  sprintf(out_buf, "\r\nPeak frequency: %.2fHz with amplitude %.2f\r\n",
+      indexToFrequency(peak_index, NOISE_FFT_BLOCK_SIZE), peak_magnitude);
+
+  COMM_TransmitData(out_buf, CALC_LEN, COMM_USB);
   ADC_StartInput();
 }
 
