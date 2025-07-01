@@ -126,12 +126,13 @@ typedef enum {
 
 
 typedef enum {
-  MESS_PRINT_REQUEST = 0x00000001,
-  MESS_PRINT_COMPLETE = 0x00000002,
-  MESS_FREQ_RESP = 0x00000004,
-  MESS_PRINT_WAVEFORM = 0x00000008,
-  MESS_FEEDBACK_TESTS = 0x00000010,
-  MESS_DAC_READY = 0x00000020
+  MESS_PRINT_REQUEST = 1 << 0,
+  MESS_PRINT_COMPLETE = 1 << 1,
+  MESS_FREQ_RESP = 1 << 2,
+  MESS_PRINT_WAVEFORM = 1 << 3,
+  MESS_FEEDBACK_TESTS = 1 << 4,
+  MESS_DAC_READY = 1 << 5,
+  MESS_INPUT_FFT = 1 << 6
 } MessageFlags_t;
 
 /* Exported macro ------------------------------------------------------------*/
