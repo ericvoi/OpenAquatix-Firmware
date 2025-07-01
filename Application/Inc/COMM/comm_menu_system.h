@@ -96,8 +96,8 @@ typedef enum {
   MENU_ID_DBG_GPIO,             // Dump the state of all used GPIO inputs and outputs
   MENU_ID_DBG_SETLED,           // Set the colour of the onboard LED
   MENU_ID_DBG_PRINT,            // Print the next received waveform when it is received
-  MENU_ID_DBG_NOISE,            // 1000 sample ADC dump
-  MENU_ID_DBG_NOISEFREQ,        // Frequency content of background noise
+  MENU_ID_DBG_BGDUMP,           // 1000 sample ADC dump
+  MENU_ID_DBG_BGFREQ,           // Frequency content of background noise
   MENU_ID_DBG_TEMP,             // Current temperature
   MENU_ID_DBG_ERR,              // Current errors
   MENU_ID_DBG_PWR,              // Current power consumption

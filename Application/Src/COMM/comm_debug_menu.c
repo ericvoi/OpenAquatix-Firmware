@@ -60,8 +60,8 @@ void resetSavedValues(void* argument);
 /* Private variables ---------------------------------------------------------*/
 
 static MenuID_t debugMenuChildren[] = {MENU_ID_DBG_GPIO, MENU_ID_DBG_SETLED,
-                                       MENU_ID_DBG_PRINT, MENU_ID_DBG_NOISE,
-                                       MENU_ID_DBG_NOISEFREQ, MENU_ID_DBG_TEMP, 
+                                       MENU_ID_DBG_PRINT, MENU_ID_DBG_BGDUMP,
+                                       MENU_ID_DBG_BGFREQ, MENU_ID_DBG_TEMP, 
                                        MENU_ID_DBG_ERR, MENU_ID_DBG_PWR, 
                                        MENU_ID_DBG_DFU, MENU_ID_DBG_RESETCONFIG};
 static const MenuNode_t debugMenu = {
@@ -122,10 +122,10 @@ static const MenuNode_t debugMenuPrint = {
 
 static ParamContext_t debugMenuNoiseParam = {
   .state = PARAM_STATE_0,
-  .param_id = MENU_ID_DBG_NOISE
+  .param_id = MENU_ID_DBG_BGDUMP
 };
 static const MenuNode_t debugMenuNoise = {
-  .id = MENU_ID_DBG_NOISE,
+  .id = MENU_ID_DBG_BGDUMP,
   .description = "1000 sample ADC dump",
   .handler = dumpAdcData,
   .parent_id = MENU_ID_DBG,
@@ -137,10 +137,10 @@ static const MenuNode_t debugMenuNoise = {
 
 static ParamContext_t debugMenuNoiseFParam = {
   .state = PARAM_STATE_0,
-  .param_id = MENU_ID_DBG_NOISEFREQ
+  .param_id = MENU_ID_DBG_BGFREQ
 };
 static const MenuNode_t debugMenuNoiseF = {
-  .id = MENU_ID_DBG_NOISEFREQ,
+  .id = MENU_ID_DBG_BGFREQ,
   .description = "Frequency content of background noise",
   .handler = noiseSpectralAnalysis,
   .parent_id = MENU_ID_DBG,
