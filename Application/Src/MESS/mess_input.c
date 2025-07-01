@@ -481,16 +481,18 @@ void Input_NoiseFft()
     memcpy(&fft_in_buf[0], &input_buffer[i], NOISE_FFT_BLOCK_SIZE * sizeof(float));
     arm_rfft_fast_f32(&fft_handle128, fft_in_buf, fft_out_buf, 0);
 
-    fft_sums[0] += fft_output_buffer[0];
+    fft_sums[0] += fft_out_buf[0] / NOISE_FFT_BLOCK_SIZE;
     for (uint16_t j = 1; j < NOISE_FFT_BLOCK_SIZE / 2; j++) {
-      float real = fft_output_buffer[2 * i];
-      float imag = fft_output_buffer[2 * i + 1];
+      float real = fft_out_buf[2 * j];
+      float imag = fft_out_buf[2 * j + 1];
 
-      fft_sums[i] += sqrtf(real * real + imag * imag);
+      fft_sums[j] += sqrtf(real * real + imag * imag) / NOISE_FFT_BLOCK_SIZE;
     }
   }
 
   COMM_TransmitData("\b\b\r\n\r\n", 6, COMM_USB);
+
+  COMM_TransmitData("Frequency, Amplitude\r\n", CALC_LEN, COMM_USB);
 
   for (uint16_t i = 0; i < NOISE_FFT_BLOCK_SIZE / 2; i++) {
     char out_buf[32];

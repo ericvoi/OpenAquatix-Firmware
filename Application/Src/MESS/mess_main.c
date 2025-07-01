@@ -457,7 +457,8 @@ static void switchTrReceive()
 
 static bool handleFlags()
 {
-  uint32_t flags = osEventFlagsWait(print_event_handle, ! 0, osFlagsWaitAny, 0);
+  uint32_t flags = osEventFlagsWait(print_event_handle, 0x7F, osFlagsWaitAny, 0);
+//  uint32_t flags = osEventFlagsGet(print_event_handle);
 
   if (flags == osFlagsErrorResource) {
     return true;
@@ -489,6 +490,7 @@ static bool handleFlags()
   else if (flags & MESS_INPUT_FFT) {
     osEventFlagsClear(print_event_handle, MESS_INPUT_FFT);
     Input_NoiseFft();
+    osEventFlagsSet(print_event_handle, MESS_PRINT_COMPLETE);
   }
   return true;
 }

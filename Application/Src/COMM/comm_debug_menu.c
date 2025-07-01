@@ -49,7 +49,8 @@
 void getGpioStatus(void* argument);
 void setLedColourHandler(void* argument);
 void printWaveformHandler(void* argument);
-void performNoiseAnalysis(void* argument);
+void dumpAdcData(void* argument);
+void noiseSpectralAnalysis(void* argument);
 void printCurrentTemp(void* argument);
 void printCurrentErrors(void* argument);
 void printCurrentPowerConsumption(void* argument);
@@ -60,9 +61,9 @@ void resetSavedValues(void* argument);
 
 static MenuID_t debugMenuChildren[] = {MENU_ID_DBG_GPIO, MENU_ID_DBG_SETLED,
                                        MENU_ID_DBG_PRINT, MENU_ID_DBG_NOISE,
-                                       MENU_ID_DBG_TEMP, MENU_ID_DBG_ERR,
-                                       MENU_ID_DBG_PWR, MENU_ID_DBG_DFU,
-                                       MENU_ID_DBG_RESETCONFIG};
+                                       MENU_ID_DBG_NOISEFREQ, MENU_ID_DBG_TEMP, 
+                                       MENU_ID_DBG_ERR, MENU_ID_DBG_PWR, 
+                                       MENU_ID_DBG_DFU, MENU_ID_DBG_RESETCONFIG};
 static const MenuNode_t debugMenu = {
   .id = MENU_ID_DBG,
   .description = "Debug Menu",
@@ -125,13 +126,28 @@ static ParamContext_t debugMenuNoiseParam = {
 };
 static const MenuNode_t debugMenuNoise = {
   .id = MENU_ID_DBG_NOISE,
-  .description = "Perform noise analysis on input",
-  .handler = performNoiseAnalysis,
+  .description = "1000 sample ADC dump",
+  .handler = dumpAdcData,
   .parent_id = MENU_ID_DBG,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
   .parameters = &debugMenuNoiseParam
+};
+
+static ParamContext_t debugMenuNoiseFParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_DBG_NOISEFREQ
+};
+static const MenuNode_t debugMenuNoiseF = {
+  .id = MENU_ID_DBG_NOISEFREQ,
+  .description = "Frequency content of background noise",
+  .handler = noiseSpectralAnalysis,
+  .parent_id = MENU_ID_DBG,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &debugMenuNoiseFParam
 };
 
 static ParamContext_t debugMenuTempParam = {
@@ -218,7 +234,8 @@ bool COMM_RegisterDebugMenu(void)
              registerMenu(&debugMenuSetLed) && registerMenu(&debugMenuPrint) &&
              registerMenu(&debugMenuNoise) && registerMenu(&debugMenuTemp) &&
              registerMenu(&debugMenuErr) && registerMenu(&debugMenuPwr) &&
-             registerMenu(&debugMenuDfu) && registerMenu(&debugMenuReset);
+             registerMenu(&debugMenuDfu) && registerMenu(&debugMenuReset) &&
+             registerMenu(&debugMenuNoiseF);
   return ret;
 }
 
@@ -315,7 +332,7 @@ void printWaveformHandler(void* argument)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void performNoiseAnalysis(void* argument)
+void dumpAdcData(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
 
@@ -326,8 +343,31 @@ void performNoiseAnalysis(void* argument)
   osEventFlagsSet(print_event_handle, MESS_PRINT_REQUEST);
   uint32_t flags;
 
+  // No watchdog to check for whether the expected response never came
   do {
-    // Prevents accidentally corrupting noise analysis data
+    // Prevents accidentally corrupting adc dump data
+    flags = osEventFlagsWait(print_event_handle, MESS_PRINT_COMPLETE, osFlagsNoClear, osWaitForever);
+    osDelay(1);
+  } while ((flags & MESS_PRINT_COMPLETE) != MESS_PRINT_COMPLETE);
+
+  osEventFlagsClear(print_event_handle, MESS_PRINT_COMPLETE);
+
+  context->state->state = PARAM_STATE_COMPLETE;
+}
+
+void noiseSpectralAnalysis(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  if (print_event_handle == NULL) {
+    return;
+  }
+
+  osEventFlagsSet(print_event_handle, MESS_INPUT_FFT);
+  uint32_t flags;
+
+  do {
+    // Prevents accidentally corrupting frequency analysis data
     flags = osEventFlagsWait(print_event_handle, MESS_PRINT_COMPLETE, osFlagsNoClear, osWaitForever);
     osDelay(1);
   } while ((flags & MESS_PRINT_COMPLETE) != MESS_PRINT_COMPLETE);
