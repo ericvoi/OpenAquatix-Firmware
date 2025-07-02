@@ -226,13 +226,32 @@ bool Packet_SetBit(BitMessage_t* bit_msg, uint16_t bit_index, bool bit);
 bool Packet_Compare(const BitMessage_t* msg1, const BitMessage_t* msg2, bool* identical);
 
 /**
- * @brief Calculates the minimum power-of-2 packet size needed for a given payload
+ * @brief Calculates the minimum packet size needed for a given payload
  *
- * @param str_len The length of data to accommodate
+ * @param str_len The length of data to accommodate in bytes
+ * @param minimum_size Cargo size required (modified)
  *
- * @return The minimum packet size (always a power of 2)
+ * @return true if successful, false otherwise
  */
-uint16_t Packet_MinimumSize(uint16_t str_len);
+bool Packet_MinimumSize(uint16_t str_len, uint16_t* minimum_size);
+
+/**
+ * @brief The minimum 7 bit length index required for the number of cargo bytes
+ * 
+ * @param num_bytes Number of bytes in the message cargo (raw)
+ * @param length_index Preamble cargo length encoding (modified)
+ * @return true if valid length index exists, false otherwise
+ */
+bool Packet_MinimumLengthIndex(uint16_t num_bytes, uint8_t* length_index);
+
+/**
+ * @brief Number of cargo bytes corresponding to a length index
+ * 
+ * @param length_index Preamble cargo length encoding
+ * @param cargo_bytes Number of bytes in message cargo (modified)
+ * @return true if valid length index, false otherwise
+ */
+bool Packet_CargoBytes(uint8_t length_index, uint16_t* cargo_bytes);
 
 /**
  * @brief copies the contents of one data array from the src to dest

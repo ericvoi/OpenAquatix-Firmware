@@ -331,12 +331,16 @@ bool Input_DecodeBits(BitMessage_t* bit_msg, bool evaluation_mode, const DspConf
           &packet_length) == false) {
         return false;
       }
-      bit_msg->data_len_bits = 8 << packet_length;
+      uint16_t data_len_bytes;
+      if (Packet_CargoBytes(packet_length, &data_len_bytes) == false) {
+        return false;
+      }
+      bit_msg->data_len_bits = 8 * data_len_bytes;
       uint16_t error_bits_length;
       if (ErrorDetection_CheckLength(&error_bits_length, cfg->cargo_validation) == false) {
         return false;
       }
-      bit_msg->cargo.raw_len = 8 << packet_length;
+      bit_msg->cargo.raw_len = 8 * data_len_bytes;
       bit_msg->cargo.raw_len += error_bits_length;
       bit_msg->cargo.ecc_len = ErrorCorrection_GetLength(
           bit_msg->cargo.raw_len, cfg->cargo_ecc_method);

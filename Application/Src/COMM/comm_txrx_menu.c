@@ -360,7 +360,7 @@ void transmitString(FunctionContext_t* context, bool is_feedback)
           msg.type = is_feedback ? MSG_TRANSMIT_FEEDBACK : MSG_TRANSMIT_TRANSDUCER;
           msg.timestamp = osKernelGetTickCount();
           msg.data_type = STRING;
-          msg.length_bits = 8 * Packet_MinimumSize(context->input_len);
+          msg.length_bits = 8 * context->input_len;
           for (uint16_t i = 0; i < msg.length_bits / 8; i++) {
             if (context->input_len > i) {
               msg.data[i] = context->input[i];

@@ -229,16 +229,65 @@ bool Packet_Compare(const BitMessage_t* msg1, const BitMessage_t* msg2, bool* id
   return true;
 }
 
-uint16_t Packet_MinimumSize(uint16_t str_len)
+bool Packet_MinimumSize(uint16_t str_len, uint16_t* minimum_size)
 {
-  size_t packet_size = 1;
+  uint8_t length_index;
+  if (Packet_MinimumLengthIndex(str_len, &length_index) == false) {
+    return false;
+  }
+  if (Packet_CargoBytes(length_index, minimum_size) == false) {
+    return false;
+  }
+  return true;
+}
 
-  // Keep doubling the packet size until it's large enough
-  while (packet_size < str_len) {
-      packet_size *= 2;
+/**
+ * The number of bytes in a amessage can be encoded according to JANUS with
+ * 7 bits [e e x x x x x], e=exponent, x=value + offset(e). The offset is
+ * simply the sum from N=0 to e-1 of 2^(5+N). See ANEP-87 cargo length for
+ * further details 
+ */
+bool Packet_MinimumLengthIndex(uint16_t num_bytes, uint8_t* length_index)
+{
+  if (num_bytes > 480 || length_index == NULL) {
+    return false;
   }
 
-  return packet_size;
+  uint8_t e = 0;
+  uint16_t offset = 32;
+  // find the minimum exponent needed to encode the data
+  while (offset < num_bytes && e < 3) {
+    e++;
+    offset += (1 << 5) << e;
+  }
+
+  offset -= (1 << 5) << e;
+
+  uint16_t remaining_bytes = num_bytes - offset;
+  uint16_t granularity = (1 << e);
+  // Round up to the best nearest x
+  uint8_t x = (remaining_bytes + granularity - 1) / granularity - 1;
+  *length_index = 0;
+  *length_index |= ((e & 0x03) << 5);
+  *length_index |= x & 0x1F;
+  return true;
+}
+
+bool Packet_CargoBytes(uint8_t length_index, uint16_t* num_bytes)
+{
+  if (length_index > 127 || num_bytes == NULL) {
+    return false;
+  }
+
+  uint16_t e = (length_index >> 5) & 0x03;
+  uint16_t x = length_index & 0x1F;
+
+  *num_bytes = (1 << e) * (x + 1);
+  // add the offset
+  for (uint8_t i = 0; i < e; i++) {
+    *num_bytes += ((1 << 5) << i);
+  }
+  return true;
 }
 
 bool Packet_Copy(const BitMessage_t* src_msg, BitMessage_t* dest_msg, const uint16_t start_index, const uint16_t length)
@@ -319,20 +368,21 @@ bool addPreamble(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* msg)
     return false;
   }
 
-  uint8_t length_index = 0;
-  uint16_t length_accomodated = 8;
-
-  while (length_accomodated < msg->length_bits) {
-    length_index++;
-    length_accomodated = length_accomodated << 1;
+  uint8_t length_index;
+  uint16_t bytes_accomodated;
+  if (Packet_MinimumLengthIndex((msg->length_bits + 7) / 8, &length_index) == false) {
+    return false;
+  }
+  if (Packet_CargoBytes(length_index, &bytes_accomodated) == false) {
+    return false;
   }
 
   if (addChunk(bit_msg, length_index, PACKET_LENGTH_BITS) == false) {
     return false;
   }
 
-  bit_msg->final_length += length_accomodated;
-  bit_msg->cargo.raw_len = length_accomodated; // modified later
+  bit_msg->final_length += bytes_accomodated * 8;
+  bit_msg->cargo.raw_len = bytes_accomodated * 8; // modified later
 
   if (Packet_AddBit(bit_msg, is_stationary) == false) {
     return false;
