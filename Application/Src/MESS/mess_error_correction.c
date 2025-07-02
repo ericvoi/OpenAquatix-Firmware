@@ -93,7 +93,7 @@ bool ErrorCorrection_AddCorrection(BitMessage_t* bit_msg,
 {
   uint16_t bits_added = 0;
   clearBuffer();
-  switch (cfg->ecc_method_preamble) {
+  switch (cfg->preamble_ecc_method) {
     case NO_ECC:
       return true;
     case HAMMING_CODE:
@@ -110,7 +110,7 @@ bool ErrorCorrection_AddCorrection(BitMessage_t* bit_msg,
       return false;
   }
 
-  switch (cfg->ecc_method_message) {
+  switch (cfg->cargo_ecc_method) {
     case NO_ECC:
       return true;
     case HAMMING_CODE:
@@ -144,7 +144,7 @@ bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg,
     bit_msg->final_length = bit_msg->preamble.ecc_len;
   }
   if (is_preamble) {
-    switch (cfg->ecc_method_preamble) {
+    switch (cfg->preamble_ecc_method) {
       case NO_ECC:
         *error_detected = false;
         *error_corrected = false;
@@ -159,7 +159,7 @@ bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg,
     }
   }
   else {
-    switch (cfg->ecc_method_message) {
+    switch (cfg->cargo_ecc_method) {
       case NO_ECC:
         *error_detected = false;
         *error_corrected = false;

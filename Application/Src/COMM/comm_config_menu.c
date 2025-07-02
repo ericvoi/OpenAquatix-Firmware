@@ -35,7 +35,10 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-void setErrorDetection(void* argument);
+void setPreambleErrorDetection(void* argument);
+void setCargoErrorDetection(void* argument);
+void preambleErrorBehavior(void* argument);
+void cargoErrorBehavior(void* argument);
 void setPremableEcc(void* argument);
 void setMessageEcc(void* argument);
 void setModulationMethod(void* argument);
@@ -220,19 +223,19 @@ static const MenuNode_t setStationary = {
 
 /* Sub sub menus -------------------------------------------------------------*/
 
-static ParamContext_t univConfigErrParam = {
-  .state = PARAM_STATE_0,
-  .param_id = MENU_ID_CFG_UNIV_ERR
+static MenuID_t univConfigErrChildren[] = {
+  MENU_ID_CFG_UNIV_ERR_PREAMBLE, MENU_ID_CFG_UNIV_ERR_CARGO,
+  MENU_ID_CFG_UNIV_ERR_PREERR,   MENU_ID_CFG_UNIV_ERR_CARGOERR
 };
-static const MenuNode_t univConfigErr = {
+static const MenuNode_t univConfigErrMenu = {
   .id = MENU_ID_CFG_UNIV_ERR,
-  .description = "Error Detection Scheme",
-  .handler = setErrorDetection,
+  .description = "Error Detection Options",
+  .handler = NULL,
   .parent_id = MENU_ID_CFG_UNIV,
-  .children_ids = NULL,
-  .num_children = 0,
+  .children_ids = univConfigErrChildren,
+  .num_children = sizeof(univConfigErrChildren) / sizeof(univConfigErrChildren[0]),
   .access_level = 0,
-  .parameters = &univConfigErrParam
+  .parameters = NULL
 };
 
 static ParamContext_t univConfigEccPreambleParam = {
@@ -659,6 +662,66 @@ static const MenuNode_t ledConfigToggle = {
 
 /* Sub sub sub menus ---------------------------------------------------------*/
 
+static ParamContext_t univErrConfigPreambleValidationParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_UNIV_ERR_PREAMBLE
+};
+static const MenuNode_t univErrConfigPreambleValidation = {
+  .id = MENU_ID_CFG_UNIV_ERR_PREAMBLE,
+  .description = "Preamble error detection method",
+  .handler = setPreambleErrorDetection,
+  .parent_id = MENU_ID_CFG_UNIV_ERR,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &univErrConfigPreambleValidationParam
+};
+
+static ParamContext_t univErrConfigCargoValidationParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_UNIV_ERR_CARGO
+};
+static const MenuNode_t univErrConfigCargoValidation = {
+  .id = MENU_ID_CFG_UNIV_ERR_CARGO,
+  .description = "Cargo error detection method",
+  .handler = setCargoErrorDetection,
+  .parent_id = MENU_ID_CFG_UNIV_ERR,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &univErrConfigCargoValidationParam
+};
+
+static ParamContext_t univErrConfigPreambleBehaviorParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_UNIV_ERR_PREERR
+};
+static const MenuNode_t univErrConfigPreambleBehavior = {
+  .id = MENU_ID_CFG_UNIV_ERR_PREERR,
+  .description = "Preamble error behavior",
+  .handler = preambleErrorBehavior,
+  .parent_id = MENU_ID_CFG_UNIV_ERR,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &univErrConfigPreambleBehaviorParam
+};
+
+static ParamContext_t univErrConfigCargoBehaviorParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_UNIV_ERR_CARGOERR
+};
+static const MenuNode_t univErrConfigCargoBehavior = {
+  .id = MENU_ID_CFG_UNIV_ERR_CARGOERR,
+  .description = "Cargo error behavior",
+  .handler = cargoErrorBehavior,
+  .parent_id = MENU_ID_CFG_UNIV_ERR,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &univErrConfigCargoBehaviorParam
+};
+
 static ParamContext_t univFskConfigF0Param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_FSK_F0
@@ -1056,7 +1119,7 @@ bool COMM_RegisterConfigurationMenu()
   bool ret = registerMenu(&configMenu) && registerMenu(&univConfigMenu) &&
              registerMenu(&modConfigMenu) && registerMenu(&demodConfigMenu) &&
              registerMenu(&dauConfigMenu) && registerMenu(&ledConfigMenu) && 
-             registerMenu(&univConfigErr) && registerMenu(&demodConfigDecisionFcn) &&
+             registerMenu(&univConfigErrMenu) && registerMenu(&demodConfigDecisionFcn) &&
              registerMenu(&univConfigMod) && registerMenu(&univConfigFskMenu) && 
              registerMenu(&univConfigFhbskMenu) && registerMenu(&univConfigBaud) && 
              registerMenu(&univConfigFc) && registerMenu(&univConfigBitPeriod) && 
@@ -1084,22 +1147,49 @@ bool COMM_RegisterConfigurationMenu()
              registerMenu(&modPwrConfigC0) && registerMenu(&modPwrConfigL0) &&
              registerMenu(&modPwrConfigC1) && registerMenu(&demodConfigUseAgc) &&
              registerMenu(&demodConfigFixedGain) && registerMenu(&univConfigEccPreamble) &&
-             registerMenu(&univConfigEccMessage);
+             registerMenu(&univConfigEccMessage) && registerMenu(&univErrConfigPreambleValidation) &&
+             registerMenu(&univErrConfigCargoValidation) && registerMenu(&univErrConfigPreambleBehavior) &&
+             registerMenu(&univErrConfigCargoBehavior);
 
   return ret;
 }
 
 /* Private function definitions ----------------------------------------------*/
 
-void setErrorDetection(void* argument)
+void setPreambleErrorDetection(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
   char* descriptors[] = {"None",
                          "CRC-8",      "CRC-16",      "CRC-32", 
                          "Checksum-8", "Checksum-16", "Checksum-32"};
 
-  COMMLoops_LoopEnum(context, PARAM_ERROR_DETECTION, descriptors, 
+  COMMLoops_LoopEnum(context, PARAM_PREAMBLE_ERROR_DETECTION, descriptors, 
     sizeof(descriptors) / sizeof(descriptors[0]));
+}
+
+void setCargoErrorDetection(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+  char* descriptors[] = {"None",
+                         "CRC-8",      "CRC-16",      "CRC-32", 
+                         "Checksum-8", "Checksum-16", "Checksum-32"};
+
+  COMMLoops_LoopEnum(context, PARAM_CARGO_ERROR_DETECTION, descriptors, 
+    sizeof(descriptors) / sizeof(descriptors[0]));
+}
+
+void preambleErrorBehavior(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+  
+  COMMLoops_NotImplemented(context);
+}
+
+void cargoErrorBehavior(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+  
+  COMMLoops_NotImplemented(context);
 }
 
 void setPremableEcc(void* argument)

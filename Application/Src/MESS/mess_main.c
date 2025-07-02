@@ -75,9 +75,10 @@ static DspConfig_t default_config = {
     .fhbfsk_freq_spacing = DEFAULT_FHBFSK_FREQ_SPACING,
     .fhbfsk_num_tones = DEFAULT_FHBFSK_NUM_TONES,
     .fhbfsk_dwell_time = DEFAULT_FHBFSK_DWELL_TIME,
-    .error_detection_method = DEFAULT_ERROR_DETECTION,
-    .ecc_method_preamble = DEFAULT_ECC_PREAMBLE,
-    .ecc_method_message = DEFAULT_ECC_MESSAGE,
+    .preamble_validation = DEFAULT_PREAMBLE_ERROR_DETECTION,
+    .cargo_validation = DEFAULT_CARGO_ERROR_DETECTION,
+    .preamble_ecc_method = DEFAULT_ECC_PREAMBLE,
+    .cargo_ecc_method = DEFAULT_ECC_MESSAGE,
     .use_interleaver = DEFAULT_INTERLEAVER_STATE,
     .sync_method = DEFAULT_SYNC_METHOD
 };
@@ -268,10 +269,11 @@ void MESS_StartTask(void* argument)
             }
 
             if (ErrorDetection_CheckDetection(&input_bit_msg,
-                &rx_msg.error_detected, cfg) == false) {
+                &rx_msg.error_detected, cfg, false) == false) {
               Error_Routine(ERROR_MESS_PROCESSING);
               break;
             }
+            rx_msg.error_detected |= input_bit_msg.error_preamble;
             // send it via queue
             if (FeedbackTests_Check(&rx_msg, &input_bit_msg) == false) {
               MESS_AddMessageToRxQ(&rx_msg);
@@ -458,7 +460,6 @@ static void switchTrReceive()
 static bool handleFlags()
 {
   uint32_t flags = osEventFlagsWait(print_event_handle, 0x7F, osFlagsWaitAny, 0);
-//  uint32_t flags = osEventFlagsGet(print_event_handle);
 
   if (flags == osFlagsErrorResource) {
     return true;
@@ -609,8 +610,14 @@ static bool registerMessMainParams()
 
   min_u32 = MIN_ERROR_DETECTION;
   max_u32 = MAX_ERROR_DETECTION;
-  if (Param_Register(PARAM_ERROR_DETECTION, "error detection method", PARAM_TYPE_UINT8,
-                     &default_config.error_detection_method, sizeof(uint8_t),
+  if (Param_Register(PARAM_PREAMBLE_ERROR_DETECTION, "preamble error detection method", PARAM_TYPE_UINT8,
+                     &default_config.preamble_validation, sizeof(uint8_t),
+                     &min_u32, &max_u32, NULL) == false) {
+    return false;
+  }
+
+  if (Param_Register(PARAM_CARGO_ERROR_DETECTION, "cargo error detection method", PARAM_TYPE_UINT8,
+                     &default_config.cargo_validation, sizeof(uint8_t),
                      &min_u32, &max_u32, NULL) == false) {
     return false;
   }
@@ -618,14 +625,14 @@ static bool registerMessMainParams()
   min_u32 = MIN_ECC_METHOD;
   max_u32 = MAX_ECC_METHOD;
   if (Param_Register(PARAM_ECC_PREAMBLE, "preamble ECC", PARAM_TYPE_UINT8,
-                     &default_config.ecc_method_preamble, sizeof(uint8_t),
+                     &default_config.preamble_ecc_method, sizeof(uint8_t),
                      &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
   // Using the same bounds as ^
   if (Param_Register(PARAM_ECC_MESSAGE, "message ECC", PARAM_TYPE_UINT8,
-                     &default_config.ecc_method_message, sizeof(uint8_t),
+                     &default_config.cargo_ecc_method, sizeof(uint8_t),
                      &min_u32, &max_u32, NULL) == false) {
     return false;
   }
