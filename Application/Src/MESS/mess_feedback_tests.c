@@ -664,13 +664,23 @@ static void printStatistics(void)
 
     if (feedback_tests[i].failed_tests == 0) {
       COMM_TransmitData("No failed tests!\r\n", CALC_LEN, COMM_USB);
+      continue;
     }
 
     const DspConfig_t* cfg = &feedback_tests[i].cfg;
 
-    snprintf(output_buffer, 128, "Baud rate: %.2f\r\nMod/Demod method: %u\r\n"
-        "Error detection method: %u %u\r\nError correction method: %u %u\r\n",
-        cfg->baud_rate, cfg->mod_demod_method, cfg->preamble_validation, cfg->cargo_validation,
+    snprintf(output_buffer, 128, "Baud rate: %.2f\r\n", cfg->baud_rate);
+    COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
+
+    snprintf(output_buffer, 128, "Mod/Demod method: %u\r\n", 
+        cfg->mod_demod_method);
+    COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
+
+    snprintf(output_buffer, 128, "Error detection method: %u %u\r\n", 
+        cfg->preamble_validation, cfg->cargo_validation);
+    COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
+
+    snprintf(output_buffer, 128, "Error correction method: %u %u\r\n",
         cfg->preamble_ecc_method, cfg->cargo_ecc_method);
     COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
 
@@ -683,9 +693,17 @@ static void printStatistics(void)
       COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
     }
     else if (cfg->mod_demod_method == MOD_DEMOD_FHBFSK) {
-      snprintf(output_buffer, 128, "fc: %lu\r\nFrequency spacing: %hu\r\n"
-          "Tones: %hu\r\nDwell: %hu\r\n", cfg->fc, cfg->fhbfsk_freq_spacing,
-          cfg->fhbfsk_num_tones, cfg->fhbfsk_dwell_time);
+      snprintf(output_buffer, 128, "fc: %lu\r\n", cfg->fc);
+      COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
+
+      snprintf(output_buffer, 128, "Frequency spacing: %hu\r\n", 
+          cfg->fhbfsk_freq_spacing);
+      COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
+
+      snprintf(output_buffer, 128, "Tones: %hu\r\n", cfg->fhbfsk_freq_spacing);
+      COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
+
+      snprintf(output_buffer, 128, "Dwell: %hu\r\n", cfg->fhbfsk_dwell_time);
       COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
     }
 
@@ -694,16 +712,23 @@ static void printStatistics(void)
 
     uint16_t repetitions = feedback_tests[i].repetitions;
 
-    snprintf(output_buffer, 128, "Failed tests: %u/%u\r\nMessages with errors: "
-        "%u/%u\r\nMessages with errors detected: %u/%u\r\n",
-        feedback_tests[i].failed_tests, repetitions,
-        feedback_tests[i].messages_with_any_errors, repetitions,
+    snprintf(output_buffer, 128, "Failed tests: %u/%u\r\n", 
+        feedback_tests[i].failed_tests, repetitions);
+    COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
+
+    snprintf(output_buffer, 128, "Messages with errors: %u/%u\r\n", 
+        feedback_tests[i].messages_with_any_errors, repetitions);
+    COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
+
+    snprintf(output_buffer, 128, "Messages with errors detected: %u/%u\r\n",
         feedback_tests[i].messages_with_errors_detected, repetitions);
     COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
 
-    snprintf(output_buffer, 128, "Messages with header errors: %u/%u\r\n"
-        "Messages with length errors: %u/%u\r\n\r\n",
-        feedback_tests[i].messages_with_header_errors, repetitions,
+    snprintf(output_buffer, 128, "Messages with header errors: %u/%u\r\n",
+        feedback_tests[i].messages_with_header_errors, repetitions);
+    COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
+
+    snprintf(output_buffer, 128, "Messages with length errors: %u/%u\r\n\r\n",
         feedback_tests[i].messages_with_incorrect_length, repetitions);
     COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
   }

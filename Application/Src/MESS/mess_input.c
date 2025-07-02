@@ -309,8 +309,7 @@ bool Input_DecodeBits(BitMessage_t* bit_msg, bool evaluation_mode, const DspConf
         return false;
       }
 
-      bool preamble_error;
-      if (ErrorDetection_CheckDetection(bit_msg, &preamble_error, cfg, true) == false) {
+      if (ErrorDetection_CheckDetection(bit_msg, &bit_msg->error_preamble, cfg, true) == false) {
         return false;
       }
 

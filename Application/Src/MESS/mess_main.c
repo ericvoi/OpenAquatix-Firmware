@@ -273,6 +273,7 @@ void MESS_StartTask(void* argument)
               Error_Routine(ERROR_MESS_PROCESSING);
               break;
             }
+            rx_msg.error_detected |= input_bit_msg.error_preamble;
             // send it via queue
             if (FeedbackTests_Check(&rx_msg, &input_bit_msg) == false) {
               MESS_AddMessageToRxQ(&rx_msg);
