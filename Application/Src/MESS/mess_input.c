@@ -309,6 +309,11 @@ bool Input_DecodeBits(BitMessage_t* bit_msg, bool evaluation_mode, const DspConf
         return false;
       }
 
+      bool preamble_error;
+      if (ErrorDetection_CheckDetection(bit_msg, &preamble_error, cfg, true) == false) {
+        return false;
+      }
+
       // Keeps track of where in the preamble we are
       uint16_t bit_index = 0;
       // The first set of bytes in the message correspond to the sender's id
@@ -329,13 +334,13 @@ bool Input_DecodeBits(BitMessage_t* bit_msg, bool evaluation_mode, const DspConf
       }
       bit_msg->data_len_bits = 8 << packet_length;
       uint16_t error_bits_length;
-      if (ErrorDetection_CheckLength(&error_bits_length, cfg) == false) {
+      if (ErrorDetection_CheckLength(&error_bits_length, cfg->cargo_validation) == false) {
         return false;
       }
       bit_msg->cargo.raw_len = 8 << packet_length;
       bit_msg->cargo.raw_len += error_bits_length;
       bit_msg->cargo.ecc_len = ErrorCorrection_GetLength(
-          bit_msg->cargo.raw_len, cfg->ecc_method_message);
+          bit_msg->cargo.raw_len, cfg->cargo_ecc_method);
       bit_msg->final_length = bit_msg->preamble.ecc_len;
       bit_msg->final_length += bit_msg->cargo.ecc_len;
       // final length (add preamble)
@@ -344,6 +349,12 @@ bool Input_DecodeBits(BitMessage_t* bit_msg, bool evaluation_mode, const DspConf
           (uint8_t*) &bit_msg->stationary_flag) == false) {
         return false;
       }
+
+      uint16_t len;
+      if (ErrorDetection_CheckLength(&len, cfg->preamble_validation) == false) {
+        return false;
+      }
+      bit_index += len;
 
       // Asserts that the amount of bits read == the amount of bits in the preamble
       if (bit_index != bit_msg->preamble.raw_len) {
@@ -365,7 +376,7 @@ bool Input_DecodeMessage(BitMessage_t* input_bit_msg, Message_t* msg)
   // data_len_bytes is restricted to be a multiple of 8
   uint16_t len_bytes = input_bit_msg->data_len_bits / 8;
 
-  uint16_t start_position = PACKET_PREAMBLE_LENGTH_BITS;
+  uint16_t start_position = input_bit_msg->cargo.raw_start_index;
 
   for (uint16_t i = 0; i < len_bytes; i++) {
     if (Packet_Get8(input_bit_msg, &start_position, msg->data + i) == false) {

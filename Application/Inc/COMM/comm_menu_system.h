@@ -32,7 +32,11 @@ typedef enum {
   MENU_ID_TXRX,                 // Transmission/reception menu
   MENU_ID_EVAL,                 // Evaluation option menu
   MENU_ID_CFG_UNIV,             // Universal waveform porcessing parameters
-  MENU_ID_CFG_UNIV_ERR,         // Error detection scheme
+  MENU_ID_CFG_UNIV_ERR,         // Error detection parameters
+  MENU_ID_CFG_UNIV_ERR_PREAMBLE,// Preamble error detection method
+  MENU_ID_CFG_UNIV_ERR_CARGO,   // Cargo error detection method
+  MENU_ID_CFG_UNIV_ERR_PREERR,  // What to do when the preamble has an error
+  MENU_ID_CFG_UNIV_ERR_CARGOERR,// What to do when the cargo has an error
   MENU_ID_CFG_UNIV_ECCPREAMBLE, // ECC to use on the preamble
   MENU_ID_CFG_UNIV_ECCMESSAGE,  // ECC to use on the data 
   MENU_ID_CFG_UNIV_MOD,         // Modulation scheme used for both reception and transmission

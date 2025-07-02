@@ -94,7 +94,8 @@ extern "C" {
 #define MIN_STATIONARY_FLAG         (false)
 #define MAX_STATIONARY_FLAG         (true)
 
-#define DEFAULT_ERROR_DETECTION     (CRC_16)
+#define DEFAULT_PREAMBLE_ERROR_DETECTION  (CRC_8)
+#define DEFAULT_CARGO_ERROR_DETECTION     (CRC_16)
 #define MIN_ERROR_DETECTION         0
 #define MAX_ERROR_DETECTION         (NUM_ERROR_DETECTION_METHODS - 1)
 

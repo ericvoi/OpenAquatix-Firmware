@@ -52,6 +52,17 @@ typedef enum {
   DECODED_MESSAGE
 } LastAction_t;
 
+typedef enum {
+  MESSAGE_LEN_8    = 0,
+  MESSAGE_LEN_16   = 1,
+  MESSAGE_LEN_32   = 2,
+  MESSAGE_LEN_64   = 3,
+  MESSAGE_LEN_128  = 4,
+  MESSAGE_LEN_256  = 5,
+  MESSAGE_LEN_512  = 6,
+  MESSAGE_LEN_1024 = 7
+} MessageLengths_t;
+
 /* Private define ------------------------------------------------------------*/
 
 
@@ -67,7 +78,7 @@ static ReferenceMessage_t reference_messages[] = {
         .test_msg = {
             .type = MSG_TRANSMIT_FEEDBACK,
             .data = {0x12},
-            .length_bits = 4 * 8,
+            .length_bits = 8 << 0,
             .data_type = BITS,
             .sender_id = 1,
             .eval_info = NULL
@@ -77,7 +88,7 @@ static ReferenceMessage_t reference_messages[] = {
         .test_msg = {
             .type = MSG_TRANSMIT_FEEDBACK,
             .data = {0x12, 0x34},
-            .length_bits = 2 * 8,
+            .length_bits = 8 << 1,
             .data_type = BITS,
             .sender_id = 1,
             .eval_info = NULL
@@ -87,7 +98,7 @@ static ReferenceMessage_t reference_messages[] = {
         .test_msg = {
             .type = MSG_TRANSMIT_FEEDBACK,
             .data = {0x12, 0x34, 0x56, 0x78},
-            .length_bits = 4 * 8,
+            .length_bits = 8 << 2,
             .data_type = BITS,
             .sender_id = 1,
             .eval_info = NULL
@@ -97,7 +108,7 @@ static ReferenceMessage_t reference_messages[] = {
         .test_msg = {
             .type = MSG_TRANSMIT_FEEDBACK,
             .data = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
-            .length_bits = 8 * 8,
+            .length_bits = 8 << 3,
             .data_type = BITS,
             .sender_id = 1,
             .eval_info = NULL
@@ -108,20 +119,7 @@ static ReferenceMessage_t reference_messages[] = {
             .type = MSG_TRANSMIT_FEEDBACK,
             .data = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
-            .length_bits = 16 * 8,
-            .data_type = BITS,
-            .sender_id = 1,
-            .eval_info = NULL
-        }
-    },
-    {
-        .test_msg = {
-            .type = MSG_TRANSMIT_FEEDBACK,
-            .data = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
-                     0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
-                     0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
-                     0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
-            .length_bits = 32 * 8,
+            .length_bits = 8 << 4,
             .data_type = BITS,
             .sender_id = 1,
             .eval_info = NULL
@@ -133,12 +131,8 @@ static ReferenceMessage_t reference_messages[] = {
             .data = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
-                     0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
-                     0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
-                     0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
-                     0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
-            .length_bits = 64 * 8,
+            .length_bits = 8 << 5,
             .data_type = BITS,
             .sender_id = 1,
             .eval_info = NULL
@@ -154,6 +148,23 @@ static ReferenceMessage_t reference_messages[] = {
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
+                     0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
+            .length_bits = 8 << 6,
+            .data_type = BITS,
+            .sender_id = 1,
+            .eval_info = NULL
+        }
+    },
+    {
+        .test_msg = {
+            .type = MSG_TRANSMIT_FEEDBACK,
+            .data = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
+                     0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
+                     0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
+                     0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
+                     0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
+                     0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
+                     0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
@@ -163,7 +174,7 @@ static ReferenceMessage_t reference_messages[] = {
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
-            .length_bits = 128 * 8,
+            .length_bits = 8 << 7,
             .data_type = BITS,
             .sender_id = 1,
             .eval_info = NULL
@@ -183,15 +194,16 @@ static FeedbackTests_t feedback_tests[] = {
             .fhbfsk_freq_spacing = 1,
             .fhbfsk_num_tones = 10,
             .fhbfsk_dwell_time = 1,
-            .error_detection_method = CRC_16,
-            .ecc_method_preamble = NO_ECC,
-            .ecc_method_message = NO_ECC,
+            .preamble_validation = CRC_8,
+            .cargo_validation = CRC_16,
+            .preamble_ecc_method = NO_ECC,
+            .cargo_ecc_method = NO_ECC,
             .use_interleaver = false,
             .fhbfsk_hopper = HOPPER_INCREMENT,
             .sync_method = NO_SYNC
         },
         .expected_result = IDENTICAL,
-        .reference_message = &reference_messages[2],
+        .reference_message = &reference_messages[MESSAGE_LEN_32],
         .errors_added = 0,
         .repetitions = 1
     },
@@ -206,15 +218,16 @@ static FeedbackTests_t feedback_tests[] = {
             .fhbfsk_freq_spacing = 1,
             .fhbfsk_num_tones = 10,
             .fhbfsk_dwell_time = 1,
-            .error_detection_method = CRC_16,
-            .ecc_method_preamble = NO_ECC,
-            .ecc_method_message = NO_ECC,
+            .preamble_validation = CRC_8,
+            .cargo_validation = CRC_16,
+            .preamble_ecc_method = NO_ECC,
+            .cargo_ecc_method = NO_ECC,
             .use_interleaver = false,
             .fhbfsk_hopper = HOPPER_INCREMENT,
             .sync_method = NO_SYNC
         },
         .expected_result = IDENTICAL,
-        .reference_message = &reference_messages[2],
+        .reference_message = &reference_messages[MESSAGE_LEN_32],
         .errors_added = 0,
         .repetitions = 1
     },
@@ -229,15 +242,16 @@ static FeedbackTests_t feedback_tests[] = {
             .fhbfsk_freq_spacing = 1,
             .fhbfsk_num_tones = 10,
             .fhbfsk_dwell_time = 1,
-            .error_detection_method = CRC_16,
-            .ecc_method_preamble = HAMMING_CODE,
-            .ecc_method_message = HAMMING_CODE,
+            .preamble_validation = CRC_8,
+            .cargo_validation = CRC_16,
+            .preamble_ecc_method = HAMMING_CODE,
+            .cargo_ecc_method = HAMMING_CODE,
             .use_interleaver = false,
             .fhbfsk_hopper = HOPPER_INCREMENT,
             .sync_method = NO_SYNC
         },
         .expected_result = IDENTICAL,
-        .reference_message = &reference_messages[4],
+        .reference_message = &reference_messages[MESSAGE_LEN_128],
         .errors_added = 1,
         .repetitions = 20
     },
@@ -252,15 +266,16 @@ static FeedbackTests_t feedback_tests[] = {
           .fhbfsk_freq_spacing = 1,
           .fhbfsk_num_tones = 10,
           .fhbfsk_dwell_time = 1,
-          .error_detection_method = CRC_16,
-          .ecc_method_preamble = JANUS_CONVOLUTIONAL,
-          .ecc_method_message = JANUS_CONVOLUTIONAL,
+          .preamble_validation = CRC_8,
+          .cargo_validation = CRC_16,
+          .preamble_ecc_method = JANUS_CONVOLUTIONAL,
+          .cargo_ecc_method = JANUS_CONVOLUTIONAL,
           .use_interleaver = false,
           .fhbfsk_hopper = HOPPER_INCREMENT,
           .sync_method = NO_SYNC
       },
       .expected_result = IDENTICAL,
-      .reference_message = &reference_messages[4],
+      .reference_message = &reference_messages[MESSAGE_LEN_128],
       .errors_added = 2,
       .repetitions = 20
     },
@@ -275,15 +290,16 @@ static FeedbackTests_t feedback_tests[] = {
           .fhbfsk_freq_spacing = 1,
           .fhbfsk_num_tones = 10,
           .fhbfsk_dwell_time = 1,
-          .error_detection_method = CRC_16,
-          .ecc_method_preamble = NO_ECC,
-          .ecc_method_message = NO_ECC,
+          .preamble_validation = CRC_8,
+          .cargo_validation = CRC_16,
+          .preamble_ecc_method = NO_ECC,
+          .cargo_ecc_method = NO_ECC,
           .use_interleaver = true,
           .fhbfsk_hopper = HOPPER_INCREMENT,
           .sync_method = NO_SYNC
       },
       .expected_result = IDENTICAL,
-      .reference_message = &reference_messages[4],
+      .reference_message = &reference_messages[MESSAGE_LEN_128],
       .errors_added = 0,
       .repetitions = 1
     },
@@ -298,18 +314,20 @@ static FeedbackTests_t feedback_tests[] = {
           .fhbfsk_freq_spacing = 1,
           .fhbfsk_num_tones = 10,
           .fhbfsk_dwell_time = 1,
-          .error_detection_method = CRC_16,
-          .ecc_method_preamble = JANUS_CONVOLUTIONAL,
-          .ecc_method_message = JANUS_CONVOLUTIONAL,
+          .preamble_validation = CRC_8,
+          .cargo_validation = CRC_16,
+          .preamble_ecc_method = JANUS_CONVOLUTIONAL,
+          .cargo_ecc_method = JANUS_CONVOLUTIONAL,
           .use_interleaver = true,
           .fhbfsk_hopper = HOPPER_INCREMENT,
           .sync_method = NO_SYNC
       },
       .expected_result = IDENTICAL,
-      .reference_message = &reference_messages[7],
+      .reference_message = &reference_messages[MESSAGE_LEN_1024],
       .errors_added = 5,
       .repetitions = 1
     },
+    // PN synchronization test
     {
       .cfg = {
           .baud_rate = 1000.0f,
@@ -320,15 +338,16 @@ static FeedbackTests_t feedback_tests[] = {
           .fhbfsk_freq_spacing = 1,
           .fhbfsk_num_tones = 10,
           .fhbfsk_dwell_time = 1,
-          .error_detection_method = CRC_16,
-          .ecc_method_preamble = NO_ECC,
-          .ecc_method_message = NO_ECC,
+          .preamble_validation = CRC_8,
+          .cargo_validation = CRC_16,
+          .preamble_ecc_method = NO_ECC,
+          .cargo_ecc_method = NO_ECC,
           .use_interleaver = false,
           .fhbfsk_hopper = HOPPER_GALOIS,
           .sync_method = SYNC_PN_32_JANUS
       },
       .expected_result = IDENTICAL,
-      .reference_message = &reference_messages[4],
+      .reference_message = &reference_messages[MESSAGE_LEN_128],
       .errors_added = 0,
       .repetitions = 1
     },
@@ -643,12 +662,16 @@ static void printStatistics(void)
     snprintf(output_buffer, 128, "\r\nTest case %u:\r\n", i + 1);
     COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
 
+    if (feedback_tests[i].failed_tests == 0) {
+      COMM_TransmitData("No failed tests!\r\n", CALC_LEN, COMM_USB);
+    }
+
     const DspConfig_t* cfg = &feedback_tests[i].cfg;
 
     snprintf(output_buffer, 128, "Baud rate: %.2f\r\nMod/Demod method: %u\r\n"
-        "Error detection method: %u\r\nError correction method: %u %u\r\n", 
-        cfg->baud_rate, cfg->mod_demod_method, cfg->error_detection_method,
-        cfg->ecc_method_preamble, cfg->ecc_method_message);
+        "Error detection method: %u %u\r\nError correction method: %u %u\r\n",
+        cfg->baud_rate, cfg->mod_demod_method, cfg->preamble_validation, cfg->cargo_validation,
+        cfg->preamble_ecc_method, cfg->cargo_ecc_method);
     COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
 
     snprintf(output_buffer, 128, "interleaver: %u\r\n", cfg->use_interleaver);

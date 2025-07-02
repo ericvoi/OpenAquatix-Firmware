@@ -76,9 +76,10 @@ typedef struct {
   uint8_t fhbfsk_freq_spacing;
   uint8_t fhbfsk_num_tones;
   uint8_t fhbfsk_dwell_time;
-  ErrorDetectionMethod_t error_detection_method;
-  ErrorCorrectionMethod_t ecc_method_preamble;
-  ErrorCorrectionMethod_t ecc_method_message;
+  ErrorDetectionMethod_t preamble_validation;
+  ErrorDetectionMethod_t cargo_validation;
+  ErrorCorrectionMethod_t preamble_ecc_method;
+  ErrorCorrectionMethod_t cargo_ecc_method;
   bool use_interleaver;
   FhbfskHopperMethod_t fhbfsk_hopper;
   SynchronizationMethod_t sync_method;

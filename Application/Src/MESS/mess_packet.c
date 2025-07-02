@@ -34,7 +34,7 @@ static bool is_stationary = DEFAULT_STATIONARY_FLAG;
 
 /* Private function prototypes -----------------------------------------------*/
 
-bool addPreamble(BitMessage_t* bit_msg, Message_t* msg);
+bool addPreamble(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* msg);
 bool addMessage(BitMessage_t* bit_msg, Message_t* msg);
 void initPacket(BitMessage_t* bit_msg, const DspConfig_t* cfg);
 bool addChunk(BitMessage_t* bit_msg, uint8_t chunk, uint8_t chunk_size);
@@ -53,7 +53,7 @@ bool Packet_PrepareTx(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* 
 
   // Add preamble to bit packet
   if (msg->data_type != EVAL) {
-    if (addPreamble(bit_msg, msg) == false) {
+    if (addPreamble(bit_msg, cfg, msg) == false) {
       return false;
     }
   }
@@ -65,15 +65,15 @@ bool Packet_PrepareTx(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* 
 
   bit_msg->combined_message_len = bit_msg->final_length;
 
-  // Add the error correction bits as specified by the user
+  // Add the error detection bits as specified by the user
   if (msg->data_type != EVAL) {
-    if (ErrorDetection_AddDetection(bit_msg, cfg) == false) {
+    if (ErrorDetection_AddDetection(bit_msg, cfg, false) == false) {
       return false;
     }
   }
 
   bit_msg->combined_message_len = bit_msg->preamble.raw_len + bit_msg->cargo.raw_len;
-  bit_msg->cargo.ecc_len = ErrorCorrection_GetLength(bit_msg->cargo.raw_len, cfg->ecc_method_message);
+  bit_msg->cargo.ecc_len = ErrorCorrection_GetLength(bit_msg->cargo.raw_len, cfg->cargo_ecc_method);
   bit_msg->final_length = bit_msg->preamble.ecc_len + bit_msg->cargo.ecc_len;
 
   return true;
@@ -284,8 +284,12 @@ void initPacket(BitMessage_t* bit_msg, const DspConfig_t* cfg)
   bit_msg->contents_data_type = UNKNOWN;
   bit_msg->final_length = 0;
 
-  bit_msg->preamble.raw_len = PACKET_PREAMBLE_LENGTH_BITS;
-  bit_msg->preamble.ecc_len = ErrorCorrection_GetLength(bit_msg->preamble.raw_len, cfg->ecc_method_preamble);
+  uint16_t preamble_validation_len;
+  if (ErrorDetection_CheckLength(&preamble_validation_len, cfg->preamble_validation) == false) {
+    return;
+  }
+  bit_msg->preamble.raw_len = PACKET_PREAMBLE_LENGTH_BITS + preamble_validation_len;
+  bit_msg->preamble.ecc_len = ErrorCorrection_GetLength(bit_msg->preamble.raw_len, cfg->preamble_ecc_method);
   bit_msg->preamble.raw_start_index = 0;
   bit_msg->preamble.ecc_start_index = 0;
 
@@ -301,7 +305,7 @@ void initPacket(BitMessage_t* bit_msg, const DspConfig_t* cfg)
   bit_msg->added_to_queue = false;
 }
 
-bool addPreamble(BitMessage_t* bit_msg, Message_t* msg)
+bool addPreamble(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* msg)
 {
   if (msg->length_bits > PACKET_DATA_MAX_LENGTH_BITS) {
     return false;
@@ -335,6 +339,10 @@ bool addPreamble(BitMessage_t* bit_msg, Message_t* msg)
   }
 
   bit_msg->final_length += PACKET_PREAMBLE_LENGTH_BITS;
+
+  if (ErrorDetection_AddDetection(bit_msg, cfg, true) == false) {
+    return false;
+  }
 
   return true;
 }
