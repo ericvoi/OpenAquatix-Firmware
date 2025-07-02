@@ -380,10 +380,13 @@ bool MESS_GetBandwidth(uint32_t* bandwidth, uint32_t* lower_freq, uint32_t* uppe
     return true;
   }
   else if (default_config.mod_demod_method == MOD_DEMOD_FHBFSK) {
-    *lower_freq = Modulate_GetFhbfskFrequency(false, 0, &default_config);
+    DspConfig_t temp_cfg;
+    memcpy(&temp_cfg, &default_config, sizeof(DspConfig_t));
+    temp_cfg.fhbfsk_hopper = HOPPER_INCREMENT;
+    *lower_freq = Modulate_GetFhbfskFrequency(false, 0, &temp_cfg);
 
-    uint16_t last_bit_index = default_config.fhbfsk_num_tones * default_config.fhbfsk_dwell_time - 1;
-    *upper_freq = Modulate_GetFhbfskFrequency(true, last_bit_index, &default_config);
+    uint16_t last_bit_index = temp_cfg.fhbfsk_num_tones * temp_cfg.fhbfsk_dwell_time - 1;
+    *upper_freq = Modulate_GetFhbfskFrequency(true, last_bit_index, &temp_cfg);
 
     *bandwidth = *upper_freq - *lower_freq;
     return true;

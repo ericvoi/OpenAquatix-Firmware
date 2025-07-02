@@ -499,7 +499,7 @@ bool checkCrc8(BitMessage_t* bit_msg, uint16_t start_bit, uint16_t end_bit, bool
     return false;
   }
 
-  *error = actual_crc == theoretical_crc;
+  *error = actual_crc != theoretical_crc;
   return true;
 }
 

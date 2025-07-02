@@ -29,7 +29,7 @@ extern "C" {
 
 #define PACKET_SENDER_ID_BITS             4
 #define PACKET_MESSAGE_TYPE_BITS          4
-#define PACKET_LENGTH_BITS                3
+#define PACKET_LENGTH_BITS                7
 #define PACKET_STATIONARY_BITS            1
 
 #define PACKET_PREAMBLE_LENGTH_BITS       (PACKET_SENDER_ID_BITS + \
@@ -37,8 +37,8 @@ extern "C" {
                                            PACKET_LENGTH_BITS + \
                                            PACKET_STATIONARY_BITS)
 
-#define PACKET_DATA_MIN_LENGTH_BITS       (8 * 1)   // If the packet length is 0
-#define PACKET_DATA_MAX_LENGTH_BITS       (8 * 128) // If the packet length is 7
+#define PACKET_DATA_MIN_LENGTH_BITS       (8 * 1)   // If the length index is 0
+#define PACKET_DATA_MAX_LENGTH_BITS       (8 * 480) // If the packet length is 127
 #define PACKET_MAX_ERROR_DETECTION_BITS   32
 // This is the number of bits in the *raw* message and is not to be used for
 // any ecc operation
