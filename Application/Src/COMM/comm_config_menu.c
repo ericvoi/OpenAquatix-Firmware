@@ -1160,8 +1160,8 @@ void setPreambleErrorDetection(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
   char* descriptors[] = {"None",
-                               "CRC-8",      "CRC-16",      "CRC-32", 
-                               "Checksum-8", "Checksum-16", "Checksum-32"};
+                         "CRC-8",      "CRC-16",      "CRC-32", 
+                         "Checksum-8", "Checksum-16", "Checksum-32"};
 
   COMMLoops_LoopEnum(context, PARAM_PREAMBLE_ERROR_DETECTION, descriptors, 
     sizeof(descriptors) / sizeof(descriptors[0]));
@@ -1171,8 +1171,8 @@ void setCargoErrorDetection(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
   char* descriptors[] = {"None",
-                               "CRC-8",      "CRC-16",      "CRC-32", 
-                               "Checksum-8", "Checksum-16", "Checksum-32"};
+                         "CRC-8",      "CRC-16",      "CRC-32", 
+                         "Checksum-8", "Checksum-16", "Checksum-32"};
 
   COMMLoops_LoopEnum(context, PARAM_CARGO_ERROR_DETECTION, descriptors, 
     sizeof(descriptors) / sizeof(descriptors[0]));
