@@ -172,12 +172,13 @@ void sendEvalFeedback(void* argument)
   msg.data_type = EVAL;
   Evaluate_CopyEvaluationMessage(&msg);
   msg.eval_info = NULL;
-  if (Param_GetUint8(PARAM_ID, &msg.sender_id) == false) {
+  if (Param_GetUint8(PARAM_ID, (uint8_t*) &msg.preamble.modem_id.value) == false) {
     COMM_TransmitData("\r\nError getting sender ID. Message not sent\r\n", 
         CALC_LEN, context->comm_interface);
     context->state->state = PARAM_STATE_COMPLETE;
     return;
   }
+  msg.preamble.modem_id.valid = true;
 
   if (MESS_AddMessageToTxQ(&msg) == pdPASS) {
     sprintf((char*) context->output_buffer, "\r\nSuccessfully added to feedback queue!\r\n\r\n");
@@ -200,12 +201,14 @@ void sendEvalTransducer(void* argument)
   msg.data_type = EVAL;
   Evaluate_CopyEvaluationMessage(&msg);
   msg.eval_info = NULL;
-  if (Param_GetUint8(PARAM_ID, &msg.sender_id) == false) {
+  if (Param_GetUint8(PARAM_ID, (uint8_t*) &msg.preamble.modem_id.value) == false) {
     COMM_TransmitData("\r\nError getting sender ID. Message not sent\r\n", 
         CALC_LEN, context->comm_interface);
     context->state->state = PARAM_STATE_COMPLETE;
     return;
   }
+
+  msg.preamble.modem_id.valid = true;
 
   if (MESS_AddMessageToTxQ(&msg) == pdPASS) {
     sprintf((char*) context->output_buffer, "\r\nSuccessfully added to ouput queue!\r\n\r\n");

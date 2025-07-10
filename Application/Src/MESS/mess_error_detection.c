@@ -72,15 +72,7 @@ bool ErrorDetection_AddDetection(BitMessage_t* bit_msg, const DspConfig_t* cfg, 
   if (ErrorDetection_CheckLength(&len, method) == false) {
     return false;
   }
-  bit_msg->final_length += len;
-  bit_msg->combined_message_len += len;
-  if (is_preamble == false) {
-    bit_msg->cargo.raw_len += len;
-  }
-  // Preamble raw lengths already have the error detection bits added
-  if (is_preamble == true) {
-    end_bit -= len;
-  }
+  end_bit -= len;
   switch (method) {
     case CRC_8:
       uint8_t crc_8;
@@ -160,7 +152,7 @@ bool ErrorDetection_CheckDetection(BitMessage_t* bit_msg, bool* error, const Dsp
     case CHECKSUM_32:
       return checkChecksum32(bit_msg, start_bit, end_bit, error);
     case NO_ERROR_DETECTION:
-      return false;
+      return true;
     default:
       return false;
   }

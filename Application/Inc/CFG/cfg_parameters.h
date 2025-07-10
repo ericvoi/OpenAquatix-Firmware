@@ -163,7 +163,7 @@ bool Param_Register(ParamIds_t id, const char* name, ParamType_t type,
  * @warning The caller must ensure that value points to sufficient memory to
  *          store the parameter's full size
  */
-bool Param_GetValue (ParamIds_t id, void* value);
+bool Param_GetValue(ParamIds_t id, void* value);
 
 /**
  * @brief Retrieves an 8-bit unsigned parameter value
@@ -175,7 +175,7 @@ bool Param_GetValue (ParamIds_t id, void* value);
  *
  * @see Param_GetValue
  */
-bool Param_GetUint8 (ParamIds_t id, uint8_t* value);
+bool Param_GetUint8(ParamIds_t id, uint8_t* value);
 
 /**
  * @brief Retrieves an 8-bit signed parameter value
@@ -187,7 +187,7 @@ bool Param_GetUint8 (ParamIds_t id, uint8_t* value);
  *
  * @see Param_GetValue
  */
-bool Param_GetInt8  (ParamIds_t id, int8_t* value);
+bool Param_GetInt8(ParamIds_t id, int8_t* value);
 
 /**
  * @brief Retrieves a 16-bit unsigned parameter value
@@ -211,7 +211,7 @@ bool Param_GetUint16(ParamIds_t id, uint16_t* value);
  *
  * @see Param_GetValue
  */
-bool Param_GetInt16 (ParamIds_t id, int16_t* value);
+bool Param_GetInt16(ParamIds_t id, int16_t* value);
 
 /**
  * @brief Retrieves a 32-bit unsigned parameter value
@@ -235,7 +235,7 @@ bool Param_GetUint32(ParamIds_t id, uint32_t* value);
  *
  * @see Param_GetValue
  */
-bool Param_GetInt32 (ParamIds_t id, int32_t* value);
+bool Param_GetInt32(ParamIds_t id, int32_t* value);
 
 /**
  * @brief Retrieves a floating point parameter value
@@ -247,7 +247,7 @@ bool Param_GetInt32 (ParamIds_t id, int32_t* value);
  *
  * @see Param_GetValue
  */
-bool Param_GetFloat (ParamIds_t id, float* value);
+bool Param_GetFloat(ParamIds_t id, float* value);
 
 /**
  * @brief Retrieves the name of a parameter by its ID
@@ -263,7 +263,7 @@ bool Param_GetFloat (ParamIds_t id, float* value);
  * @note This function blocks indefinitely while waiting for the mutex
  * @see findParamById, isParamInitialized
  */
-char* Param_GetName (ParamIds_t id);
+char* Param_GetName(ParamIds_t id);
 
 /**
  * @brief Retrieves the minimum and maximum limits for a specified parameter
@@ -295,7 +295,7 @@ bool Param_GetLimits(ParamIds_t id, void* min, void* max);
  *
  * @note Values may be truncated when cast from uint32_t to uint8_t
  */
-bool Param_GetUint8Limits (ParamIds_t id, uint8_t* min, uint8_t* max);
+bool Param_GetUint8Limits(ParamIds_t id, uint8_t* min, uint8_t* max);
 
 /**
  * @brief Retrieves the minimum and maximum limits for a parameter as int8_t
@@ -310,7 +310,7 @@ bool Param_GetUint8Limits (ParamIds_t id, uint8_t* min, uint8_t* max);
  *
  * @note Values may be truncated when cast from int32_t to int8_t
  */
-bool Param_GetInt8Limits  (ParamIds_t id, int8_t* min, int8_t* max);
+bool Param_GetInt8Limits(ParamIds_t id, int8_t* min, int8_t* max);
 
 /**
  * @brief Retrieves the minimum and maximum limits for a parameter as uint16_t
@@ -340,7 +340,7 @@ bool Param_GetUint16Limits(ParamIds_t id, uint16_t* min, uint16_t* max);
  *
  * @note Values may be truncated when cast from int32_t to int16_t
  */
-bool Param_GetInt16Limits (ParamIds_t id, int16_t* min, int16_t* max);
+bool Param_GetInt16Limits(ParamIds_t id, int16_t* min, int16_t* max);
 
 /**
  * @brief Retrieves the minimum and maximum limits for a parameter as uint32_t

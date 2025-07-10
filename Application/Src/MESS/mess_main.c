@@ -23,6 +23,7 @@
 #include "mess_dsp_config.h"
 #include "mess_feedback_tests.h"
 #include "mess_interleaver.h"
+#include "mess_cargo.h"
 
 #include "sys_error.h"
 
@@ -53,6 +54,10 @@
 
 
 /* Private variables ---------------------------------------------------------*/
+
+// Identification parameters
+static uint8_t modem_identifier_4b = DEFAULT_ID;
+static bool is_stationary = DEFAULT_STATIONARY_FLAG;
 
 static QueueHandle_t tx_queue = NULL; // Messages to send
 static QueueHandle_t rx_queue = NULL; // Messages received
@@ -103,6 +108,7 @@ void MESS_StartTask(void* argument)
   osEventFlagsClear(print_event_handle, 0xFFFFFFFF);
   MessDacResource_Init();
   Message_t tx_msg;
+  Message_t rx_msg;
   EvalMessageInfo_t eval_info;
 
   if (Param_RegisterTask(MESS_TASK, "MESS") == false) {
@@ -222,14 +228,13 @@ void MESS_StartTask(void* argument)
           Error_Routine(ERROR_MESS_PROCESSING);
           break;
         }
-        if (Input_DecodeBits(&input_bit_msg, evaluation_mode, cfg) == false) {
+        if (Input_DecodeBits(&input_bit_msg, evaluation_mode, cfg, &rx_msg) == false) {
           Error_Routine(ERROR_MESS_PROCESSING);
           break;
         }
         if (evaluation_mode == true) {
           if (input_bit_msg.bit_count >= EVAL_MESSAGE_LENGTH && input_bit_msg.added_to_queue == false) {
             input_bit_msg.fully_received = true;
-            Message_t rx_msg;
             rx_msg.data_type = EVAL;
             rx_msg.timestamp = osKernelGetTickCount();
             rx_msg.eval_info = &eval_info;
@@ -242,7 +247,6 @@ void MESS_StartTask(void* argument)
         }
         else {
           if (input_bit_msg.fully_received == true && input_bit_msg.added_to_queue == false) {
-            Message_t rx_msg;
             // TODO: fix currently incorrect since cant know if transducer or feedback
             rx_msg.type = (tx_msg.type == MSG_TRANSMIT_TRANSDUCER) ?
                           MSG_RECEIVED_TRANSDUCER : MSG_RECEIVED_FEEDBACK;
@@ -250,7 +254,6 @@ void MESS_StartTask(void* argument)
             rx_msg.length_bits = input_bit_msg.data_len_bits;
             rx_msg.data_type = input_bit_msg.contents_data_type;
             rx_msg.eval_info = &eval_info;
-            rx_msg.sender_id = input_bit_msg.sender_id;
 
             if (Interleaver_Undo(&input_bit_msg, cfg, false) == false) {
               Error_Routine(ERROR_MESS_PROCESSING);
@@ -263,7 +266,7 @@ void MESS_StartTask(void* argument)
               Error_Routine(ERROR_MESS_PROCESSING);
             }
             // decode message
-            if (Input_DecodeMessage(&input_bit_msg, &rx_msg) == false) {
+            if (Cargo_Decode(&input_bit_msg, &rx_msg, cfg) == false) {
               Error_Routine(ERROR_MESS_PROCESSING);
               break;
             }
@@ -663,6 +666,22 @@ static bool registerMessMainParams()
                      &min_u32, &max_u32, NULL) == false) {
     return false;
   }
+
+  min_u32 = MIN_ID;
+  max_u32 = MAX_ID;
+  if (Param_Register(PARAM_ID, "the modem identifier", PARAM_TYPE_UINT8,
+      &modem_identifier_4b, sizeof(uint8_t), &min_u32, &max_u32, NULL) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_STATIONARY_FLAG;
+  max_u32 = MAX_STATIONARY_FLAG;
+  if (Param_Register(PARAM_STATIONARY_FLAG, "stationary flag", PARAM_TYPE_UINT8,
+      &is_stationary, sizeof(uint8_t), &min_u32, &max_u32, NULL) == false) {
+    return false;
+  }
+
+  return true;
 
   return true;
 }

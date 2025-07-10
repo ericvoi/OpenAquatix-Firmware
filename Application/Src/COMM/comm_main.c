@@ -317,7 +317,7 @@ void printReceivedMessage(Message_t msg)
   sprintf((char*) out_buffer, "Received a new message at %ds\r\n", (int) msg.timestamp / 1000);
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 
-  switch (msg.data_type) {
+  switch (msg.preamble.message_type.value) {
     case STRING:
       sprintf((char*) out_buffer, "String: ");
       break;
@@ -339,7 +339,7 @@ void printReceivedMessage(Message_t msg)
   }
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 
-  switch (msg.data_type) {
+  switch (msg.preamble.message_type.value) {
     case STRING:
       msg.data[msg.length_bits / 8] = '\0';
       sprintf((char*) out_buffer, "%s", (char*) msg.data);
@@ -369,7 +369,7 @@ void printReceivedMessage(Message_t msg)
   sprintf((char*) out_buffer, "\r\nErrors Present: %s", msg.error_detected ? "Yes" : "No");
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 
-  sprintf((char*) out_buffer, "\r\nSender id: %u", msg.sender_id);
+  sprintf((char*) out_buffer, "\r\nSender id: %u", msg.preamble.modem_id.value);
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 
   sprintf((char*) out_buffer, "\r\nMessage Length (bits): %u", msg.length_bits);

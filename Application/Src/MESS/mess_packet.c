@@ -10,6 +10,8 @@
 #include <mess_error_detection.h>
 #include "mess_packet.h"
 #include "mess_sync.h"
+#include "mess_preamble.h"
+#include "mess_cargo.h"
 #include "cfg_defaults.h"
 #include "cfg_parameters.h"
 #include <stdbool.h>
@@ -29,14 +31,11 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-static uint8_t modem_id = DEFAULT_ID;
-static bool is_stationary = DEFAULT_STATIONARY_FLAG;
+
 
 /* Private function prototypes -----------------------------------------------*/
 
-bool addPreamble(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* msg);
-bool addMessage(BitMessage_t* bit_msg, Message_t* msg);
-void initPacket(BitMessage_t* bit_msg, const DspConfig_t* cfg);
+bool initPacket(BitMessage_t* bit_msg, const DspConfig_t* cfg);
 bool addChunk(BitMessage_t* bit_msg, uint8_t chunk, uint8_t chunk_size);
 bool addData(BitMessage_t* bit_msg, void* data, uint8_t num_bits);
 bool getData(BitMessage_t* bit_msg, uint16_t* start_position, uint8_t num_bits, void* data);
@@ -49,39 +48,29 @@ bool Packet_PrepareTx(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* 
     return false;
   }
 
-  initPacket(bit_msg, cfg);
+  if (initPacket(bit_msg, cfg) == false) {
+    return false;
+  }
 
   // Add preamble to bit packet
   if (msg->data_type != EVAL) {
-    if (addPreamble(bit_msg, cfg, msg) == false) {
+    if (Preamble_Add(bit_msg, msg, cfg) == false) {
       return false;
     }
   }
 
   // Adds the data payload bits to the packet
-  if (addMessage(bit_msg, msg) == false) {
+  if (Cargo_Add(bit_msg, msg, cfg) == false) {
     return false;
   }
-
-  bit_msg->combined_message_len = bit_msg->final_length;
-
-  // Add the error detection bits as specified by the user
-  if (msg->data_type != EVAL) {
-    if (ErrorDetection_AddDetection(bit_msg, cfg, false) == false) {
-      return false;
-    }
-  }
-
-  bit_msg->combined_message_len = bit_msg->preamble.raw_len + bit_msg->cargo.raw_len;
-  bit_msg->cargo.ecc_len = ErrorCorrection_GetLength(bit_msg->cargo.raw_len, cfg->cargo_ecc_method);
-  bit_msg->final_length = bit_msg->preamble.ecc_len + bit_msg->cargo.ecc_len;
-
   return true;
 }
 
 bool Packet_PrepareRx(BitMessage_t* bit_msg, const DspConfig_t* cfg)
 {
-  initPacket(bit_msg, cfg);
+  if (initPacket(bit_msg, cfg) == false) {
+    return false;
+  }
 
   return true;
 }
@@ -162,6 +151,24 @@ bool Packet_Get32(BitMessage_t* bit_msg, uint16_t* start_position, uint32_t* dat
   return getData(bit_msg, start_position, 8 * sizeof(uint32_t), data);
 }
 
+bool Packet_GetChunk(BitMessage_t* bit_msg, uint16_t start_position, uint8_t num_bits, uint16_t* data)
+{
+  if (num_bits > 8 * sizeof(uint16_t) || bit_msg == NULL || data == NULL) {
+    return false;
+  }
+
+  return getData(bit_msg, &start_position, num_bits, data);
+}
+
+bool Packet_AddChunk(BitMessage_t* bit_msg, uint8_t num_bits, uint16_t data)
+{
+  if (num_bits > 8 * sizeof(uint16_t) || bit_msg == NULL) {
+    return false;
+  }
+
+  return addData(bit_msg, &data, num_bits);
+}
+
 bool Packet_FlipBit(BitMessage_t* bit_msg, uint16_t bit_index)
 {
   if (bit_msg == NULL) {
@@ -226,18 +233,6 @@ bool Packet_Compare(const BitMessage_t* msg1, const BitMessage_t* msg2, bool* id
   uint8_t last_byte2 = msg2->data[byte_count] >> (8 - remaining_bits);
 
   *identical = last_byte1 == last_byte2;
-  return true;
-}
-
-bool Packet_MinimumSize(uint16_t str_len, uint16_t* minimum_size)
-{
-  uint8_t length_index;
-  if (Packet_MinimumLengthIndex(str_len, &length_index) == false) {
-    return false;
-  }
-  if (Packet_CargoBytes(length_index, minimum_size) == false) {
-    return false;
-  }
   return true;
 }
 
@@ -306,41 +301,21 @@ bool Packet_Copy(const BitMessage_t* src_msg, BitMessage_t* dest_msg, const uint
 
 bool Packet_RegisterParams()
 {
-  uint32_t min_u32 = MIN_ID;
-  uint32_t max_u32 = MAX_ID;
-  if (Param_Register(PARAM_ID, "the modem identifier", PARAM_TYPE_UINT8,
-      &modem_id, sizeof(uint8_t), &min_u32, &max_u32, NULL) == false) {
-    return false;
-  }
-
-  min_u32 = MIN_STATIONARY_FLAG;
-  max_u32 = MAX_STATIONARY_FLAG;
-  if (Param_Register(PARAM_STATIONARY_FLAG, "stationary flag", PARAM_TYPE_UINT8,
-      &is_stationary, sizeof(uint8_t), &min_u32, &max_u32, NULL) == false) {
-    return false;
-  }
-
   return true;
 }
 
 /* Private function definitions ----------------------------------------------*/
 
-void initPacket(BitMessage_t* bit_msg, const DspConfig_t* cfg)
+bool initPacket(BitMessage_t* bit_msg, const DspConfig_t* cfg)
 {
   memset(bit_msg->data, 0, sizeof(bit_msg->data));
   bit_msg->bit_count = 0;
-  bit_msg->sender_id = 255;
   bit_msg->contents_data_type = UNKNOWN;
   bit_msg->final_length = 0;
 
-  uint16_t preamble_validation_len;
-  if (ErrorDetection_CheckLength(&preamble_validation_len, cfg->preamble_validation) == false) {
-    return;
+  if (Preamble_UpdateNumBits(bit_msg, cfg) == false) {
+    return false;
   }
-  bit_msg->preamble.raw_len = PACKET_PREAMBLE_LENGTH_BITS + preamble_validation_len;
-  bit_msg->preamble.ecc_len = ErrorCorrection_GetLength(bit_msg->preamble.raw_len, cfg->preamble_ecc_method);
-  bit_msg->preamble.raw_start_index = 0;
-  bit_msg->preamble.ecc_start_index = 0;
 
   // Cant calculate lengths without decoding the preamble first
   bit_msg->cargo.raw_len = 0;
@@ -348,65 +323,9 @@ void initPacket(BitMessage_t* bit_msg, const DspConfig_t* cfg)
   bit_msg->cargo.raw_start_index = bit_msg->preamble.raw_start_index + bit_msg->preamble.raw_len;
   bit_msg->cargo.ecc_start_index = bit_msg->preamble.ecc_start_index + bit_msg->preamble.ecc_len;
 
-  bit_msg->stationary_flag = false;
   bit_msg->preamble_received = false;
   bit_msg->fully_received = false;
   bit_msg->added_to_queue = false;
-}
-
-bool addPreamble(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* msg)
-{
-  if (msg->length_bits > PACKET_DATA_MAX_LENGTH_BITS) {
-    return false;
-  }
-
-  if (addChunk(bit_msg, msg->sender_id, PACKET_SENDER_ID_BITS) == false) {
-    return false;
-  }
-
-  if (addChunk(bit_msg, msg->data_type, PACKET_MESSAGE_TYPE_BITS) == false) {
-    return false;
-  }
-
-  uint8_t length_index;
-  uint16_t bytes_accomodated;
-  if (Packet_MinimumLengthIndex((msg->length_bits + 7) / 8, &length_index) == false) {
-    return false;
-  }
-  if (Packet_CargoBytes(length_index, &bytes_accomodated) == false) {
-    return false;
-  }
-
-  if (addChunk(bit_msg, length_index, PACKET_LENGTH_BITS) == false) {
-    return false;
-  }
-
-  bit_msg->final_length += bytes_accomodated * 8;
-  bit_msg->cargo.raw_len = bytes_accomodated * 8; // modified later
-
-  if (Packet_AddBit(bit_msg, is_stationary) == false) {
-    return false;
-  }
-
-  bit_msg->final_length += PACKET_PREAMBLE_LENGTH_BITS;
-
-  if (ErrorDetection_AddDetection(bit_msg, cfg, true) == false) {
-    return false;
-  }
-
-  return true;
-}
-
-bool addMessage(BitMessage_t* bit_msg, Message_t* msg)
-{
-  for (uint16_t i = 0; i < msg->length_bits; i++) {
-    uint16_t byte_index = i / 8;
-    uint16_t bit_index = i % 8;
-    bool bit = (msg->data[byte_index] & (1 << (7 - bit_index))) != 0;
-    if (Packet_AddBit(bit_msg, bit) == false)
-      return false;
-  }
-  bit_msg->data_len_bits = msg->length_bits;
   return true;
 }
 
@@ -431,10 +350,6 @@ bool addData(BitMessage_t* bit_msg, void* data, uint8_t num_bits)
     return false;
   }
 
-  if ((num_bits % 8) != 0) {
-    return false;
-  }
-
   for (uint8_t i = 0; i < num_bits; i++) {
     uint8_t byte_index = i / 8;
     uint8_t bit_index = i % 8;
@@ -449,10 +364,6 @@ bool addData(BitMessage_t* bit_msg, void* data, uint8_t num_bits)
 bool getData(BitMessage_t* bit_msg, uint16_t* start_position, uint8_t num_bits, void* data)
 {
   if (bit_msg == NULL || start_position == NULL || data == NULL || num_bits > 32) {
-    return false;
-  }
-
-  if ((num_bits % 8) != 0) {
     return false;
   }
 

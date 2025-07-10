@@ -14,6 +14,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
+#include "mess_dsp_config.h"
 #include "FreeRTOS.h"
 #include "queue.h"
 #include <stdbool.h>
@@ -80,7 +81,13 @@ typedef enum {
   // Add new message data types here
   UNKNOWN,
   EVAL
-} MessageData_t;
+} CustomMessageData_t;
+
+typedef enum {
+  JANUS_011_01_SMS,
+  JANUS_011_02_TXT,
+  JANUS_011_03_TXT_ACK
+} JanusMessageData_t;
 
 typedef struct {
   uint16_t len_bits; // length of evaluation message
@@ -97,10 +104,14 @@ typedef struct {
   uint8_t data[PACKET_DATA_MAX_LENGTH_BYTES];
   uint16_t length_bits;              // length of message in bits
   uint32_t timestamp;
-  MessageData_t data_type;
-  uint8_t sender_id;
+  // Blind union to account for different communciation protocol message types
+  union {
+    CustomMessageData_t data_type;
+    JanusMessageData_t janus_data_type;
+  };
   bool error_detected;
   EvalMessageInfo_t* eval_info;
+  PreambleContent_t preamble;
 } Message_t;
 
 // defines the structure for analysis of the waveform

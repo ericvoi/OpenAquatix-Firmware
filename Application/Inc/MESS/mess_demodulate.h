@@ -47,7 +47,7 @@ typedef enum {
 
 /* Exported constants --------------------------------------------------------*/
 
-#define MAX_ANALYSIS_BUFFER_SIZE    32
+#define MAX_ANALYSIS_BUFFER_SIZE    64
 
 /* Exported macro ------------------------------------------------------------*/
 

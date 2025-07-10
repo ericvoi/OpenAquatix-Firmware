@@ -22,6 +22,21 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
+// Preamble structs
+typedef struct {
+  uint16_t value;
+  bool valid;
+} PreambleValue_t;
+
+typedef struct preamble_content {
+  PreambleValue_t modem_id;
+  PreambleValue_t message_type;
+  PreambleValue_t is_stationary;
+  PreambleValue_t cargo_length;
+  // others as needed
+} PreambleContent_t;
+
+// Parameter enums
 typedef enum {
   MOD_DEMOD_FSK,
   MOD_DEMOD_FHBFSK,

@@ -100,25 +100,11 @@ bool Input_ProcessBlocks(BitMessage_t* bit_msg, EvalMessageInfo_t* eval_info, co
  * @param bit_msg Pointer to the bit message structure containing received bits
  * @param evaluation_mode If true, bypasses header decoding (no header in evaluation mode)
  * @param cfg Pointer to configuration data
+ * @param msg Message to add extracted bits to
  *
  * @return true if decoding succeeds or is not yet needed, false on decoding failure
  */
-bool Input_DecodeBits(BitMessage_t* bit_msg, bool evaluation_mode, const DspConfig_t* cfg);
-
-/**
- * @brief Extracts payload data from bit message into a structured message
- *
- * Converts the stream of bits in the bit message into bytes and copies them
- * to the message data field.
- *
- * @param input_bit_msg Pointer to the bit message containing the encoded data
- * @param msg Pointer to message structure where decoded data will be stored
- *
- * @return true if message extraction succeeds, false on parameter error or extraction failure
- *
- * @pre Preamble must have been successfully received and decoded
- */
-bool Input_DecodeMessage(BitMessage_t* input_bit_msg, Message_t* msg);
+bool Input_DecodeBits(BitMessage_t* bit_msg, bool evaluation_mode, const DspConfig_t* cfg, Message_t* msg);
 
 /**
  * @brief Resets the input module to initial state
