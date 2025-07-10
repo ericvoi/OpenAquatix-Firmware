@@ -74,6 +74,7 @@ void OTG_HS_IRQHandler(void);
 void SPI4_IRQHandler(void);
 void TIM16_IRQHandler(void);
 void TIM17_IRQHandler(void);
+void ADC3_IRQHandler(void);
 /* USER CODE BEGIN EFP */
 
 /* USER CODE END EFP */

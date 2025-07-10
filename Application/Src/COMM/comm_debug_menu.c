@@ -433,6 +433,9 @@ void resetSavedValues(void* argument)
           }
           COMM_TransmitData("\r\nResetting device...\r\n", CALC_LEN, context->comm_interface);
 
+          // Give time to print USB message (not needed in practice)
+          osDelay(10);
+
           HAL_NVIC_SystemReset();
         }
         context->state->state = PARAM_STATE_COMPLETE;

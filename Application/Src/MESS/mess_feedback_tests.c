@@ -81,7 +81,6 @@ static ReferenceMessage_t reference_messages[] = {
             .data = {0x12},
             .length_bits = 8 << 0,
             .data_type = BITS,
-            .sender_id = 1,
             .eval_info = NULL
         }
     },
@@ -91,7 +90,6 @@ static ReferenceMessage_t reference_messages[] = {
             .data = {0x12, 0x34},
             .length_bits = 8 << 1,
             .data_type = BITS,
-            .sender_id = 1,
             .eval_info = NULL
         }
     },
@@ -101,7 +99,6 @@ static ReferenceMessage_t reference_messages[] = {
             .data = {0x12, 0x34, 0x56, 0x78},
             .length_bits = 8 << 2,
             .data_type = BITS,
-            .sender_id = 1,
             .eval_info = NULL
         }
     },
@@ -111,7 +108,6 @@ static ReferenceMessage_t reference_messages[] = {
             .data = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
             .length_bits = 8 << 3,
             .data_type = BITS,
-            .sender_id = 1,
             .eval_info = NULL
         }
     },
@@ -122,7 +118,6 @@ static ReferenceMessage_t reference_messages[] = {
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
             .length_bits = 8 << 4,
             .data_type = BITS,
-            .sender_id = 1,
             .eval_info = NULL
         }
     },
@@ -135,7 +130,6 @@ static ReferenceMessage_t reference_messages[] = {
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
             .length_bits = 8 << 5,
             .data_type = BITS,
-            .sender_id = 1,
             .eval_info = NULL
         }
     },
@@ -152,7 +146,6 @@ static ReferenceMessage_t reference_messages[] = {
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
             .length_bits = 8 << 6,
             .data_type = BITS,
-            .sender_id = 1,
             .eval_info = NULL
         }
     },
@@ -177,7 +170,6 @@ static ReferenceMessage_t reference_messages[] = {
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
             .length_bits = 8 << 7,
             .data_type = BITS,
-            .sender_id = 1,
             .eval_info = NULL
         }
     },
@@ -246,7 +238,6 @@ static ReferenceMessage_t reference_messages[] = {
                    0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
           .length_bits = 8 * 480,
           .data_type = BITS,
-          .sender_id = 1,
           .eval_info = NULL
       }
   }
@@ -681,9 +672,6 @@ static bool compareHeaders(const Message_t* msg1, const Message_t* msg2, bool* i
 
   *identical = true;
   if (msg1->data_type != msg2->data_type) {
-    *identical = false;
-  }
-  else if (msg1->sender_id != msg2->sender_id) {
     *identical = false;
   }
   else if (msg1->length_bits != msg2->length_bits) {

@@ -319,6 +319,8 @@ void transmitBits(FunctionContext_t* context, bool is_feedback)
           msg.type = is_feedback ? MSG_TRANSMIT_FEEDBACK : MSG_TRANSMIT_TRANSDUCER;
           msg.timestamp = osKernelGetTickCount();
           msg.data_type = BITS;
+          msg.preamble.message_type.value = BITS;
+          msg.preamble.message_type.valid = true;
           msg.length_bits = num_bytes * 8;
           memcpy(msg.data, binary_data, num_bytes);
 
@@ -361,6 +363,8 @@ void transmitString(FunctionContext_t* context, bool is_feedback)
           msg.timestamp = osKernelGetTickCount();
           msg.data_type = STRING;
           msg.length_bits = 8 * context->input_len;
+          msg.preamble.message_type.value = STRING;
+          msg.preamble.message_type.valid = true;
           for (uint16_t i = 0; i < msg.length_bits / 8; i++) {
             if (context->input_len > i) {
               msg.data[i] = context->input[i];
@@ -407,6 +411,8 @@ void transmitInt(FunctionContext_t* context, bool is_feedback)
           msg.type = is_feedback ? MSG_TRANSMIT_FEEDBACK : MSG_TRANSMIT_TRANSDUCER;
           msg.timestamp = osKernelGetTickCount();
           msg.data_type = INTEGER;
+          msg.preamble.message_type.value = INTEGER;
+          msg.preamble.message_type.valid = true;
           msg.length_bits = 8 * sizeof(uint32_t);
           memcpy(&msg.data[0], &input, sizeof(uint32_t));
           
@@ -445,6 +451,8 @@ void transmitFloat(FunctionContext_t* context, bool is_feedback)
           msg.type = is_feedback ? MSG_TRANSMIT_FEEDBACK : MSG_TRANSMIT_TRANSDUCER;
           msg.timestamp = osKernelGetTickCount();
           msg.data_type = FLOAT;
+          msg.preamble.message_type.value = FLOAT;
+          msg.preamble.message_type.valid = true;
           msg.length_bits = 8 * sizeof(float);
           memcpy(&msg.data[0], &input, sizeof(float));
 
@@ -536,12 +544,13 @@ bool parseHexString(FunctionContext_t* context, uint16_t* num_bytes, uint8_t* de
 
 void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_feedback)
 {
-  if (Param_GetUint8(PARAM_ID, &msg->sender_id) == false) {
+  if (Param_GetUint8(PARAM_ID, (uint8_t*) &msg->preamble.modem_id.value) == false) {
     COMM_TransmitData("\r\nError getting sender ID. Message not sent\r\n", 
         CALC_LEN, context->comm_interface);
     context->state->state = PARAM_STATE_COMPLETE;
     return;
   }
+  msg->preamble.modem_id.valid = true;
   if (MESS_AddMessageToTxQ(msg) == pdPASS) {
     sprintf((char*) context->output_buffer, "\r\nSuccessfully added to"
         " %s queue!\r\n\r\n", is_feedback ? "feedback network" : "transducer");

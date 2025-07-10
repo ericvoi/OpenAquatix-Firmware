@@ -16,6 +16,7 @@
 #include "mess_error_correction.h"
 #include "mess_interleaver.h"
 #include "mess_sync.h"
+#include "mess_preamble.h"
 #include "cfg_defaults.h"
 #include "cfg_parameters.h"
 #include "cfg_main.h"
@@ -286,7 +287,7 @@ bool Input_ProcessBlocks(BitMessage_t* bit_msg, EvalMessageInfo_t* eval_info, co
 
 // Goes through message to see if enough bits have been received to decode the
 // length and data type
-bool Input_DecodeBits(BitMessage_t* bit_msg, bool evaluation_mode, const DspConfig_t* cfg)
+bool Input_DecodeBits(BitMessage_t* bit_msg, bool evaluation_mode, const DspConfig_t* cfg, Message_t* msg)
 {
   if (bit_msg == NULL) {
     return false;
@@ -313,77 +314,13 @@ bool Input_DecodeBits(BitMessage_t* bit_msg, bool evaluation_mode, const DspConf
         return false;
       }
 
-      // Keeps track of where in the preamble we are
-      uint16_t bit_index = 0;
-      // The first set of bytes in the message correspond to the sender's id
-      if (Packet_Get8BitChunk(bit_msg, &bit_index, PACKET_SENDER_ID_BITS,
-          &bit_msg->sender_id) == false) {
+      if (Preamble_Decode(bit_msg, msg, cfg) == false) {
         return false;
       }
-      // The second set of bytes in the message correspond to the data type
-      if (Packet_Get8BitChunk(bit_msg, &bit_index, PACKET_MESSAGE_TYPE_BITS,
-          &bit_msg->contents_data_type) == false) {
-        return false;
-      }
-      uint8_t packet_length;
-      // The third set of bytes in the message correspond to the data length
-      if (Packet_Get8BitChunk(bit_msg, &bit_index, PACKET_LENGTH_BITS,
-          &packet_length) == false) {
-        return false;
-      }
-      uint16_t data_len_bytes;
-      if (Packet_CargoBytes(packet_length, &data_len_bytes) == false) {
-        return false;
-      }
-      bit_msg->data_len_bits = 8 * data_len_bytes;
-      uint16_t error_bits_length;
-      if (ErrorDetection_CheckLength(&error_bits_length, cfg->cargo_validation) == false) {
-        return false;
-      }
-      bit_msg->cargo.raw_len = 8 * data_len_bytes;
-      bit_msg->cargo.raw_len += error_bits_length;
-      bit_msg->cargo.ecc_len = ErrorCorrection_GetLength(
-          bit_msg->cargo.raw_len, cfg->cargo_ecc_method);
       bit_msg->final_length = bit_msg->preamble.ecc_len;
       bit_msg->final_length += bit_msg->cargo.ecc_len;
-      // final length (add preamble)
-      // The fourth set of bytes in the message correspond to the stationary flag
-      if (Packet_Get8BitChunk(bit_msg, &bit_index, PACKET_STATIONARY_BITS,
-          (uint8_t*) &bit_msg->stationary_flag) == false) {
-        return false;
-      }
-
-      uint16_t len;
-      if (ErrorDetection_CheckLength(&len, cfg->preamble_validation) == false) {
-        return false;
-      }
-      bit_index += len;
-
-      // Asserts that the amount of bits read == the amount of bits in the preamble
-      if (bit_index != bit_msg->preamble.raw_len) {
-        return false;
-      }
 
       bit_msg->preamble_received = true;
-    }
-  }
-  return true;
-}
-
-// copies data from the bit message to the actual message
-bool Input_DecodeMessage(BitMessage_t* input_bit_msg, Message_t* msg)
-{
-  if (input_bit_msg == NULL || msg == NULL) {
-    return false;
-  }
-  // data_len_bytes is restricted to be a multiple of 8
-  uint16_t len_bytes = input_bit_msg->data_len_bits / 8;
-
-  uint16_t start_position = input_bit_msg->cargo.raw_start_index;
-
-  for (uint16_t i = 0; i < len_bytes; i++) {
-    if (Packet_Get8(input_bit_msg, &start_position, msg->data + i) == false) {
-      return false;
     }
   }
   return true;

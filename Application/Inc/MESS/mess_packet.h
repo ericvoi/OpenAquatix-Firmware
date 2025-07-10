@@ -36,15 +36,13 @@ typedef struct {
 typedef struct {
   uint8_t data[PACKET_MAX_LENGTH_BYTES];
   uint16_t bit_count;
-  uint8_t sender_id;
   uint16_t data_len_bits;
-  MessageData_t contents_data_type;
+  CustomMessageData_t contents_data_type;
   SectionInfo_t preamble;
   SectionInfo_t cargo;
   uint16_t final_length; // includes ecc
   uint16_t combined_message_len; // not including ecc
   float normalized_vitrebi_error_metric; // Only set when the ecc method uses convoltuional codes
-  bool stationary_flag;
   bool preamble_received; // Set when first preamble number of bits received and decoded
   bool fully_received;    // Set when message bit count > final bit count
   bool added_to_queue;    // Set when message decoded and "done with"
@@ -194,6 +192,27 @@ bool Packet_Get16(BitMessage_t* bit_msg, uint16_t* start_position, uint16_t* dat
 bool Packet_Get32(BitMessage_t* bit_msg, uint16_t* start_position, uint32_t* data);
 
 /**
+ * @brief Extracts a set number of bits from an offset in a bit message
+ * 
+ * @param bit_msg message to take the bits from
+ * @param start_position starting bit position offset
+ * @param num_bits Number of bits to extract (must be <= 16)
+ * @param data Returned data at that location (will be updated)
+ * @return true if successful, false otherwise
+ */
+bool Packet_GetChunk(BitMessage_t* bit_msg, uint16_t start_position, uint8_t num_bits, uint16_t* data);
+
+/**
+ * @brief Adds a chunk of data to a bit message
+ * 
+ * @param bit_msg Message to add the bits to
+ * @param num_bits Number of bits to add
+ * @param data Data to add
+ * @return true if successful, false otherwise
+ */
+bool Packet_AddChunk(BitMessage_t* bit_msg, uint8_t num_bits, uint16_t data);
+
+/**
  * @brief Flips bit at selected position
  *
  * @param bit_msg Pointer to the bit message structure
@@ -224,16 +243,6 @@ bool Packet_SetBit(BitMessage_t* bit_msg, uint16_t bit_index, bool bit);
  * @return true if successful and false otherwise
  */
 bool Packet_Compare(const BitMessage_t* msg1, const BitMessage_t* msg2, bool* identical);
-
-/**
- * @brief Calculates the minimum packet size needed for a given payload
- *
- * @param str_len The length of data to accommodate in bytes
- * @param minimum_size Cargo size required (modified)
- *
- * @return true if successful, false otherwise
- */
-bool Packet_MinimumSize(uint16_t str_len, uint16_t* minimum_size);
 
 /**
  * @brief The minimum 7 bit length index required for the number of cargo bytes
