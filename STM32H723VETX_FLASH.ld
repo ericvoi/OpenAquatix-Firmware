@@ -174,9 +174,14 @@ SECTIONS
     libgcc.a ( * )
   }
   
-  .dtcm :
+  .dtcm (NOLOAD) :
   {
-    KEEP(*(.dtcm))
+    . = ALIGN(4);
+    _sdtcm = .;         /* define a global symbol at dtcm start */
+    *(.dtcm)
+    *(.dtcm.*)
+    . = ALIGN(4);
+    _edtcm = .;         /* define a global symbol at dtcm end */
   } >DTCMRAM
 
   .ARM.attributes 0 : { *(.ARM.attributes) }
