@@ -152,7 +152,7 @@ bool ErrorDetection_CheckDetection(BitMessage_t* bit_msg, bool* error, const Dsp
     case CHECKSUM_32:
       return checkChecksum32(bit_msg, start_bit, end_bit, error);
     case NO_ERROR_DETECTION:
-      return false;
+      return true;
     default:
       return false;
   }

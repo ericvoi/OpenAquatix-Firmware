@@ -81,7 +81,18 @@ static ReferenceMessage_t reference_messages[] = {
             .data = {0x12},
             .length_bits = 8 << 0,
             .data_type = BITS,
-            .eval_info = NULL
+            .eval_info = NULL,
+            .preamble = {
+              .is_stationary = {
+                0, true
+              },
+              .message_type = {
+                BITS, true
+              },
+              .modem_id = {
+                2, true
+              }
+            }
         }
     },
     {
@@ -90,7 +101,18 @@ static ReferenceMessage_t reference_messages[] = {
             .data = {0x12, 0x34},
             .length_bits = 8 << 1,
             .data_type = BITS,
-            .eval_info = NULL
+            .eval_info = NULL,
+            .preamble = {
+              .is_stationary = {
+                0, true
+              },
+              .message_type = {
+                BITS, true
+              },
+              .modem_id = {
+                2, true
+              }
+            }
         }
     },
     {
@@ -99,7 +121,18 @@ static ReferenceMessage_t reference_messages[] = {
             .data = {0x12, 0x34, 0x56, 0x78},
             .length_bits = 8 << 2,
             .data_type = BITS,
-            .eval_info = NULL
+            .eval_info = NULL,
+            .preamble = {
+              .is_stationary = {
+                0, true
+              },
+              .message_type = {
+                BITS, true
+              },
+              .modem_id = {
+                2, true
+              }
+            }
         }
     },
     {
@@ -108,7 +141,18 @@ static ReferenceMessage_t reference_messages[] = {
             .data = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
             .length_bits = 8 << 3,
             .data_type = BITS,
-            .eval_info = NULL
+            .eval_info = NULL,
+            .preamble = {
+              .is_stationary = {
+                0, true
+              },
+              .message_type = {
+                BITS, true
+              },
+              .modem_id = {
+                2, true
+              }
+            }
         }
     },
     {
@@ -118,7 +162,18 @@ static ReferenceMessage_t reference_messages[] = {
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
             .length_bits = 8 << 4,
             .data_type = BITS,
-            .eval_info = NULL
+            .eval_info = NULL,
+            .preamble = {
+              .is_stationary = {
+                0, true
+              },
+              .message_type = {
+                BITS, true
+              },
+              .modem_id = {
+                2, true
+              }
+            }
         }
     },
     {
@@ -130,7 +185,18 @@ static ReferenceMessage_t reference_messages[] = {
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
             .length_bits = 8 << 5,
             .data_type = BITS,
-            .eval_info = NULL
+            .eval_info = NULL,
+            .preamble = {
+              .is_stationary = {
+                0, true
+              },
+              .message_type = {
+                BITS, true
+              },
+              .modem_id = {
+                2, true
+              }
+            }
         }
     },
     {
@@ -146,7 +212,18 @@ static ReferenceMessage_t reference_messages[] = {
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
             .length_bits = 8 << 6,
             .data_type = BITS,
-            .eval_info = NULL
+            .eval_info = NULL,
+            .preamble = {
+              .is_stationary = {
+                0, true
+              },
+              .message_type = {
+                BITS, true
+              },
+              .modem_id = {
+                2, true
+              }
+            }
         }
     },
     {
@@ -170,7 +247,18 @@ static ReferenceMessage_t reference_messages[] = {
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
             .length_bits = 8 << 7,
             .data_type = BITS,
-            .eval_info = NULL
+            .eval_info = NULL,
+            .preamble = {
+              .is_stationary = {
+                0, true
+              },
+              .message_type = {
+                BITS, true
+              },
+              .modem_id = {
+                2, true
+              }
+            }
         }
     },
     {
@@ -238,7 +326,18 @@ static ReferenceMessage_t reference_messages[] = {
                    0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
           .length_bits = 8 * 480,
           .data_type = BITS,
-          .eval_info = NULL
+          .eval_info = NULL,
+          .preamble = {
+            .is_stationary = {
+              0, true
+            },
+            .message_type = {
+              BITS, true
+            },
+            .modem_id = {
+              2, true
+            }
+          }
       }
   }
 };
@@ -424,7 +523,7 @@ static FeedbackTests_t feedback_tests[] = {
           .fhbfsk_num_tones = 10,
           .fhbfsk_dwell_time = 1,
           .preamble_validation = CRC_8,
-          .cargo_validation = CRC_16,
+          .cargo_validation = NO_ERROR_DETECTION,
           .preamble_ecc_method = NO_ECC,
           .cargo_ecc_method = NO_ECC,
           .use_interleaver = false,
@@ -664,14 +763,14 @@ bool getTestIndex(uint16_t* index)
   }
 }
 
-static bool compareHeaders(const Message_t* msg1, const Message_t* msg2, bool* identical)
+bool compareHeaders(const Message_t* msg1, const Message_t* msg2, bool* identical)
 {
   if (msg1 == NULL || msg2 == NULL || identical == NULL) {
     return false;
   }
 
   *identical = true;
-  if (msg1->data_type != msg2->data_type) {
+  if (msg1->preamble.message_type.value != msg2->preamble.message_type.value) {
     *identical = false;
   }
   else if (msg1->length_bits != msg2->length_bits) {

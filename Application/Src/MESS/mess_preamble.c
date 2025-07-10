@@ -306,13 +306,17 @@ bool loadCustomParameters(Message_t* msg)
   if (Param_GetUint8(PARAM_ID, &value) == false) {
     return false;
   }
-  msg->preamble.modem_id.value = value;
-  msg->preamble.modem_id.valid = true;
+  if (msg->preamble.modem_id.valid != true) {
+    msg->preamble.modem_id.value = value;
+    msg->preamble.modem_id.valid = true;
+  }
   if (Param_GetUint8(PARAM_STATIONARY_FLAG, &value) == false) {
     return false;
   }
-  msg->preamble.is_stationary.value = value;
-  msg->preamble.is_stationary.valid = true;
+  if (msg->preamble.is_stationary.valid != true) {
+    msg->preamble.is_stationary.value = value;
+    msg->preamble.is_stationary.valid = true;
+  }
   return true;
 }
 
