@@ -30,15 +30,28 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-static uint16_t adc_buffer[ADC_BUFFER_SIZE]; // shared ADC buffer for both feedback and input ADCs
+static uint16_t adc_buffer[ADC_BUFFER_SIZE] __attribute__((section(".dma_buf"))); // shared ADC buffer for both feedback and input ADCs
 
 volatile uint16_t input_head_pos = 0;
 volatile uint16_t input_tail_pos = 0;
-float input_buffer[PROCESSING_BUFFER_SIZE] __attribute__((section(".dtcm")));;
 
 volatile uint16_t feedback_head_pos = 0;
 volatile uint16_t feedback_tail_pos = 0;
-uint16_t feedback_buffer[PROCESSING_BUFFER_SIZE] __attribute__((section(".dtcm")));;
+
+/*
+ * Only one ADC runs at a time and both have significant DSP operations done on
+ * them so they benefit greatly from DTCM buffers. DTCM memory is limited, so
+ * they share a buffer
+ */
+typedef union {
+  float in_buf[PROCESSING_BUFFER_SIZE];
+  uint16_t fb_buf[PROCESSING_BUFFER_SIZE];
+} AdcBuffers_t;
+
+static AdcBuffers_t adc_buffers __attribute__((section(".dtcm")));
+
+float* input_buffer = adc_buffers.in_buf;
+uint16_t* feedback_buffer = adc_buffers.fb_buf;
 
 static bool input_sample_lost = false;
 static bool feedback_sample_lost = false;

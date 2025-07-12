@@ -68,8 +68,9 @@ static const PreambleFieldConfig_t custom_fields[] = {
 
 /* Private function prototypes -----------------------------------------------*/
 
-bool calculateJanusCargoBits(Message_t* msg, uint16_t num_bits);
+bool calculateJanusCargoBits(Message_t* msg, BitMessage_t* bit_msg, uint16_t num_bits);
 bool decodeJanusCargoBits(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* cfg);
+uint16_t calculateCargoBytes(uint16_t length_index);
 bool loadCustomParameters(Message_t* msg);
 bool extractBits(BitMessage_t* bit_msg, uint8_t start_bit, uint8_t bit_len, uint16_t* bits);
 bool getFields(const PreambleFieldConfig_t** fields, const Message_t* msg);
@@ -93,7 +94,7 @@ bool Preamble_Add(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
     case BITS:
     case UNKNOWN:
     case EVAL:
-      if (calculateJanusCargoBits(msg, msg->length_bits + detection_bits) == false) {
+      if (calculateJanusCargoBits(msg, bit_msg, msg->length_bits + detection_bits) == false) {
         return false;
       }
       if (loadCustomParameters(msg) == false) {
@@ -243,7 +244,7 @@ bool Preamble_UpdateNumBits(BitMessage_t* bit_msg, const DspConfig_t* cfg)
 
 /* Private function definitions ----------------------------------------------*/
 
-bool calculateJanusCargoBits(Message_t* msg, uint16_t num_bits)
+bool calculateJanusCargoBits(Message_t* msg, BitMessage_t* bit_msg, uint16_t num_bits)
 {
   uint16_t num_bytes = (num_bits + 7) / 8;
   if (num_bytes > 480 || num_bytes == 0) {
@@ -268,8 +269,10 @@ bool calculateJanusCargoBits(Message_t* msg, uint16_t num_bits)
   // Add bits with format 0eexxxxx
   cargo_length |= ((e & 0x03) << 5);
   cargo_length |= x & 0x1F;
+  num_bytes = calculateCargoBytes(cargo_length);
   msg->preamble.cargo_length.value = cargo_length;
   msg->preamble.cargo_length.valid = true;
+  bit_msg->cargo.raw_len = num_bytes * 8;
   return true;
 }
 
@@ -283,6 +286,19 @@ bool decodeJanusCargoBits(Message_t* msg, BitMessage_t* bit_msg, const DspConfig
     return false;
   }
 
+  uint16_t num_bytes = calculateCargoBytes(length_index);
+
+  uint16_t cargo_validation_bits;
+  if (ErrorDetection_CheckLength(&cargo_validation_bits, cfg->cargo_validation) == false) {
+    return false;
+  }
+  bit_msg->data_len_bits = num_bytes * 8 - cargo_validation_bits;
+  bit_msg->cargo.raw_len = num_bytes * 8;
+  return true;
+}
+
+uint16_t calculateCargoBytes(uint16_t length_index)
+{
   uint16_t e = (length_index >> 5) & 0x03;
   uint16_t x = length_index & 0x1F;
 
@@ -291,13 +307,7 @@ bool decodeJanusCargoBits(Message_t* msg, BitMessage_t* bit_msg, const DspConfig
   for (uint8_t i = 0; i < e; i++) {
     num_bytes += ((1 << 5) << i);
   }
-  uint16_t cargo_validation_bits;
-  if (ErrorDetection_CheckLength(&cargo_validation_bits, cfg->cargo_validation) == false) {
-    return false;
-  }
-  bit_msg->data_len_bits = num_bytes * 8 - cargo_validation_bits;
-  bit_msg->cargo.raw_len = num_bytes * 8;
-  return true;
+  return num_bytes;
 }
 
 bool loadCustomParameters(Message_t* msg)

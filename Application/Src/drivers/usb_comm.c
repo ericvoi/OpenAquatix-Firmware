@@ -33,7 +33,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 static uint16_t usb_overflow_mess_len;
-static CommBuffer_t usb_buffer;
+static CommBuffer_t usb_buffer __attribute__((section(".dma_buf")));
 static osMutexId_t usb_mutex;
 static osEventFlagsId_t transfer_events;
 

@@ -91,6 +91,10 @@ static DspConfig_t* cfg = &default_config;
 static BitMessage_t bit_msg;
 static uint16_t message_length = 0;
 
+Message_t tx_msg;
+Message_t rx_msg;
+EvalMessageInfo_t eval_info;
+
 /* Private function prototypes -----------------------------------------------*/
 
 static void switchState(ProcessingState_t newState);
@@ -107,9 +111,6 @@ void MESS_StartTask(void* argument)
   (void)(argument);
   osEventFlagsClear(print_event_handle, 0xFFFFFFFF);
   MessDacResource_Init();
-  Message_t tx_msg;
-  Message_t rx_msg;
-  EvalMessageInfo_t eval_info;
 
   if (Param_RegisterTask(MESS_TASK, "MESS") == false) {
     Error_Routine(ERROR_MESS_INIT);

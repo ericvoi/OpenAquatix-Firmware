@@ -343,7 +343,7 @@ static ReferenceMessage_t reference_messages[] = {
 };
 
 static FeedbackTests_t feedback_tests[] = {
-  // Base FH-BFSK test
+  // 1 Base FH-BFSK test
     {
         .cfg = {
             .baud_rate = 100.0f,
@@ -367,7 +367,7 @@ static FeedbackTests_t feedback_tests[] = {
         .errors_added = 0,
         .repetitions = 1
     },
-    // Base FSK test
+    // 2 Base FSK test
     {
         .cfg = {
             .baud_rate = 100.0f,
@@ -391,7 +391,7 @@ static FeedbackTests_t feedback_tests[] = {
         .errors_added = 0,
         .repetitions = 1
     },
-    // Base Hamming code test
+    // 3 Base Hamming code test
     {
         .cfg = {
             .baud_rate = 1000.0f,
@@ -415,7 +415,7 @@ static FeedbackTests_t feedback_tests[] = {
         .errors_added = 1,
         .repetitions = 20
     },
-    // Base convolutional code test
+    // 4 Base convolutional code test
     {
       .cfg = {
           .baud_rate = 1000.0f,
@@ -439,7 +439,7 @@ static FeedbackTests_t feedback_tests[] = {
       .errors_added = 2,
       .repetitions = 20
     },
-    // Base interleaver test
+    // 5 Base interleaver test
     {
       .cfg = {
           .baud_rate = 1000.0f,
@@ -463,7 +463,7 @@ static FeedbackTests_t feedback_tests[] = {
       .errors_added = 0,
       .repetitions = 1
     },
-    // Advanced interleaver/convolutional test (long)
+    // 6 Advanced interleaver/convolutional test (long)
     {
       .cfg = {
           .baud_rate = 1000.0f,
@@ -487,7 +487,7 @@ static FeedbackTests_t feedback_tests[] = {
       .errors_added = 5,
       .repetitions = 1
     },
-    // PN synchronization test
+    // 7 PN synchronization test
     {
       .cfg = {
           .baud_rate = 1000.0f,
@@ -511,7 +511,7 @@ static FeedbackTests_t feedback_tests[] = {
       .errors_added = 0,
       .repetitions = 1
     },
-    // Max message length test
+    // 8 Max message length test
     {
       .cfg = {
           .baud_rate = 1000.0f,
@@ -709,7 +709,7 @@ bool FeedbackTests_Check(Message_t* received_msg, BitMessage_t* received_bit_msg
   // check if the message matches what was sent and print output
 
   char output_buffer[64];
-  snprintf(output_buffer, 256, "\rCompleted Test %u/%u", current_test + 1,
+  snprintf(output_buffer, 64, "\rCompleted Test %u/%u", current_test + 1,
       total_tests);
   COMM_TransmitData(output_buffer, CALC_LEN, COMM_USB);
 

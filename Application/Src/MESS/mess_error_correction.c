@@ -56,7 +56,6 @@ typedef struct {
 /* Private variables ---------------------------------------------------------*/
 
 static uint8_t message_buffer[PACKET_MAX_LENGTH_BYTES] = {0};
-static JanusVitrebiDecoder_t janus_decoder;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -447,6 +446,7 @@ bool decodeJanusConvolutional(BitMessage_t* bit_msg,
                               bool* error_detected, 
                               bool* error_corrected)
 {
+  JanusVitrebiDecoder_t janus_decoder;
   SectionInfo_t section_info = is_preamble ? bit_msg->preamble : bit_msg->cargo;
   janusVitrebiInit(&janus_decoder);
 

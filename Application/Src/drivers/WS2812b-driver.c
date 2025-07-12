@@ -35,7 +35,7 @@ typedef union {
 
 static WS_LEDDATARGB led_data;
 static WS_LEDDATARGB scaled_led_data;
-static uint16_t	ws_dma_buf[WS_DMA_BUF_LEN];
+static uint16_t	ws_dma_buf[WS_DMA_BUF_LEN] __attribute__((section(".dma_buf")));
 static volatile uint8_t ws_dma_complete_flag;
 
 extern TIM_HandleTypeDef WS_TIM;
