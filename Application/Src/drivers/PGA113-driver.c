@@ -39,8 +39,8 @@ volatile bool             spi4_dma_complete;
 bool                      pga_is_shutdown;
 volatile PgaGain_t        current_gain;
 
-uint16_t tx_buffer;
-uint16_t rx_buffer;
+uint16_t tx_buffer __attribute__((section(".dma_buf")));
+uint16_t rx_buffer __attribute__((section(".dma_buf")));
 
 
 /* Private function prototypes -----------------------------------------------*/

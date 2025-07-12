@@ -42,11 +42,11 @@ extern TIM_HandleTypeDef htim8;
 
 extern volatile uint16_t input_head_pos;
 extern volatile uint16_t input_tail_pos;
-extern float input_buffer[PROCESSING_BUFFER_SIZE];
+extern float* input_buffer;
 
 extern volatile uint16_t feedback_head_pos;
 extern volatile uint16_t feedback_tail_pos;
-extern uint16_t feedback_buffer[PROCESSING_BUFFER_SIZE];
+extern uint16_t* feedback_buffer;
 
 
 /* Exported functions prototypes ---------------------------------------------*/

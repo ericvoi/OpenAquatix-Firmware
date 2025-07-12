@@ -47,9 +47,9 @@ typedef struct {
 extern osThreadId_t dacTaskHandle;
 
 static uint16_t sine_table[SINE_POINTS];
-static uint32_t dac_buffer[DAC_BUFFER_SIZE] = {0};
+static uint32_t dac_buffer[DAC_BUFFER_SIZE] __attribute__((section(".dma_buf")));
 
-static WaveformControl_t wave_ctrl;
+static WaveformControl_t wave_ctrl __attribute__((section(".dtcm")));
 static WaveformStep_t current_waveform_step;
 static volatile uint32_t sequence_length = 0;
 static volatile uint16_t current_step = 0;

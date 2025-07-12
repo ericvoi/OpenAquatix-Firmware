@@ -46,15 +46,15 @@ bool Cargo_Add(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
     if (Packet_AddBit(bit_msg, bit) == false)
       return false;
   }
-  bit_msg->cargo.raw_len = msg->length_bits;
   uint16_t error_detection_bits;
   if (ErrorDetection_CheckLength(&error_detection_bits, 
                                  cfg->cargo_validation) == false) {
     return false;
   }
-  bit_msg->cargo.raw_len += error_detection_bits;
+  bit_msg->data_len_bits = bit_msg->cargo.raw_len - error_detection_bits;
   bit_msg->cargo.ecc_len = ErrorCorrection_GetLength(bit_msg->cargo.raw_len, 
                                                      cfg->cargo_ecc_method);
+  bit_msg->combined_message_len = bit_msg->cargo.raw_len + bit_msg->preamble.raw_len;
   if (msg->data_type != EVAL) {
     if (ErrorDetection_AddDetection(bit_msg, cfg, false) == false) {
       return false;
@@ -64,8 +64,8 @@ bool Cargo_Add(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
                                  + bit_msg->preamble.raw_len;
   bit_msg->cargo.ecc_start_index = bit_msg->preamble.ecc_start_index
                                  + bit_msg->preamble.ecc_len;
-  bit_msg->combined_message_len = bit_msg->final_length;
   bit_msg->final_length = bit_msg->preamble.ecc_len + bit_msg->cargo.ecc_len;
+  bit_msg->bit_count = bit_msg->preamble.raw_len + bit_msg->cargo.raw_len;
   return true;
 }
 

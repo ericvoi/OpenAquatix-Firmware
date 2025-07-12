@@ -431,7 +431,9 @@ void Input_NoiseFft()
   float fft_sums[NOISE_FFT_BLOCK_SIZE / 2] = {0.0f};
 
   for (uint16_t i = 0; i < NOISE_FFT_SAMPLES; i += NOISE_FFT_BLOCK_SIZE) {
-    memcpy(&fft_in_buf[0], &input_buffer[i], NOISE_FFT_BLOCK_SIZE * sizeof(float));
+    for (uint16_t j = 0; j < NOISE_FFT_BLOCK_SIZE; j++) {
+      fft_in_buf[i] = ADC_InputGetData(i);
+    }
     arm_rfft_fast_f32(&fft_handle128, fft_in_buf, fft_out_buf, 0);
 
     fft_sums[0] += fft_out_buf[0] / NOISE_FFT_BLOCK_SIZE;
