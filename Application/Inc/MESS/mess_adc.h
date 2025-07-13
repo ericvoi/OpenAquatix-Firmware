@@ -119,6 +119,21 @@ void ADC_InputClear();
  */
 void ADC_FeedbackClear();
 
+/**
+ * @brief Number of times the ADC head has reset (both buffers)
+ * 
+ * @return uint16_t Number of rollovers for the tail
+ */
+uint16_t ADC_HeadRolloverCount();
+
+/**
+ * @brief Number of buffer rollovers at the buffer tail position
+ * 
+ * @param feedback Whether the feedback or the input ADC is being used
+ * @return uint16_t Number of rollovers for the tail
+ */
+uint16_t ADC_TailRolloverCount(bool feedback);
+
 /* Private defines -----------------------------------------------------------*/
 
 // Inline functions to interface with the input ADC buffer
