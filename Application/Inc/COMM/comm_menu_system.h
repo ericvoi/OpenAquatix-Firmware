@@ -128,7 +128,6 @@ typedef enum {
   MENU_ID_TXRX_FLOATOUT,        // Transmit a float through transducer
   MENU_ID_TXRX_FLOATFB,         // Transmit a float through feedback
   MENU_ID_TXRX_ENPNT,           // Enable/disable printing of waveforms as they are received
-  MENU_ID_EVAL_TOGGLE,          // Toggle evaluation mode
   MENU_ID_EVAL_SETMSG,          // Set the message to compare to
   MENU_ID_EVAL_FEEDBACK,        // Send evaluation message through feedback network
   MENU_ID_EVAL_TRANSDUCER,      // Send evaluation message through transducer

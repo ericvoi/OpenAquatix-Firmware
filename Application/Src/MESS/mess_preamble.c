@@ -93,7 +93,6 @@ bool Preamble_Add(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
     case FLOAT:
     case BITS:
     case UNKNOWN:
-    case EVAL:
       if (calculateJanusCargoBits(msg, bit_msg, msg->length_bits + detection_bits) == false) {
         return false;
       }
@@ -101,6 +100,19 @@ bool Preamble_Add(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
         return false;
       }
       break;
+    case EVAL: {
+      uint16_t eval_bytes;
+      if (Param_GetUint16(PARAM_EVAL_MESSAGE_LEN, &eval_bytes) == false) {
+        return false;
+      }
+      if (calculateJanusCargoBits(msg, bit_msg, eval_bytes * 8) == false) {
+        return false;
+      }
+      if (loadCustomParameters(msg) == false) {
+        return false;
+      }
+      break;
+    }
     default:
       return false;
   }

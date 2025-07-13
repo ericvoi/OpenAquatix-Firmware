@@ -89,7 +89,7 @@ bool Input_SegmentBlocks(const DspConfig_t* cfg);
  *
  * @warning Potential for eval_info overflow - needs to be addressed
  */
-bool Input_ProcessBlocks(BitMessage_t* bit_msg, EvalMessageInfo_t* eval_info, const DspConfig_t* cfg);
+bool Input_ProcessBlocks(BitMessage_t* bit_msg, const DspConfig_t* cfg);
 
 /**
  * @brief Decodes header information from accumulated bits
@@ -104,7 +104,7 @@ bool Input_ProcessBlocks(BitMessage_t* bit_msg, EvalMessageInfo_t* eval_info, co
  *
  * @return true if decoding succeeds or is not yet needed, false on decoding failure
  */
-bool Input_DecodeBits(BitMessage_t* bit_msg, bool evaluation_mode, const DspConfig_t* cfg, Message_t* msg);
+bool Input_DecodeBits(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* msg);
 
 /**
  * @brief Resets the input module to initial state

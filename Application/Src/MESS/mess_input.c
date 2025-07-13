@@ -251,9 +251,9 @@ bool Input_SegmentBlocks(const DspConfig_t* cfg)
 }
 
 // looks for an analysis block that have not been analyzed
-bool Input_ProcessBlocks(BitMessage_t* bit_msg, EvalMessageInfo_t* eval_info, const DspConfig_t* cfg)
+bool Input_ProcessBlocks(BitMessage_t* bit_msg, const DspConfig_t* cfg)
 {
-  if (bit_msg == NULL || eval_info == NULL) {
+  if (bit_msg == NULL) {
     return false;
   }
   if (bit_msg->fully_received == true) {
@@ -268,12 +268,6 @@ bool Input_ProcessBlocks(BitMessage_t* bit_msg, EvalMessageInfo_t* eval_info, co
     if (Packet_AddBit(bit_msg, analysis_blocks[analysis_start_index].decoded_bit) == false) {
       return false;
     }
-    if (bit_msg->bit_count <= EVAL_MESSAGE_LENGTH) {
-      eval_info->energy_f0[bit_msg->bit_count - 1] = analysis_blocks[analysis_start_index].energy_f0;
-      eval_info->energy_f1[bit_msg->bit_count - 1] = analysis_blocks[analysis_start_index].energy_f1;
-      eval_info->f0[bit_msg->bit_count - 1] = analysis_blocks[analysis_start_index].f0;
-      eval_info->f1[bit_msg->bit_count - 1] = analysis_blocks[analysis_start_index].f1;
-    }
 
     analysis_start_index = (analysis_start_index + 1) % MAX_ANALYSIS_BUFFER_SIZE;
     if (analysis_length == 0) {
@@ -287,15 +281,10 @@ bool Input_ProcessBlocks(BitMessage_t* bit_msg, EvalMessageInfo_t* eval_info, co
 
 // Goes through message to see if enough bits have been received to decode the
 // length and data type
-bool Input_DecodeBits(BitMessage_t* bit_msg, bool evaluation_mode, const DspConfig_t* cfg, Message_t* msg)
+bool Input_DecodeBits(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* msg)
 {
   if (bit_msg == NULL) {
     return false;
-  }
-  // There is no header or preamble in evaluation mode.
-  if (evaluation_mode == true) {
-    bit_msg->final_length = EVAL_MESSAGE_LENGTH;
-    return true;
   }
 
   if (bit_msg->preamble_received == false) { // Still looking for preamble

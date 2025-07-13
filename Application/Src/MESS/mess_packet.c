@@ -53,10 +53,8 @@ bool Packet_PrepareTx(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* 
   }
 
   // Add preamble to bit packet
-  if (msg->data_type != EVAL) {
-    if (Preamble_Add(bit_msg, msg, cfg) == false) {
-      return false;
-    }
+  if (Preamble_Add(bit_msg, msg, cfg) == false) {
+    return false;
   }
 
   // Adds the data payload bits to the packet

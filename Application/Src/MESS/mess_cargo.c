@@ -13,6 +13,7 @@
 #include "mess_main.h"
 #include "mess_error_detection.h"
 #include "mess_error_correction.h"
+#include "mess_evaluate.h"
 #include <stdbool.h>
 
 /* Private typedef -----------------------------------------------------------*/
@@ -33,11 +34,64 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-
+bool addCustomCargo(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
+bool extractCustomCargo(BitMessage_t* bit_msg, Message_t* msg);
 
 /* Exported function definitions ---------------------------------------------*/
 
 bool Cargo_Add(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
+{
+  switch (msg->data_type) {
+    case INTEGER:
+    case STRING:
+    case FLOAT:
+    case BITS:
+    case UNKNOWN:
+      if (addCustomCargo(bit_msg, msg, cfg) == false) {
+        return false;
+      }
+      break;
+    case EVAL:
+      if (Evaluate_AddCargo(bit_msg) == false) {
+        return false;
+      }
+      break;
+    default:
+      return false;
+  }
+  
+  bit_msg->cargo.ecc_len = ErrorCorrection_GetLength(bit_msg->cargo.raw_len, 
+                                                     cfg->cargo_ecc_method);
+  bit_msg->combined_message_len = bit_msg->cargo.raw_len + bit_msg->preamble.raw_len;
+  bit_msg->cargo.raw_start_index = bit_msg->preamble.raw_start_index
+                                 + bit_msg->preamble.raw_len;
+  bit_msg->cargo.ecc_start_index = bit_msg->preamble.ecc_start_index
+                                 + bit_msg->preamble.ecc_len;
+  bit_msg->final_length = bit_msg->preamble.ecc_len + bit_msg->cargo.ecc_len;
+  bit_msg->bit_count = bit_msg->preamble.raw_len + bit_msg->cargo.raw_len;
+  return true;
+}
+
+bool Cargo_Decode(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
+{
+  (void) (cfg);
+  switch (msg->preamble.message_type.value) {
+    case INTEGER:
+    case STRING:
+    case FLOAT:
+    case BITS:
+    case UNKNOWN:
+      return extractCustomCargo(bit_msg, msg);
+    case EVAL:
+      return Evaluate_CodedBer(&msg->eval_info, bit_msg);
+    default:
+      return false;
+  }
+}
+
+/* Private function definitions ----------------------------------------------*/
+
+bool addCustomCargo(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
 {
   for (uint16_t i = 0; i < msg->length_bits; i++) {
     uint16_t byte_index = i / 8;
@@ -52,26 +106,14 @@ bool Cargo_Add(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
     return false;
   }
   bit_msg->data_len_bits = bit_msg->cargo.raw_len - error_detection_bits;
-  bit_msg->cargo.ecc_len = ErrorCorrection_GetLength(bit_msg->cargo.raw_len, 
-                                                     cfg->cargo_ecc_method);
-  bit_msg->combined_message_len = bit_msg->cargo.raw_len + bit_msg->preamble.raw_len;
-  if (msg->data_type != EVAL) {
-    if (ErrorDetection_AddDetection(bit_msg, cfg, false) == false) {
-      return false;
-    }
+  if (ErrorDetection_AddDetection(bit_msg, cfg, false) == false) {
+    return false;
   }
-  bit_msg->cargo.raw_start_index = bit_msg->preamble.raw_start_index
-                                 + bit_msg->preamble.raw_len;
-  bit_msg->cargo.ecc_start_index = bit_msg->preamble.ecc_start_index
-                                 + bit_msg->preamble.ecc_len;
-  bit_msg->final_length = bit_msg->preamble.ecc_len + bit_msg->cargo.ecc_len;
-  bit_msg->bit_count = bit_msg->preamble.raw_len + bit_msg->cargo.raw_len;
   return true;
 }
 
-bool Cargo_Decode(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
+bool extractCustomCargo(BitMessage_t* bit_msg, Message_t* msg)
 {
-  (void)(cfg);
   // data_len_bytes is restricted to be a multiple of 8
   uint16_t len_bytes = bit_msg->data_len_bits / 8;
 
@@ -84,5 +126,3 @@ bool Cargo_Decode(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
   }
   return true;
 }
-
-/* Private function definitions ----------------------------------------------*/
