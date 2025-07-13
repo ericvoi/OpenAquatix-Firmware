@@ -180,7 +180,7 @@ void addToInputBuffer(bool firstHalf)
     input_head_pos = (input_head_pos + 1) & PROCESSING_BUFFER_MASK;
   }
   if (original_head > input_head_pos) {
-    buffer_rollover_count++;
+    incrementRollover();
   }
 }
 
@@ -207,7 +207,7 @@ void addToFeedbackBuffer(bool firstHalf)
 
   feedback_head_pos = (feedback_head_pos + ADC_BUFFER_SIZE / 2) & PROCESSING_BUFFER_MASK;
   if (original_head > feedback_head_pos) {
-    buffer_rollover_count++;
+    incrementRollover();
   }
 }
 
