@@ -56,10 +56,15 @@ uint16_t* feedback_buffer = adc_buffers.fb_buf;
 static bool input_sample_lost = false;
 static bool feedback_sample_lost = false;
 
+ // Number of times the head of either buffer has wrapped around to 0
+static uint16_t buffer_rollover_count = 0;
+static uint32_t rollover_associated_time;
+
 /* Private function prototypes -----------------------------------------------*/
 
 void addToInputBuffer(bool firstHalf);
 void addToFeedbackBuffer(bool firstHalf);
+void incrementRollover();
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -112,10 +117,6 @@ bool ADC_StopAll()
   if (ADC_StopInput() == false) {
     return false;
   }
-  input_head_pos = 0;
-  input_tail_pos = 0;
-  feedback_head_pos = 0;
-  feedback_tail_pos = 0;
   return true;
 }
 
@@ -123,6 +124,7 @@ void ADC_InputClear()
 {
   input_head_pos = 0;
   input_tail_pos = 0;
+  buffer_rollover_count = 0;
   memset(input_buffer, 0, PROCESSING_BUFFER_SIZE * sizeof(float));
 }
 
@@ -130,7 +132,33 @@ void ADC_FeedbackClear()
 {
   feedback_head_pos = 0;
   feedback_tail_pos = 0;
+  buffer_rollover_count = 0;
   memset(feedback_buffer, 0, PROCESSING_BUFFER_SIZE * sizeof(uint16_t));
+}
+
+uint16_t ADC_HeadRolloverCount()
+{
+  return buffer_rollover_count;
+}
+
+uint16_t ADC_TailRolloverCount(bool feedback)
+{
+  uint16_t head;
+  uint16_t tail;
+  if (feedback == true) {
+    head = feedback_head_pos;
+    tail = feedback_tail_pos;
+  }
+  else {
+    head = input_head_pos;
+    tail = input_tail_pos;
+  }
+  if (head >= tail) {
+    return buffer_rollover_count;
+  }
+  else { // head has rolled over while the tail has not
+    return buffer_rollover_count - 1;
+  }
 }
 
 /* Private function definitions ----------------------------------------------*/
@@ -144,11 +172,15 @@ void addToInputBuffer(bool firstHalf)
   if ((unprocessed_samples + ADC_BUFFER_SIZE / 2) > PROCESSING_BUFFER_SIZE) {
     input_sample_lost = true;
   }
+  uint16_t original_head = input_head_pos;
 
   for (uint16_t i = 0; i < ADC_BUFFER_SIZE / 2; i++) {
     uint16_t dma_index = dma_buf_start_index + i;
     input_buffer[input_head_pos] = (float) adc_buffer[dma_index];
     input_head_pos = (input_head_pos + 1) & PROCESSING_BUFFER_MASK;
+  }
+  if (original_head > input_head_pos) {
+    incrementRollover();
   }
 }
 
@@ -161,6 +193,7 @@ void addToFeedbackBuffer(bool firstHalf)
   if ((unprocessed_samples + ADC_BUFFER_SIZE / 2) > PROCESSING_BUFFER_SIZE) {
     feedback_sample_lost = true;
   }
+  uint16_t original_head = feedback_head_pos;
 
   if (feedback_head_pos + ADC_BUFFER_SIZE / 2 > PROCESSING_BUFFER_SIZE) {
     uint16_t first_block_size = PROCESSING_BUFFER_SIZE - feedback_head_pos;
@@ -172,7 +205,16 @@ void addToFeedbackBuffer(bool firstHalf)
     memcpy(&feedback_buffer[feedback_head_pos], &adc_buffer[dma_buf_start_index], (ADC_BUFFER_SIZE / 2) * sizeof(uint16_t));
   }
 
-  input_head_pos = (input_head_pos + ADC_BUFFER_SIZE / 2) & PROCESSING_BUFFER_MASK;
+  feedback_head_pos = (feedback_head_pos + ADC_BUFFER_SIZE / 2) & PROCESSING_BUFFER_MASK;
+  if (original_head > feedback_head_pos) {
+    incrementRollover();
+  }
+}
+
+void incrementRollover()
+{
+  buffer_rollover_count++;
+  rollover_associated_time = 0; // TODO: change to a timer
 }
 
 
