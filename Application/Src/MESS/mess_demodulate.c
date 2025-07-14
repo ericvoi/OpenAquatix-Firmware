@@ -16,6 +16,7 @@
 #include "cfg_parameters.h"
 
 #include "uam_math.h"
+#include "goertzel.h"
 
 #include <stdbool.h>
 #include <math.h>
@@ -57,7 +58,7 @@ static float window[WINDOW_FUNCTION_SIZE];
 
 /* Private function prototypes -----------------------------------------------*/
 
-static bool goertzel(DemodulationInfo_t* data);
+static void GoertzelInfoCopy(GoertzelInfo_t* goertzel_info, DemodulationInfo_t* data);
 static void updateWindow();
 static void setWindowRectangular();
 static void setWindowHann();
@@ -74,18 +75,32 @@ bool Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg)
 {
   switch (cfg->mod_demod_method) {
     case MOD_DEMOD_FSK:
-      data->f0 = cfg->fsk_f0;
-      data->f1 = cfg->fsk_f1;
-      if (goertzel(data) == false) {
-        return false;
-      }
+      GoertzelInfo_t goertzel_info;
+      GoertzelInfoCopy(&goertzel_info, data);
+      uint32_t f[2] = {cfg->fsk_f0, cfg->fsk_f1};
+      float e_f[2];
+      goertzel_info.f = f;
+      goertzel_info.e_f = e_f;
+
+      goertzel_2(&goertzel_info);
+
+      data->analysis_done = true;
+      data->decoded_bit = (goertzel_info.e_f[0] > goertzel_info.e_f[1]) ? false : true;
       break;
     case MOD_DEMOD_FHBFSK: {
       data->f0 = Modulate_GetFhbfskFrequency(false, data->chip_index, cfg);
       data->f1 = Modulate_GetFhbfskFrequency(true, data->chip_index, cfg);
-      if (goertzel(data) == false) {
-        return false;
-      }
+      GoertzelInfo_t goertzel_info;
+      GoertzelInfoCopy(&goertzel_info, data);
+      uint32_t f[2] = {data->f0, data->f1};
+      float e_f[2];
+      goertzel_info.f = f;
+      goertzel_info.e_f = e_f;
+
+      goertzel_2(&goertzel_info);
+      
+      data->analysis_done = true;
+      data->decoded_bit = (goertzel_info.e_f[0] > goertzel_info.e_f[1]) ? false : true;
       break;
     }
     default:
@@ -205,55 +220,13 @@ bool Demodulate_RegisterParams()
 
 /* Private function definitions ----------------------------------------------*/
 
-bool goertzel(DemodulationInfo_t* data)
+void GoertzelInfoCopy(GoertzelInfo_t* goertzel_info, DemodulationInfo_t* data)
 {
-  if (data == NULL) return false;
-
-  float energy_f0 = 0.0;
-  float energy_f1 = 0.0;
-
-  float omega_f0 = 2.0 * data->f0 / ADC_SAMPLING_RATE;
-  float omega_f1 = 2.0 * data->f1 / ADC_SAMPLING_RATE;
-
-  float coeff_f0 = 2.0 * uam_cosf(omega_f0);
-  float coeff_f1 = 2.0 * uam_cosf(omega_f1);
-
-  uint16_t mask = data->buf_len - 1;
-
-  float q0_f0 = 0, q1_f0 = 0, q2_f0 = 0;
-  float q0_f1 = 0, q1_f1 = 0, q2_f1 = 0;
-
-  uint32_t window_index = 0;
-  uint32_t window_increment = (WINDOW_FUNCTION_SIZE << WINDOW_INCREMENT_PRECISION)
-                              / data->buf_len;
-
-  for (uint16_t i = 0; i < data->data_len; i++) {
-    float window_value = window[(window_index >> WINDOW_INCREMENT_PRECISION)];
-    uint16_t index = (i + data->data_start_index) & mask;
-    float data_value = ADC_InputGetDataAbsolute(index) * window_value;
-
-    // Goertzel algorithm for F0
-    q0_f0 = coeff_f0 * q1_f0 - q2_f0 + data_value;
-    q2_f0 = q1_f0;
-    q1_f0 = q0_f0;
-
-    // Goertzel algorithm for F1
-    q0_f1 = coeff_f1 * q1_f1 - q2_f1 + data_value;
-    q2_f1 = q1_f1;
-    q1_f1 = q0_f1;
-    window_index += window_increment;
-  }
-
-  energy_f0 = q1_f0 * q1_f0 + q2_f0 * q2_f0 - coeff_f0 * q1_f0 * q2_f0;
-  energy_f1 = q1_f1 * q1_f1 + q2_f1 * q2_f1 - coeff_f1 * q1_f1 * q2_f1;
-
-  data->energy_f0 = energy_f0;
-  data->energy_f1 = energy_f1;
-
-  data->decoded_bit = (energy_f1 > energy_f0) ? true : false;
-  data->analysis_done = true;
-
-  return true;
+  goertzel_info->buf_len = data->buf_len;
+  goertzel_info->data_len = data->data_len;
+  goertzel_info->start_pos = data->data_start_index;
+  goertzel_info->window = window;
+  goertzel_info->window_size = WINDOW_FUNCTION_SIZE;
 }
 
 void updateWindow()
@@ -273,14 +246,14 @@ void updateWindow()
   }
 }
 
-static void setWindowRectangular()
+void setWindowRectangular()
 {
   for (uint16_t i = 0; i < WINDOW_FUNCTION_SIZE; i++) {
     window[i] = 1.0f;
   }
 }
 
-static void setWindowHann()
+void setWindowHann()
 {
   // sin^2(pi*n/N)
   for (uint16_t i = 0; i < WINDOW_FUNCTION_SIZE; i++) {
@@ -292,7 +265,7 @@ static void setWindowHann()
 }
 
 #define HAMMING_A0  (25.0f / 46.0f)
-static void setWindowHamming()
+void setWindowHamming()
 {
   // a0 - (1 - a0) * cos(2*pi*n/N)
   for (uint16_t i = 0; i < WINDOW_FUNCTION_SIZE; i++) {
