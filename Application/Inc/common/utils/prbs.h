@@ -34,8 +34,18 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
+/**
+ * @brief Resets the Pseudo-Random Binary Sequence (PRBS) generator to its
+ * initialization value
+ */
 void PRBS_Reset();
 
+/**
+ * @brief Returns the next bit in the Pseudo-Random Bianry Sequence (PRBS)
+ * 
+ * @return true (1)
+ * @return false (0)
+ */
 bool PRBS_GetNext();
 
 /* Private defines -----------------------------------------------------------*/

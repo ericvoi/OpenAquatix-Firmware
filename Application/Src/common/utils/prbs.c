@@ -38,6 +38,7 @@ void PRBS_Reset()
   state = PRBS_SEED;
 }
 
+// Galois LFSR
 bool PRBS_GetNext()
 {
   bool lsb = state & 1u;

@@ -61,6 +61,8 @@ bool Input_Init();
  *
  * Applies the currently configured detection method (amplitude or frequency-based)
  * to determine if a valid message transmission has begun.
+ * 
+ * @param cfg DSP configuration defining how to detect message start
  *
  * @return true if a message start is detected, false otherwise
  */
@@ -71,6 +73,8 @@ bool Input_DetectMessageStart(const DspConfig_t* cfg);
  *
  * Creates analysis blocks from the input data stream based on the current baud rate.
  * Each block contains data needed to demodulate one bit of the message.
+ * 
+ * @param cfg DSP configuration defining how to segment blocks
  *
  * @return true if segmentation succeeds, false if analysis buffer capacity is exceeded
  */
@@ -98,7 +102,6 @@ bool Input_ProcessBlocks(BitMessage_t* bit_msg, const DspConfig_t* cfg);
  * once sufficient bits have been received.
  *
  * @param bit_msg Pointer to the bit message structure containing received bits
- * @param evaluation_mode If true, bypasses header decoding (no header in evaluation mode)
  * @param cfg Pointer to configuration data
  * @param msg Message to add extracted bits to
  *
@@ -138,8 +141,17 @@ void Input_PrintNoise();
  */
 bool Input_PrintWaveform(bool* print_next_waveform, bool fully_received);
 
+/**
+ * @brief Performs noise analysis on the input with 128-point FFTs. Averages
+ * the results and then displays them
+ */
 void Input_NoiseFft();
 
+/**
+ * @brief Dummy function for AGC
+ * 
+ * @return true always
+ */
 bool Input_UpdatePgaGain();
 
 /**

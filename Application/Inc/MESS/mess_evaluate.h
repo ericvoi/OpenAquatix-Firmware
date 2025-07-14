@@ -36,24 +36,42 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
+/**
+ * @brief Adds evaluation message cargo to a message
+ * 
+ * @param bit_msg Bit message to add the BER evaluation cargo to
+ * @return true if successful, false otherwise
+ */
 bool Evaluate_AddCargo(BitMessage_t* bit_msg);
 
 /**
- * @brief Calculates bit error rate between a message and reference pattern
- *
- * Compares each bit in the provided message against a reference evaluation
- * message and calculates the proportion of differing bits.
- *
- * @param data Output structure where bit error rate will be stored
- * @param msg Message to evaluate against reference
- * @param message_index Index of the reference evaluation message
- *
- * @return true if calculation successful, false on error
+ * @brief Calculates the coded (with FEC) BER
+ * 
+ * @param eval_info Storage for results (modified)
+ * @param bit_msg Received message to evaluate
+ * @return true if successful, false otherwise
+ * 
+ * @note The cargo must be coded
  */
 bool Evaluate_CodedBer(EvalMessageInfo_t* eval_info, BitMessage_t* bit_msg);
 
+/**
+ * @brief Calculates the uncoded (no FEC) BER
+ * 
+ * @param eval_info Storage for results (modified)
+ * @param bit_msg Uncoded received message to evaluate
+ * @param cfg DSP configuration values (uses fec method)
+ * @return true if successful, false otherwise
+ * 
+ * @note The cargo must be uncoded (fec still applied)
+ */
 bool Evaluate_UncodedBer(EvalMessageInfo_t* eval_info, BitMessage_t* bit_msg, const DspConfig_t* cfg);
 
+/**
+ * @brief Registers the parameters used for the evaluation module
+ * 
+ * @return true if registered successfully, false otherwise
+ */
 bool Evaluate_RegisterParams();
 
 /* Private defines -----------------------------------------------------------*/
