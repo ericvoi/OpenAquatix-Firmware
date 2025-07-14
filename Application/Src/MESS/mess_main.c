@@ -130,6 +130,7 @@ void MESS_StartTask(void* argument)
   Input_Init();
   Feedback_Init();
   FeedbackTests_Init();
+  Demodulate_Init();
   switchState(LISTENING);
 
   osDelay(10);

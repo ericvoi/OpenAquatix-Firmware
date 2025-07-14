@@ -20,6 +20,7 @@ extern "C" {
 #include "mess_demodulate.h"
 #include "mess_modulate.h"
 #include "mess_error_correction.h"
+#include "mess_demodulate.h"
 
 #include "PGA113-driver.h"
 
@@ -183,6 +184,10 @@ extern "C" {
 #define DEFAULT_SYNC_METHOD         (NO_SYNC)
 #define MIN_SYNC_METHOD             0
 #define MAX_SYNC_METHOD             (NUM_SYNC_METHODS - 1)
+
+#define DEFAULT_WINDOW_FUNCTION     (WINDOW_HANN)
+#define MIN_WINDOW_FUNCTION         0
+#define MAX_WINDOW_FUNCTION         (NUM_WINDOW_FUNCTIONS)
 
 /* Exported macro ------------------------------------------------------------*/
 

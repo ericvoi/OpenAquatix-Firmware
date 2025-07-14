@@ -45,6 +45,13 @@ typedef enum {
   NUM_DEMODULATION_DECISION
 } DemodulationDecision_t;
 
+typedef enum {
+  WINDOW_RECTANGULAR,
+  WINDOW_HANN,
+  WINDOW_HAMMING,
+  NUM_WINDOW_FUNCTIONS
+} WindowFunction_t;
+
 /* Exported constants --------------------------------------------------------*/
 
 #define MAX_ANALYSIS_BUFFER_SIZE    64
@@ -54,6 +61,11 @@ typedef enum {
 
 
 /* Exported functions prototypes ---------------------------------------------*/
+
+/**
+ * @brief Initializes window used for goertzel
+ */
+void Demodulate_Init();
 
 /**
  * @brief Performs demodulation on the provided data

@@ -33,6 +33,9 @@ typedef struct {
 
 #define OVERWHELMING_ENERGY_THRESHOLD     (6.25f) // If the energy ratio is greater than this value then dont do historical comparison
 
+#define WINDOW_FUNCTION_SIZE              (1 << 9) // 512
+#define WINDOW_INCREMENT_PRECISION        (9)
+
 /* Private macro -------------------------------------------------------------*/
 
 #define MIN(a, b)     ((a < b) ? (a) : (b))
@@ -49,11 +52,23 @@ static DemodulationHistory_t demodulation_history[NUM_DEMODULATION_HISTORY][MAX_
 
 static float significant_shift_threshold = DEFAULT_HIST_CMP_THRESH;
 
+static WindowFunction_t window_function = DEFAULT_WINDOW_FUNCTION;
+static float window[WINDOW_FUNCTION_SIZE];
+
 /* Private function prototypes -----------------------------------------------*/
 
 static bool goertzel(DemodulationInfo_t* data);
+static void updateWindow();
+static void setWindowRectangular();
+static void setWindowHann();
+static void setWindowHamming();
 
 /* Exported function definitions ---------------------------------------------*/
+
+void Demodulate_Init()
+{
+  updateWindow();
+}
 
 bool Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg)
 {
@@ -178,6 +193,13 @@ bool Demodulate_RegisterParams()
     return false;
   }
 
+  min_u32 = MIN_WINDOW_FUNCTION;
+  max_u32 = MAX_WINDOW_FUNCTION;
+  if (Param_Register(PARAM_WINDOW_FUNCTION, "windowing function", PARAM_TYPE_UINT8,
+                     &window_function, sizeof(uint8_t), &min_u32, &max_u32, updateWindow) == false) {
+    return false;
+  }
+
   return true;
 }
 
@@ -201,9 +223,14 @@ bool goertzel(DemodulationInfo_t* data)
   float q0_f0 = 0, q1_f0 = 0, q2_f0 = 0;
   float q0_f1 = 0, q1_f1 = 0, q2_f1 = 0;
 
+  uint32_t window_index = 0;
+  uint32_t window_increment = (WINDOW_FUNCTION_SIZE << WINDOW_INCREMENT_PRECISION)
+                              / data->buf_len;
+
   for (uint16_t i = 0; i < data->data_len; i++) {
+    float window_value = window[(window_index >> WINDOW_INCREMENT_PRECISION)];
     uint16_t index = (i + data->data_start_index) & mask;
-    float data_value = ADC_InputGetDataAbsolute(index);
+    float data_value = ADC_InputGetDataAbsolute(index) * window_value;
 
     // Goertzel algorithm for F0
     q0_f0 = coeff_f0 * q1_f0 - q2_f0 + data_value;
@@ -214,6 +241,7 @@ bool goertzel(DemodulationInfo_t* data)
     q0_f1 = coeff_f1 * q1_f1 - q2_f1 + data_value;
     q2_f1 = q1_f1;
     q1_f1 = q0_f1;
+    window_index += window_increment;
   }
 
   energy_f0 = q1_f0 * q1_f0 + q2_f0 * q2_f0 - coeff_f0 * q1_f0 * q2_f0;
@@ -226,4 +254,50 @@ bool goertzel(DemodulationInfo_t* data)
   data->analysis_done = true;
 
   return true;
+}
+
+void updateWindow()
+{
+  switch (window_function) {
+    case WINDOW_RECTANGULAR:
+      setWindowRectangular();
+      break;
+    case WINDOW_HANN:
+      setWindowHann();
+      break;
+    case WINDOW_HAMMING:
+      setWindowHamming();
+      break;
+    default:
+      break;
+  }
+}
+
+static void setWindowRectangular()
+{
+  for (uint16_t i = 0; i < WINDOW_FUNCTION_SIZE; i++) {
+    window[i] = 1.0f;
+  }
+}
+
+static void setWindowHann()
+{
+  // sin^2(pi*n/N)
+  for (uint16_t i = 0; i < WINDOW_FUNCTION_SIZE; i++) {
+    // pre-scaled by pi
+    float angle = ((float) i) / ((float) (WINDOW_FUNCTION_SIZE - 1));
+    float intermediate = uam_sinf(angle);
+    window[i] = intermediate * intermediate;
+  }
+}
+
+#define HAMMING_A0  (25.0f / 46.0f)
+static void setWindowHamming()
+{
+  // a0 + (1 - a0) * cos(2*pi*n/N)
+  for (uint16_t i = 0; i < WINDOW_FUNCTION_SIZE; i++) {
+    float angle = ((float) 2 * i) / ((float) (WINDOW_FUNCTION_SIZE - 1));
+    float intermediate = uam_cosf(angle);
+    window[i] = HAMMING_A0 + (1 - HAMMING_A0) * intermediate;
+  }
 }
