@@ -14,6 +14,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
+#include "mess_dsp_config.h"
 #include <stdbool.h>
 
 
@@ -24,12 +25,12 @@ extern "C" {
 /* Exported types ------------------------------------------------------------*/
 
 typedef struct {
-  uint16_t* data_buf;
   uint16_t buf_len;          // length of data_buf
   uint16_t data_len;         // Length of the relevant part of data_buf
   uint16_t data_start_index;
+  uint16_t chip_index;       // includes synchronization sequence (if applicable)
   uint16_t bit_index;
-  bool decoded_bit;          // TODO: Change to have an undetermined state
+  bool decoded_bit;
   bool analysis_done;
   uint32_t f0;
   uint32_t f1;
@@ -44,15 +45,27 @@ typedef enum {
   NUM_DEMODULATION_DECISION
 } DemodulationDecision_t;
 
+typedef enum {
+  WINDOW_RECTANGULAR,
+  WINDOW_HANN,
+  WINDOW_HAMMING,
+  NUM_WINDOW_FUNCTIONS
+} WindowFunction_t;
+
 /* Exported constants --------------------------------------------------------*/
 
-#define MAX_ANALYSIS_BUFFER_SIZE    32
+#define MAX_ANALYSIS_BUFFER_SIZE    64
 
 /* Exported macro ------------------------------------------------------------*/
 
 
 
 /* Exported functions prototypes ---------------------------------------------*/
+
+/**
+ * @brief Initializes window used for goertzel
+ */
+void Demodulate_Init();
 
 /**
  * @brief Performs demodulation on the provided data
@@ -70,7 +83,7 @@ typedef enum {
  *       considered to improve the detection when significant energy shifts occur
  * @see Modulate_GetFhbfskFrequency
  */
-bool Demodulate_Perform(DemodulationInfo_t* data);
+bool Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg);
 
 /**
  * @brief Registers demodulation parameters with the parameter management system

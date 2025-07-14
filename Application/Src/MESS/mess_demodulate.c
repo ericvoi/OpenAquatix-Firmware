@@ -15,6 +15,8 @@
 #include "cfg_defaults.h"
 #include "cfg_parameters.h"
 
+#include "uam_math.h"
+
 #include <stdbool.h>
 #include <math.h>
 
@@ -29,7 +31,10 @@ typedef struct {
 
 #define NUM_DEMODULATION_HISTORY          8 // Number of demodulations to look back on. Must be a power of 2
 
-#define SIGNFIICANT_SHIFT_THRESHOLD       0.15
+#define OVERWHELMING_ENERGY_THRESHOLD     (6.25f) // If the energy ratio is greater than this value then dont do historical comparison
+
+#define WINDOW_FUNCTION_SIZE              (1 << 9) // 512
+#define WINDOW_INCREMENT_PRECISION        (9)
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -39,27 +44,45 @@ typedef struct {
 /* Private variables ---------------------------------------------------------*/
 
 static DemodulationDecision_t decision_method = DEFAULT_DEMOD_DECISION;
+
+static uint32_t lower_calibration_frequency = DEFAULT_DEMOD_CAL_LOWER_F;
+static uint32_t upper_calibration_frequency = DEFAULT_DEMOD_CAL_UPPER_F;
+
 static DemodulationHistory_t demodulation_history[NUM_DEMODULATION_HISTORY][MAX_FHBFSK_NUM_TONES];
+
+static float significant_shift_threshold = DEFAULT_HIST_CMP_THRESH;
+
+static WindowFunction_t window_function = DEFAULT_WINDOW_FUNCTION;
+static float window[WINDOW_FUNCTION_SIZE];
 
 /* Private function prototypes -----------------------------------------------*/
 
 static bool goertzel(DemodulationInfo_t* data);
+static void updateWindow();
+static void setWindowRectangular();
+static void setWindowHann();
+static void setWindowHamming();
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool Demodulate_Perform(DemodulationInfo_t* data)
+void Demodulate_Init()
 {
-  switch (mod_demod_method) {
+  updateWindow();
+}
+
+bool Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg)
+{
+  switch (cfg->mod_demod_method) {
     case MOD_DEMOD_FSK:
-      data->f0 = fsk_f0;
-      data->f1 = fsk_f1;
+      data->f0 = cfg->fsk_f0;
+      data->f1 = cfg->fsk_f1;
       if (goertzel(data) == false) {
         return false;
       }
       break;
     case MOD_DEMOD_FHBFSK: {
-      data->f0 = Modulate_GetFhbfskFrequency(false, data->bit_index);
-      data->f1 = Modulate_GetFhbfskFrequency(true, data->bit_index);
+      data->f0 = Modulate_GetFhbfskFrequency(false, data->chip_index, cfg);
+      data->f1 = Modulate_GetFhbfskFrequency(true, data->chip_index, cfg);
       if (goertzel(data) == false) {
         return false;
       }
@@ -79,9 +102,9 @@ bool Demodulate_Perform(DemodulationInfo_t* data)
      */
     case HISTORICAL_COMPARISON:
       // Expects nominally that the basic goertzel is correct, but switches predicted bit if there is a large swing
-      // calculate current index
 
-      uint16_t num_tones = (mod_demod_method == MOD_DEMOD_FSK) ? 1 : fhbfsk_num_tones;
+      // calculate current index
+      uint16_t num_tones = (cfg->mod_demod_method == MOD_DEMOD_FSK) ? 1 : cfg->fhbfsk_num_tones;
       uint16_t frequency_index = data->bit_index % num_tones;
 
       uint16_t buffer_raw_length = data->bit_index / num_tones;
@@ -93,7 +116,9 @@ bool Demodulate_Perform(DemodulationInfo_t* data)
       float delta_energy_f0, delta_energy_f1;
       float abs_normalized_delta_energy_f0, abs_normalized_delta_energy_f1;
 
-      if (buffer_length >= 1) {
+      float energy_ratio = data->energy_f0 / data->energy_f1;
+
+      if (buffer_length >= 1 && (energy_ratio < OVERWHELMING_ENERGY_THRESHOLD && energy_ratio > (1.0f / OVERWHELMING_ENERGY_THRESHOLD))) {
         // Look at the previous bit and check for large changes
         DemodulationHistory_t previous_result =
             demodulation_history[(buffer_index - 1) % NUM_DEMODULATION_HISTORY][frequency_index];
@@ -114,7 +139,7 @@ bool Demodulate_Perform(DemodulationInfo_t* data)
         bool delta_energy_f0_pos = delta_energy_f0 > 0.0f;
         bool delta_energy_f1_pos = delta_energy_f1 > 0.0f;
         bool significant_delta_energy =
-            abs_normalized_delta_energy_sum > SIGNFIICANT_SHIFT_THRESHOLD;
+            abs_normalized_delta_energy_sum > significant_shift_threshold;
 
         // significant shift towards f0
         if (delta_energy_f0_pos == true && delta_energy_f1_pos == false &&
@@ -143,9 +168,38 @@ bool Demodulate_RegisterParams()
   uint32_t min_u32 = MIN_DEMOD_DECISION;
   uint32_t max_u32 = MAX_DEMOD_DECISION;
   if (Param_Register(PARAM_DEMODULATION_DECISION, "the demodulation method", PARAM_TYPE_UINT8,
-                     &decision_method, sizeof(uint8_t), &min_u32, &max_u32) == false) {
+                     &decision_method, sizeof(uint8_t), &min_u32, &max_u32, NULL) == false) {
     return false;
   }
+
+  min_u32 = MIN_DEMOD_CAL_LOWER_F;
+  max_u32 = MAX_DEMOD_CAL_LOWER_F;
+  if (Param_Register(PARAM_DEMOD_CAL_LOWER_FREQ, "demod cal lower frequency", PARAM_TYPE_UINT32,
+                     &lower_calibration_frequency, sizeof(uint32_t), &min_u32, &max_u32, NULL) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_DEMOD_CAL_LOWER_F;
+  max_u32 = MAX_DEMOD_CAL_LOWER_F;
+  if (Param_Register(PARAM_DEMOD_CAL_UPPER_FREQ, "demod cal upper frequency", PARAM_TYPE_UINT32,
+                     &upper_calibration_frequency, sizeof(uint32_t), &min_u32, &max_u32, NULL) == false) {
+    return false;
+  }
+
+  float min_f = MIN_HIST_CMP_THRESH;
+  float max_f = MAX_HIST_CMP_THRESH;
+  if (Param_Register(PARAM_HISTORICAL_COMPARISON_THRESHOLD, "significant shift threshold", PARAM_TYPE_FLOAT,
+                     &significant_shift_threshold, sizeof(float), &min_f, &max_f, NULL) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_WINDOW_FUNCTION;
+  max_u32 = MAX_WINDOW_FUNCTION;
+  if (Param_Register(PARAM_WINDOW_FUNCTION, "windowing function", PARAM_TYPE_UINT8,
+                     &window_function, sizeof(uint8_t), &min_u32, &max_u32, updateWindow) == false) {
+    return false;
+  }
+
   return true;
 }
 
@@ -158,29 +212,36 @@ bool goertzel(DemodulationInfo_t* data)
   float energy_f0 = 0.0;
   float energy_f1 = 0.0;
 
-  float omega_f0 = 2.0 * M_PI * data->f0 / ADC_SAMPLING_RATE;
-  float omega_f1 = 2.0 * M_PI * data->f1 / ADC_SAMPLING_RATE;
+  float omega_f0 = 2.0 * data->f0 / ADC_SAMPLING_RATE;
+  float omega_f1 = 2.0 * data->f1 / ADC_SAMPLING_RATE;
 
-  float coeff_f0 = 2.0 * cosf(omega_f0);
-  float coeff_f1 = 2.0 * cosf(omega_f1);
+  float coeff_f0 = 2.0 * uam_cosf(omega_f0);
+  float coeff_f1 = 2.0 * uam_cosf(omega_f1);
 
   uint16_t mask = data->buf_len - 1;
 
   float q0_f0 = 0, q1_f0 = 0, q2_f0 = 0;
   float q0_f1 = 0, q1_f1 = 0, q2_f1 = 0;
 
-  for (uint16_t i = 0; i < data->data_len; i++) {
-    uint16_t index = (i + data->data_start_index) & mask;
+  uint32_t window_index = 0;
+  uint32_t window_increment = (WINDOW_FUNCTION_SIZE << WINDOW_INCREMENT_PRECISION)
+                              / data->buf_len;
 
-    // Foertzel algorithm for F0
-    q0_f0 = coeff_f0 * q1_f0 - q2_f0 + data->data_buf[index];
+  for (uint16_t i = 0; i < data->data_len; i++) {
+    float window_value = window[(window_index >> WINDOW_INCREMENT_PRECISION)];
+    uint16_t index = (i + data->data_start_index) & mask;
+    float data_value = ADC_InputGetDataAbsolute(index) * window_value;
+
+    // Goertzel algorithm for F0
+    q0_f0 = coeff_f0 * q1_f0 - q2_f0 + data_value;
     q2_f0 = q1_f0;
     q1_f0 = q0_f0;
 
     // Goertzel algorithm for F1
-    q0_f1 = coeff_f1 * q1_f1 - q2_f1 + data->data_buf[index];
+    q0_f1 = coeff_f1 * q1_f1 - q2_f1 + data_value;
     q2_f1 = q1_f1;
     q1_f1 = q0_f1;
+    window_index += window_increment;
   }
 
   energy_f0 = q1_f0 * q1_f0 + q2_f0 * q2_f0 - coeff_f0 * q1_f0 * q2_f0;
@@ -193,4 +254,50 @@ bool goertzel(DemodulationInfo_t* data)
   data->analysis_done = true;
 
   return true;
+}
+
+void updateWindow()
+{
+  switch (window_function) {
+    case WINDOW_RECTANGULAR:
+      setWindowRectangular();
+      break;
+    case WINDOW_HANN:
+      setWindowHann();
+      break;
+    case WINDOW_HAMMING:
+      setWindowHamming();
+      break;
+    default:
+      break;
+  }
+}
+
+static void setWindowRectangular()
+{
+  for (uint16_t i = 0; i < WINDOW_FUNCTION_SIZE; i++) {
+    window[i] = 1.0f;
+  }
+}
+
+static void setWindowHann()
+{
+  // sin^2(pi*n/N)
+  for (uint16_t i = 0; i < WINDOW_FUNCTION_SIZE; i++) {
+    // pre-scaled by pi
+    float angle = ((float) i) / ((float) (WINDOW_FUNCTION_SIZE - 1));
+    float intermediate = uam_sinf(angle);
+    window[i] = intermediate * intermediate;
+  }
+}
+
+#define HAMMING_A0  (25.0f / 46.0f)
+static void setWindowHamming()
+{
+  // a0 - (1 - a0) * cos(2*pi*n/N)
+  for (uint16_t i = 0; i < WINDOW_FUNCTION_SIZE; i++) {
+    float angle = ((float) 2 * i) / ((float) (WINDOW_FUNCTION_SIZE - 1));
+    float intermediate = uam_cosf(angle);
+    window[i] = HAMMING_A0 - (1 - HAMMING_A0) * intermediate;
+  }
 }

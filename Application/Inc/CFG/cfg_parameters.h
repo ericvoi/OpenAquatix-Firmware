@@ -35,13 +35,43 @@ typedef enum {
   PARAM_FHBFSK_DWELL_TIME,
   PARAM_PRINT_ENABLED,
   PARAM_FHBFSK_NUM_TONES,
-  PARAM_EVAL_MODE_ON,
-  PARAM_EVAL_MESSAGE,
+  PARAM_DUMMY, // To be replaced
+  PARAM_EVAL_MESSAGE_LEN,
   PARAM_ID,
   PARAM_STATIONARY_FLAG,
-  PARAM_ERROR_CORRECTION,
+  PARAM_CARGO_ERROR_DETECTION,
   PARAM_DEMODULATION_DECISION,
-  // Add new parameters here and nowhere else
+  PARAM_DAC_TRANSITION_LEN,
+  PARAM_MODULATION_OUTPUT_METHOD,
+  PARAM_MODULATION_TARGET_POWER,
+  PARAM_R,
+  PARAM_C0,
+  PARAM_L0,
+  PARAM_C1,
+  // The lower frequency must be lower than the upper frequency but this is not
+  // enforced when setting the parameter only when a calibration is performed
+  PARAM_MOD_CAL_LOWER_FREQ,
+  PARAM_MOD_CAL_UPPER_FREQ,
+
+  PARAM_MAX_TRANSDUCER_VOLTAGE,
+  // The lower frequency must be lower than the upper frequency but this is not
+  // enforced when setting the parameter only when a calibration is performed
+  PARAM_DEMOD_CAL_LOWER_FREQ,
+  PARAM_DEMOD_CAL_UPPER_FREQ,
+
+  PARAM_HISTORICAL_COMPARISON_THRESHOLD,
+  PARAM_LED_BRIGHTNESS,
+  PARAM_LED_ENABLE,
+  PARAM_AGC_ENABLE,
+  PARAM_FIXED_PGA_GAIN,
+  PARAM_ECC_PREAMBLE,
+  PARAM_ECC_MESSAGE,
+  PARAM_USE_INTERLEAVER,
+  PARAM_FHBFSK_HOPPER,
+  PARAM_SYNC_METHOD,
+  PARAM_PREAMBLE_ERROR_DETECTION,
+  PARAM_WINDOW_FUNCTION,
+  // Add new parameters just above here and nowhere else
   NUM_PARAM
 } ParamIds_t;
 
@@ -54,20 +84,6 @@ typedef enum {
   PARAM_TYPE_INT32,
   PARAM_TYPE_FLOAT
 } ParamType_t;
-
-typedef struct {
-  ParamIds_t id;
-  char name[32];
-  ParamType_t type;
-  void* value_ptr;
-  size_t value_size;
-  union {
-    struct {uint32_t min; uint32_t max;} u32;
-    struct {int32_t min; int32_t max;} i32;
-    struct {float min; float max;} f;
-  } limits;
-  bool is_modified;
-} Parameter_t;
 
 /* Exported constants --------------------------------------------------------*/
 
@@ -94,7 +110,17 @@ typedef struct {
  */
 bool Param_Init(void);
 
-// TODO: implement
+/**
+ * @brief Loads saved configuration parameters from flash
+ *
+ * Loops through the entire flash sector for saved parameters and saves them
+ * one at a time to RAM. Also resets the is_modified flag
+ *
+ * @return true if successful and false if the version of an entry is incorrect
+ * or updating a parameter failed
+ *
+ * @note Must be called after all parameters have been registered
+ */
 bool Param_LoadInit(void);
 
 /**
@@ -119,7 +145,8 @@ bool Param_LoadInit(void);
  * @warning The value_ptr, min, and max pointers must remain valid for the lifetime of the parameter
  */
 bool Param_Register(ParamIds_t id, const char* name, ParamType_t type,
-                    void* value_ptr, size_t value_size, void* min, void* max);
+                    void* value_ptr, size_t value_size, void* min, void* max,
+                    void (*callback)(void));
 
 /**
  * @brief Retrieves a parameter value by ID
@@ -137,7 +164,7 @@ bool Param_Register(ParamIds_t id, const char* name, ParamType_t type,
  * @warning The caller must ensure that value points to sufficient memory to
  *          store the parameter's full size
  */
-bool Param_GetValue (ParamIds_t id, void* value);
+bool Param_GetValue(ParamIds_t id, void* value);
 
 /**
  * @brief Retrieves an 8-bit unsigned parameter value
@@ -149,7 +176,7 @@ bool Param_GetValue (ParamIds_t id, void* value);
  *
  * @see Param_GetValue
  */
-bool Param_GetUint8 (ParamIds_t id, uint8_t* value);
+bool Param_GetUint8(ParamIds_t id, uint8_t* value);
 
 /**
  * @brief Retrieves an 8-bit signed parameter value
@@ -161,7 +188,7 @@ bool Param_GetUint8 (ParamIds_t id, uint8_t* value);
  *
  * @see Param_GetValue
  */
-bool Param_GetInt8  (ParamIds_t id, int8_t* value);
+bool Param_GetInt8(ParamIds_t id, int8_t* value);
 
 /**
  * @brief Retrieves a 16-bit unsigned parameter value
@@ -185,7 +212,7 @@ bool Param_GetUint16(ParamIds_t id, uint16_t* value);
  *
  * @see Param_GetValue
  */
-bool Param_GetInt16 (ParamIds_t id, int16_t* value);
+bool Param_GetInt16(ParamIds_t id, int16_t* value);
 
 /**
  * @brief Retrieves a 32-bit unsigned parameter value
@@ -209,7 +236,7 @@ bool Param_GetUint32(ParamIds_t id, uint32_t* value);
  *
  * @see Param_GetValue
  */
-bool Param_GetInt32 (ParamIds_t id, int32_t* value);
+bool Param_GetInt32(ParamIds_t id, int32_t* value);
 
 /**
  * @brief Retrieves a floating point parameter value
@@ -221,7 +248,7 @@ bool Param_GetInt32 (ParamIds_t id, int32_t* value);
  *
  * @see Param_GetValue
  */
-bool Param_GetFloat (ParamIds_t id, float* value);
+bool Param_GetFloat(ParamIds_t id, float* value);
 
 /**
  * @brief Retrieves the name of a parameter by its ID
@@ -237,7 +264,7 @@ bool Param_GetFloat (ParamIds_t id, float* value);
  * @note This function blocks indefinitely while waiting for the mutex
  * @see findParamById, isParamInitialized
  */
-char* Param_GetName (ParamIds_t id);
+char* Param_GetName(ParamIds_t id);
 
 /**
  * @brief Retrieves the minimum and maximum limits for a specified parameter
@@ -269,7 +296,7 @@ bool Param_GetLimits(ParamIds_t id, void* min, void* max);
  *
  * @note Values may be truncated when cast from uint32_t to uint8_t
  */
-bool Param_GetUint8Limits (ParamIds_t id, uint8_t* min, uint8_t* max);
+bool Param_GetUint8Limits(ParamIds_t id, uint8_t* min, uint8_t* max);
 
 /**
  * @brief Retrieves the minimum and maximum limits for a parameter as int8_t
@@ -284,7 +311,7 @@ bool Param_GetUint8Limits (ParamIds_t id, uint8_t* min, uint8_t* max);
  *
  * @note Values may be truncated when cast from int32_t to int8_t
  */
-bool Param_GetInt8Limits  (ParamIds_t id, int8_t* min, int8_t* max);
+bool Param_GetInt8Limits(ParamIds_t id, int8_t* min, int8_t* max);
 
 /**
  * @brief Retrieves the minimum and maximum limits for a parameter as uint16_t
@@ -314,7 +341,7 @@ bool Param_GetUint16Limits(ParamIds_t id, uint16_t* min, uint16_t* max);
  *
  * @note Values may be truncated when cast from int32_t to int16_t
  */
-bool Param_GetInt16Limits (ParamIds_t id, int16_t* min, int16_t* max);
+bool Param_GetInt16Limits(ParamIds_t id, int16_t* min, int16_t* max);
 
 /**
  * @brief Retrieves the minimum and maximum limits for a parameter as uint32_t
@@ -477,8 +504,30 @@ bool Param_SetInt32(ParamIds_t id, int32_t* value);
  */
 bool Param_SetFloat(ParamIds_t id, float* value);
 
+/**
+ * @brief Returns the parameter type for a parameter
+ *
+ * @param id Identifier for the parameter
+ * @param param_type Type for the parameter
+ *
+ * @return true if parameter exists, false otherwise
+ *
+ * @note Blocks indefinitely while waiting for mutex acquisition
+ * @note The parameter must be set
+ */
+bool Param_GetParamType(ParamIds_t id, ParamType_t* param_type);
+
+/**
+ * @brief Saves parameters to flash (non-volatile) memory
+ *
+ * Loops through the parameters and checks if one has changed. If a parameter
+ * has changed, save it to the next flash word. If the next address is outside
+ * of the flash sector, reset flash. Can save multiple parameters
+ *
+ * @return true if all modified parameters saved
+ *         false if error saving parameter
+ */
 bool Param_SaveToFlash(void);
-bool Param_LoadFromFlash(void);
 
 /**
  * @brief Registers a task in the parameter management system
@@ -512,6 +561,17 @@ bool Param_RegisterTask(TaskIds_t task_id, const char* task_name);
  * @see Param_RegisterTask
  */
 bool Param_TaskRegistrationComplete(TaskIds_t task_id);
+
+/**
+ * @brief Resets the flash memory for parameters
+ *
+ * Resets the flash sector designated for parameters and then increments
+ * the number of erases and writes it to the first block
+ *
+ * @return true if no errors,
+ *         false if errors
+ */
+bool Param_FlashReset(void);
 
 /* Private defines -----------------------------------------------------------*/
 

@@ -9,6 +9,9 @@
 
 #include "comm_menu_registration.h"
 #include "comm_menu_system.h"
+#include "comm_function_loops.h"
+#include "sys_temperature.h"
+#include <stdio.h>
 #include <stdbool.h>
 
 /* Private typedef -----------------------------------------------------------*/
@@ -39,8 +42,8 @@ void printAvgTemp(void* argument);
 /* Private variables ---------------------------------------------------------*/
 
 static MenuID_t histMenuChildren[] = {
-  MENU_ID_HIST_PWR,   MENU_ID_HIST_RECV,  MENU_ID_HIST_SENT, 
-  MENU_ID_HIST_ERR,   MENU_ID_HIST_ERR,   MENU_ID_HIST_TEMP
+  MENU_ID_HIST_PWR,   MENU_ID_HIST_RECV,  MENU_ID_HIST_SENT,
+  MENU_ID_HIST_ERR,   MENU_ID_HIST_TEMP
 };
 static const MenuNode_t histMenu = {
   .id = MENU_ID_HIST,
@@ -250,62 +253,94 @@ bool COMM_RegisterHistoryMenu()
 
 /* Private function definitions ----------------------------------------------*/
 
+// TODO: implement
 void printReceivedMessages(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
+// TODO: implement
 void printSentMessages(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
+// TODO: implement
 void printErrorLog(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
+// TODO: implement
 void printPeakPwr(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
+// TODO: implement
 void printPwrSinceBoot(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
+// TODO: implement
 void printAvgPwr(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
+// TODO: implement
 void printCurrPwr(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
 void printCurrTemp(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
+  
+  float temp = Temperature_GetCurrent();
+
+  sprintf((char*) context->output_buffer, "\r\nCurrent temperature: %.2f C\r\n",
+          temp);
+  COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
 void printPeakTemp(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
+  
+  float temp = Temperature_GetPeak();
+
+  sprintf((char*) context->output_buffer, "\r\nPeak temperature: %.2f C\r\n",
+          temp);
+  COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
 void printAvgTemp(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
+  
+  float temp = Temperature_GetAverage();
+
+  sprintf((char*) context->output_buffer, "\r\nAverage temperature: %.2f C\r\n",
+          temp);
+  COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
   context->state->state = PARAM_STATE_COMPLETE;
 }

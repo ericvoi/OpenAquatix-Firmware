@@ -8,7 +8,7 @@
 /* Private includes ----------------------------------------------------------*/
 
 #include "sys_error.h"
-#include "WS2812b-driver.h"
+#include <stdbool.h>
 
 /* Private typedef -----------------------------------------------------------*/
 
@@ -24,7 +24,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-
+static bool error = false;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -40,12 +40,20 @@ void Error_Routine(ErrorCodes_t error_code)
     case ERROR_MESS_INIT:
     case ERROR_SYS_INIT:
     case ERROR_MESS_PROCESSING:
-      WS_SetColour(0, 255, 0, 0);
+    case ERROR_DAC_INIT:
+    case ERROR_DAC_PROCESSING:
+    case ERROR_MESS_DAC_RESOURCE:
       break;
     default:
-      WS_SetColour(0, 0, 0, 255);
       break;
   }
+
+  error = true;
+}
+
+bool Error_Exists()
+{
+  return error;
 }
 
 /* Private function definitions ----------------------------------------------*/

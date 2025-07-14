@@ -14,10 +14,8 @@
 
 #include "cfg_parameters.h"
 
-#include "WS2812b-driver.h"
-#include "PGA113-driver.h"
-
-#include "comm_main.h"
+#include "sys_temperature.h"
+#include "sys_led.h"
 
 #include "check_inputs.h"
 
@@ -51,24 +49,21 @@
 void getGpioStatus(void* argument);
 void setLedColourHandler(void* argument);
 void printWaveformHandler(void* argument);
-void performNoiseAnalysis(void* argument);
+void dumpAdcData(void* argument);
+void noiseSpectralAnalysis(void* argument);
 void printCurrentTemp(void* argument);
 void printCurrentErrors(void* argument);
 void printCurrentPowerConsumption(void* argument);
-void sendFeedbackSignal(void* argument);
-void sendTransducerSignal(void* argument);
-void changeOutputAmplitude(void* argument);
-void changePgaGain(void* argument);
-void sendTestTransducerSignal(void* argument);
+void enterDfuMode(void* argument);
+void resetSavedValues(void* argument);
 
 /* Private variables ---------------------------------------------------------*/
 
 static MenuID_t debugMenuChildren[] = {MENU_ID_DBG_GPIO, MENU_ID_DBG_SETLED,
-                                       MENU_ID_DBG_PRINT, MENU_ID_DBG_NOISE,
-                                       MENU_ID_DBG_TEMP, MENU_ID_DBG_ERR,
-                                       MENU_ID_DBG_PWR, MENU_ID_DBG_SEND,
-                                       MENU_ID_DBG_SENDOUT, MENU_ID_DBG_OUTAMP,
-                                       MENU_ID_DBG_INGAIN, MENU_ID_DBG_TESTOUT};
+                                       MENU_ID_DBG_PRINT, MENU_ID_DBG_BGDUMP,
+                                       MENU_ID_DBG_BGFREQ, MENU_ID_DBG_TEMP, 
+                                       MENU_ID_DBG_ERR, MENU_ID_DBG_PWR, 
+                                       MENU_ID_DBG_DFU, MENU_ID_DBG_RESETCONFIG};
 static const MenuNode_t debugMenu = {
   .id = MENU_ID_DBG,
   .description = "Debug Menu",
@@ -127,17 +122,32 @@ static const MenuNode_t debugMenuPrint = {
 
 static ParamContext_t debugMenuNoiseParam = {
   .state = PARAM_STATE_0,
-  .param_id = MENU_ID_DBG_NOISE
+  .param_id = MENU_ID_DBG_BGDUMP
 };
 static const MenuNode_t debugMenuNoise = {
-  .id = MENU_ID_DBG_NOISE,
-  .description = "Perform noise analysis on input",
-  .handler = performNoiseAnalysis,
+  .id = MENU_ID_DBG_BGDUMP,
+  .description = "1000 sample ADC dump",
+  .handler = dumpAdcData,
   .parent_id = MENU_ID_DBG,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
   .parameters = &debugMenuNoiseParam
+};
+
+static ParamContext_t debugMenuNoiseFParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_DBG_BGFREQ
+};
+static const MenuNode_t debugMenuNoiseF = {
+  .id = MENU_ID_DBG_BGFREQ,
+  .description = "Frequency content of background noise",
+  .handler = noiseSpectralAnalysis,
+  .parent_id = MENU_ID_DBG,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &debugMenuNoiseFParam
 };
 
 static ParamContext_t debugMenuTempParam = {
@@ -185,79 +195,34 @@ static const MenuNode_t debugMenuPwr = {
   .parameters = &debugMenuPwrParam
 };
 
-static ParamContext_t debugMenuSendParam = {
+static ParamContext_t debugMenuDfuParam = {
   .state = PARAM_STATE_0,
-  .param_id = MENU_ID_DBG_SEND
+  .param_id = MENU_ID_DBG_DFU
 };
-static const MenuNode_t debugMenuSend = {
-  .id = MENU_ID_DBG_SEND,
-  .description = "[TEMP] Send Test Waveform Through Feedback Network",
-  .handler = sendFeedbackSignal,
+static const MenuNode_t debugMenuDfu = {
+  .id = MENU_ID_DBG_DFU,
+  .description = "Enter DFU mode to flash new firmware over USB",
+  .handler = enterDfuMode,
   .parent_id = MENU_ID_DBG,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &debugMenuSendParam
+  .parameters = &debugMenuDfuParam
 };
 
-static ParamContext_t debugMenuSendTransducerParam = {
+static ParamContext_t debugMenuResetParam = {
   .state = PARAM_STATE_0,
-  .param_id = MENU_ID_DBG_SENDOUT
+  .param_id = MENU_ID_DBG_RESETCONFIG
 };
-static const MenuNode_t debugMenuSendTransducer = {
-  .id = MENU_ID_DBG_SENDOUT,
-  .description = "[TEMP] Send Test Waveform Through Transducer",
-  .handler = sendTransducerSignal,
+static const MenuNode_t debugMenuReset = {
+  .id = MENU_ID_DBG_RESETCONFIG,
+  .description = "Reset saved configuration",
+  .handler = resetSavedValues,
   .parent_id = MENU_ID_DBG,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &debugMenuSendTransducerParam
-};
-
-static ParamContext_t debugMenuOutAmpParam = {
-  .state = PARAM_STATE_0,
-  .param_id = MENU_ID_DBG_OUTAMP
-};
-static const MenuNode_t debugMenuOutAmp = {
-  .id = MENU_ID_DBG_OUTAMP,
-  .description = "[TEMP] Change fixed output amplitude",
-  .handler = changeOutputAmplitude,
-  .parent_id = MENU_ID_DBG,
-  .children_ids = NULL,
-  .num_children = 0,
-  .access_level = 0,
-  .parameters = &debugMenuOutAmpParam
-};
-
-static ParamContext_t debugMenuPgaGainParam = {
-  .state = PARAM_STATE_0,
-  .param_id = MENU_ID_DBG_INGAIN
-};
-static const MenuNode_t debugMenuPgaGain = {
-  .id = MENU_ID_DBG_INGAIN,
-  .description = "[TEMP] Manually change the PGAs gain",
-  .handler = changePgaGain,
-  .parent_id = MENU_ID_DBG,
-  .children_ids = NULL,
-  .num_children = 0,
-  .access_level = 0,
-  .parameters = &debugMenuPgaGainParam
-};
-
-static ParamContext_t debugMenuSendOutParam = {
-  .state = PARAM_STATE_0,
-  .param_id = MENU_ID_DBG_TESTOUT
-};
-static const MenuNode_t debugMenuSendOut = {
-  .id = MENU_ID_DBG_TESTOUT,
-  .description = "[TEMP] Send a test waveform through transducer",
-  .handler = sendTestTransducerSignal,
-  .parent_id = MENU_ID_DBG,
-  .children_ids = NULL,
-  .num_children = 0,
-  .access_level = 0,
-  .parameters = &debugMenuSendOutParam
+  .parameters = &debugMenuResetParam
 };
 
 
@@ -269,18 +234,19 @@ bool COMM_RegisterDebugMenu(void)
              registerMenu(&debugMenuSetLed) && registerMenu(&debugMenuPrint) &&
              registerMenu(&debugMenuNoise) && registerMenu(&debugMenuTemp) &&
              registerMenu(&debugMenuErr) && registerMenu(&debugMenuPwr) &&
-             registerMenu(&debugMenuSend) && registerMenu(&debugMenuSendTransducer) &&
-             registerMenu(&debugMenuOutAmp) && registerMenu(&debugMenuPgaGain) &&
-             registerMenu(&debugMenuSendOut);
+             registerMenu(&debugMenuDfu) && registerMenu(&debugMenuReset) &&
+             registerMenu(&debugMenuNoiseF);
   return ret;
 }
 
 /* Private function definitions ----------------------------------------------*/
 
+// TODO: implement
 void getGpioStatus(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
 void setLedColourHandler(void* argument)
@@ -309,6 +275,7 @@ void setLedColourHandler(void* argument)
         } else {
           context->state->state = PARAM_STATE_2;
         }
+        // fall through
       case PARAM_STATE_2: // Prompt for green
         sprintf((char*) context->output_buffer, "\r\n\r\nPlease enter a green value from 0-255\r\nGreen: ");
         COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
@@ -323,6 +290,7 @@ void setLedColourHandler(void* argument)
         } else {
           context->state->state = PARAM_STATE_4;
         }
+        // fall through
       case PARAM_STATE_4: // prompt blue
         sprintf((char*) context->output_buffer, "\r\n\r\nPlease enter a blue value from 0-255\r\nBlue: ");
         COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
@@ -336,8 +304,7 @@ void setLedColourHandler(void* argument)
         } else {
           // Received 3 valid rgb values so now set LED colour
 
-          WS_SetColour(0, red, green, blue);
-          WS_Update();
+          LED_ManualOverride(red, green, blue);
 
           context->state->state = PARAM_STATE_COMPLETE;
         }
@@ -352,21 +319,56 @@ void setLedColourHandler(void* argument)
 void printWaveformHandler(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  if (print_event_handle == NULL) {
+    return;
+  }
+
+  osEventFlagsSet(print_event_handle, MESS_PRINT_WAVEFORM);
+
+  COMM_TransmitData("\r\nThe next waveform will be printed. This function should "
+                    "only be used with a script.", CALC_LEN, COMM_USB);
+
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void performNoiseAnalysis(void* argument)
+void dumpAdcData(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
 
-  if (print_event_handle == NULL) return;
+  if (print_event_handle == NULL) {
+    return;
+  }
 
   osEventFlagsSet(print_event_handle, MESS_PRINT_REQUEST);
   uint32_t flags;
 
+  // No watchdog to check for whether the expected response never came
   do {
-    // Prevents accidentally corrupting noise analysis data
-    flags = osEventFlagsWait(print_event_handle, MESS_PRINT_COMPLETE, osFlagsWaitAny, osWaitForever);
+    // Prevents accidentally corrupting adc dump data
+    flags = osEventFlagsWait(print_event_handle, MESS_PRINT_COMPLETE, osFlagsNoClear, osWaitForever);
+    osDelay(1);
+  } while ((flags & MESS_PRINT_COMPLETE) != MESS_PRINT_COMPLETE);
+
+  osEventFlagsClear(print_event_handle, MESS_PRINT_COMPLETE);
+
+  context->state->state = PARAM_STATE_COMPLETE;
+}
+
+void noiseSpectralAnalysis(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  if (print_event_handle == NULL) {
+    return;
+  }
+
+  osEventFlagsSet(print_event_handle, MESS_INPUT_FFT);
+  uint32_t flags;
+
+  do {
+    // Prevents accidentally corrupting frequency analysis data
+    flags = osEventFlagsWait(print_event_handle, MESS_PRINT_COMPLETE, osFlagsNoClear, osWaitForever);
     osDelay(1);
   } while ((flags & MESS_PRINT_COMPLETE) != MESS_PRINT_COMPLETE);
 
@@ -378,22 +380,32 @@ void performNoiseAnalysis(void* argument)
 void printCurrentTemp(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
+  
+  float temp = Temperature_GetCurrent();
+
+  sprintf((char*) context->output_buffer, "\r\nCurrent temperature: %.2f C\r\n",
+          temp);
+  COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
+// TODO: implement
 void printCurrentErrors(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
+// TODO: implement
 void printCurrentPowerConsumption(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
-  context->state->state = PARAM_STATE_COMPLETE;
+  
+  COMMLoops_NotImplemented(context);
 }
 
-void sendFeedbackSignal(void* argument)
+void resetSavedValues(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
 
@@ -402,135 +414,31 @@ void sendFeedbackSignal(void* argument)
   do {
     switch (context->state->state) {
       case PARAM_STATE_0:
-        sprintf((char*) context->output_buffer, "\r\n\r\nPlease enter a string to send to the feedback network with a maximum length of 8 characters:\r\n");
-        COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
+        COMM_TransmitData("\r\nThis will reset the device. Are you sure? (y/n)\r\n", CALC_LEN, context->comm_interface);
         context->state->state = PARAM_STATE_1;
         break;
       case PARAM_STATE_1:
-        if (context->input_len > 8) {
-          sprintf((char*) context->output_buffer, "\r\nInput string must be less than 8 characters!\r\n");
-          COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
+        bool affirm;
+        if (checkYesNo(*context->input, &affirm) == false) {
+          COMM_TransmitData("\r\nInvalid input!\r\n", CALC_LEN, context->comm_interface);
           context->state->state = PARAM_STATE_0;
+          break;
         }
-        else {
-          Message_t msg;
-          msg.type = MSG_TRANSMIT_FEEDBACK;
-          msg.length_bits = TEST_PACKET_LENGTH;
-          msg.timestamp = osKernelGetTickCount();
-          msg.data_type = STRING;
-          for (uint16_t i = 0; i < TEST_PACKET_LENGTH / 8; i++) {
-            if (context->input_len > i) {
-              msg.data[i] = context->input[i];
-            }
-            else {
-              msg.data[i] = ' ';
-            }
+        if (affirm == true) {
+          COMM_TransmitData("\r\nResetting flash sector...", CALC_LEN, context->comm_interface);
+          if (Param_FlashReset() == false) {
+            COMM_TransmitData("\r\nError encountered. Aborting...", CALC_LEN, context->comm_interface);
+            context->state->state = PARAM_STATE_COMPLETE;
+            break;
           }
-          if (MESS_AddMessageToTxQ(&msg) == pdPASS) {
-            sprintf((char*) context->output_buffer, "\r\nSuccessfully added to feedback queue!\r\n\r\n");
-            COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          }
-          else {
-            sprintf((char*) context->output_buffer, "\r\nError adding message to feedback queue\r\n\r\n");
-            COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          }
-          context->state->state = PARAM_STATE_COMPLETE;
+          COMM_TransmitData("\r\nResetting device...\r\n", CALC_LEN, context->comm_interface);
+
+          // Give time to print USB message (not needed in practice)
+          osDelay(10);
+
+          HAL_NVIC_SystemReset();
         }
-        break;
-      default:
         context->state->state = PARAM_STATE_COMPLETE;
-        break;
-    }
-  } while (old_state > context->state->state); // Continues looping if the state has regressed
-}
-
-void sendTransducerSignal(void* argument)
-{
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
-  ParamState_t old_state = context->state->state;
-
-  do {
-    switch (context->state->state) {
-      case PARAM_STATE_0:
-        sprintf((char*) context->output_buffer, "\r\n\r\nPlease enter a string to send through the transducer with a maximum length of 8 characters:\r\n");
-        COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-        context->state->state = PARAM_STATE_1;
-        break;
-
-      case PARAM_STATE_1:
-        if (context->input_len > 8) {
-          sprintf((char*) context->output_buffer, "\r\nInput string must be less than 8 characters!\r\n");
-          COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          context->state->state = PARAM_STATE_0;
-        }
-        else {
-          Message_t msg;
-          msg.type = MSG_TRANSMIT_TRANSDUCER;
-          msg.length_bits = TEST_PACKET_LENGTH;
-          msg.timestamp = osKernelGetTickCount();
-          msg.data_type = STRING;
-          for (uint16_t i = 0; i < TEST_PACKET_LENGTH / 8; i++) {
-            if (context->input_len > i) {
-              msg.data[i] = context->input[i];
-            }
-            else {
-              msg.data[i] = ' ';
-            }
-          }
-          if (MESS_AddMessageToTxQ(&msg) == pdPASS) {
-            sprintf((char*) context->output_buffer, "\r\nSuccessfully added to output queue!\r\n\r\n");
-            COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          }
-          else {
-            sprintf((char*) context->output_buffer, "\r\nError adding message to output queue\r\n\r\n");
-            COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          }
-          context->state->state = PARAM_STATE_COMPLETE;
-        }
-        break;
-      default:
-        context->state->state = PARAM_STATE_COMPLETE;
-        break;
-    }
-  } while (old_state > context->state->state); // Continues looping if the state has regressed
-}
-
-void changeOutputAmplitude(void* argument)
-{
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
-  COMMLoops_LoopFloat(context, PARAM_OUTPUT_AMPLITUDE);
-}
-
-// temporary before automatic gain control
-void changePgaGain(void* argument)
-{
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
-  ParamState_t old_state = context->state->state;
-
-  do {
-    switch (context->state->state) {
-      case PARAM_STATE_0:
-        uint8_t current_gain = PGA_GetGain();
-        sprintf((char*) context->output_buffer, "\r\n\r\nEnter a gain code from 0-7:\r\n0: 1\r\n1: 2\r\n2: 5\r\n3: 10\r\n4: 20\r\n5: 50\r\n6: 100\r\n7: 200\r\nCurrent gain code is %d\r\n", current_gain);
-        COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-        context->state->state = PARAM_STATE_1;
-        break;
-      case PARAM_STATE_1:
-        uint8_t newGain = 0;
-        if (checkUint8(context->input, context->input_len, &newGain, 0, 7) == true) {
-          PGA_SetGain(newGain);
-          sprintf((char*) context->output_buffer, "\r\nSuccessfully set the PGA gain code to %d\r\n\r\n", newGain);
-          COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          context->state->state = PARAM_STATE_COMPLETE;
-        }
-        else {
-          sprintf((char*) context->output_buffer, "\r\nInvalid Input!\r\n");
-          COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-          context->state->state = PARAM_STATE_0;
-        }
         break;
       default:
         context->state->state = PARAM_STATE_COMPLETE;
@@ -539,13 +447,14 @@ void changePgaGain(void* argument)
   } while (old_state > context->state->state);
 }
 
-void sendTestTransducerSignal(void* argument)
+void enterDfuMode(void* argument)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
+  (void)(argument);
 
-  if (print_event_handle == NULL) return;
+  // write magic number to magic address. See startup code for corresponding check
+  *((uint32_t*) 0x38000000) = 0xABCDABCD;
 
-  osEventFlagsSet(print_event_handle, MESS_TEST_OUTPUT);
+  osDelay(10);
 
-  context->state->state = PARAM_STATE_COMPLETE;
+  NVIC_SystemReset();
 }

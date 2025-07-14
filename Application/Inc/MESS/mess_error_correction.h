@@ -1,7 +1,7 @@
 /*
  * mess_error_correction.h
  *
- *  Created on: Feb 12, 2025
+ *  Created on: Apr 30, 2025
  *      Author: ericv
  */
 
@@ -15,8 +15,8 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
 #include "mess_packet.h"
+#include "mess_dsp_config.h"
 #include <stdbool.h>
-
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -24,15 +24,7 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
-typedef enum {
-  CRC_8,
-  CRC_16,
-  CRC_32,
-  CHECKSUM_8,
-  CHECKSUM_16,
-  CHECKSUM_32,
-  NUM_ERROR_CORRECTION_METHODS
-} ErrorCorrectionMethod_t;
+
 
 /* Exported constants --------------------------------------------------------*/
 
@@ -45,54 +37,53 @@ typedef enum {
 /* Exported functions prototypes ---------------------------------------------*/
 
 /**
- * @brief Adds error correction data to a bit message
- *
- * Calculates and appends CRC or checksum data to the bit message based on the
- * currently selected error correction method. Updates the final_length field
- * of the message accordingly.
- *
- * @param bit_msg Pointer to the bit message to modify
- *
- * @return true if correction data was successfully added,
- *         false if calculation failed or correction method is invalid
- *
- * @see ErrorCorrection_CheckCorrection
+ * @brief Adds error correction to a bit message
+ * 
+ * Error correction for the preamble and the message (data and error detection)
+ * is applied separately with potentially different ECC methods
+ * 
+ * @param bit_msg Bit message to apply ECC to. ECC is applied in place
+ * @param cfg Configuration (using ECC methods only)
+ * 
+ * @return true if successful, false otherwise
  */
-bool ErrorCorrection_AddCorrection(BitMessage_t* bit_msg);
+bool ErrorCorrection_AddCorrection(BitMessage_t* bit_msg, 
+                                   const DspConfig_t* cfg);
 
 /**
- * @brief Verifies error correction data in a bit message
- *
- * Checks the integrity of a received bit message using the currently
- * selected error correction method (CRC or checksum).
- *
- * @param bit_msg Pointer to the bit message to check
- * @param error Output parameter set to true if an error is detected
- *
- * @return true if verification was performed successfully,
- *         false if verification failed or correction method is invalid
+ * @brief Decodes an ECC preamble/message
+ * 
+ * Since ECC is applied separately to the preamble and the message body, the
+ * caller must state whether they are performing bit reconstruction on the
+ * preamble or the message body.
+ * 
+ * @param bit_msg Bit message with the error correction coding built in
+ * @param cfg Configuration (using ECC methods only)
+ * @param is_preamble Flag determining if ECC is to be done on the preamble
+ * @param error_detected Pointer to flag indicating error found (potentially updated)
+ * @param error_corrected Pointer to flag indicating error corrected (will be updated)
+ * 
+ * @return true if successfully ran without errors, false otherwise
+ * 
+ * @note Not all ECC methods can detect errors so error_detected cannot be
+ * uninitialized
  */
-bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg, bool* error);
+bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg, 
+                                     const DspConfig_t* cfg, 
+                                     bool is_preamble, 
+                                     bool* error_detected, 
+                                     bool* error_corrected);
 
 /**
- * @brief Gets the bit length of the current error correction method
- *
- * @param length Output parameter to receive the bit length of the
- *               current error correction method
- *
- * @return true if length was set successfully,
- *         false if the current correction method is invalid
+ * @brief Returns length of a sequence with ECC
+ * 
+ * @param length Number of bits in message
+ * @param method Method used to add ECC
+ * 
+ * @return Number of bits in ECC message
  */
-bool ErrorCorrection_CheckLength(uint16_t* length);
-
-/**
- * @brief Registers error correction parameters with the system
- *
- * Registers the error correction method parameter for HMI access.
- *
- * @return true if registration was successful, false otherwise
- */
-bool ErrorCorrection_RegisterParams(void);
+uint16_t ErrorCorrection_GetLength(const uint16_t length, 
+                                   const ErrorCorrectionMethod_t method);
 
 /* Private defines -----------------------------------------------------------*/
 

@@ -19,15 +19,23 @@
 #include "mess_input.h"
 #include "mess_feedback.h"
 #include "mess_evaluate.h"
+#include "mess_calibration.h"
+#include "mess_dsp_config.h"
+#include "mess_feedback_tests.h"
+#include "mess_interleaver.h"
+#include "mess_cargo.h"
 
 #include "sys_error.h"
 
 #include "cfg_main.h"
 #include "cfg_parameters.h"
 #include "cfg_defaults.h"
+#include "cfg_callbacks.h"
 
 #include "dac_waveform.h"
 #include "PGA113-driver.h"
+
+#include "mess_dac_resources.h"
 
 #include "main.h"
 #include <stdbool.h>
@@ -35,12 +43,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 
-typedef enum {
-  DRIVING_TRANSDUCER,
-  LISTENING,
-  PROCESSING,
-  CHANGING
-} ProcessingState_t;
+
 
 /* Private define ------------------------------------------------------------*/
 
@@ -52,34 +55,48 @@ typedef enum {
 
 /* Private variables ---------------------------------------------------------*/
 
-QueueHandle_t tx_queue = NULL; // Messages to send
-QueueHandle_t rx_queue = NULL; // Messages received
+// Identification parameters
+static uint8_t modem_identifier_4b = DEFAULT_ID;
+static bool is_stationary = DEFAULT_STATIONARY_FLAG;
 
-float baud_rate = DEFAULT_BAUD_RATE;
-uint32_t fsk_f0 = DEFAULT_FSK_F0;
-uint32_t fsk_f1 = DEFAULT_FSK_F1;
-ModDemodMethod_t mod_demod_method = DEFAULT_MOD_DEMOD_METHOD;
-uint32_t fc = DEFAULT_FC;
-uint8_t fhbfsk_num_tones = DEFAULT_FHBFSK_NUM_TONES;
-uint8_t fhbfsk_freq_spacing = DEFAULT_FHBFSK_FREQ_SPACING;
-uint8_t fhbfsk_dwell_time = DEFAULT_FHBFSK_DWELL_TIME;
+static QueueHandle_t tx_queue = NULL; // Messages to send
+static QueueHandle_t rx_queue = NULL; // Messages received
 
-static bool evaluation_mode = DEFAULT_EVAL_MODE_STATE;
-static uint8_t evaluation_message = DEFAULT_EVAL_MESSAGE;
-
-static ProcessingState_t MESS_TaskState = LISTENING;
+static ProcessingState_t task_state = CHANGING;
 
 static BitMessage_t input_bit_msg;
 
-bool in_feedback = false;
+static bool in_feedback = false;
+static bool print_next_waveform = false;
+static DspConfig_t default_config = {
+    .baud_rate = DEFAULT_BAUD_RATE,
+    .mod_demod_method = DEFAULT_MOD_DEMOD_METHOD,
+    .fsk_f0 = DEFAULT_FSK_F0,
+    .fsk_f1 = DEFAULT_FSK_F1,
+    .fc = DEFAULT_FC,
+    .fhbfsk_freq_spacing = DEFAULT_FHBFSK_FREQ_SPACING,
+    .fhbfsk_num_tones = DEFAULT_FHBFSK_NUM_TONES,
+    .fhbfsk_dwell_time = DEFAULT_FHBFSK_DWELL_TIME,
+    .preamble_validation = DEFAULT_PREAMBLE_ERROR_DETECTION,
+    .cargo_validation = DEFAULT_CARGO_ERROR_DETECTION,
+    .preamble_ecc_method = DEFAULT_ECC_PREAMBLE,
+    .cargo_ecc_method = DEFAULT_ECC_MESSAGE,
+    .use_interleaver = DEFAULT_INTERLEAVER_STATE,
+    .sync_method = DEFAULT_SYNC_METHOD
+};
+static DspConfig_t* cfg = &default_config;
+static BitMessage_t bit_msg;
+static uint16_t message_length = 0;
 
+Message_t tx_msg;
+Message_t rx_msg;
 
 /* Private function prototypes -----------------------------------------------*/
 
 static void switchState(ProcessingState_t newState);
 static void switchTrTransmit();
 static void switchTrReceive();
-static MessageFlags_t checkFlags();
+static bool handleFlags();
 static bool registerMessParams();
 static bool registerMessMainParams();
 
@@ -89,10 +106,7 @@ void MESS_StartTask(void* argument)
 {
   (void)(argument);
   osEventFlagsClear(print_event_handle, 0xFFFFFFFF);
-  Message_t tx_msg;
-  WaveformStep_t message_sequence[PACKET_MAX_LENGTH_BITS];
-  uint16_t message_length = 0;
-  EvalMessageInfo_t eval_info;
+  MessDacResource_Init();
 
   if (Param_RegisterTask(MESS_TASK, "MESS") == false) {
     Error_Routine(ERROR_MESS_INIT);
@@ -115,18 +129,18 @@ void MESS_StartTask(void* argument)
   ADC_Init();
   Input_Init();
   Feedback_Init();
-  Evaluate_Init();
-  DAC_InitWaveformGenerator();
+  FeedbackTests_Init();
+  Demodulate_Init();
   switchState(LISTENING);
-  // MESS_TaskState = LISTENING;
 
   osDelay(10);
+  Waveform_Flush();
   ADC_StartInput();
   for (;;) {
-    switch (MESS_TaskState) {
+    switch (task_state) {
       case DRIVING_TRANSDUCER:
         // Currently driving transducer so listen to transducer feedback network
-        if (DAC_IsRunning() == false) {
+        if (Waveform_IsRunning() == false) {
           osDelay(1); // Lets the ADC finish in the case of feedback network
           HAL_TIM_Base_Stop(&htim6);
           if (in_feedback == true) {
@@ -137,59 +151,45 @@ void MESS_StartTask(void* argument)
         }
         break;
       case LISTENING:
-        // Wait for an edge/chirp or send a message if received
-        MessageFlags_t flags = checkFlags();
 
-        switch (flags) {
-          case MESS_PRINT_REQUEST:
-            osEventFlagsClear(print_event_handle, MESS_PRINT_REQUEST);
-            Input_PrintNoise();
-            osEventFlagsSet(print_event_handle, MESS_PRINT_COMPLETE);
-            break;
-          case MESS_TEST_OUTPUT:
-            osEventFlagsClear(print_event_handle, MESS_TEST_OUTPUT);
-            Modulate_TestOutput();
-            switchState(DRIVING_TRANSDUCER);
-            break;
-          case MESS_FREQ_RESP:
-            osEventFlagsClear(print_event_handle, MESS_FREQ_RESP);
-            Modulate_TestFrequencyResponse();
-            in_feedback = true;
-            switchState(DRIVING_TRANSDUCER);
-            break;
-          default:
-            break;
+        if (Input_UpdatePgaGain() == false) {
+          Error_Routine(ERROR_MESS_PROCESSING);
+          break;
         }
 
+        if (handleFlags() == false) {
+          Error_Routine(ERROR_MESS_PROCESSING);
+        }
+
+        FeedbackTests_GetNext();
+
         if (MESS_GetMessageFromTxQ(&tx_msg) == pdPASS) {
-          BitMessage_t bit_msg;
-          if (Packet_PrepareTx(&tx_msg, &bit_msg) == false) {
-            // TODO: log error
+          FeedbackTests_GetConfig(&cfg);
+
+          if (Packet_PrepareTx(&tx_msg, &bit_msg, cfg) == false) {
+            Error_Routine(ERROR_MESS_PROCESSING);
             break;
+          }
+          // Add ECC
+          if (ErrorCorrection_AddCorrection(&bit_msg, cfg) == false) {
+            Error_Routine(ERROR_MESS_PROCESSING);
+          }
+          // Add feedback network test false bits
+          if (FeedbackTests_CorruptMessage(&bit_msg) == false) {
+            Error_Routine(ERROR_MESS_PROCESSING);
+            break;
+          }
+          if (Interleaver_Apply(&bit_msg, cfg) == false) {
+            Error_Routine(ERROR_MESS_PROCESSING);
           }
           message_length = bit_msg.bit_count;
           // convert to frequencies in message_sequence
-          if (Modulate_ConvertToFrequency(&bit_msg, message_sequence) == false) {
-            // TODO: log error
-            break;
-          }
-
-          if (Modulate_ApplyAmplitude(message_sequence, message_length) == false) {
-            // TODO: log error
-            break;
-          }
-
-          if (Modulate_ApplyDuration(message_sequence, message_length) == false) {
-            // TODO: log error
-            break;
-          }
-          DAC_SetWaveformSequence(message_sequence, message_length);
           switch (tx_msg.type) {
             case MSG_TRANSMIT_TRANSDUCER:
               switchState(DRIVING_TRANSDUCER);
               break;
             case MSG_TRANSMIT_FEEDBACK:
-              DAC_StartWaveformOutput(DAC_CHANNEL_FEEDBACK);
+              Modulate_StartFeedbackOutput(message_length, cfg, &bit_msg);
               // Should automatically go to processing once waveform being received without intervention
               break;
             default:
@@ -197,7 +197,7 @@ void MESS_StartTask(void* argument)
           }
         }
 
-        if (Input_DetectMessageStart() == true) {
+        if (Input_DetectMessageStart(cfg) == true) {
           switchState(PROCESSING);
           break;
         }
@@ -208,57 +208,74 @@ void MESS_StartTask(void* argument)
             (input_bit_msg.bit_count >= input_bit_msg.final_length) &&
             (input_bit_msg.preamble_received == true);
 
-        if (Input_SegmentBlocks() == false) {
+        if (Input_UpdatePgaGain() == false) {
           Error_Routine(ERROR_MESS_PROCESSING);
           break;
         }
-        if (Input_ProcessBlocks(&input_bit_msg, &eval_info) == false) {
-          Error_Routine(ERROR_MESS_PROCESSING);
-          break;
-        }
-        if (Input_DecodeBits(&input_bit_msg, evaluation_mode) == false) {
-          Error_Routine(ERROR_MESS_PROCESSING);
-          break;
-        }
-        if (evaluation_mode == true) {
-          if (input_bit_msg.bit_count >= EVAL_MESSAGE_LENGTH) {
-            Message_t rx_msg;
-            rx_msg.data_type = EVAL;
-            rx_msg.timestamp = osKernelGetTickCount();
-            rx_msg.eval_info = &eval_info;
-            rx_msg.eval_info->len_bits = EVAL_MESSAGE_LENGTH;
-            rx_msg.eval_info->eval_msg = evaluation_message;
-            memcpy(&rx_msg.data, input_bit_msg.data, 100 / 8 + 1);
-            MESS_AddMessageToRxQ(&rx_msg);
-            switchState(LISTENING);
+        if (input_bit_msg.fully_received == false) {
+          if (Input_SegmentBlocks(cfg) == false) {
+            Error_Routine(ERROR_MESS_PROCESSING);
+            break;
           }
         }
-        else {
-          if (input_bit_msg.fully_received == true) {
-            Message_t rx_msg;
-            // TODO: fix currently incorrect since cant know if transducer or feedback
-            rx_msg.type = (tx_msg.type == MSG_TRANSMIT_TRANSDUCER) ?
-                          MSG_RECEIVED_TRANSDUCER : MSG_RECEIVED_FEEDBACK;
-            rx_msg.timestamp = osKernelGetTickCount();
-            rx_msg.length_bits = input_bit_msg.data_len_bits;
-            rx_msg.data_type = input_bit_msg.contents_data_type;
-            rx_msg.eval_info = &eval_info;
-            rx_msg.sender_id = input_bit_msg.sender_id;
-            // decode message
-            if (Input_DecodeMessage(&input_bit_msg, &rx_msg) == false) {
-              Error_Routine(ERROR_MESS_PROCESSING);
-              break;
-            }
+        if (Input_ProcessBlocks(&input_bit_msg, cfg) == false) {
+          Error_Routine(ERROR_MESS_PROCESSING);
+          break;
+        }
+        if (Input_DecodeBits(&input_bit_msg, cfg, &rx_msg) == false) {
+          Error_Routine(ERROR_MESS_PROCESSING);
+          break;
+        }
+        if (input_bit_msg.fully_received == true && input_bit_msg.added_to_queue == false) {
+          // TODO: fix currently incorrect since cant know if transducer or feedback
+          rx_msg.type = (tx_msg.type == MSG_TRANSMIT_TRANSDUCER) ?
+                        MSG_RECEIVED_TRANSDUCER : MSG_RECEIVED_FEEDBACK;
+          rx_msg.timestamp = osKernelGetTickCount();
+          rx_msg.length_bits = input_bit_msg.data_len_bits;
+          rx_msg.data_type = input_bit_msg.contents_data_type;
 
-            if (ErrorCorrection_CheckCorrection(&input_bit_msg,
-                &rx_msg.error_correction_error) == false) {
-              Error_Routine(ERROR_MESS_PROCESSING);
-              break;
-            }
-            // send it via queue
-            MESS_AddMessageToRxQ(&rx_msg);
-            switchState(LISTENING);
+          if (Interleaver_Undo(&input_bit_msg, cfg, false) == false) {
+            Error_Routine(ERROR_MESS_PROCESSING);
           }
+
+          // TODO: change to also require message to be custom
+          if (rx_msg.preamble.message_type.value == EVAL && (rx_msg.preamble.message_type.valid == true)) {
+            if (Evaluate_UncodedBer(&rx_msg.eval_info, &input_bit_msg, cfg) == false) {
+              Error_Routine(ERROR_MESS_PROCESSING);
+            }
+          }
+
+          // undo fec
+          if (ErrorCorrection_CheckCorrection(&input_bit_msg, cfg, false,
+              &input_bit_msg.error_message,
+              &input_bit_msg.corrected_error_message) == false) {
+            Error_Routine(ERROR_MESS_PROCESSING);
+          }
+          // decode message
+          if (Cargo_Decode(&input_bit_msg, &rx_msg, cfg) == false) {
+            Error_Routine(ERROR_MESS_PROCESSING);
+            break;
+          }
+
+          if (ErrorDetection_CheckDetection(&input_bit_msg,
+              &rx_msg.error_detected, cfg, false) == false) {
+            Error_Routine(ERROR_MESS_PROCESSING);
+            break;
+          }
+          rx_msg.error_detected |= input_bit_msg.error_preamble;
+          // send it via queue
+          if (FeedbackTests_Check(&rx_msg, &input_bit_msg) == false) {
+            MESS_AddMessageToRxQ(&rx_msg);
+          }
+          input_bit_msg.added_to_queue = true;
+        }
+        if (Input_PrintWaveform(&print_next_waveform, input_bit_msg.fully_received) == false) {
+          Error_Routine(ERROR_MESS_PROCESSING);
+          break;
+        }
+
+        if (input_bit_msg.fully_received == true && print_next_waveform == false) {
+          switchState(LISTENING);
         }
         break;
       default:
@@ -332,12 +349,56 @@ void MESS_RoundBaud(float* baud)
   *baud = 1000000.0f / (baud_multiple_durations * length_multiple_us);
 }
 
+bool MESS_GetBandwidth(uint32_t* bandwidth, uint32_t* lower_freq, uint32_t* upper_freq)
+{
+  if (default_config.mod_demod_method == MOD_DEMOD_FSK) {
+    if (default_config.fsk_f0 == default_config.fsk_f1) {
+      return false;
+    }
+    if (default_config.fsk_f0 < default_config.fsk_f1) {
+      *lower_freq = default_config.fsk_f0;
+      *upper_freq = default_config.fsk_f1;
+      *bandwidth = *upper_freq - *lower_freq;
+    }
+    else {
+      *lower_freq = default_config.fsk_f1;
+      *upper_freq = default_config.fsk_f0;
+      *bandwidth = *upper_freq - *lower_freq;
+    }
+    return true;
+  }
+  else if (default_config.mod_demod_method == MOD_DEMOD_FHBFSK) {
+    DspConfig_t temp_cfg;
+    memcpy(&temp_cfg, &default_config, sizeof(DspConfig_t));
+    temp_cfg.fhbfsk_hopper = HOPPER_INCREMENT;
+    *lower_freq = Modulate_GetFhbfskFrequency(false, 0, &temp_cfg);
+
+    uint16_t last_bit_index = temp_cfg.fhbfsk_num_tones * temp_cfg.fhbfsk_dwell_time - 1;
+    *upper_freq = Modulate_GetFhbfskFrequency(true, last_bit_index, &temp_cfg);
+
+    *bandwidth = *upper_freq - *lower_freq;
+    return true;
+  }
+  return false;
+}
+
+bool MESS_GetBitPeriod(float* bit_period_ms)
+{
+  *bit_period_ms =  (1.0f / default_config.baud_rate) * 1000;
+  return true;
+}
+
+ProcessingState_t MESS_GetState()
+{
+  return task_state;
+}
+
 /* Private function definitions ----------------------------------------------*/
 
 static void switchState(ProcessingState_t newState)
 {
   // First deactivate and clear all adcs, dacs, and all buffers except for the input buffer when transitioning from listening to processing
-  MESS_TaskState = CHANGING;
+  task_state = CHANGING;
   switch (newState) {
     case DRIVING_TRANSDUCER:
       ADC_StopAll();
@@ -350,12 +411,13 @@ static void switchState(ProcessingState_t newState)
       osDelay(1);
       switchTrTransmit();
       osDelay(10);
-      Modulate_StartTransducerOutput();
-      // start
-      MESS_TaskState = DRIVING_TRANSDUCER;
+      Modulate_StartTransducerOutput(message_length, cfg, &bit_msg);
+      task_state = DRIVING_TRANSDUCER;
       break;
     case LISTENING:
-      DAC_StopWaveformOutput();
+      cfg = &default_config;
+      CFG_IncrementVersionNumber();
+      Waveform_StopWaveformOutput();
       HAL_TIM_Base_Stop(&htim6);
       HAL_DAC_Stop(&hdac1, DAC_CHANNEL_1);
       HAL_GPIO_WritePin(PAMP_MUTE_GPIO_Port, PAMP_MUTE_Pin, GPIO_PIN_SET);
@@ -365,11 +427,11 @@ static void switchState(ProcessingState_t newState)
       switchTrReceive();
       osDelay(5);
       ADC_StartInput();
-      MESS_TaskState = LISTENING;
+      task_state = LISTENING;
       break;
     case PROCESSING:
-      Packet_PrepareRx(&input_bit_msg);
-      MESS_TaskState = PROCESSING;
+      Packet_PrepareRx(&input_bit_msg, cfg);
+      task_state = PROCESSING;
       break;
     default:
       break;
@@ -386,49 +448,43 @@ static void switchTrReceive()
   HAL_GPIO_WritePin(GPIOD, TR_CTRL_Pin, GPIO_PIN_SET);
 }
 
-static MessageFlags_t checkFlags()
+static bool handleFlags()
 {
-  uint32_t flags;
-  if (print_event_handle == NULL) {
-    return 0;
-  }
-  flags = osEventFlagsWait(print_event_handle, MESS_PRINT_REQUEST, osFlagsWaitAny, 0);
+  uint32_t flags = osEventFlagsWait(print_event_handle, 0x7F, osFlagsWaitAny, 0);
 
   if (flags == osFlagsErrorResource) {
-    // Normal nothing returned. Do nothing
-  }
-  else if (flags & 0x80000000U) {
-    // TODO: log error
-  }
-  else if ((flags & MESS_PRINT_REQUEST) == MESS_PRINT_REQUEST) {
-    return MESS_PRINT_REQUEST;
+    return true;
   }
 
-  flags = osEventFlagsWait(print_event_handle, MESS_TEST_OUTPUT, osFlagsWaitAny, 0);
-
-  if (flags == osFlagsErrorResource) {
-    // Normal nothing returned. Do nothing
-  }
-  else if (flags & 0x80000000U) {
-    // TODO: log error
-  }
-  else if ((flags & MESS_TEST_OUTPUT) == MESS_TEST_OUTPUT) {
-    osEventFlagsClear(print_event_handle, MESS_TEST_OUTPUT); // TODO: test if useless
-    return MESS_TEST_OUTPUT;
+  if (flags & 0x80000000U) {
+    return false;
   }
 
-  flags = osEventFlagsWait(print_event_handle, MESS_FREQ_RESP, osFlagsWaitAny, 0);
-
-  if (flags == osFlagsErrorResource) {
-    // Normal nothing returned. Do nothing
+  if (flags & MESS_PRINT_REQUEST) {
+    osEventFlagsClear(print_event_handle, MESS_PRINT_REQUEST);
+    Input_PrintNoise();
+    osEventFlagsSet(print_event_handle, MESS_PRINT_COMPLETE);
   }
-  else if (flags & 0x80000000U) {
-    // TODO: log error
+  else if (flags & MESS_FREQ_RESP) {
+    osEventFlagsClear(print_event_handle, MESS_FREQ_RESP);
+    Modulate_TestFrequencyResponse();
+    in_feedback = true;
+    switchState(DRIVING_TRANSDUCER);
   }
-  else if ((flags & MESS_FREQ_RESP) == MESS_FREQ_RESP) {
-    return MESS_FREQ_RESP;
+  else if (flags & MESS_PRINT_WAVEFORM) {
+    osEventFlagsClear(print_event_handle, MESS_PRINT_WAVEFORM);
+    print_next_waveform = true;
   }
-  return 0;
+  else if (flags & MESS_FEEDBACK_TESTS) {
+    osEventFlagsClear(print_event_handle, MESS_FEEDBACK_TESTS);
+    FeedbackTests_Start();
+  }
+  else if (flags & MESS_INPUT_FFT) {
+    osEventFlagsClear(print_event_handle, MESS_INPUT_FFT);
+    Input_NoiseFft();
+    osEventFlagsSet(print_event_handle, MESS_PRINT_COMPLETE);
+  }
+  return true;
 }
 
 static bool registerMessParams()
@@ -450,7 +506,7 @@ static bool registerMessParams()
     return false;
   }
 
-  if (ErrorCorrection_RegisterParams() == false) {
+  if (ErrorDetection_RegisterParams() == false) {
     return false;
   }
 
@@ -458,6 +514,13 @@ static bool registerMessParams()
     return false;
   } 
 
+  if (Calibrate_RegisterParams() == false) {
+    return false;
+  }
+
+  if (Evaluate_RegisterParams() == false) {
+    return false;
+  }
   return true;
 }
 
@@ -466,69 +529,132 @@ static bool registerMessMainParams()
   float min_f = MIN_BAUD_RATE;
   float max_f = MAX_BAUD_RATE;
   if (Param_Register(PARAM_BAUD, "baud rate", PARAM_TYPE_FLOAT,
-                     &baud_rate, sizeof(float), &min_f, &max_f) == false) {
+                     &default_config.baud_rate, sizeof(float),
+                     &min_f, &max_f, NULL) == false) {
     return false;
   }
 
   uint32_t min_u32 = MIN_FSK_FREQUENCY;
   uint32_t max_u32 = MAX_FSK_FREQUENCY;
   if (Param_Register(PARAM_FSK_F0, "FSK 0 frequency", PARAM_TYPE_UINT32,
-                     &fsk_f0, sizeof(uint32_t), &min_u32, &max_u32) == false) {
+                     &default_config.fsk_f0, sizeof(uint32_t),
+                     &min_u32, &max_u32, NULL) == false) {
     return false;
   }
   if (Param_Register(PARAM_FSK_F1, "FSK 1 frequency", PARAM_TYPE_UINT32,
-                     &fsk_f1, sizeof(uint32_t), &min_u32, &max_u32) == false) {
+                     &default_config.fsk_f1, sizeof(uint32_t),
+                     &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
   min_u32 = MIN_MOD_DEMOD_METHOD;
   max_u32 = MAX_MOD_DEMOD_METHOD;
   if (Param_Register(PARAM_MOD_DEMOD_METHOD, "mod/demod method", PARAM_TYPE_UINT8,
-                     &mod_demod_method, sizeof(uint8_t), &min_u32, &max_u32) == false) {
+                     &default_config.mod_demod_method, sizeof(uint8_t),
+                     &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
   min_u32 = MIN_FC;
   max_u32 = MAX_FC;
   if (Param_Register(PARAM_FC, "center frequency", PARAM_TYPE_UINT32,
-                     &fc, sizeof(uint32_t), &min_u32, &max_u32) == false) {
+                     &default_config.fc, sizeof(uint32_t),
+                     &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
   min_u32 = MIN_FHBFSK_FREQ_SPACING;
   max_u32 = MAX_FHBFSK_FREQ_SPACING;
   if (Param_Register(PARAM_FHBFSK_FREQ_SPACING, "frequency spacing", PARAM_TYPE_UINT8,
-                     &fhbfsk_freq_spacing, sizeof(uint8_t), &min_u32, &max_u32) == false) {
+                     &default_config.fhbfsk_freq_spacing, sizeof(uint8_t),
+                     &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
   min_u32 = MIN_FHBFSK_DWELL_TIME;
   max_u32 = MAX_FHBFSK_DWELL_TIME;
   if (Param_Register(PARAM_FHBFSK_DWELL_TIME, "dwell time", PARAM_TYPE_UINT8,
-                     &fhbfsk_dwell_time, sizeof(uint8_t), &min_u32, &max_u32) == false) {
+                     &default_config.fhbfsk_dwell_time, sizeof(uint8_t),
+                     &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
   min_u32 = MIN_FHBFSK_NUM_TONES;
   max_u32 = MAX_FHBFSK_NUM_TONES;
   if (Param_Register(PARAM_FHBFSK_NUM_TONES, "number of tones", PARAM_TYPE_UINT8,
-                     &fhbfsk_num_tones, sizeof(uint8_t), &min_u32, &max_u32) == false) {
+                     &default_config.fhbfsk_num_tones, sizeof(uint8_t),
+                     &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
-  min_u32 = (uint32_t) MIN_EVAL_MODE_STATE;
-  max_u32 = (uint32_t) MAX_EVAL_MODE_STATE;
-  if (Param_Register(PARAM_EVAL_MODE_ON, "evaluation mode", PARAM_TYPE_UINT8,
-                     &evaluation_mode, sizeof(uint8_t), &min_u32, &max_u32) == false) {
+  min_u32 = MIN_ERROR_DETECTION;
+  max_u32 = MAX_ERROR_DETECTION;
+  if (Param_Register(PARAM_PREAMBLE_ERROR_DETECTION, "preamble error detection method", PARAM_TYPE_UINT8,
+                     &default_config.preamble_validation, sizeof(uint8_t),
+                     &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
-  min_u32 = MIN_EVAL_MESSAGE;
-  max_u32 = MAX_EVAL_MESSAGE;
-  if (Param_Register(PARAM_EVAL_MESSAGE, "evaluation message", PARAM_TYPE_UINT8,
-                     &evaluation_message, sizeof(uint8_t), &min_u32, &max_u32) == false) {
+  if (Param_Register(PARAM_CARGO_ERROR_DETECTION, "cargo error detection method", PARAM_TYPE_UINT8,
+                     &default_config.cargo_validation, sizeof(uint8_t),
+                     &min_u32, &max_u32, NULL) == false) {
     return false;
   }
+
+  min_u32 = MIN_ECC_METHOD;
+  max_u32 = MAX_ECC_METHOD;
+  if (Param_Register(PARAM_ECC_PREAMBLE, "preamble ECC", PARAM_TYPE_UINT8,
+                     &default_config.preamble_ecc_method, sizeof(uint8_t),
+                     &min_u32, &max_u32, NULL) == false) {
+    return false;
+  }
+
+  // Using the same bounds as ^
+  if (Param_Register(PARAM_ECC_MESSAGE, "message ECC", PARAM_TYPE_UINT8,
+                     &default_config.cargo_ecc_method, sizeof(uint8_t),
+                     &min_u32, &max_u32, NULL) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_INTERLEAVER_STATE;
+  max_u32 = MAX_INTERLEAVER_STATE;
+  if (Param_Register(PARAM_USE_INTERLEAVER, "message interleaving", PARAM_TYPE_UINT8,
+                     &default_config.use_interleaver, sizeof(bool),
+                     &min_u32, &max_u32, NULL) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_FHBFSK_HOPPER;
+  max_u32 = MAX_FHBFSK_HOPPER;
+  if (Param_Register(PARAM_FHBFSK_HOPPER, "hopper method", PARAM_TYPE_UINT8,
+                     &default_config.fhbfsk_hopper, sizeof(uint8_t), 
+                     &min_u32, &max_u32, NULL) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_SYNC_METHOD;
+  max_u32 = MAX_SYNC_METHOD;
+  if (Param_Register(PARAM_SYNC_METHOD, "synchronization method", PARAM_TYPE_UINT8,
+                     &default_config.sync_method, sizeof(uint8_t),
+                     &min_u32, &max_u32, NULL) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_ID;
+  max_u32 = MAX_ID;
+  if (Param_Register(PARAM_ID, "the modem identifier", PARAM_TYPE_UINT8,
+      &modem_identifier_4b, sizeof(uint8_t), &min_u32, &max_u32, NULL) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_STATIONARY_FLAG;
+  max_u32 = MAX_STATIONARY_FLAG;
+  if (Param_Register(PARAM_STATIONARY_FLAG, "stationary flag", PARAM_TYPE_UINT8,
+      &is_stationary, sizeof(uint8_t), &min_u32, &max_u32, NULL) == false) {
+    return false;
+  }
+
+  return true;
 
   return true;
 }

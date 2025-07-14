@@ -15,6 +15,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
 #include "mess_main.h"
+#include "mess_dsp_config.h"
 #include <stdbool.h>
 
 
@@ -24,17 +25,32 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
+typedef struct {
+  uint16_t raw_len;
+  uint16_t ecc_len;
+  uint16_t raw_start_index;
+  uint16_t ecc_start_index;
+} SectionInfo_t;
+
 
 typedef struct {
   uint8_t data[PACKET_MAX_LENGTH_BYTES];
   uint16_t bit_count;
-  uint8_t sender_id;
   uint16_t data_len_bits;
-  MessageData_t contents_data_type;
-  uint16_t final_length;
-  bool stationary_flag;
-  bool preamble_received;
-  bool fully_received;
+  CustomMessageData_t contents_data_type;
+  SectionInfo_t preamble;
+  SectionInfo_t cargo;
+  uint16_t final_length; // includes ecc
+  uint16_t combined_message_len; // not including ecc
+  float normalized_vitrebi_error_metric; // Only set when the ecc method uses convoltuional codes
+  bool preamble_received; // Set when first preamble number of bits received and decoded
+  bool fully_received;    // Set when message bit count > final bit count
+  bool added_to_queue;    // Set when message decoded and "done with"
+  bool error_preamble;
+  bool error_message;
+  bool error_entire_message;
+  bool corrected_error_preamble;
+  bool corrected_error_message;
 } BitMessage_t;
 
 /* Exported constants --------------------------------------------------------*/
@@ -54,23 +70,25 @@ typedef struct {
  * 1. Initializes the bit packet
  * 2. Adds preamble (skipped for EVAL type messages)
  * 3. Adds message payload
- * 4. Applies error correction coding (skipped for EVAL type messages)
+ * 4. Applies error detection coding (skipped for EVAL type messages)
  *
  * @param msg Pointer to the message to be transmitted
  * @param bit_msg Pointer to the bit message structure to be filled
+ * @param cfg Configuration data for the message
  *
  * @return true if preparation succeeded, false on any failure
  */
-bool Packet_PrepareTx(Message_t* msg, BitMessage_t* bit_msg);
+bool Packet_PrepareTx(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* cfg);
 
 /**
  * @brief Initializes a bit message structure for receiving incoming data
  *
  * @param bit_msg Pointer to the bit message structure to initialize
+ * @param cfg Configuration values used for decoding input messages
  *
  * @return true if initialization succeeded
  */
-bool Packet_PrepareRx(BitMessage_t* bit_msg);
+bool Packet_PrepareRx(BitMessage_t* bit_msg, const DspConfig_t* cfg);
 
 /**
  * @brief Adds a single bit to a bit message
@@ -94,7 +112,7 @@ bool Packet_AddBit(BitMessage_t* bit_msg, bool bit);
  *
  * @return true if successful, false if position is out of bounds
  */
-bool Packet_GetBit(BitMessage_t* bit_msg, uint16_t position, bool* bit);
+bool Packet_GetBit(const BitMessage_t* bit_msg, uint16_t position, bool* bit);
 
 /**
  * @brief Extracts an arbitrary-length chunk of bits (up to 8) from a bit message
@@ -174,13 +192,89 @@ bool Packet_Get16(BitMessage_t* bit_msg, uint16_t* start_position, uint16_t* dat
 bool Packet_Get32(BitMessage_t* bit_msg, uint16_t* start_position, uint32_t* data);
 
 /**
- * @brief Calculates the minimum power-of-2 packet size needed for a given payload
- *
- * @param str_len The length of data to accommodate
- *
- * @return The minimum packet size (always a power of 2)
+ * @brief Extracts a set number of bits from an offset in a bit message
+ * 
+ * @param bit_msg message to take the bits from
+ * @param start_position starting bit position offset
+ * @param num_bits Number of bits to extract (must be <= 16)
+ * @param data Returned data at that location (will be updated)
+ * @return true if successful, false otherwise
  */
-uint16_t Packet_MinimumSize(uint16_t str_len);
+bool Packet_GetChunk(BitMessage_t* bit_msg, uint16_t start_position, uint8_t num_bits, uint16_t* data);
+
+/**
+ * @brief Adds a chunk of data to a bit message
+ * 
+ * @param bit_msg Message to add the bits to
+ * @param num_bits Number of bits to add
+ * @param data Data to add
+ * @return true if successful, false otherwise
+ */
+bool Packet_AddChunk(BitMessage_t* bit_msg, uint8_t num_bits, uint16_t data);
+
+/**
+ * @brief Flips bit at selected position
+ *
+ * @param bit_msg Pointer to the bit message structure
+ * @param bit_index Index where the bit should be flipped
+ *
+ * @return true if successful, false if invalid inputs
+ */
+bool Packet_FlipBit(BitMessage_t* bit_msg, uint16_t bit_index);
+
+/**
+ * @brief Sets bit at a certain position
+ *
+ * @param bit_msg Pointer to the bit message structure
+ * @param bit_index Index where the bit should be set
+ * @param bit Value of the bit
+ *
+ * @return true if successful, false otherwise
+ */
+bool Packet_SetBit(BitMessage_t* bit_msg, uint16_t bit_index, bool bit);
+
+/**
+ * @brief Compares the data in 2 bit messages
+ *
+ * @param msg1 Pointer to the first message to compare
+ * @param msg2 Pointer to the second message to compare
+ * @param identical Returned value indicating if all bits identical
+ *
+ * @return true if successful and false otherwise
+ */
+bool Packet_Compare(const BitMessage_t* msg1, const BitMessage_t* msg2, bool* identical);
+
+/**
+ * @brief The minimum 7 bit length index required for the number of cargo bytes
+ * 
+ * @param num_bytes Number of bytes in the message cargo (raw)
+ * @param length_index Preamble cargo length encoding (modified)
+ * @return true if valid length index exists, false otherwise
+ */
+bool Packet_MinimumLengthIndex(uint16_t num_bytes, uint8_t* length_index);
+
+/**
+ * @brief Number of cargo bytes corresponding to a length index
+ * 
+ * @param length_index Preamble cargo length encoding
+ * @param cargo_bytes Number of bytes in message cargo (modified)
+ * @return true if valid length index, false otherwise
+ */
+bool Packet_CargoBytes(uint8_t length_index, uint16_t* cargo_bytes);
+
+/**
+ * @brief copies the contents of one data array from the src to dest
+ *
+ * @param src_msg Message to copy data from
+ * @param dest_msg Message to copy data to (modified)
+ * @param start_index Bit index to start copy at
+ * @param length Length in bits of the section to copy
+ *
+ * @return true if successful, false otherwise
+ *
+ * @note Does not copy other information from the struct besides data array
+ */
+bool Packet_Copy(const BitMessage_t* src_msg, BitMessage_t* dest_msg, const uint16_t start_index, const uint16_t length);
 
 /**
  * @brief Registers modem parameters with the parameter subsystem for HMI access

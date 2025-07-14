@@ -13,6 +13,7 @@
 
 #include "mess_main.h"
 #include "mess_evaluate.h"
+#include "mess_packet.h"
 
 #include "cfg_parameters.h"
 
@@ -36,16 +37,18 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-void toggleEval(void* argument);
-void setEvalMsg(void* argument);
+void setEvalMsgLen(void* argument);
 void sendEvalFeedback(void* argument);
 void sendEvalTransducer(void* argument);
+void startFeedbackTests(void* argument);
+
+void sendEvalMessage(FunctionContext_t* context, Message_t* msg);
 
 /* Private variables ---------------------------------------------------------*/
 
 static MenuID_t evalMenuChildren[] = {
-  MENU_ID_EVAL_TOGGLE,    MENU_ID_EVAL_SETMSG, MENU_ID_EVAL_FEEDBACK, 
-  MENU_ID_EVAL_TRANSDUCER
+  MENU_ID_EVAL_SETMSG,      MENU_ID_EVAL_FEEDBACK, 
+  MENU_ID_EVAL_TRANSDUCER,  MENU_ID_EVAL_FEEDBACKTESTS
 };
 
 static const MenuNode_t evalMenu = {
@@ -59,34 +62,19 @@ static const MenuNode_t evalMenu = {
   .parameters = NULL
 };
 
-static ParamContext_t evalToggleModeParam = {
-  .state = PARAM_STATE_0,
-  .param_id = MENU_ID_EVAL_TOGGLE
-};
-static const MenuNode_t evalToggleMode = {
-  .id = MENU_ID_EVAL_TOGGLE,
-  .description = "Toggle Evaluation Mode",
-  .handler = toggleEval,
-  .parent_id = MENU_ID_EVAL,
-  .children_ids = NULL,
-  .num_children = 0,
-  .access_level = 0,
-  .parameters = &evalToggleModeParam
-};
-
-static ParamContext_t evalSetMsgParam = {
+static ParamContext_t evalSetMsgLenParam = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_EVAL_SETMSG
 };
-static const MenuNode_t evalSetMsg = {
+static const MenuNode_t evalSetMsgLen = {
   .id = MENU_ID_EVAL_SETMSG,
-  .description = "Set Evaluation Message",
-  .handler = setEvalMsg,
+  .description = "Set evaluation message length",
+  .handler = setEvalMsgLen,
   .parent_id = MENU_ID_EVAL,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &evalSetMsgParam
+  .parameters = &evalSetMsgLenParam
 };
 
 static ParamContext_t evalFeedbackParam = {
@@ -95,7 +83,7 @@ static ParamContext_t evalFeedbackParam = {
 };
 static const MenuNode_t evalFeedback = {
   .id = MENU_ID_EVAL_FEEDBACK,
-  .description = "Send Evaluation Message Through Feedback Network",
+  .description = "Send evaluation message through feedback network",
   .handler = sendEvalFeedback,
   .parent_id = MENU_ID_EVAL,
   .children_ids = NULL,
@@ -110,7 +98,7 @@ static ParamContext_t evalTransducerParam = {
 };
 static const MenuNode_t evalTransducer = {
   .id = MENU_ID_EVAL_TRANSDUCER,
-  .description = "Send Evaluation Message Through Transducer",
+  .description = "Send evaluation message through transducer",
   .handler = sendEvalTransducer,
   .parent_id = MENU_ID_EVAL,
   .children_ids = NULL,
@@ -119,30 +107,39 @@ static const MenuNode_t evalTransducer = {
   .parameters = &evalTransducerParam
 };
 
+static ParamContext_t feedbackTestsParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_EVAL_FEEDBACKTESTS
+};
+static const MenuNode_t feedbackTests = {
+  .id = MENU_ID_EVAL_FEEDBACKTESTS,
+  .description = "Perform feedback network tests",
+  .handler = startFeedbackTests,
+  .parent_id = MENU_ID_EVAL,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &feedbackTestsParam
+};
+
 /* Exported function definitions ---------------------------------------------*/
 
 bool COMM_RegisterEvalMenu(void)
 {
-  bool ret = registerMenu(&evalMenu) && registerMenu(&evalToggleMode) &&
-             registerMenu(&evalSetMsg) && registerMenu(&evalFeedback) &&
-             registerMenu(&evalTransducer);
+  bool ret = registerMenu(&evalMenu) && 
+             registerMenu(&evalSetMsgLen) && registerMenu(&evalFeedback) &&
+             registerMenu(&evalTransducer) && registerMenu(&feedbackTests);
   return ret;
 }
 
 
 /* Private function definitions ----------------------------------------------*/
 
-void toggleEval(void* argument)
+void setEvalMsgLen(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
 
-  COMMLoops_LoopToggle(context, PARAM_EVAL_MODE_ON);
-}
-void setEvalMsg(void* argument)
-{
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
-  COMMLoops_LoopUint8(context, PARAM_EVAL_MESSAGE);
+  COMMLoops_LoopUint16(context, PARAM_EVAL_MESSAGE_LEN);
 }
 
 void sendEvalFeedback(void* argument)
@@ -151,20 +148,7 @@ void sendEvalFeedback(void* argument)
 
   Message_t msg;
   msg.type = MSG_TRANSMIT_FEEDBACK;
-  msg.timestamp = osKernelGetTickCount();
-  msg.data_type = EVAL;
-  Evaluate_CopyEvaluationMessage(&msg);
-  msg.eval_info = NULL;
-
-  if (MESS_AddMessageToTxQ(&msg) == pdPASS) {
-    sprintf((char*) context->output_buffer, "\r\nSuccessfully added to feedback queue!\r\n\r\n");
-  }
-  else {
-    sprintf((char*) context->output_buffer, "\r\nError adding message to feedback queue\r\n\r\n");
-  }
-  COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
-
-  context->state->state = PARAM_STATE_COMPLETE;
+  sendEvalMessage(context, &msg);
 }
 
 void sendEvalTransducer(void* argument)
@@ -173,16 +157,42 @@ void sendEvalTransducer(void* argument)
 
   Message_t msg;
   msg.type = MSG_TRANSMIT_TRANSDUCER;
-  msg.timestamp = osKernelGetTickCount();
-  msg.data_type = EVAL;
-  Evaluate_CopyEvaluationMessage(&msg);
-  msg.eval_info = NULL;
+  sendEvalMessage(context, &msg);
+}
 
-  if (MESS_AddMessageToTxQ(&msg) == pdPASS) {
-    sprintf((char*) context->output_buffer, "\r\nSuccessfully added to ouput queue!\r\n\r\n");
+void startFeedbackTests(void* argument) 
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  osEventFlagsSet(print_event_handle, MESS_FEEDBACK_TESTS);
+
+  context->state->state = PARAM_STATE_COMPLETE;
+}
+
+void sendEvalMessage(FunctionContext_t* context, Message_t* msg)
+{
+  msg->timestamp = osKernelGetTickCount();
+  msg->data_type = EVAL;
+  if (Param_GetUint8(PARAM_ID, (uint8_t*) &msg->preamble.modem_id.value) == false) {
+    COMM_TransmitData("\r\nError getting sender ID. Message not sent\r\n", 
+        CALC_LEN, context->comm_interface);
+    context->state->state = PARAM_STATE_COMPLETE;
+    return;
+  }
+  msg->preamble.modem_id.valid = true;
+  if (Param_GetUint16(PARAM_EVAL_MESSAGE_LEN, &msg->length_bits) == false) {
+    COMM_TransmitData("\r\nError getting evaluation message length. Message not sent\r\n", 
+      CALC_LEN, context->comm_interface);
+    context->state->state = PARAM_STATE_COMPLETE;
+    return;
+  }
+  msg->length_bits *= 8;
+
+  if (MESS_AddMessageToTxQ(msg) == pdPASS) {
+    sprintf((char*) context->output_buffer, "\r\nSuccessfully added to feedback queue!\r\n\r\n");
   }
   else {
-    sprintf((char*) context->output_buffer, "\r\nError adding message to output queue\r\n\r\n");
+    sprintf((char*) context->output_buffer, "\r\nError adding message to feedback queue\r\n\r\n");
   }
   COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
 

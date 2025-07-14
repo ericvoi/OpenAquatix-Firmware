@@ -58,6 +58,15 @@ defined in linker script */
   .weak  Reset_Handler
   .type  Reset_Handler, %function
 Reset_Handler:
+
+  ldr r0, =0x38000000
+  ldr r1, =0xABCDABCD     /* Magic value */
+  ldr r2, [r0, #0x00]     /* Read from SRAM4 */
+  mov r3, #0              /* Load zero */
+  str r3, [r0, #0x00]     /* Clear the flag */
+  cmp r2, r1              /* Compare with magic value */
+  beq Reboot_Loader
+
   ldr   sp, =_estack      /* set stack pointer */
 
 /* Call the ExitRun0Mode function to configure the power supply */
@@ -71,6 +80,14 @@ Reset_Handler:
   ldr r2, =_sidata
   movs r3, #0
   b LoopCopyDataInit
+
+/* begin jump to DFU */
+Reboot_Loader:
+  ldr r0, =0x1FF09800 /* Bootloader address */
+  ldr sp, [r0, #0]
+  ldr r0, [r0, #4]
+  bx r0
+/* end jump to DFU */
 
 CopyDataInit:
   ldr r4, [r2, r3]

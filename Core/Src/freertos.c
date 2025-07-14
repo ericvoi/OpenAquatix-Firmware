@@ -55,19 +55,33 @@
 /* Hook prototypes */
 void configureTimerForRunTimeStats(void);
 unsigned long getRunTimeCounterValue(void);
+void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName);
 
 /* USER CODE BEGIN 1 */
 /* Functions needed when configGENERATE_RUN_TIME_STATS is on */
+extern TIM_HandleTypeDef htim17;
 __weak void configureTimerForRunTimeStats(void)
 {
-
+  HAL_TIM_Base_Start_IT(&htim17);
 }
 
+extern volatile unsigned long ulHighFrequencyTimerTicks;
 __weak unsigned long getRunTimeCounterValue(void)
 {
-return 0;
+  return ulHighFrequencyTimerTicks;
 }
 /* USER CODE END 1 */
+
+/* USER CODE BEGIN 4 */
+void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName)
+{
+   /* Run time stack overflow checking is performed if
+   configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2. This hook function is
+   called if a stack overflow is detected. */
+  (void)(xTask);
+  (void)(pcTaskName);
+}
+/* USER CODE END 4 */
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */

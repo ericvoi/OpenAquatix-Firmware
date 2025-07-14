@@ -7,11 +7,15 @@
 
 /* Private includes ----------------------------------------------------------*/
 
-#include "sys_main.h"
 #include "main.h"
+#include "sys_main.h"
 #include "sys_error.h"
+#include "sys_sensor_timer.h"
+#include "sys_temperature.h"
+#include "sys_led.h"
 #include "cfg_main.h"
 #include "cfg_parameters.h"
+#include "cfg_defaults.h"
 #include "WS2812b-driver.h"
 
 #include <stdbool.h>
@@ -55,9 +59,18 @@ void SYS_StartTask(void* argument)
 
   CFG_WaitLoadComplete();
 
+  if (SensorTimer_Init() == false) {
+    Error_Routine(ERROR_SYS_INIT);
+  }
+
+  if (Temperature_Init() == false) {
+    Error_Routine(ERROR_SYS_INIT);
+  }
+
   for (;;) {
-    WS_Update();
-    osDelay(1000);
+    LED_Update();
+    Temperature_Process();
+    osDelay(100);
   }
 }
 
@@ -65,5 +78,8 @@ void SYS_StartTask(void* argument)
 
 bool registerSysParam()
 {
+  if (LED_RegisterParams() == false) {
+    return false;
+  }
   return true;
 }

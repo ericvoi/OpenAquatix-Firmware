@@ -47,7 +47,7 @@ extern osEventFlagsId_t param_events;
  * 3. Waits for all tasks to complete their parameter registration
  * 4. Loads parameters from non-volatile flash storage
  * 5. Signals to other tasks that parameters are loaded and available
- * 6. Enters an infinite loop maintaining the task's existence
+ * 6. Enters an infinite loop waiting for flag to save to flash
  *
  * @param argument Task argument pointer (unused but required by RTOS task signature)
  *
@@ -55,6 +55,7 @@ extern osEventFlagsId_t param_events;
  *       must complete before other tasks can use their configuration parameters
  */
 void CFG_StartTask(void* argument);
+
 /**
  * @brief Creates the global parameter event flags object
  *
@@ -68,7 +69,8 @@ void CFG_StartTask(void* argument);
  * @note This function should be called once during system initialization
  *       before any parameter operations are performed
  */
-bool CFG_CreateParamFlags(void);
+bool CFG_CreateFlags(void);
+
 /**
  * @brief Blocks until parameter loading is complete
  *
@@ -80,6 +82,21 @@ bool CFG_CreateParamFlags(void);
  * interrupt context or critical timing paths
  */
 void CFG_WaitLoadComplete(void);
+
+void CFG_SetFlashSaveFlag(void);
+
+/**
+ * @brief Increments the configuration number used by other tasks to determine
+ * if there has been a change in the configuration
+ */
+void CFG_IncrementVersionNumber(void);
+
+/**
+ * @brief Returns the current version number
+ * 
+ * @return uint32_t Version number
+ */
+uint32_t CFG_GetVersionNumber(void);
 
 /* Private defines -----------------------------------------------------------*/
 

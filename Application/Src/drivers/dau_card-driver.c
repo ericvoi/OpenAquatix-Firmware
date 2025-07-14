@@ -32,11 +32,11 @@
 static CommBuffer_t dau_buffer;
 extern osMutexId_t dau_uart_mutexHandle;
 
-static uint8_t rx_buffer[DAU_RX_BUFFER_SIZE];
+static uint8_t rx_buffer[DAU_RX_BUFFER_SIZE] __attribute__((section(".dma_buf")));
 static volatile uint32_t rx_head;
 static volatile uint32_t rx_tail;
 
-static uint8_t tx_buffer[DAU_TX_BUFFER_SIZE];
+static uint8_t tx_buffer[DAU_TX_BUFFER_SIZE] __attribute__((section(".dma_buf")));
 static volatile uint8_t tx_busy = 0;
 
 extern UART_HandleTypeDef huart5;
@@ -57,7 +57,7 @@ void DAU_Init(void)
 
   __HAL_UART_ENABLE_IT(&huart5, UART_IT_IDLE);
 
-  HAL_StatusTypeDef ret = HAL_UART_Receive_DMA(&huart5, rx_buffer, DAU_RX_BUFFER_SIZE);
+  HAL_UART_Receive_DMA(&huart5, rx_buffer, DAU_RX_BUFFER_SIZE);
 }
 
 void DAU_TransmitData(uint8_t* data, uint16_t len)

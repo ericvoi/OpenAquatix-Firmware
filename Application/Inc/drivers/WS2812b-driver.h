@@ -46,15 +46,13 @@ HAL_StatusTypeDef WS_Init();
  * Updates the internal LED data buffer for the specified LED. The change will not be
  * visible until WS_Update() is called.
  *
- * @param index Zero-based index of the LED to set
  * @param r Red component (0-255)
  * @param g Green component (0-255)
  * @param b Blue component (0-255)
  *
  * @pre WS_Init() must have been called successfully
- * @warning Ensure index is less than WS_NUM_LEDS to avoid buffer overrun
  */
-void WS_SetColour(uint8_t index, uint8_t r, uint8_t g, uint8_t b);
+void WS_SetColour(uint8_t r, uint8_t g, uint8_t b);
 
 /**
  * @brief Transmits color data to the physical WS2812B LED strip
@@ -62,13 +60,15 @@ void WS_SetColour(uint8_t index, uint8_t r, uint8_t g, uint8_t b);
  * Converts the internal LED data into timed PWM pulses and initiates DMA transfer
  * to drive the LED strip.
  *
+ * @param brightness
+ *
  * @return HAL_StatusTypeDef HAL_OK if transfer started successfully,
  *                          HAL_BUSY if previous transfer is still in progress
  *
  * @note This function is non-blocking. WS_DMA_COMPLETE_FLAG indicates when
  *       the transfer is finished and a new update can be started.
  */
-HAL_StatusTypeDef WS_Update();
+HAL_StatusTypeDef WS_Update(uint8_t brightness);
 
 /**
  * @brief DMA transfer complete callback for WS2812B LED updates
@@ -88,10 +88,10 @@ void WS_Callback();
 #define WS_TIM_CHANNEL	TIM_CHANNEL_1
 
 // Assuming 800 kHz and ARR of 100
-#define WS_HI_VAL		    67	// 0.8 us
-#define WS_LO_VAL		    33  // 0.4 us
+#define WS_HI_VAL		    64	// 0.8 us
+#define WS_LO_VAL		    32  // 0.4 us
 
-#define WS_RST_PERIODS	50	// 62.5 us. 50 us required for reset
+#define WS_RST_PERIODS	100	// 125 us. 50 us required for reset
 #define WS_BITS_PER_LED	24
 
 #define WS_DMA_BUF_LEN	((WS_NUM_LEDS * WS_BITS_PER_LED) + WS_RST_PERIODS * 2)

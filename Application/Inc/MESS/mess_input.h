@@ -17,6 +17,7 @@ extern "C" {
 
 #include "mess_packet.h"
 #include "mess_main.h"
+#include "mess_dsp_config.h"
 
 #include <stdbool.h>
 
@@ -56,33 +57,28 @@ typedef enum {
 bool Input_Init();
 
 /**
- * @brief Increments the buffer end index after new ADC data has been received
- *
- * Updates the circular buffer end pointer to incorporate newly received samples.
- *
- * @warning Does not currently check for buffer overflow conditions
- */
-void Input_IncrementEndIndex();
-
-/**
  * @brief Detects the start of an acoustic message in the input stream
  *
  * Applies the currently configured detection method (amplitude or frequency-based)
  * to determine if a valid message transmission has begun.
+ * 
+ * @param cfg DSP configuration defining how to detect message start
  *
  * @return true if a message start is detected, false otherwise
  */
-bool Input_DetectMessageStart();
+bool Input_DetectMessageStart(const DspConfig_t* cfg);
 
 /**
  * @brief Segments input buffer into analysis blocks for demodulation
  *
  * Creates analysis blocks from the input data stream based on the current baud rate.
  * Each block contains data needed to demodulate one bit of the message.
+ * 
+ * @param cfg DSP configuration defining how to segment blocks
  *
  * @return true if segmentation succeeds, false if analysis buffer capacity is exceeded
  */
-bool Input_SegmentBlocks();
+bool Input_SegmentBlocks(const DspConfig_t* cfg);
 
 /**
  * @brief Processes analysis blocks to extract bits from the received signal
@@ -97,7 +93,7 @@ bool Input_SegmentBlocks();
  *
  * @warning Potential for eval_info overflow - needs to be addressed
  */
-bool Input_ProcessBlocks(BitMessage_t* bit_msg, EvalMessageInfo_t* eval_info);
+bool Input_ProcessBlocks(BitMessage_t* bit_msg, const DspConfig_t* cfg);
 
 /**
  * @brief Decodes header information from accumulated bits
@@ -106,26 +102,12 @@ bool Input_ProcessBlocks(BitMessage_t* bit_msg, EvalMessageInfo_t* eval_info);
  * once sufficient bits have been received.
  *
  * @param bit_msg Pointer to the bit message structure containing received bits
- * @param evaluation_mode If true, bypasses header decoding (no header in evaluation mode)
+ * @param cfg Pointer to configuration data
+ * @param msg Message to add extracted bits to
  *
  * @return true if decoding succeeds or is not yet needed, false on decoding failure
  */
-bool Input_DecodeBits(BitMessage_t* bit_msg, bool evaluation_mode);
-
-/**
- * @brief Extracts payload data from bit message into a structured message
- *
- * Converts the stream of bits in the bit message into bytes and copies them
- * to the message data field.
- *
- * @param input_bit_msg Pointer to the bit message containing the encoded data
- * @param msg Pointer to message structure where decoded data will be stored
- *
- * @return true if message extraction succeeds, false on parameter error or extraction failure
- *
- * @pre Preamble must have been successfully received and decoded
- */
-bool Input_DecodeMessage(BitMessage_t* input_bit_msg, Message_t* msg);
+bool Input_DecodeBits(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* msg);
 
 /**
  * @brief Resets the input module to initial state
@@ -144,6 +126,33 @@ void Input_Reset();
  * @note This function blocks while transmitting data
  */
 void Input_PrintNoise();
+
+/**
+ * @brief Prints waveform as it is received
+ * 
+ * Looks for any new received data that has not been printed and prints it
+ * over USB ONLY. This function must be called with a script as the data rates
+ * (~2 Mbps) are excessive for a terminal emulator
+ * 
+ * @param print_next_waveform Whether the next waveform shoould be printed.
+ * Note that the function changes this to false to terminate when it is done
+ * @param fully_received Whether the message being decoded has been fully received
+ * @return true if processing
+ */
+bool Input_PrintWaveform(bool* print_next_waveform, bool fully_received);
+
+/**
+ * @brief Performs noise analysis on the input with 128-point FFTs. Averages
+ * the results and then displays them
+ */
+void Input_NoiseFft();
+
+/**
+ * @brief Dummy function for AGC
+ * 
+ * @return true always
+ */
+bool Input_UpdatePgaGain();
 
 /**
  * @brief Registers module parameters with the parameter system

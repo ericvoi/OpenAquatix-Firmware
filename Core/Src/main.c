@@ -30,10 +30,13 @@
 #include "mess_main.h"
 #include "cfg_main.h"
 #include "sys_main.h"
+#include "dac_main.h"
 #include "cfg_parameters.h"
+#include "stm32h7xx_ll_cordic.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
+typedef StaticTask_t osStaticThreadDef_t;
 /* USER CODE BEGIN PTD */
 
 /* USER CODE END PTD */
@@ -50,9 +53,12 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
+ADC_HandleTypeDef hadc2;
 ADC_HandleTypeDef hadc3;
 DMA_HandleTypeDef hdma_adc1;
-DMA_HandleTypeDef hdma_adc3;
+DMA_HandleTypeDef hdma_adc2;
+
+CORDIC_HandleTypeDef hcordic;
 
 DAC_HandleTypeDef hdac1;
 DMA_HandleTypeDef hdma_dac1_ch2;
@@ -72,6 +78,7 @@ TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim6;
 TIM_HandleTypeDef htim8;
 TIM_HandleTypeDef htim16;
+TIM_HandleTypeDef htim17;
 DMA_HandleTypeDef hdma_tim3_ch1;
 
 UART_HandleTypeDef huart5;
@@ -80,48 +87,80 @@ DMA_HandleTypeDef hdma_uart5_tx;
 
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
+uint32_t defaultTaskBuffer[ 200 ];
+osStaticThreadDef_t defaultTaskControlBlock;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 200 * 4,
+  .cb_mem = &defaultTaskControlBlock,
+  .cb_size = sizeof(defaultTaskControlBlock),
+  .stack_mem = &defaultTaskBuffer[0],
+  .stack_size = sizeof(defaultTaskBuffer),
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for messageTask */
 osThreadId_t messageTaskHandle;
+uint32_t messageTaskBuffer[ 8000 ] __attribute__((section(".dtcm")));
+osStaticThreadDef_t messageTaskControlBlock;
 const osThreadAttr_t messageTask_attributes = {
   .name = "messageTask",
-  .stack_size = 10000 * 4,
-  .priority = (osPriority_t) osPriorityHigh7,
+  .cb_mem = &messageTaskControlBlock,
+  .cb_size = sizeof(messageTaskControlBlock),
+  .stack_mem = &messageTaskBuffer[0],
+  .stack_size = sizeof(messageTaskBuffer),
+  .priority = (osPriority_t) osPriorityHigh6,
 };
 /* Definitions for sysTask */
 osThreadId_t sysTaskHandle;
+uint32_t sysTaskBuffer[ 200 ];
+osStaticThreadDef_t sysTaskControlBlock;
 const osThreadAttr_t sysTask_attributes = {
   .name = "sysTask",
-  .stack_size = 200 * 4,
+  .cb_mem = &sysTaskControlBlock,
+  .cb_size = sizeof(sysTaskControlBlock),
+  .stack_mem = &sysTaskBuffer[0],
+  .stack_size = sizeof(sysTaskBuffer),
   .priority = (osPriority_t) osPriorityNormal7,
 };
 /* Definitions for commTask */
 osThreadId_t commTaskHandle;
+uint32_t commTaskBuffer[ 3000 ];
+osStaticThreadDef_t commTaskControlBlock;
 const osThreadAttr_t commTask_attributes = {
   .name = "commTask",
-  .stack_size = 3000 * 4,
+  .cb_mem = &commTaskControlBlock,
+  .cb_size = sizeof(commTaskControlBlock),
+  .stack_mem = &commTaskBuffer[0],
+  .stack_size = sizeof(commTaskBuffer),
   .priority = (osPriority_t) osPriorityNormal6,
 };
 /* Definitions for configTask */
 osThreadId_t configTaskHandle;
+uint32_t configTaskBuffer[ 512 ];
+osStaticThreadDef_t configTaskControlBlock;
 const osThreadAttr_t configTask_attributes = {
   .name = "configTask",
-  .stack_size = 512 * 4,
+  .cb_mem = &configTaskControlBlock,
+  .cb_size = sizeof(configTaskControlBlock),
+  .stack_mem = &configTaskBuffer[0],
+  .stack_size = sizeof(configTaskBuffer),
   .priority = (osPriority_t) osPriorityBelowNormal,
+};
+/* Definitions for dacTask */
+osThreadId_t dacTaskHandle;
+uint32_t dacTaskBuffer[ 1000 ];
+osStaticThreadDef_t dacTaskControlBlock;
+const osThreadAttr_t dacTask_attributes = {
+  .name = "dacTask",
+  .cb_mem = &dacTaskControlBlock,
+  .cb_size = sizeof(dacTaskControlBlock),
+  .stack_mem = &dacTaskBuffer[0],
+  .stack_size = sizeof(dacTaskBuffer),
+  .priority = (osPriority_t) osPriorityHigh7,
 };
 /* Definitions for dau_uart_mutex */
 osMutexId_t dau_uart_mutexHandle;
 const osMutexAttr_t dau_uart_mutex_attributes = {
   .name = "dau_uart_mutex"
-};
-/* Definitions for usbSemaphore */
-osSemaphoreId_t usbSemaphoreHandle;
-const osSemaphoreAttr_t usbSemaphore_attributes = {
-  .name = "usbSemaphore"
 };
 /* USER CODE BEGIN PV */
 osEventFlagsId_t print_event_handle = NULL;
@@ -143,12 +182,16 @@ static void MX_TIM3_Init(void);
 static void MX_UART5_Init(void);
 static void MX_TIM6_Init(void);
 static void MX_TIM8_Init(void);
+static void MX_ADC2_Init(void);
+static void MX_TIM17_Init(void);
 static void MX_TIM16_Init(void);
+static void MX_CORDIC_Init(void);
 void StartDefaultTask(void *argument);
 void startMessageProcessingTask(void *argument);
 void startSystemManagementTask(void *argument);
 void startCommunicationTask(void *argument);
 void startconfigTask(void *argument);
+void startDacTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -177,6 +220,14 @@ int main(void)
 
   /* MPU Configuration--------------------------------------------------------*/
   MPU_Config();
+
+  /* Enable the CPU Cache */
+
+  /* Enable I-Cache---------------------------------------------------------*/
+  SCB_EnableICache();
+
+  /* Enable D-Cache---------------------------------------------------------*/
+  SCB_EnableDCache();
 
   /* MCU Configuration--------------------------------------------------------*/
 
@@ -210,11 +261,14 @@ int main(void)
   MX_UART5_Init();
   MX_TIM6_Init();
   MX_TIM8_Init();
+  MX_ADC2_Init();
+  MX_TIM17_Init();
   MX_TIM16_Init();
+  MX_CORDIC_Init();
   /* USER CODE BEGIN 2 */
   WS_Init();
 
-  if (CFG_CreateParamFlags() == false) {
+  if (CFG_CreateFlags() == false) {
     Error_Handler();
   }
 
@@ -233,10 +287,6 @@ int main(void)
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
-
-  /* Create the semaphores(s) */
-  /* creation of usbSemaphore */
-  usbSemaphoreHandle = osSemaphoreNew(1, 1, &usbSemaphore_attributes);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
@@ -266,6 +316,9 @@ int main(void)
 
   /* creation of configTask */
   configTaskHandle = osThreadNew(startconfigTask, NULL, &configTask_attributes);
+
+  /* creation of dacTask */
+  dacTaskHandle = osThreadNew(startDacTask, NULL, &dacTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -442,8 +495,71 @@ static void MX_ADC1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN ADC1_Init 2 */
-
+  HAL_ADCEx_Calibration_Start(&hadc1, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED);
   /* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
+  * @brief ADC2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC2_Init(void)
+{
+
+  /* USER CODE BEGIN ADC2_Init 0 */
+
+  /* USER CODE END ADC2_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC2_Init 1 */
+
+  /* USER CODE END ADC2_Init 1 */
+
+  /** Common config
+  */
+  hadc2.Instance = ADC2;
+  hadc2.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
+  hadc2.Init.Resolution = ADC_RESOLUTION_16B;
+  hadc2.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc2.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  hadc2.Init.LowPowerAutoWait = DISABLE;
+  hadc2.Init.ContinuousConvMode = DISABLE;
+  hadc2.Init.NbrOfConversion = 1;
+  hadc2.Init.DiscontinuousConvMode = DISABLE;
+  hadc2.Init.ExternalTrigConv = ADC_EXTERNALTRIG_T8_TRGO;
+  hadc2.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
+  hadc2.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DMA_CIRCULAR;
+  hadc2.Init.Overrun = ADC_OVR_DATA_PRESERVED;
+  hadc2.Init.LeftBitShift = ADC_LEFTBITSHIFT_NONE;
+  hadc2.Init.OversamplingMode = ENABLE;
+  hadc2.Init.Oversampling.Ratio = 2;
+  hadc2.Init.Oversampling.RightBitShift = ADC_RIGHTBITSHIFT_5;
+  hadc2.Init.Oversampling.TriggeredMode = ADC_TRIGGEREDMODE_SINGLE_TRIGGER;
+  hadc2.Init.Oversampling.OversamplingStopReset = ADC_REGOVERSAMPLING_CONTINUED_MODE;
+  if (HAL_ADC_Init(&hadc2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_3;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
+  sConfig.SingleDiff = ADC_SINGLE_ENDED;
+  sConfig.OffsetNumber = ADC_OFFSET_NONE;
+  sConfig.Offset = 0;
+  sConfig.OffsetSignedSaturation = DISABLE;
+  if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC2_Init 2 */
+  HAL_ADCEx_Calibration_Start(&hadc2, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED);
+  /* USER CODE END ADC2_Init 2 */
 
 }
 
@@ -477,15 +593,18 @@ static void MX_ADC3_Init(void)
   hadc3.Init.ContinuousConvMode = DISABLE;
   hadc3.Init.NbrOfConversion = 1;
   hadc3.Init.DiscontinuousConvMode = DISABLE;
-  hadc3.Init.ExternalTrigConv = ADC_EXTERNALTRIG_T8_TRGO;
-  hadc3.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
-  hadc3.Init.DMAContinuousRequests = ENABLE;
+  hadc3.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc3.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc3.Init.DMAContinuousRequests = DISABLE;
   hadc3.Init.SamplingMode = ADC_SAMPLING_MODE_NORMAL;
-  hadc3.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DMA_CIRCULAR;
+  hadc3.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DR;
   hadc3.Init.Overrun = ADC_OVR_DATA_PRESERVED;
   hadc3.Init.LeftBitShift = ADC_LEFTBITSHIFT_NONE;
-  hadc3.Init.OversamplingMode = DISABLE;
-  hadc3.Init.Oversampling.Ratio = ADC3_OVERSAMPLING_RATIO_2;
+  hadc3.Init.OversamplingMode = ENABLE;
+  hadc3.Init.Oversampling.Ratio = ADC3_OVERSAMPLING_RATIO_16;
+  hadc3.Init.Oversampling.RightBitShift = ADC_RIGHTBITSHIFT_4;
+  hadc3.Init.Oversampling.TriggeredMode = ADC_TRIGGEREDMODE_SINGLE_TRIGGER;
+  hadc3.Init.Oversampling.OversamplingStopReset = ADC_REGOVERSAMPLING_CONTINUED_MODE;
   if (HAL_ADC_Init(&hadc3) != HAL_OK)
   {
     Error_Handler();
@@ -493,9 +612,9 @@ static void MX_ADC3_Init(void)
 
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_1;
+  sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
   sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC3_SAMPLETIME_2CYCLES_5;
+  sConfig.SamplingTime = ADC3_SAMPLETIME_640CYCLES_5;
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
   sConfig.Offset = 0;
@@ -505,8 +624,41 @@ static void MX_ADC3_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN ADC3_Init 2 */
-
+  HAL_ADCEx_Calibration_Start(&hadc3, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED);
   /* USER CODE END ADC3_Init 2 */
+
+}
+
+/**
+  * @brief CORDIC Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_CORDIC_Init(void)
+{
+
+  /* USER CODE BEGIN CORDIC_Init 0 */
+  
+  /* USER CODE END CORDIC_Init 0 */
+
+  /* USER CODE BEGIN CORDIC_Init 1 */
+
+  /* USER CODE END CORDIC_Init 1 */
+  hcordic.Instance = CORDIC;
+  if (HAL_CORDIC_Init(&hcordic) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN CORDIC_Init 2 */
+  LL_CORDIC_Config(CORDIC, 
+                   LL_CORDIC_FUNCTION_SINE, 
+                   LL_CORDIC_PRECISION_5CYCLES, 
+                   LL_CORDIC_SCALE_0, 
+                   LL_CORDIC_NBWRITE_1, 
+                   LL_CORDIC_NBREAD_1, 
+                   LL_CORDIC_INSIZE_32BITS, 
+                   LL_CORDIC_OUTSIZE_32BITS);
+  /* USER CODE END CORDIC_Init 2 */
 
 }
 
@@ -609,7 +761,7 @@ static void MX_I2C1_Init(void)
 
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
-  hi2c1.Init.Timing = 0x0050174F;
+  hi2c1.Init.Timing = 0x00501BFF;
   hi2c1.Init.OwnAddress1 = 0;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -853,7 +1005,7 @@ static void MX_TIM16_Init(void)
 
   /* USER CODE END TIM16_Init 1 */
   htim16.Instance = TIM16;
-  htim16.Init.Prescaler = 100-1;
+  htim16.Init.Prescaler = 240-1;
   htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim16.Init.Period = 1000-1;
   htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -866,6 +1018,38 @@ static void MX_TIM16_Init(void)
   /* USER CODE BEGIN TIM16_Init 2 */
 
   /* USER CODE END TIM16_Init 2 */
+
+}
+
+/**
+  * @brief TIM17 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM17_Init(void)
+{
+
+  /* USER CODE BEGIN TIM17_Init 0 */
+
+  /* USER CODE END TIM17_Init 0 */
+
+  /* USER CODE BEGIN TIM17_Init 1 */
+
+  /* USER CODE END TIM17_Init 1 */
+  htim17.Instance = TIM17;
+  htim17.Init.Prescaler = 240-1;
+  htim17.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim17.Init.Period = 100-1;
+  htim17.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim17.Init.RepetitionCounter = 0;
+  htim17.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim17) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM17_Init 2 */
+
+  /* USER CODE END TIM17_Init 2 */
 
 }
 
@@ -943,9 +1127,6 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream4_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
-  /* DMA1_Stream5_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
   /* DMA1_Stream6_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
@@ -961,6 +1142,9 @@ static void MX_DMA_Init(void)
   /* DMA2_Stream2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
+  /* DMA2_Stream6_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream6_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream6_IRQn);
 
 }
 
@@ -1033,12 +1217,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : ADC2_5_FB_Pin */
-  GPIO_InitStruct.Pin = ADC2_5_FB_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(ADC2_5_FB_GPIO_Port, &GPIO_InitStruct);
-
   /*Configure GPIO pin : PAMP_FAULTZ_Pin */
   GPIO_InitStruct.Pin = PAMP_FAULTZ_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
@@ -1102,6 +1280,7 @@ static void MX_GPIO_Init(void)
   HAL_NVIC_EnableIRQ(PAMP_FAULTZ_EXTI_IRQn);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
+  HAL_Delay(100); // Small delay to ensure that voltage rails have stabilized
   /* USER CODE END MX_GPIO_Init_2 */
 }
 
@@ -1186,6 +1365,21 @@ void startconfigTask(void *argument)
   /* USER CODE END startconfigTask */
 }
 
+/* USER CODE BEGIN Header_startDacTask */
+/**
+* @brief Function implementing the dacTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_startDacTask */
+void startDacTask(void *argument)
+{
+  /* USER CODE BEGIN startDacTask */
+  /* Infinite loop */
+  DAC_StartTask(argument);
+  /* USER CODE END startDacTask */
+}
+
  /* MPU Configuration */
 
 void MPU_Config(void)
@@ -1208,6 +1402,16 @@ void MPU_Config(void)
   MPU_InitStruct.IsShareable = MPU_ACCESS_NOT_SHAREABLE;
   MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
   MPU_InitStruct.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
+
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+
+  /** Initializes and configures the Region and the memory to be protected
+  */
+  MPU_InitStruct.Number = MPU_REGION_NUMBER1;
+  MPU_InitStruct.BaseAddress = 0x30000000;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_16KB;
+  MPU_InitStruct.SubRegionDisable = 0x0;
+  MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
 
   HAL_MPU_ConfigRegion(&MPU_InitStruct);
   /* Enables the MPU */

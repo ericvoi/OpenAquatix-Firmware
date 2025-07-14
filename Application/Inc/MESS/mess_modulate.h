@@ -15,6 +15,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
 #include "mess_packet.h"
+#include "mess_dsp_config.h"
 #include "dac_waveform.h"
 #include <stdbool.h>
 
@@ -24,7 +25,12 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
-
+typedef enum {
+  MOD_OUTPUT_STATIC_DAC,
+  MOD_OUTPUT_STATIC_PWR,
+  // Others as needed...
+  NUM_MOD_OUTPUT_LEVEL_CONTROL
+} OutputStrengthMethod_t;
 
 /* Exported constants --------------------------------------------------------*/
 
@@ -36,57 +42,7 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-/**
- * @brief Converts bit message to frequency sequence using the configured modulation method
- *
- * Maps bits to appropriate frequencies according to the selected modulation scheme
- * (FSK or FHBFSK) by delegating to the corresponding conversion function.
- *
- * @param bit_msg Pointer to bit message structure to be converted
- * @param message_sequence Pointer to output waveform step array to store the result
- *
- * @return true if conversion was successful, false otherwise
- */
-bool Modulate_ConvertToFrequency(BitMessage_t* bit_msg, WaveformStep_t* message_sequence);
-
-/**
- * @brief Applies the configured amplitude to all waveform steps in the sequence
- *
- * Sets the relative_amplitude field of each waveform step to the global output_amplitude value.
- *
- * @param message_sequence Pointer to waveform step array
- * @param len Number of steps in the sequence
- *
- * @return true if operation was successful
- */
-bool Modulate_ApplyAmplitude(WaveformStep_t* message_sequence, uint16_t len);
-
-/**
- * @brief Sets duration for all waveform steps based on the configured baud rate
- *
- * Calculates step duration in microseconds as 1,000,000/baud_rate and applies
- * it to each waveform step in the sequence.
- *
- * @param message_sequence Pointer to waveform step array
- * @param len Number of steps in the sequence
- *
- * @return true if operation was successful
- */
-bool Modulate_ApplyDuration(WaveformStep_t* message_sequence, uint16_t len);
-
-/**
- * @brief Returns the current transducer output amplitude setting
- *
- * @return Current amplitude value
- */
-float Modulate_GetTransducerAmplitude(void);
-
-/**
- * @brief Updates the transducer output amplitude setting
- *
- * @param new_amplitude New amplitude value to be applied
- */
-void Modulate_ChangeTransducerAmplitude(float new_amplitude);
+float Modulate_GetAmplitude(uint32_t freq_hz);
 
 /**
  * @brief Initializes and starts the transducer output subsystem
@@ -97,7 +53,25 @@ void Modulate_ChangeTransducerAmplitude(float new_amplitude);
  *
  * @return true if all peripherals started successfully, false otherwise
  */
-bool Modulate_StartTransducerOutput();
+bool Modulate_StartTransducerOutput(uint16_t num_steps, 
+                                    const DspConfig_t* new_cfg, 
+                                    BitMessage_t* new_bit_msg);
+
+/**
+ * @brief Implements all processes needed to start modulating via feedback
+ * 
+ * Stops all used peripherals, registers the message, and then starts
+ * peripherals again in a controlled sequence
+ * 
+ * @param num_steps The number of steps in the bit message sequence
+ * @param new_cfg The configuration to use for the next modulation
+ * @param new_bit_msg The bit message to send out through the feedback network
+ * 
+ * @return true if all peripherals successfully started, false otherwise
+ */
+bool Modulate_StartFeedbackOutput(uint16_t num_steps, 
+                                  const DspConfig_t* new_cfg, 
+                                  BitMessage_t* new_bit_msg);
 
 /**
  * @brief Generates a simple two-frequency test sequence for transducer testing
@@ -106,13 +80,6 @@ bool Modulate_StartTransducerOutput();
  * Uses the currently configured output amplitude.
  */
 void Modulate_TestOutput();
-
-/**
- * @brief Sets the frequency to be used for frequency response testing
- *
- * @param freq_hz Test frequency in Hertz
- */
-void Modulate_SetTestFrequency(uint32_t freq_hz);
 
 /**
  * @brief Generates a single-frequency test signal for frequency response analysis
@@ -131,10 +98,26 @@ void Modulate_TestFrequencyResponse();
  *
  * @param bit The bit value (0 or 1)
  * @param bit_index The position of the bit in the message
+ * @param cfg Configuration information
  *
  * @return The calculated frequency in Hertz
  */
-uint32_t Modulate_GetFhbfskFrequency(bool bit, uint16_t bit_index);
+uint32_t Modulate_GetFhbfskFrequency(bool bit, 
+                                     uint16_t bit_index, 
+                                     const DspConfig_t* cfg);
+
+/**
+ * @brief Calculates the frequency for a given bit using FSK modulation
+ * 
+ * Implements Frequency-Shift Keying by returing the frequency corresponding to
+ * a bit
+ * 
+ * @param bit The bit value (1 or 0)
+ * @param cfg Configuration information
+ * 
+ * @return The calculated frequency in Hertz
+ */
+uint32_t Modulate_GetFskFrequency(bool bit, const DspConfig_t* cfg);
 
 /**
  * @brief Registers modulation parameters with the parameter system for HMI access

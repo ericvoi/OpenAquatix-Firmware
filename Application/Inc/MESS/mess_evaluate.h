@@ -15,6 +15,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
 #include "mess_main.h"
+#include "mess_packet.h"
 
 
 /* Private includes ----------------------------------------------------------*/
@@ -36,65 +37,42 @@ extern "C" {
 /* Exported functions prototypes ---------------------------------------------*/
 
 /**
- * @brief Initializes evaluation message patterns
- *
- * Sets up five predefined test messages with different patterns:
- * - msg1-msg3: filled with constant byte values
- * - msg4: filled with bytes derived from 16-bit sequence
- * - msg5: filled with bytes derived from 32-bit sequence
- *
- * @return Always returns true
+ * @brief Adds evaluation message cargo to a message
+ * 
+ * @param bit_msg Bit message to add the BER evaluation cargo to
+ * @return true if successful, false otherwise
  */
-bool Evaluate_Init(void);
+bool Evaluate_AddCargo(BitMessage_t* bit_msg);
 
 /**
- * @brief Retrieves a specific bit from one of the evaluation messages
- *
- * @param message_index Index of the evaluation message to use
- * @param bit_index Bit position to retrieve (0 to EVAL_MESSAGE_LENGTH-1)
- * @param bit Output parameter to store the retrieved bit value
- *
- * @return true if bit was successfully retrieved, false on invalid parameters
+ * @brief Calculates the coded (with FEC) BER
+ * 
+ * @param eval_info Storage for results (modified)
+ * @param bit_msg Received message to evaluate
+ * @return true if successful, false otherwise
+ * 
+ * @note The cargo must be coded
  */
-bool Evaluate_GetBit(uint8_t message_index, uint16_t bit_index, bool* bit);
+bool Evaluate_CodedBer(EvalMessageInfo_t* eval_info, BitMessage_t* bit_msg);
 
 /**
- * @brief Calculates bit error rate between a message and reference pattern
- *
- * Compares each bit in the provided message against a reference evaluation
- * message and calculates the proportion of differing bits.
- *
- * @param data Output structure where bit error rate will be stored
- * @param msg Message to evaluate against reference
- * @param message_index Index of the reference evaluation message
- *
- * @return true if calculation successful, false on error
+ * @brief Calculates the uncoded (no FEC) BER
+ * 
+ * @param eval_info Storage for results (modified)
+ * @param bit_msg Uncoded received message to evaluate
+ * @param cfg DSP configuration values (uses fec method)
+ * @return true if successful, false otherwise
+ * 
+ * @note The cargo must be uncoded (fec still applied)
  */
-bool Evaluate_CalculateBitErrorRate(EvalMessageInfo_t* data, Message_t* msg, uint8_t message_index);
+bool Evaluate_UncodedBer(EvalMessageInfo_t* eval_info, BitMessage_t* bit_msg, const DspConfig_t* cfg);
 
 /**
- * @brief Retrieves a specific bit from a message structure
- *
- * @param msg Pointer to message structure
- * @param bit_index Bit position to retrieve (0 to EVAL_MESSAGE_LENGTH-1)
- * @param bit Output parameter to store the retrieved bit value
- *
- * @return true if bit was successfully retrieved, false on invalid parameters
+ * @brief Registers the parameters used for the evaluation module
+ * 
+ * @return true if registered successfully, false otherwise
  */
-bool Evaluate_GetMessageBit(Message_t* msg, uint16_t bit_index, bool* bit);
-
-/**
- * @brief Copies a configured evaluation message into a message structure
- *
- * Retrieves the evaluation message index from PARAM_EVAL_MESSAGE,
- * then copies the corresponding evaluation message into the provided
- * message structure and sets its length.
- *
- * @param msg Destination message structure
- *
- * @return true if copying successful, false on parameter retrieval error
- */
-bool Evaluate_CopyEvaluationMessage(Message_t* msg);
+bool Evaluate_RegisterParams();
 
 /* Private defines -----------------------------------------------------------*/
 

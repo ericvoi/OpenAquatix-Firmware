@@ -62,8 +62,8 @@ static bool isNumber(uint8_t* buf, uint16_t len);
 static bool checkMenuNumberInput(uint8_t* buf, uint16_t len, uint16_t* number);
 static void updateInputEcho(uint8_t* msg_buffer, uint16_t len);
 static void resetInputEcho(void);
-static void printReceivedMessage(Message_t msg);
-static void printEvalMessage(Message_t msg);
+static void printReceivedMessage(Message_t* msg);
+static void printEvalMessage(Message_t* msg);
 static bool registerCommParams(void);
 
 /* Exported function definitions ---------------------------------------------*/
@@ -122,7 +122,7 @@ void COMM_StartTask(void *argument)
   for(;;) {
     Message_t rx_msg;
     if (MESS_GetMessageFromRxQ(&rx_msg) == pdPASS) {
-      printReceivedMessage(rx_msg);
+      printReceivedMessage(&rx_msg);
     }
 
     RxState_t state = USB_GetMessage(msg_buffer, &msg_buf_len);
@@ -163,6 +163,8 @@ void COMM_StartTask(void *argument)
         if (menu_context.current_menu->num_children == 0) {
           // no children so handle function
           // Prepare function argument
+          updateInputEcho(msg_buffer, msg_buf_len);
+          osDelay(1);
           resetInputEcho();
           FunctionContext_t context = {
               .state = menu_context.current_menu->parameters,
@@ -171,7 +173,9 @@ void COMM_StartTask(void *argument)
               .comm_interface = menu_context.interface
           };
           strncpy(context.input, (char*) msg_buffer, MAX_COMM_IN_BUFFER_SIZE);
+
           (*menu_context.current_menu->handler)(&context);
+          resetInputEcho();
 
           if (menu_context.current_menu->parameters->state == PARAM_STATE_COMPLETE) {
             menu_context.current_menu->parameters->state = PARAM_STATE_0;
@@ -304,16 +308,16 @@ void resetInputEcho(void)
   updateInputEcho(NULL, LEN_RESET);
 }
 
-void printReceivedMessage(Message_t msg)
+void printReceivedMessage(Message_t* msg)
 {
   if (print_received_messages == false) {
     return;
   }
 
-  sprintf((char*) out_buffer, "Received a new message at %ds\r\n", (int) msg.timestamp / 1000);
+  sprintf((char*) out_buffer, "Received a new message at %ds\r\n", (int) msg->timestamp / 1000);
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 
-  switch (msg.data_type) {
+  switch (msg->preamble.message_type.value) {
     case STRING:
       sprintf((char*) out_buffer, "String: ");
       break;
@@ -335,25 +339,26 @@ void printReceivedMessage(Message_t msg)
   }
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 
-  switch (msg.data_type) {
+  switch (msg->preamble.message_type.value) {
     case STRING:
-      msg.data[msg.length_bits / 8] = '\0';
-      sprintf((char*) out_buffer, "%s", (char*) msg.data);
+      msg->data[msg->length_bits / 8] = '\0';
+      sprintf((char*) out_buffer, "%s", (char*) msg->data);
       break;
     case BITS:
-      for (uint16_t i = 0; i < msg.length_bits / 8; i++) {
+      for (uint16_t i = 0; i < msg->length_bits / 8; i++) {
         for (uint8_t j = 0; j < 8; j++) {
-          out_buffer[i * 9 + j] = ((msg.data[i] & (1 << (7 - j))) != 0) ? '1' : '0';
+          out_buffer[i * 9 + j] = ((msg->data[i] & (1 << (7 - j))) != 0) ? '1' : '0';
         }
         out_buffer[i * 9 - 1] = ' ';
       }
+      out_buffer[msg->length_bits / 8 * 9 - 1] = '\0';
       break;
     case INTEGER:
-      sprintf((char*) out_buffer, "%u", *((unsigned int*) &msg.data[0]));
+      sprintf((char*) out_buffer, "%u", *((unsigned int*) &msg->data[0]));
       break;
     case FLOAT:
       float temp_float;
-      memcpy(&temp_float, &msg.data[0], sizeof(float));
+      memcpy(&temp_float, &msg->data[0], sizeof(float));
       sprintf((char*) out_buffer, "%f", temp_float);
       break;
     default:
@@ -361,51 +366,32 @@ void printReceivedMessage(Message_t msg)
   }
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 
-  sprintf((char*) out_buffer, "\r\nErrors Present: %s", msg.error_correction_error ? "Yes" : "No");
+  sprintf((char*) out_buffer, "\r\nErrors Present: %s", msg->error_detected ? "Yes" : "No");
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 
-  sprintf((char*) out_buffer, "\r\nSender id: %u", msg.sender_id);
+  sprintf((char*) out_buffer, "\r\nSender id: %u", msg->preamble.modem_id.value);
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 
-  sprintf((char*) out_buffer, "\r\nMessage Length (bits): %u", msg.length_bits);
+  sprintf((char*) out_buffer, "\r\nMessage Length (bits): %u", msg->length_bits);
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 
   COMM_TransmitData("\r\n\r\n", CALC_LEN, menu_context.interface);
 }
 
-void printEvalMessage(Message_t msg)
+void printEvalMessage(Message_t* msg)
 {
-  if (msg.eval_info == NULL) {
-    sprintf((char*) out_buffer, "\r\nReceived uninitialized evaluation information!\r\n");
-    COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
-    return;
-  }
+  EvalMessageInfo_t eval_info = msg->eval_info;
+  float uncoded_ber = 100.0f * ((float) eval_info.uncoded_errors) / ((float) eval_info.uncoded_bits);
+  float coded_ber = 100.0f * ((float) eval_info.coded_errors) / ((float) eval_info.coded_bits);
 
-  sprintf((char*) out_buffer, "\r\nTruth_bit Decoded_bit f0 f1 Energy_f0 Energy_f1 \"Probability\"\r\n\r\n");
+  COMM_TransmitData("\r\nEvaluation Message:", CALC_LEN, menu_context.interface);
+
+  sprintf((char*) out_buffer, "\r\nUncoded BER: %hu/%hu, %.3f%%", 
+          eval_info.uncoded_errors, eval_info.uncoded_bits, uncoded_ber);
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 
-  for (uint16_t i = 0; i < msg.eval_info->len_bits; i++) {
-    bool truth_bit;
-    bool calc_bit;
-    if (Evaluate_GetBit(msg.eval_info->eval_msg, i, &truth_bit) == false) {
-      return;
-    }
-    if (Evaluate_GetMessageBit(&msg, i, &calc_bit) == false) {
-      return;
-    }
-
-    float outf0 = sqrtf(msg.eval_info->energy_f0[i]);
-    float outf1 = sqrtf(msg.eval_info->energy_f1[i]);
-    sprintf((char*) out_buffer, "%u %u %lu %lu %.0f %.0f %.2f\r\n", truth_bit ? 1 : 0, calc_bit ? 1 : 0,
-        msg.eval_info->f0[i], msg.eval_info->f1[i], outf0, outf1, ((outf1 - outf0) / MAX(outf0, outf1) + 1.0f) / 2.0f);
-    COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
-  }
-
-  if (Evaluate_CalculateBitErrorRate(msg.eval_info, &msg, msg.eval_info->eval_msg) == false) {
-    return;
-  }
-
-  sprintf((char*) out_buffer, "\r\nBER: %.2f%%\r\n", msg.eval_info->bit_error_rate * 100.0f);
+  sprintf((char*) out_buffer, "\r\nCoded BER: %hu/%hu, %.3f%%\r\n",
+          eval_info.coded_errors, eval_info.coded_bits, coded_ber);
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 }
 
@@ -414,7 +400,7 @@ bool registerCommParams(void)
   uint32_t min_u32 = (uint32_t) MIN_PRINT_ENABLED;
   uint32_t max_u32 = (uint32_t) MAX_PRINT_ENABLED;
   if (Param_Register(PARAM_PRINT_ENABLED, "printing received messages", PARAM_TYPE_UINT8,
-                     &print_received_messages, sizeof(bool), &min_u32, &max_u32) == false) {
+                     &print_received_messages, sizeof(bool), &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 
