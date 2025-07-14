@@ -78,13 +78,9 @@ extern "C" {
 #define MIN_FHBFSK_NUM_TONES        2
 #define MAX_FHBFSK_NUM_TONES        30
 
-#define DEFAULT_EVAL_MODE_STATE     (false)
-#define MIN_EVAL_MODE_STATE         (false)
-#define MAX_EVAL_MODE_STATE         (true)
-
-#define DEFAULT_EVAL_MESSAGE        1
-#define MIN_EVAL_MESSAGE            1
-#define MAX_EVAL_MESSAGE            5
+#define DEFAULT_EVAL_MESSAGE_LEN    100
+#define MIN_EVAL_MESSAGE_LEN        1
+#define MAX_EVAL_MESSAGE_LEN        480
 
 #define DEFAULT_ID                  2
 #define MIN_ID                      0

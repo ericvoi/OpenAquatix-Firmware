@@ -156,7 +156,7 @@ bool Param_LoadInit(void)
   return true;
 }
 
-// Note: min and max MUST be 32 bytes for uint16, int16, int8 and uint8
+// Note: min and max MUST be 32 bits for uint16, int16, int8 and uint8
 bool Param_Register(ParamIds_t id, const char* name, ParamType_t type,
                     void* value_ptr, size_t value_size, void* min, void* max,
                     void (*callback)(void))

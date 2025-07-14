@@ -81,7 +81,6 @@ static ReferenceMessage_t reference_messages[] = {
             .data = {0x12},
             .length_bits = 8 << 0,
             .data_type = BITS,
-            .eval_info = NULL,
             .preamble = {
               .is_stationary = {
                 0, true
@@ -101,7 +100,6 @@ static ReferenceMessage_t reference_messages[] = {
             .data = {0x12, 0x34},
             .length_bits = 8 << 1,
             .data_type = BITS,
-            .eval_info = NULL,
             .preamble = {
               .is_stationary = {
                 0, true
@@ -121,7 +119,6 @@ static ReferenceMessage_t reference_messages[] = {
             .data = {0x12, 0x34, 0x56, 0x78},
             .length_bits = 8 << 2,
             .data_type = BITS,
-            .eval_info = NULL,
             .preamble = {
               .is_stationary = {
                 0, true
@@ -141,7 +138,6 @@ static ReferenceMessage_t reference_messages[] = {
             .data = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
             .length_bits = 8 << 3,
             .data_type = BITS,
-            .eval_info = NULL,
             .preamble = {
               .is_stationary = {
                 0, true
@@ -162,7 +158,6 @@ static ReferenceMessage_t reference_messages[] = {
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
             .length_bits = 8 << 4,
             .data_type = BITS,
-            .eval_info = NULL,
             .preamble = {
               .is_stationary = {
                 0, true
@@ -185,7 +180,6 @@ static ReferenceMessage_t reference_messages[] = {
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
             .length_bits = 8 << 5,
             .data_type = BITS,
-            .eval_info = NULL,
             .preamble = {
               .is_stationary = {
                 0, true
@@ -212,7 +206,6 @@ static ReferenceMessage_t reference_messages[] = {
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
             .length_bits = 8 << 6,
             .data_type = BITS,
-            .eval_info = NULL,
             .preamble = {
               .is_stationary = {
                 0, true
@@ -247,7 +240,6 @@ static ReferenceMessage_t reference_messages[] = {
                      0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
             .length_bits = 8 << 7,
             .data_type = BITS,
-            .eval_info = NULL,
             .preamble = {
               .is_stationary = {
                 0, true
@@ -326,7 +318,6 @@ static ReferenceMessage_t reference_messages[] = {
                    0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
           .length_bits = 8 * 480,
           .data_type = BITS,
-          .eval_info = NULL,
           .preamble = {
             .is_stationary = {
               0, true

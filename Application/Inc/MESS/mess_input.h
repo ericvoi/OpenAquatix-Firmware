@@ -61,6 +61,8 @@ bool Input_Init();
  *
  * Applies the currently configured detection method (amplitude or frequency-based)
  * to determine if a valid message transmission has begun.
+ * 
+ * @param cfg DSP configuration defining how to detect message start
  *
  * @return true if a message start is detected, false otherwise
  */
@@ -71,6 +73,8 @@ bool Input_DetectMessageStart(const DspConfig_t* cfg);
  *
  * Creates analysis blocks from the input data stream based on the current baud rate.
  * Each block contains data needed to demodulate one bit of the message.
+ * 
+ * @param cfg DSP configuration defining how to segment blocks
  *
  * @return true if segmentation succeeds, false if analysis buffer capacity is exceeded
  */
@@ -89,7 +93,7 @@ bool Input_SegmentBlocks(const DspConfig_t* cfg);
  *
  * @warning Potential for eval_info overflow - needs to be addressed
  */
-bool Input_ProcessBlocks(BitMessage_t* bit_msg, EvalMessageInfo_t* eval_info, const DspConfig_t* cfg);
+bool Input_ProcessBlocks(BitMessage_t* bit_msg, const DspConfig_t* cfg);
 
 /**
  * @brief Decodes header information from accumulated bits
@@ -98,13 +102,12 @@ bool Input_ProcessBlocks(BitMessage_t* bit_msg, EvalMessageInfo_t* eval_info, co
  * once sufficient bits have been received.
  *
  * @param bit_msg Pointer to the bit message structure containing received bits
- * @param evaluation_mode If true, bypasses header decoding (no header in evaluation mode)
  * @param cfg Pointer to configuration data
  * @param msg Message to add extracted bits to
  *
  * @return true if decoding succeeds or is not yet needed, false on decoding failure
  */
-bool Input_DecodeBits(BitMessage_t* bit_msg, bool evaluation_mode, const DspConfig_t* cfg, Message_t* msg);
+bool Input_DecodeBits(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* msg);
 
 /**
  * @brief Resets the input module to initial state
@@ -138,8 +141,17 @@ void Input_PrintNoise();
  */
 bool Input_PrintWaveform(bool* print_next_waveform, bool fully_received);
 
+/**
+ * @brief Performs noise analysis on the input with 128-point FFTs. Averages
+ * the results and then displays them
+ */
 void Input_NoiseFft();
 
+/**
+ * @brief Dummy function for AGC
+ * 
+ * @return true always
+ */
 bool Input_UpdatePgaGain();
 
 /**

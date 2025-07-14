@@ -90,13 +90,10 @@ typedef enum {
 } JanusMessageData_t;
 
 typedef struct {
-  uint16_t len_bits; // length of evaluation message
-  float bit_error_rate;
-  uint8_t eval_msg;
-  float energy_f0[EVAL_MESSAGE_LENGTH];
-  float energy_f1[EVAL_MESSAGE_LENGTH];
-  uint32_t f0[EVAL_MESSAGE_LENGTH];
-  uint32_t f1[EVAL_MESSAGE_LENGTH];
+  uint16_t uncoded_bits; // not including error detection
+  uint16_t coded_bits;
+  uint16_t uncoded_errors;
+  uint16_t coded_errors;
 } EvalMessageInfo_t;
 
 typedef struct {
@@ -110,7 +107,7 @@ typedef struct {
     JanusMessageData_t janus_data_type;
   };
   bool error_detected;
-  EvalMessageInfo_t* eval_info;
+  EvalMessageInfo_t eval_info;
   PreambleContent_t preamble;
 } Message_t;
 

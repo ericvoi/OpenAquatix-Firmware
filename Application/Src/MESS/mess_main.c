@@ -62,9 +62,6 @@ static bool is_stationary = DEFAULT_STATIONARY_FLAG;
 static QueueHandle_t tx_queue = NULL; // Messages to send
 static QueueHandle_t rx_queue = NULL; // Messages received
 
-static bool evaluation_mode = DEFAULT_EVAL_MODE_STATE;
-static uint8_t evaluation_message = DEFAULT_EVAL_MESSAGE;
-
 static ProcessingState_t task_state = CHANGING;
 
 static BitMessage_t input_bit_msg;
@@ -93,7 +90,6 @@ static uint16_t message_length = 0;
 
 Message_t tx_msg;
 Message_t rx_msg;
-EvalMessageInfo_t eval_info;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -133,7 +129,6 @@ void MESS_StartTask(void* argument)
   ADC_Init();
   Input_Init();
   Feedback_Init();
-  Evaluate_Init();
   FeedbackTests_Init();
   switchState(LISTENING);
 
@@ -175,19 +170,16 @@ void MESS_StartTask(void* argument)
             break;
           }
           // Add ECC
-          if (tx_msg.data_type != EVAL) {
-            // TODO: enable ECC to be tested in evaluation mode
-            if (ErrorCorrection_AddCorrection(&bit_msg, cfg) == false) {
-              Error_Routine(ERROR_MESS_PROCESSING);
-            }
-            // Add feedback network test false bits
-            if (FeedbackTests_CorruptMessage(&bit_msg) == false) {
-              Error_Routine(ERROR_MESS_PROCESSING);
-              break;
-            }
-            if (Interleaver_Apply(&bit_msg, cfg) == false) {
-              Error_Routine(ERROR_MESS_PROCESSING);
-            }
+          if (ErrorCorrection_AddCorrection(&bit_msg, cfg) == false) {
+            Error_Routine(ERROR_MESS_PROCESSING);
+          }
+          // Add feedback network test false bits
+          if (FeedbackTests_CorruptMessage(&bit_msg) == false) {
+            Error_Routine(ERROR_MESS_PROCESSING);
+            break;
+          }
+          if (Interleaver_Apply(&bit_msg, cfg) == false) {
+            Error_Routine(ERROR_MESS_PROCESSING);
           }
           message_length = bit_msg.bit_count;
           // convert to frequencies in message_sequence
@@ -225,65 +217,56 @@ void MESS_StartTask(void* argument)
             break;
           }
         }
-        if (Input_ProcessBlocks(&input_bit_msg, &eval_info, cfg) == false) {
+        if (Input_ProcessBlocks(&input_bit_msg, cfg) == false) {
           Error_Routine(ERROR_MESS_PROCESSING);
           break;
         }
-        if (Input_DecodeBits(&input_bit_msg, evaluation_mode, cfg, &rx_msg) == false) {
+        if (Input_DecodeBits(&input_bit_msg, cfg, &rx_msg) == false) {
           Error_Routine(ERROR_MESS_PROCESSING);
           break;
         }
-        if (evaluation_mode == true) {
-          if (input_bit_msg.bit_count >= EVAL_MESSAGE_LENGTH && input_bit_msg.added_to_queue == false) {
-            input_bit_msg.fully_received = true;
-            rx_msg.data_type = EVAL;
-            rx_msg.timestamp = osKernelGetTickCount();
-            rx_msg.eval_info = &eval_info;
-            rx_msg.eval_info->len_bits = EVAL_MESSAGE_LENGTH;
-            rx_msg.eval_info->eval_msg = evaluation_message;
-            memcpy(&rx_msg.data, input_bit_msg.data, 100 / 8 + 1);
+        if (input_bit_msg.fully_received == true && input_bit_msg.added_to_queue == false) {
+          // TODO: fix currently incorrect since cant know if transducer or feedback
+          rx_msg.type = (tx_msg.type == MSG_TRANSMIT_TRANSDUCER) ?
+                        MSG_RECEIVED_TRANSDUCER : MSG_RECEIVED_FEEDBACK;
+          rx_msg.timestamp = osKernelGetTickCount();
+          rx_msg.length_bits = input_bit_msg.data_len_bits;
+          rx_msg.data_type = input_bit_msg.contents_data_type;
+
+          if (Interleaver_Undo(&input_bit_msg, cfg, false) == false) {
+            Error_Routine(ERROR_MESS_PROCESSING);
+          }
+
+          // TODO: change to also require message to be custom
+          if (rx_msg.preamble.message_type.value == EVAL && (rx_msg.preamble.message_type.valid == true)) {
+            if (Evaluate_UncodedBer(&rx_msg.eval_info, &input_bit_msg, cfg) == false) {
+              Error_Routine(ERROR_MESS_PROCESSING);
+            }
+          }
+
+          // undo fec
+          if (ErrorCorrection_CheckCorrection(&input_bit_msg, cfg, false,
+              &input_bit_msg.error_message,
+              &input_bit_msg.corrected_error_message) == false) {
+            Error_Routine(ERROR_MESS_PROCESSING);
+          }
+          // decode message
+          if (Cargo_Decode(&input_bit_msg, &rx_msg, cfg) == false) {
+            Error_Routine(ERROR_MESS_PROCESSING);
+            break;
+          }
+
+          if (ErrorDetection_CheckDetection(&input_bit_msg,
+              &rx_msg.error_detected, cfg, false) == false) {
+            Error_Routine(ERROR_MESS_PROCESSING);
+            break;
+          }
+          rx_msg.error_detected |= input_bit_msg.error_preamble;
+          // send it via queue
+          if (FeedbackTests_Check(&rx_msg, &input_bit_msg) == false) {
             MESS_AddMessageToRxQ(&rx_msg);
-            input_bit_msg.added_to_queue = true;
           }
-        }
-        else {
-          if (input_bit_msg.fully_received == true && input_bit_msg.added_to_queue == false) {
-            // TODO: fix currently incorrect since cant know if transducer or feedback
-            rx_msg.type = (tx_msg.type == MSG_TRANSMIT_TRANSDUCER) ?
-                          MSG_RECEIVED_TRANSDUCER : MSG_RECEIVED_FEEDBACK;
-            rx_msg.timestamp = osKernelGetTickCount();
-            rx_msg.length_bits = input_bit_msg.data_len_bits;
-            rx_msg.data_type = input_bit_msg.contents_data_type;
-            rx_msg.eval_info = &eval_info;
-
-            if (Interleaver_Undo(&input_bit_msg, cfg, false) == false) {
-              Error_Routine(ERROR_MESS_PROCESSING);
-            }
-
-            // perform correction
-            if (ErrorCorrection_CheckCorrection(&input_bit_msg, cfg, false,
-                &input_bit_msg.error_message,
-                &input_bit_msg.corrected_error_message) == false) {
-              Error_Routine(ERROR_MESS_PROCESSING);
-            }
-            // decode message
-            if (Cargo_Decode(&input_bit_msg, &rx_msg, cfg) == false) {
-              Error_Routine(ERROR_MESS_PROCESSING);
-              break;
-            }
-
-            if (ErrorDetection_CheckDetection(&input_bit_msg,
-                &rx_msg.error_detected, cfg, false) == false) {
-              Error_Routine(ERROR_MESS_PROCESSING);
-              break;
-            }
-            rx_msg.error_detected |= input_bit_msg.error_preamble;
-            // send it via queue
-            if (FeedbackTests_Check(&rx_msg, &input_bit_msg) == false) {
-              MESS_AddMessageToRxQ(&rx_msg);
-            }
-            input_bit_msg.added_to_queue = true;
-          }
+          input_bit_msg.added_to_queue = true;
         }
         if (Input_PrintWaveform(&print_next_waveform, input_bit_msg.fully_received) == false) {
           Error_Routine(ERROR_MESS_PROCESSING);
@@ -533,6 +516,10 @@ static bool registerMessParams()
   if (Calibrate_RegisterParams() == false) {
     return false;
   }
+
+  if (Evaluate_RegisterParams() == false) {
+    return false;
+  }
   return true;
 }
 
@@ -595,22 +582,6 @@ static bool registerMessMainParams()
   max_u32 = MAX_FHBFSK_NUM_TONES;
   if (Param_Register(PARAM_FHBFSK_NUM_TONES, "number of tones", PARAM_TYPE_UINT8,
                      &default_config.fhbfsk_num_tones, sizeof(uint8_t),
-                     &min_u32, &max_u32, NULL) == false) {
-    return false;
-  }
-
-  min_u32 = (uint32_t) MIN_EVAL_MODE_STATE;
-  max_u32 = (uint32_t) MAX_EVAL_MODE_STATE;
-  if (Param_Register(PARAM_EVAL_MODE_ON, "evaluation mode", PARAM_TYPE_UINT8,
-                     &evaluation_mode, sizeof(uint8_t),
-                     &min_u32, &max_u32, NULL) == false) {
-    return false;
-  }
-
-  min_u32 = MIN_EVAL_MESSAGE;
-  max_u32 = MAX_EVAL_MESSAGE;
-  if (Param_Register(PARAM_EVAL_MESSAGE, "evaluation message", PARAM_TYPE_UINT8,
-                     &evaluation_message, sizeof(uint8_t),
                      &min_u32, &max_u32, NULL) == false) {
     return false;
   }
