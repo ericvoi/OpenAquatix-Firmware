@@ -294,10 +294,10 @@ static void setWindowHann()
 #define HAMMING_A0  (25.0f / 46.0f)
 static void setWindowHamming()
 {
-  // a0 + (1 - a0) * cos(2*pi*n/N)
+  // a0 - (1 - a0) * cos(2*pi*n/N)
   for (uint16_t i = 0; i < WINDOW_FUNCTION_SIZE; i++) {
     float angle = ((float) 2 * i) / ((float) (WINDOW_FUNCTION_SIZE - 1));
     float intermediate = uam_cosf(angle);
-    window[i] = HAMMING_A0 + (1 - HAMMING_A0) * intermediate;
+    window[i] = HAMMING_A0 - (1 - HAMMING_A0) * intermediate;
   }
 }

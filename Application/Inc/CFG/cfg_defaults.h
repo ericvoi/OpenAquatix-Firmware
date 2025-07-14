@@ -187,7 +187,7 @@ extern "C" {
 
 #define DEFAULT_WINDOW_FUNCTION     (WINDOW_HANN)
 #define MIN_WINDOW_FUNCTION         0
-#define MAX_WINDOW_FUNCTION         (NUM_WINDOW_FUNCTIONS)
+#define MAX_WINDOW_FUNCTION         (NUM_WINDOW_FUNCTIONS - 1)
 
 /* Exported macro ------------------------------------------------------------*/
 

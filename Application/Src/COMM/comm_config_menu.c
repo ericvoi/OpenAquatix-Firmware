@@ -64,6 +64,7 @@ void setBitDecisionFunction(void* argument);
 void setHistoricalComparisonThreshold(void* argument);
 void toggleAgc(void* argument);
 void setFixedPgaGain(void* argument);
+void setWindowFunction(void* argument);
 void configureSleep(void* argument);
 void setLedBrightness(void* argument);
 void toggleLed(void* argument);
@@ -150,7 +151,8 @@ static const MenuNode_t modConfigMenu = {
 static MenuID_t demodConfigMenuChildren[] = {
   MENU_ID_CFG_DEMOD_CAL,       MENU_ID_CFG_DEMOD_START, 
   MENU_ID_CFG_DEMOD_DECISION,  MENU_ID_CFG_DEMOD_CMPTHRESH, 
-  MENU_ID_CFG_DEMOD_AGCEN,     MENU_ID_CFG_DEMOD_GAIN
+  MENU_ID_CFG_DEMOD_AGCEN,     MENU_ID_CFG_DEMOD_GAIN,
+  MENU_ID_CFG_DEMOD_WINDOWFCN
 };
 static const MenuNode_t demodConfigMenu = {
   .id = MENU_ID_CFG_DEMOD,
@@ -613,6 +615,21 @@ static const MenuNode_t demodConfigFixedGain = {
   .num_children = 0,
   .access_level = 0,
   .parameters = &demodConfigFixedGainParam
+};
+
+static ParamContext_t demodConfigWindowFcnParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_DEMOD_WINDOWFCN
+};
+static const MenuNode_t demodConfigWindowFcn = {
+  .id = MENU_ID_CFG_DEMOD_WINDOWFCN,
+  .description = "Set windowing function",
+  .handler = setWindowFunction,
+  .parent_id = MENU_ID_CFG_DEMOD,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &demodConfigWindowFcnParam
 };
 
 static ParamContext_t dauConfigSleepParam = {
@@ -1149,7 +1166,7 @@ bool COMM_RegisterConfigurationMenu()
              registerMenu(&demodConfigFixedGain) && registerMenu(&univConfigEccPreamble) &&
              registerMenu(&univConfigEccMessage) && registerMenu(&univErrConfigPreambleValidation) &&
              registerMenu(&univErrConfigCargoValidation) && registerMenu(&univErrConfigPreambleBehavior) &&
-             registerMenu(&univErrConfigCargoBehavior);
+             registerMenu(&univErrConfigCargoBehavior) && registerMenu(&demodConfigWindowFcn);
 
   return ret;
 }
@@ -1504,6 +1521,16 @@ void setFixedPgaGain(void* argument)
   char* descriptors[] = {"1", "2", "5", "10", "20", "50", "100", "200"};
 
   COMMLoops_LoopEnum(context, PARAM_FIXED_PGA_GAIN, descriptors, 
+    sizeof(descriptors) / sizeof(descriptors[0]));
+}
+
+void setWindowFunction(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  char* descriptors[] = {"Rectangular", "Hann", "Hamming"};
+
+  COMMLoops_LoopEnum(context, PARAM_WINDOW_FUNCTION, descriptors, 
     sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
