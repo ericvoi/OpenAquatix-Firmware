@@ -70,6 +70,7 @@ typedef enum {
   PARAM_FHBFSK_HOPPER,
   PARAM_SYNC_METHOD,
   PARAM_PREAMBLE_ERROR_DETECTION,
+  PARAM_WINDOW_FUNCTION,
   // Add new parameters just above here and nowhere else
   NUM_PARAM
 } ParamIds_t;

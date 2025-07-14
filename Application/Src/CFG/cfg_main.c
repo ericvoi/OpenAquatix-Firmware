@@ -59,7 +59,9 @@ void CFG_StartTask(void* argument)
   waitAllTasksRegistered();
 
   // then update all parameters from flash
-  Param_LoadInit();
+  if (Param_LoadInit() == false) {
+    Error_Routine(ERROR_CFG_INIT);
+  }
   osEventFlagsClear(flash_events, FLASH_SAVE_REQUESTED); // TODO: handle errors
 
   // then indicate to tasks that all parameters have been updated from flash memory

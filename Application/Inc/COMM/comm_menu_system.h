@@ -90,6 +90,7 @@ typedef enum {
   MENU_ID_CFG_DEMOD_CMPTHRESH,  // Historical comparison threshold
   MENU_ID_CFG_DEMOD_AGCEN,      // Enable/disable automatic gain control (AGC)
   MENU_ID_CFG_DEMOD_GAIN,       // Set fixed PGA gain
+  MENU_ID_CFG_DEMOD_WINDOWFCN,  // Window function to use
   MENU_ID_CFG_DAU,              // Daughter card configuration options
   MENU_ID_CFG_DAU_SLEEP,        // Enable/disable sleep modes from the daughter card
   MENU_ID_CFG_LED,              // LED configuration options
