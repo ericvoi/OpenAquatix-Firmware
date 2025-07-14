@@ -390,7 +390,7 @@ void printEvalMessage(Message_t* msg)
           eval_info.uncoded_errors, eval_info.uncoded_bits, uncoded_ber);
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 
-  sprintf((char*) out_buffer, "\r\nCoded BER: %hu/%hu, %.3f%%",
+  sprintf((char*) out_buffer, "\r\nCoded BER: %hu/%hu, %.3f%%\r\n",
           eval_info.coded_errors, eval_info.coded_bits, coded_ber);
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 }

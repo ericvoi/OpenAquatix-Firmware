@@ -32,6 +32,7 @@
 #include "sys_main.h"
 #include "dac_main.h"
 #include "cfg_parameters.h"
+#include "stm32h7xx_ll_cordic.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,6 +57,8 @@ ADC_HandleTypeDef hadc2;
 ADC_HandleTypeDef hadc3;
 DMA_HandleTypeDef hdma_adc1;
 DMA_HandleTypeDef hdma_adc2;
+
+CORDIC_HandleTypeDef hcordic;
 
 DAC_HandleTypeDef hdac1;
 DMA_HandleTypeDef hdma_dac1_ch2;
@@ -182,6 +185,7 @@ static void MX_TIM8_Init(void);
 static void MX_ADC2_Init(void);
 static void MX_TIM17_Init(void);
 static void MX_TIM16_Init(void);
+static void MX_CORDIC_Init(void);
 void StartDefaultTask(void *argument);
 void startMessageProcessingTask(void *argument);
 void startSystemManagementTask(void *argument);
@@ -260,6 +264,7 @@ int main(void)
   MX_ADC2_Init();
   MX_TIM17_Init();
   MX_TIM16_Init();
+  MX_CORDIC_Init();
   /* USER CODE BEGIN 2 */
   WS_Init();
 
@@ -621,6 +626,39 @@ static void MX_ADC3_Init(void)
   /* USER CODE BEGIN ADC3_Init 2 */
   HAL_ADCEx_Calibration_Start(&hadc3, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED);
   /* USER CODE END ADC3_Init 2 */
+
+}
+
+/**
+  * @brief CORDIC Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_CORDIC_Init(void)
+{
+
+  /* USER CODE BEGIN CORDIC_Init 0 */
+  
+  /* USER CODE END CORDIC_Init 0 */
+
+  /* USER CODE BEGIN CORDIC_Init 1 */
+
+  /* USER CODE END CORDIC_Init 1 */
+  hcordic.Instance = CORDIC;
+  if (HAL_CORDIC_Init(&hcordic) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN CORDIC_Init 2 */
+  LL_CORDIC_Config(CORDIC, 
+                   LL_CORDIC_FUNCTION_SINE, 
+                   LL_CORDIC_PRECISION_5CYCLES, 
+                   LL_CORDIC_SCALE_0, 
+                   LL_CORDIC_NBWRITE_1, 
+                   LL_CORDIC_NBREAD_1, 
+                   LL_CORDIC_INSIZE_32BITS, 
+                   LL_CORDIC_OUTSIZE_32BITS);
+  /* USER CODE END CORDIC_Init 2 */
 
 }
 

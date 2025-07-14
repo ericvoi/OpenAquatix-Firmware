@@ -15,6 +15,8 @@
 #include "cfg_defaults.h"
 #include "cfg_parameters.h"
 
+#include "uam_math.h"
+
 #include <stdbool.h>
 #include <math.h>
 
@@ -188,11 +190,11 @@ bool goertzel(DemodulationInfo_t* data)
   float energy_f0 = 0.0;
   float energy_f1 = 0.0;
 
-  float omega_f0 = 2.0 * M_PI * data->f0 / ADC_SAMPLING_RATE;
-  float omega_f1 = 2.0 * M_PI * data->f1 / ADC_SAMPLING_RATE;
+  float omega_f0 = 2.0 * data->f0 / ADC_SAMPLING_RATE;
+  float omega_f1 = 2.0 * data->f1 / ADC_SAMPLING_RATE;
 
-  float coeff_f0 = 2.0 * cosf(omega_f0);
-  float coeff_f1 = 2.0 * cosf(omega_f1);
+  float coeff_f0 = 2.0 * uam_cosf(omega_f0);
+  float coeff_f1 = 2.0 * uam_cosf(omega_f1);
 
   uint16_t mask = data->buf_len - 1;
 
