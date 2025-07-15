@@ -1,12 +1,12 @@
 /*
- * goertzel.h
+ * mess_background_noise.h
  *
- *  Created on: Jul 13, 2025
+ *  Created on: Jul 14, 2025
  *      Author: ericv
  */
 
-#ifndef COMMON_UTILS_GOERTZEL_H_
-#define COMMON_UTILS_GOERTZEL_H_
+#ifndef MESS_MESS_BACKGROUND_NOISE_H_
+#define MESS_MESS_BACKGROUND_NOISE_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,16 +22,7 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
-typedef struct {
-  uint16_t buf_len;
-  uint16_t data_len;
-  uint16_t start_pos;
-  uint32_t* f;
-  float* e_f;
-  float* window;
-  float energy_normalization;
-  uint16_t window_size;
-} GoertzelInfo_t;
+
 
 /* Exported constants --------------------------------------------------------*/
 
@@ -43,9 +34,9 @@ typedef struct {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-void goertzel_1(GoertzelInfo_t* goertzel_info);
-void goertzel_2(GoertzelInfo_t* goertzel_info);
-void goertzel_6(GoertzelInfo_t* goertzel_info);
+void BackgroundNoise_Reset();
+void BackgroundNoise_Calculate();
+float BackgroundNoise_Get();
 
 /* Private defines -----------------------------------------------------------*/
 
@@ -53,4 +44,4 @@ void goertzel_6(GoertzelInfo_t* goertzel_info);
 }
 #endif
 
-#endif /* COMMON_UTILS_GOERTZEL_H_ */
+#endif /* MESS_MESS_BACKGROUND_NOISE_H_ */

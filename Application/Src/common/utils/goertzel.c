@@ -60,12 +60,11 @@ void goertzel_1(GoertzelInfo_t* goertzel_info)
     window_index += window_increment;
   }
 
-  float normalization_factor = (float) goertzel_info->data_len;
-  normalization_factor *= normalization_factor;
+  float normalization_factor = goertzel_info->energy_normalization / goertzel_info->data_len;
 
   energy_f0 = q1_f0 * q1_f0 + q2_f0 * q2_f0 - coeff_f0 * q1_f0 * q2_f0;
 
-  goertzel_info->e_f[0] = energy_f0 / normalization_factor;
+  goertzel_info->e_f[0] = energy_f0 * normalization_factor;
 }
 
 void goertzel_2(GoertzelInfo_t* goertzel_info)
@@ -103,14 +102,13 @@ void goertzel_2(GoertzelInfo_t* goertzel_info)
     window_index += window_increment;
   }
 
-  float normalization_factor = (float) goertzel_info->data_len;
-  normalization_factor *= normalization_factor;
+  float normalization_factor = goertzel_info->energy_normalization / goertzel_info->data_len;
 
   energy_f0 = q1_f0 * q1_f0 + q2_f0 * q2_f0 - coeff_f0 * q1_f0 * q2_f0;
   energy_f1 = q1_f1 * q1_f1 + q2_f1 * q2_f1 - coeff_f1 * q1_f1 * q2_f1;
 
-  goertzel_info->e_f[0] = energy_f0 / normalization_factor;
-  goertzel_info->e_f[1] = energy_f1 / normalization_factor;
+  goertzel_info->e_f[0] = energy_f0 * normalization_factor;
+  goertzel_info->e_f[1] = energy_f1 * normalization_factor;
 }
 
 void goertzel_6(GoertzelInfo_t* goertzel_info)
@@ -180,8 +178,7 @@ void goertzel_6(GoertzelInfo_t* goertzel_info)
     window_index += window_increment;
   }
 
-  float normalization_factor = (float) goertzel_info->data_len;
-  normalization_factor *= normalization_factor;
+  float normalization_factor = goertzel_info->energy_normalization / goertzel_info->data_len;
 
   energy_f0 = q1_f0 * q1_f0 + q2_f0 * q2_f0 - coeff_f0 * q1_f0 * q2_f0;
   energy_f0 = q1_f1 * q1_f1 + q2_f1 * q2_f1 - coeff_f0 * q1_f1 * q2_f1;
@@ -190,12 +187,12 @@ void goertzel_6(GoertzelInfo_t* goertzel_info)
   energy_f0 = q1_f4 * q1_f4 + q2_f4 * q2_f4 - coeff_f0 * q1_f4 * q2_f4;
   energy_f0 = q1_f5 * q1_f5 + q2_f5 * q2_f5 - coeff_f0 * q1_f5 * q2_f5;
 
-  goertzel_info->e_f[0] = energy_f0 / normalization_factor;
-  goertzel_info->e_f[1] = energy_f1 / normalization_factor;
-  goertzel_info->e_f[2] = energy_f2 / normalization_factor;
-  goertzel_info->e_f[3] = energy_f3 / normalization_factor;
-  goertzel_info->e_f[4] = energy_f4 / normalization_factor;
-  goertzel_info->e_f[5] = energy_f5 / normalization_factor;
+  goertzel_info->e_f[0] = energy_f0 * normalization_factor;
+  goertzel_info->e_f[1] = energy_f1 * normalization_factor;
+  goertzel_info->e_f[2] = energy_f2 * normalization_factor;
+  goertzel_info->e_f[3] = energy_f3 * normalization_factor;
+  goertzel_info->e_f[4] = energy_f4 * normalization_factor;
+  goertzel_info->e_f[5] = energy_f5 * normalization_factor;
 }
 
 /* Private function definitions ----------------------------------------------*/

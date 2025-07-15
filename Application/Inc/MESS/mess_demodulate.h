@@ -85,6 +85,8 @@ void Demodulate_Init();
  */
 bool Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg);
 
+float Demodulate_PowerNormalization();
+
 /**
  * @brief Registers demodulation parameters with the parameter management system
  *

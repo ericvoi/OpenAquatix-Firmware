@@ -54,7 +54,7 @@ static DemodulationHistory_t demodulation_history[NUM_DEMODULATION_HISTORY][MAX_
 static float significant_shift_threshold = DEFAULT_HIST_CMP_THRESH;
 
 static WindowFunction_t window_function = DEFAULT_WINDOW_FUNCTION;
-static float window[WINDOW_FUNCTION_SIZE];
+float window[WINDOW_FUNCTION_SIZE];
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -81,6 +81,7 @@ bool Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg)
       float e_f[2];
       goertzel_info.f = f;
       goertzel_info.e_f = e_f;
+      goertzel_info.energy_normalization = Demodulate_PowerNormalization();
 
       goertzel_2(&goertzel_info);
 
@@ -96,9 +97,10 @@ bool Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg)
       float e_f[2];
       goertzel_info.f = f;
       goertzel_info.e_f = e_f;
+      goertzel_info.energy_normalization = Demodulate_PowerNormalization();
 
       goertzel_2(&goertzel_info);
-      
+
       data->analysis_done = true;
       data->decoded_bit = (goertzel_info.e_f[0] > goertzel_info.e_f[1]) ? false : true;
       break;
@@ -176,6 +178,20 @@ bool Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg)
       return false;
   }
   return true;
+}
+
+float Demodulate_PowerNormalization()
+{
+  switch (window_function) {
+    case WINDOW_RECTANGULAR:
+      return 1.0f;
+    case WINDOW_HANN:
+      return 1.63f;
+    case WINDOW_HAMMING:
+      return 1.59;
+    default:
+      return 1.0f;
+  }
 }
 
 bool Demodulate_RegisterParams()

@@ -107,7 +107,7 @@ static uint16_t fft_analysis_index = 0;
 static uint16_t fft_analysis_length = 0;
 
 static arm_rfft_fast_instance_f32 fft_handle64;
-static arm_rfft_fast_instance_f32 fft_handle128;
+arm_rfft_fast_instance_f32 fft_handle128;
 
 static FrequencyThresholds_t frequency_thresholds[] = {
     {.raw_amplitude_threshold = 80, .length_us = 2500},
