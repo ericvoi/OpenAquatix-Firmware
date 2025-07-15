@@ -12,6 +12,7 @@
 #include "mess_demodulate.h"
 #include "arm_math.h"
 #include <stdint.h>
+#include <stdbool.h>
 
 /* Private typedef -----------------------------------------------------------*/
 
@@ -25,7 +26,7 @@ typedef struct {
 #define NOISE_BUFFER_SIZE   128
 #define MS_PER_ENTRY        100
 #define COUNTS_PER_ENTRY    (ADC_SAMPLING_RATE * MS_PER_ENTRY / 1000 / NOISE_BUFFER_SIZE)
-#define NOISE_HISTORY_SIZE  10
+#define NOISE_HISTORY_SIZE  16
 
 #define NUM_NOISE_IN_AVERAGE  30
 
@@ -87,8 +88,9 @@ void BackgroundNoise_Calculate()
     }
     energy_history[noise_history_index].counts++;
     if (energy_history[noise_history_index].counts >= COUNTS_PER_ENTRY) {
-      if (noise_history_index == 9 || accumulated_noise_entries != 0) {
-        float energy = energy_history[noise_history_index].accumulated_energy / energy_history[noise_history_index].counts;
+      if (noise_history_index == (NOISE_HISTORY_SIZE - 1) || accumulated_noise_entries != 0) {
+        uint16_t offset_index = (noise_history_index - NOISE_HISTORY_SIZE + 1) & (NOISE_HISTORY_SIZE - 1);
+        float energy = energy_history[offset_index].accumulated_energy / energy_history[offset_index].counts;
         in_band_noise = (in_band_noise * accumulated_noise_entries + energy) / (accumulated_noise_entries + 1);
         accumulated_noise_entries = MIN(accumulated_noise_entries + 1, NUM_NOISE_IN_AVERAGE);
         energy_ready = accumulated_noise_entries == NUM_NOISE_IN_AVERAGE;
@@ -104,6 +106,11 @@ void BackgroundNoise_Calculate()
 float BackgroundNoise_Get()
 {
   return in_band_noise;
+}
+
+bool BackgroundNoise_Ready()
+{
+  return energy_ready;
 }
 
 /* Private function definitions ----------------------------------------------*/

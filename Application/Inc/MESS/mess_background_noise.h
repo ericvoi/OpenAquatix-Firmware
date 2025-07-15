@@ -15,6 +15,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -37,6 +38,7 @@ extern "C" {
 void BackgroundNoise_Reset();
 void BackgroundNoise_Calculate();
 float BackgroundNoise_Get();
+bool BackgroundNoise_Ready();
 
 /* Private defines -----------------------------------------------------------*/
 
