@@ -67,9 +67,6 @@ void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef *hi2c);
  */
 void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c);
 
-//function to read from 
-
-
 
 /* Private defines -----------------------------------------------------------*/
 
