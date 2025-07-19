@@ -9,7 +9,8 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
-
+#include <stdbool.h>
+#include "INA219-driver.h"  // Get access to INA219 constants
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -21,6 +22,7 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 
+#define INA_PERIOD_MS 1 // Power reading every 1ms
 
 
 /* Exported macro ------------------------------------------------------------*/
@@ -29,9 +31,10 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-HAL_StatusTypeDef SYS_INA219_ReadCurrent(float *current);
-HAL_StatusTypeDef SYS_INA219_ReadVoltage(float *voltage);
-HAL_StatusTypeDef SYS_INA219_ReadPower(float *power);
+bool INA219_System_Init(void);
+void INA219_Timer_Callback(void);
+void INA219_ReadComplete_Callback(bool success);
+
 
 #ifdef __cplusplus
 }

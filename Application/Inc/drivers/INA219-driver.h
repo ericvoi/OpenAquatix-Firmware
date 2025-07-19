@@ -30,6 +30,8 @@ extern "C" {
 
 /* Exported macro ------------------------------------------------------------*/
 
+#define INA219_ADDRESS          0x40    // Device base address
+#define POWER_ADDRESS           0x00    // Power register address
 
 
 /* Exported functions prototypes ---------------------------------------------*/
@@ -45,27 +47,6 @@ extern "C" {
  *       before any other INA219 functions are used.
  */
 HAL_StatusTypeDef INA219_Init();
-
-/**
- * @brief Callback function for I2C memory transfer completion
- *
- * This function is called when an I2C memory transfer is completed.
- * It sets the transfer_complete flag to true.
- *
- * @param hi2c Pointer to the I2C handle
- */
-void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef *hi2c);
-
-
-/**
- * @brief Callback function for I2C error handling
- *
- * This function is called when an I2C error occurs.
- * It sets the transfer_error flag to true.
- *
- * @param hi2c Pointer to the I2C handle
- */
-void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c);
 
 
 /* Private defines -----------------------------------------------------------*/

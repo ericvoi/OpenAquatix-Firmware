@@ -127,7 +127,28 @@ extern I2C_HandleTypeDef hi2c1; // I2C handle for communication
 
 /* Private function prototypes -----------------------------------------------*/
 
+/**
+ * @brief Callback function for I2C memory transfer completion
+ *
+ * This function is called when an I2C memory transfer is completed.
+ * It sets the transfer_complete flag to true.
+ *
+ * @param hi2c Pointer to the I2C handle
+ */
+void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef *hi2c);
 
+
+/**
+ * @brief Callback function for I2C error handling
+ *
+ * This function is called when an I2C error occurs.
+ * It sets the transfer_error flag to true.
+ *
+ * @param hi2c Pointer to the I2C handle
+ */
+void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c);
+
+/* Exported functions Definitions ---------------------------------------------*/
 // Function to initialize INA219 (non-blocking using DMA and callbacks)
 HAL_StatusTypeDef INA219_Init() // Set configuration register and calibration register
 {
