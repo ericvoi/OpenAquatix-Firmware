@@ -85,7 +85,7 @@ static void StartPowerReading(void)
     if (HAL_I2C_Mem_Read_DMA(&hi2c1, 
                              INA219_ADDRESS << 1,
                              POWER_ADDRESS,
-                             I2C_MEMADD_SIZE_16BIT,
+                             I2C_MEMADD_SIZE_8BIT,
                              (uint8_t*)&power_buffer[buffer_index].power,
                             sizeof(uint16_t)) != HAL_OK) {
         reading_in_progress = false;
