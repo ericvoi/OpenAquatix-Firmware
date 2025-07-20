@@ -25,6 +25,7 @@
 #include "mess_interleaver.h"
 #include "mess_cargo.h"
 #include "mess_background_noise.h"
+#include "mess_sync.h"
 
 #include "sys_error.h"
 
@@ -198,7 +199,7 @@ void MESS_StartTask(void* argument)
           }
         }
 
-        if (Input_DetectMessageStart(cfg) == true) {
+        if (Sync_Synchronize(cfg) == true) {
           switchState(PROCESSING);
           break;
         }
@@ -430,6 +431,7 @@ static void switchState(ProcessingState_t newState)
       switchTrReceive();
       osDelay(5);
       ADC_StartInput();
+      Sync_Reset();
       task_state = LISTENING;
       break;
     case PROCESSING:

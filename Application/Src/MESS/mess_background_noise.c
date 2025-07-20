@@ -23,14 +23,14 @@ typedef struct {
 
 /* Private define ------------------------------------------------------------*/
 
-#define NOISE_BUFFER_SIZE   128
-#define MS_PER_ENTRY        100
-#define COUNTS_PER_ENTRY    (ADC_SAMPLING_RATE * MS_PER_ENTRY / 1000 / NOISE_BUFFER_SIZE)
-#define NOISE_HISTORY_SIZE  16
+#define NOISE_BUFFER_SIZE       128
+#define MS_PER_ENTRY            100
+#define COUNTS_PER_ENTRY        (ADC_SAMPLING_RATE * MS_PER_ENTRY / 1000 / NOISE_BUFFER_SIZE)
+#define NOISE_HISTORY_SIZE      (1 << 4)
 
-#define NUM_NOISE_IN_AVERAGE  30
+#define NUM_NOISE_IN_AVERAGE    (1 << 3)
 
-#define WINDOW_INCREMENT      4
+#define WINDOW_INCREMENT        4
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -51,7 +51,7 @@ static uint16_t accumulated_noise_entries = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 
-
+static void averageNoise();
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -84,16 +84,13 @@ void BackgroundNoise_Calculate()
       // Normalize to PSD (P/Hz)
       float mag = (real * real + imag * imag) / NOISE_BUFFER_SIZE;
       
-      energy_history[noise_history_index].accumulated_energy += mag / 12;
+      energy_history[noise_history_index].accumulated_energy += mag / 12.0f;
     }
     energy_history[noise_history_index].counts++;
     if (energy_history[noise_history_index].counts >= COUNTS_PER_ENTRY) {
       if (noise_history_index == (NOISE_HISTORY_SIZE - 1) || accumulated_noise_entries != 0) {
-        uint16_t offset_index = (noise_history_index - NOISE_HISTORY_SIZE + 1) & (NOISE_HISTORY_SIZE - 1);
-        float energy = energy_history[offset_index].accumulated_energy / energy_history[offset_index].counts;
-        in_band_noise = (in_band_noise * accumulated_noise_entries + energy) / (accumulated_noise_entries + 1);
         accumulated_noise_entries = MIN(accumulated_noise_entries + 1, NUM_NOISE_IN_AVERAGE);
-        energy_ready = accumulated_noise_entries == NUM_NOISE_IN_AVERAGE;
+        averageNoise();
       }
       noise_history_index = (noise_history_index + 1) % NOISE_HISTORY_SIZE;
       energy_history[noise_history_index].counts = 0;
@@ -114,3 +111,16 @@ bool BackgroundNoise_Ready()
 }
 
 /* Private function definitions ----------------------------------------------*/
+
+void averageNoise()
+{
+  float average = 0.0f;
+  for (uint16_t i = 0; i < accumulated_noise_entries; i++) {
+    uint16_t offset_index = (noise_history_index - 1 - i) & (NOISE_HISTORY_SIZE - 1);
+    float energy = energy_history[offset_index].accumulated_energy / energy_history[offset_index].counts;
+    average += energy;
+  }
+  average /= ((float) accumulated_noise_entries);
+  in_band_noise = average;
+  energy_ready = accumulated_noise_entries == NUM_NOISE_IN_AVERAGE;
+}

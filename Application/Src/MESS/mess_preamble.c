@@ -218,6 +218,7 @@ bool Preamble_Decode(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* c
       }
       break;
     default:
+      // In case message data is corrupted, this will return false
       return false;
   }
 

@@ -188,7 +188,7 @@ float Demodulate_PowerNormalization()
     case WINDOW_HANN:
       return 1.63f;
     case WINDOW_HAMMING:
-      return 1.59;
+      return 1.59f;
     default:
       return 1.0f;
   }

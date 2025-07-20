@@ -181,11 +181,11 @@ void goertzel_6(GoertzelInfo_t* goertzel_info)
   float normalization_factor = goertzel_info->energy_normalization / goertzel_info->data_len;
 
   energy_f0 = q1_f0 * q1_f0 + q2_f0 * q2_f0 - coeff_f0 * q1_f0 * q2_f0;
-  energy_f0 = q1_f1 * q1_f1 + q2_f1 * q2_f1 - coeff_f0 * q1_f1 * q2_f1;
-  energy_f0 = q1_f2 * q1_f2 + q2_f2 * q2_f2 - coeff_f0 * q1_f2 * q2_f2;
-  energy_f0 = q1_f3 * q1_f3 + q2_f3 * q2_f3 - coeff_f0 * q1_f3 * q2_f3;
-  energy_f0 = q1_f4 * q1_f4 + q2_f4 * q2_f4 - coeff_f0 * q1_f4 * q2_f4;
-  energy_f0 = q1_f5 * q1_f5 + q2_f5 * q2_f5 - coeff_f0 * q1_f5 * q2_f5;
+  energy_f1 = q1_f1 * q1_f1 + q2_f1 * q2_f1 - coeff_f0 * q1_f1 * q2_f1;
+  energy_f2 = q1_f2 * q1_f2 + q2_f2 * q2_f2 - coeff_f0 * q1_f2 * q2_f2;
+  energy_f3 = q1_f3 * q1_f3 + q2_f3 * q2_f3 - coeff_f0 * q1_f3 * q2_f3;
+  energy_f4 = q1_f4 * q1_f4 + q2_f4 * q2_f4 - coeff_f0 * q1_f4 * q2_f4;
+  energy_f5 = q1_f5 * q1_f5 + q2_f5 * q2_f5 - coeff_f0 * q1_f5 * q2_f5;
 
   goertzel_info->e_f[0] = energy_f0 * normalization_factor;
   goertzel_info->e_f[1] = energy_f1 * normalization_factor;
