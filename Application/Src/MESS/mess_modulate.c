@@ -196,7 +196,7 @@ uint32_t Modulate_GetFhbfskFrequency(bool bit,
   uint32_t frequency_separation = (uint32_t) (cfg->fhbfsk_freq_spacing * cfg->baud_rate);
 
   uint32_t start_freq = cfg->fc - 
-      cfg->fhbfsk_freq_spacing * (2 * cfg->fhbfsk_num_tones - 1) / 2;
+      frequency_separation * (2 * cfg->fhbfsk_num_tones - 1) / 2;
   start_freq = (start_freq / frequency_separation) * frequency_separation;
 
   uint32_t sequence_number = getFhbfskSeqeunceNumber(bit_index / cfg->fhbfsk_dwell_time, cfg);

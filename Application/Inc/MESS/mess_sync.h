@@ -58,13 +58,20 @@ bool Sync_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, bool* b
 uint16_t Sync_NumSteps(const DspConfig_t* cfg);
 
 /**
- * @brief Syncrhonizes the receiver and sender (NOT IMPLEMENTED YET)
+ * @brief Synchronizes the receiver and sender (NOT IMPLEMENTED YET)
  * 
  * @param cfg 
  * @return true 
  * @return false 
  */
 bool Sync_Synchronize(const DspConfig_t* cfg);
+
+/**
+ * @brief Resets the synchornization process
+ * 
+ * To be called when a message has been started to reset
+ */
+void Sync_Reset();
 
 /* Private defines -----------------------------------------------------------*/
 
