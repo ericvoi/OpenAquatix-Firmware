@@ -106,6 +106,7 @@ typedef enum {
   MENU_ID_DBG_TEMP,             // Current temperature
   MENU_ID_DBG_ERR,              // Current errors
   MENU_ID_DBG_PWR,              // Current power consumption
+  MENU_ID_DBG_NOISE,            // Scaleless background noise level
   MENU_ID_DBG_DFU,              // Enter DFU mode to flash new firmware over USB
   MENU_ID_DBG_RESETCONFIG,      // Reset saved configuration 
   MENU_ID_HIST_PWR,             // History of power
