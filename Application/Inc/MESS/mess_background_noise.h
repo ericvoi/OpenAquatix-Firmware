@@ -35,9 +35,29 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
+/**
+ * @brief Restarts the background noise and invalidates the current background
+ * noise measurement
+ */
 void BackgroundNoise_Reset();
+
+/**
+ * @brief Calculates the background noise in band on the most recent data
+ */
 void BackgroundNoise_Calculate();
+
+/**
+ * @brief Returns the calculated background noise
+ * 
+ * @return float Background noise (scaleless)
+ */
 float BackgroundNoise_Get();
+
+/**
+ * @brief Whether enough samples have been analyzed for a background noise calculation
+ * 
+ * @return true if ready, false otherwise
+ */
 bool BackgroundNoise_Ready();
 
 /* Private defines -----------------------------------------------------------*/

@@ -43,8 +43,25 @@ typedef struct {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
+/**
+ * @brief Calculates goertzel on a single frequency
+ * 
+ * @param goertzel_info Contains input and output info for goertzel calculation
+ */
 void goertzel_1(GoertzelInfo_t* goertzel_info);
+
+/**
+ * @brief Calculates goertzel on 2 frequencies together
+ * 
+ * @param goertzel_info Contains input and output info for goertzel calculation
+ */
 void goertzel_2(GoertzelInfo_t* goertzel_info);
+
+/**
+ * @brief Calculates goertzel on 6 frequencies at once
+ * 
+ * @param goertzel_info Contains input and output info for goertzel calculation
+ */
 void goertzel_6(GoertzelInfo_t* goertzel_info);
 
 /* Private defines -----------------------------------------------------------*/
