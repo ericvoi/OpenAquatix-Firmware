@@ -218,8 +218,11 @@ bool Preamble_Decode(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* c
       }
       break;
     default:
-      // In case message data is corrupted, this will return false
-      return false;
+      if (decodeJanusCargoBits(msg, bit_msg, cfg) == false) {
+        return false;
+      }
+      msg->preamble.message_type.value = UNKNOWN;
+      break;
   }
 
   // Update length of bit message including ECC
