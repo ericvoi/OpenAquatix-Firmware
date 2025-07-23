@@ -22,12 +22,12 @@ typedef struct {
 /* Private macro -------------------------------------------------------------*/
 
 /* Private variables ---------------------------------------------------------*/
-static uint16_t raw_power; // Raw reading of a power register value from INA219
+static uint16_t raw_power; // Raw reading of a power register value from INA219.
 static PowerReading_t power_buffer[power_buffer_size]; // Buffer to hold power readings and timestamps
 static float INA219_POWER_LSB = 20 * INA219_CURRENT_LSB; // The Power LSB is 20 times the current LSB
 
-static uint8_t buffer_index = 0;
-static uint32_t ms_counter = 0;
+static volatile uint8_t buffer_index = 0;
+static volatile uint32_t ms_counter = 0;
 static volatile bool reading_in_progress = false;
 
 /* External variables --------------------------------------------------------*/
