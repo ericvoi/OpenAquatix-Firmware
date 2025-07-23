@@ -34,7 +34,7 @@ extern "C" {
 bool INA219_System_Init(void);
 void INA219_Timer_Callback(void);
 void INA219_ReadComplete_Callback(bool success);
-
+float Power_GetRecentAverage(uint8_t numsamples)
 
 #ifdef __cplusplus
 }

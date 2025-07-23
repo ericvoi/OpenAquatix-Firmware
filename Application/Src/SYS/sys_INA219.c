@@ -82,6 +82,38 @@ void INA219_ReadComplete_Callback(bool success)
     reading_in_progress = false; // Reading is complete
 }
 
+// Calculates the recent average of power readings, up to the size of the buffer
+float Power_GetRecentAverage(uint8_t numsamples)
+{
+    if (numsamples == 0 || numsamples > power_buffer_size) {
+        return 0.0f; // Invalid sample size. Add error handling later
+    }
+
+    float sum = 0.0f;
+    uint8_t count = 0;
+    int16_t start_index;
+
+    // Find starting index, based on where the last reading was stored.
+    if (buffer_index >= numsamples) { // If the index is ahead of the amount of requested samples
+        start_index = buffer_index - numsamples; // Start from the last reading minus the number of samples
+    } else { // Else need to wrap back around the buffer
+        start_index = power_buffer_size - (numsamples - buffer_index);
+    }
+
+    // Sum recent samples
+    for (uint8_t i=0; i < numsamples; i++) {
+        uint8_t index = (start_index + i) % power_buffer_size;
+        // Only include non-zero readings to handle initialization period
+        if (power_buffer[index].power != 0.0f) {
+            sum += power_buffer[index].power;
+            count++;
+        }
+    }
+    // Return the average in watts as long as there is at least one valid reading. Otherwise, return 0.
+    return (count > 0) ? (sum / count) : 0.0f; 
+
+}
+
 /* Private function definitions ----------------------------------------------*/
 
 static void StartPowerReading(void)
@@ -105,3 +137,4 @@ void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c)
     INA219_ReadComplete_Callback(true);
   }
 }
+
