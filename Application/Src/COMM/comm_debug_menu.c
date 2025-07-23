@@ -22,6 +22,7 @@
 #include "mess_main.h"
 #include "mess_modulate.h"
 #include "mess_packet.h"
+#include "mess_background_noise.h"
 
 #include "cmsis_os.h"
 #include "main.h"
@@ -54,6 +55,7 @@ void noiseSpectralAnalysis(void* argument);
 void printCurrentTemp(void* argument);
 void printCurrentErrors(void* argument);
 void printCurrentPowerConsumption(void* argument);
+void printBackgroundNoise(void* argument);
 void enterDfuMode(void* argument);
 void resetSavedValues(void* argument);
 
@@ -63,7 +65,8 @@ static MenuID_t debugMenuChildren[] = {MENU_ID_DBG_GPIO, MENU_ID_DBG_SETLED,
                                        MENU_ID_DBG_PRINT, MENU_ID_DBG_BGDUMP,
                                        MENU_ID_DBG_BGFREQ, MENU_ID_DBG_TEMP, 
                                        MENU_ID_DBG_ERR, MENU_ID_DBG_PWR, 
-                                       MENU_ID_DBG_DFU, MENU_ID_DBG_RESETCONFIG};
+                                       MENU_ID_DBG_NOISE, MENU_ID_DBG_DFU, 
+                                       MENU_ID_DBG_RESETCONFIG};
 static const MenuNode_t debugMenu = {
   .id = MENU_ID_DBG,
   .description = "Debug Menu",
@@ -195,6 +198,21 @@ static const MenuNode_t debugMenuPwr = {
   .parameters = &debugMenuPwrParam
 };
 
+static ParamContext_t debugMenuNoiseLevelParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_DBG_NOISE
+};
+static const MenuNode_t debugMenuNoiseLevel = {
+  .id = MENU_ID_DBG_NOISE,
+  .description = "Scaleless background noise level",
+  .handler = printBackgroundNoise,
+  .parent_id = MENU_ID_DBG,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &debugMenuNoiseLevelParam
+};
+
 static ParamContext_t debugMenuDfuParam = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_DBG_DFU
@@ -235,7 +253,7 @@ bool COMM_RegisterDebugMenu(void)
              registerMenu(&debugMenuNoise) && registerMenu(&debugMenuTemp) &&
              registerMenu(&debugMenuErr) && registerMenu(&debugMenuPwr) &&
              registerMenu(&debugMenuDfu) && registerMenu(&debugMenuReset) &&
-             registerMenu(&debugMenuNoiseF);
+             registerMenu(&debugMenuNoiseF) && registerMenu(&debugMenuNoiseLevel);
   return ret;
 }
 
@@ -403,6 +421,23 @@ void printCurrentPowerConsumption(void* argument)
   FunctionContext_t* context = (FunctionContext_t*) argument;
   
   COMMLoops_NotImplemented(context);
+}
+
+void printBackgroundNoise(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  if (BackgroundNoise_Ready() == false) {
+    COMM_TransmitData("\r\nBackground noise not available yet\r\n", CALC_LEN, context->comm_interface);
+    context->state->state = PARAM_STATE_COMPLETE;
+    return;
+  }
+
+  float background_noise = BackgroundNoise_Get();
+
+  sprintf((char*) context->output_buffer, "\r\nBakground noise: %.3f\r\n", background_noise);
+  COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
+  context->state->state = PARAM_STATE_COMPLETE;
 }
 
 void resetSavedValues(void* argument)

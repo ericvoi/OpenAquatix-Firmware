@@ -107,7 +107,7 @@ static uint16_t fft_analysis_index = 0;
 static uint16_t fft_analysis_length = 0;
 
 static arm_rfft_fast_instance_f32 fft_handle64;
-static arm_rfft_fast_instance_f32 fft_handle128;
+arm_rfft_fast_instance_f32 fft_handle128;
 
 static FrequencyThresholds_t frequency_thresholds[] = {
     {.raw_amplitude_threshold = 80, .length_us = 2500},
@@ -421,7 +421,7 @@ void Input_NoiseFft()
 
   for (uint16_t i = 0; i < NOISE_FFT_SAMPLES; i += NOISE_FFT_BLOCK_SIZE) {
     for (uint16_t j = 0; j < NOISE_FFT_BLOCK_SIZE; j++) {
-      fft_in_buf[i] = ADC_InputGetData(i);
+      fft_in_buf[j] = ADC_InputGetData(i + j);
     }
     arm_rfft_fast_f32(&fft_handle128, fft_in_buf, fft_out_buf, 0);
 

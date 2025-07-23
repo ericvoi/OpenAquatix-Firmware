@@ -10,6 +10,7 @@
 #include "mess_adc.h"
 #include "mess_input.h"
 #include "mess_feedback.h"
+#include "mess_background_noise.h"
 #include "sys_temperature.h"
 #include "stm32h7xx_hal.h"
 #include <string.h>
@@ -87,6 +88,7 @@ bool ADC_StartInput()
   input_head_pos = 0;
   input_tail_pos = 0;
   HAL_TIM_Base_Start(&htim8);
+  BackgroundNoise_Reset();
   HAL_StatusTypeDef ret = HAL_ADC_Start_DMA(&INPUT_ADC, (uint32_t*) adc_buffer, ADC_BUFFER_SIZE);
   return ret == HAL_OK;
 }

@@ -86,6 +86,14 @@ void Demodulate_Init();
 bool Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg);
 
 /**
+ * @brief Power normalization factor for current windowing function
+ * 
+ * @return float Normalization factor that the power must be multiplied by
+ * to normalize
+ */
+float Demodulate_PowerNormalization();
+
+/**
  * @brief Registers demodulation parameters with the parameter management system
  *
  * Registers the decision method parameter to allow it to be accessed and
