@@ -32,7 +32,7 @@ extern "C" {
 
 #define INA219_ADDRESS          0x40    // Device base address
 #define POWER_ADDRESS           0x00    // Power register address
-
+#define INA219_CURRENT_LSB 0.00001f // 10uA per LSB (may adjust)
 
 /* Exported functions prototypes ---------------------------------------------*/
 

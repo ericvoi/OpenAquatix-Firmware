@@ -12,17 +12,20 @@
 // Structure to hold each power reading and matching timestamp
 typedef struct { 
     uint32_t timestamp; // Timestamp in milliseconds
-    uint16_t power; // Power reading in watts
+    float power; // Power reading in watts
 } PowerReading_t;
 
 /* Private define ------------------------------------------------------------*/
 
-#define power_buffer_size 40 // Size of the power buffer for averaging
+#define power_buffer_size 50 // Size of the power buffer for averaging
 
 /* Private macro -------------------------------------------------------------*/
 
 /* Private variables ---------------------------------------------------------*/
-static PowerReading_t power_buffer[power_buffer_size]; // Buffer to hold power readings
+static uint16_t raw_power; // Raw reading of a power register value from INA219
+static PowerReading_t power_buffer[power_buffer_size]; // Buffer to hold power readings and timestamps
+static float INA219_POWER_LSB = 20 * INA219_CURRENT_LSB; // The Power LSB is 20 times the current LSB
+
 static uint8_t buffer_index = 0;
 static uint32_t ms_counter = 0;
 static volatile bool reading_in_progress = false;
@@ -69,7 +72,10 @@ void INA219_Timer_Callback(void)
 void INA219_ReadComplete_Callback(bool success)
 {
     if (success) {
-        power_buffer[buffer_index].timestamp = ms_counter;
+        // Byte swap, because INA219 sends in big-endian format
+        raw_power = __REV16(power_buffer[buffer_index].power); 
+        power_buffer[buffer_index].power = raw_power * INA219_POWER_LSB; // Convert raw value to power in watts
+        power_buffer[buffer_index].timestamp = ms_counter; // Store the timestamp of the reading
         
         buffer_index = (buffer_index + 1) % power_buffer_size; // Circular buffer
     }
@@ -92,6 +98,7 @@ static void StartPowerReading(void)
     } 
 }
 
+// This function is called when the DMA transfer is complete
 void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
   if (hi2c->Instance == hi2c1.Instance) {

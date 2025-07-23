@@ -89,8 +89,8 @@ typedef enum
 
 // Values
 #define INA219_SHUNT_RESISTOR_VALUE 0.01f // 10mOhm shunt resistor
-#define INA219_CURRENT_LSB 0.0001f // 100uA per LSB (may adjust)
-#define INA219_MAX_EXPECTED_CURRENT 3.2f // Maximum expected current in Amps (need adjust)
+// #define INA219_CURRENT_LSB 0.00001f // 10uA per LSB (may adjust)
+#define INA219_MAX_EXPECTED_CURRENT 3.0f // Maximum expected current in Amps (need adjust)
 
 // INA219 Register Addresses
 #define CONFIGURATION_ADDRESS 0x00
@@ -118,8 +118,8 @@ static struct
     .transfer_error = false};
 
 
-
-uint16_t cal_value = 0x1000; // Current and power calibration value, bits [15:1] are used. 
+// Current and power calibration value, bits [15:1] are used. See equation 1 in INA219 Datasheet
+uint16_t cal_value = (uint16_t)(0.04096/(INA219_CURRENT_LSB*INA219_SHUNT_RESISTOR_VALUE)); 
 
 uint16_t reset_cmd = INA_RESET; // Configuration bits for reset, used before initialization
 
