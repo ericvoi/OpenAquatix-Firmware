@@ -66,8 +66,6 @@ typedef struct {
 
 /* Private variables ---------------------------------------------------------*/
 
-extern float window[512];
-
 static const uint32_t janus_pn_32 = 0b10101110110001111100110100100000U;
 static uint32_t janus_frequencies[32];
 static uint16_t window_offsets[SYNC_STAGE_1_SUBDIVIDE];
@@ -225,7 +223,7 @@ void fillWindowOffsets(const DspConfig_t* cfg)
  * synchronization sequence. The first stage looking at bits 0-7 is the most
  * coarse of the stages and is used to detect when a message has started. The
  * following stages hone in on the start of the message and can also be used
- * to estimate doppler effects. (doppler estiamation not implemented yet)
+ * to estimate doppler effects. (doppler estimation not implemented yet)
  */
 bool janusPnSynchronize()
 {
@@ -308,7 +306,7 @@ void scoreOffsets()
   uint16_t results_per_stage = SYNC_STAGE_1_SUBDIVIDE * FREQUENCIES_PER_STAGE;
 
   if (BackgroundNoise_Ready() == false) {
-    stage_results_len = 0;
+    Sync_Reset();
     return;
   }
 
@@ -386,7 +384,8 @@ void findGlobalMax()
   uint16_t new_tail = ((uint32_t) stage1_buffer_index + (FREQUENCIES_PER_STAGE - 1) * samples_per_symbol) % PROCESSING_BUFFER_SIZE;
   new_tail += stage2_offsets[0];
   new_tail %= PROCESSING_BUFFER_SIZE;
-  ADC_InputSetTail(new_tail); 
+  uint16_t new_rollover = stage1_rollover_index + (stage1_buffer_index + stage2_offsets[0] + (FREQUENCIES_PER_STAGE - 1) * samples_per_symbol) / PROCESSING_BUFFER_SIZE;
+  waitSynchronizationComplete(new_rollover, new_tail);
 }
 
 void stage1TailIncrement()
@@ -467,13 +466,15 @@ void waitSynchronizationComplete(uint16_t final_rollover_index, uint16_t final_b
   ADC_InputSetTail(final_buffer_index);
 }
 
+static float rect_window[1] = {1.0f};
 void populateGoertzelInfo(GoertzelInfo_t* goertzel_info)
 {
   goertzel_info->buf_len = PROCESSING_BUFFER_SIZE;
   goertzel_info->data_len = samples_per_symbol;
-  goertzel_info->window = window;
-  goertzel_info->energy_normalization = Demodulate_PowerNormalization();
-  goertzel_info->window_size = 512;
+  // Force a rectangular window
+  goertzel_info->window = rect_window;
+  goertzel_info->energy_normalization = 1.0f;
+  goertzel_info->window_size = 0;
 }
 
 bool evaluateStage2Results()
@@ -505,6 +506,8 @@ bool evaluateStage2Results()
 
   uint64_t current_samples = stage2_results[best_index].rollover_count * PROCESSING_BUFFER_SIZE;
   current_samples += stage2_results[best_index].buffer_index;
+
+  Sync_Reset();
 
   uint64_t target_samples = current_samples + samples_to_wait;
   uint16_t final_rollover_count = target_samples / PROCESSING_BUFFER_SIZE;
