@@ -39,6 +39,9 @@ volatile uint16_t input_tail_pos = 0;
 volatile uint16_t feedback_head_pos = 0;
 volatile uint16_t feedback_tail_pos = 0;
 
+static float dc_estimate = 2048.0f;
+static const float dc_alpha = 1e-5;
+
 /*
  * Only one ADC runs at a time and both have significant DSP operations done on
  * them so they benefit greatly from DTCM buffers. DTCM memory is limited, so
@@ -178,7 +181,10 @@ void addToInputBuffer(bool firstHalf)
 
   for (uint16_t i = 0; i < ADC_BUFFER_SIZE / 2; i++) {
     uint16_t dma_index = dma_buf_start_index + i;
-    input_buffer[input_head_pos] = (float) adc_buffer[dma_index];
+    float new_sample = (float) adc_buffer[dma_index];
+    // EMA filter
+    dc_estimate = new_sample * dc_alpha + (1 - dc_alpha) * dc_estimate;
+    input_buffer[input_head_pos] = new_sample - dc_estimate;
     input_head_pos = (input_head_pos + 1) & PROCESSING_BUFFER_MASK;
   }
   if (original_head > input_head_pos) {
