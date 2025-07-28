@@ -28,6 +28,7 @@
 #include "mess_sync.h"
 
 #include "sys_error.h"
+#include "sys_sleep.h"
 
 #include "cfg_main.h"
 #include "cfg_parameters.h"
@@ -56,6 +57,7 @@
 
 
 /* Private variables ---------------------------------------------------------*/
+extern osEventFlagsId_t sleep_events;
 
 // Identification parameters
 static uint8_t modem_identifier_4b = DEFAULT_ID;
@@ -101,6 +103,7 @@ static void switchTrReceive();
 static bool handleFlags();
 static bool registerMessParams();
 static bool registerMessMainParams();
+static void checkForWakeup();
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -139,6 +142,7 @@ void MESS_StartTask(void* argument)
   Waveform_Flush();
   ADC_StartInput();
   for (;;) {
+    checkForWakeup();
     switch (task_state) {
       case DRIVING_TRANSDUCER:
         // Currently driving transducer so listen to transducer feedback network
@@ -667,4 +671,14 @@ static bool registerMessMainParams()
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
   (void)(GPIO_Pin);
+}
+
+void checkForWakeup()
+{
+  uint32_t events = osEventFlagsGet(sleep_events);
+  osEventFlagsClear(sleep_events, SLEEP_WAKEUP_MESS);
+
+  if (events & SLEEP_WAKEUP_MESS) {
+    switchState(LISTENING);
+  }
 }

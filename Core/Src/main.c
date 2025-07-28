@@ -164,6 +164,7 @@ const osMutexAttr_t dau_uart_mutex_attributes = {
 };
 /* USER CODE BEGIN PV */
 osEventFlagsId_t print_event_handle = NULL;
+extern PCD_HandleTypeDef hpcd_USB_OTG_HS;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -204,6 +205,92 @@ void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim) {
 		WS_Callback();
 	}
 	return;
+}
+
+void enableAllInterrupts(void) {
+  HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
+  HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
+  HAL_NVIC_EnableIRQ(DMA1_Stream2_IRQn);
+  HAL_NVIC_EnableIRQ(DMA1_Stream3_IRQn);
+  HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
+  HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
+  HAL_NVIC_EnableIRQ(DMA1_Stream7_IRQn);
+  HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
+  HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
+  HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
+  HAL_NVIC_EnableIRQ(DMA2_Stream6_IRQn);
+
+  HAL_NVIC_EnableIRQ(ADC_IRQn);
+  HAL_NVIC_EnableIRQ(TIM6_DAC_IRQn);
+  HAL_NVIC_EnableIRQ(TIM8_UP_TIM13_IRQn);
+  HAL_NVIC_EnableIRQ(TIM1_UP_TIM10_IRQn);
+  HAL_NVIC_EnableIRQ(TIM1_TRG_COM_TIM11_IRQn);
+  HAL_NVIC_EnableIRQ(UART5_IRQn);
+  HAL_NVIC_EnableIRQ(I2C1_EV_IRQn);
+  HAL_NVIC_EnableIRQ(I2C1_ER_IRQn);
+  HAL_NVIC_EnableIRQ(SPI4_IRQn);
+  HAL_NVIC_EnableIRQ(OTG_HS_IRQn);
+}
+
+void reinitializePeripherals()
+{
+  SystemClock_Config();
+  PeriphCommonClock_Config();
+
+  HAL_ResumeTick();
+
+  __HAL_RCC_DMA1_CLK_ENABLE();
+  __HAL_RCC_DMA2_CLK_ENABLE();
+  __HAL_RCC_ADC12_CLK_ENABLE();
+  __HAL_RCC_ADC3_CLK_ENABLE();
+  __HAL_RCC_DAC12_CLK_ENABLE();
+  __HAL_RCC_DTS_CLK_ENABLE();
+  __HAL_RCC_I2C1_CLK_ENABLE();
+  __HAL_RCC_SPI4_CLK_ENABLE();
+  __HAL_RCC_TIM3_CLK_ENABLE();
+  __HAL_RCC_TIM6_CLK_ENABLE();
+  __HAL_RCC_TIM8_CLK_ENABLE();
+  __HAL_RCC_TIM16_CLK_ENABLE();
+  __HAL_RCC_TIM17_CLK_ENABLE();
+  __HAL_RCC_UART5_CLK_ENABLE();
+  __HAL_RCC_CORDIC_CLK_ENABLE();
+  __HAL_RCC_USB1_OTG_HS_CLK_ENABLE();
+  
+  // Re-enable GPIO clocks
+  __HAL_RCC_GPIOE_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOH_CLK_ENABLE();
+  
+  // Reconfigure GPIO pins to their original states
+  MX_GPIO_Init();
+
+  HAL_Delay(100);
+  
+  // Reinitialize peripherals
+  MX_DMA_Init();
+  MX_ADC1_Init();
+  MX_ADC2_Init();
+  MX_ADC3_Init();
+  MX_DAC1_Init();
+  MX_DTS_Init();
+  MX_I2C1_Init();
+  MX_SPI4_Init();
+  MX_TIM6_Init();
+  MX_TIM8_Init();
+  MX_TIM16_Init();
+  MX_TIM17_Init();
+  MX_UART5_Init();
+  MX_CORDIC_Init();
+  
+  enableAllInterrupts();
+  
+  HAL_PCD_Start(&hpcd_USB_OTG_HS);
+  
+  WS_Init();
+  PGA_Enable();
+  HAL_Delay(1);
+  PGA_SetGain(PGA_GAIN_1);
 }
 /* USER CODE END 0 */
 
@@ -495,7 +582,11 @@ static void MX_ADC1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN ADC1_Init 2 */
-  HAL_ADCEx_Calibration_Start(&hadc1, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED);
+  HAL_Delay(1);
+  if (HAL_ADCEx_Calibration_Start(&hadc1, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE END ADC1_Init 2 */
 
 }
@@ -558,7 +649,11 @@ static void MX_ADC2_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN ADC2_Init 2 */
-  HAL_ADCEx_Calibration_Start(&hadc2, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED);
+  HAL_Delay(1);
+  if (HAL_ADCEx_Calibration_Start(&hadc2, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE END ADC2_Init 2 */
 
 }
@@ -624,7 +719,11 @@ static void MX_ADC3_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN ADC3_Init 2 */
-  HAL_ADCEx_Calibration_Start(&hadc3, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED);
+  HAL_Delay(1);
+  if (HAL_ADCEx_Calibration_Start(&hadc3, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE END ADC3_Init 2 */
 
 }
@@ -1238,7 +1337,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : GPIO_DAU_TO_MAIN_Pin */
   GPIO_InitStruct.Pin = GPIO_DAU_TO_MAIN_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(GPIO_DAU_TO_MAIN_GPIO_Port, &GPIO_InitStruct);
 

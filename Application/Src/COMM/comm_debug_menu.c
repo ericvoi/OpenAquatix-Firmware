@@ -16,6 +16,7 @@
 
 #include "sys_temperature.h"
 #include "sys_led.h"
+#include "sys_sleep.h"
 
 #include "check_inputs.h"
 
@@ -58,15 +59,18 @@ void printCurrentPowerConsumption(void* argument);
 void printBackgroundNoise(void* argument);
 void enterDfuMode(void* argument);
 void resetSavedValues(void* argument);
+void deepSleep(void* argument);
 
 /* Private variables ---------------------------------------------------------*/
+
+extern osEventFlagsId_t sleep_events;
 
 static MenuID_t debugMenuChildren[] = {MENU_ID_DBG_GPIO, MENU_ID_DBG_SETLED,
                                        MENU_ID_DBG_PRINT, MENU_ID_DBG_BGDUMP,
                                        MENU_ID_DBG_BGFREQ, MENU_ID_DBG_TEMP, 
                                        MENU_ID_DBG_ERR, MENU_ID_DBG_PWR, 
                                        MENU_ID_DBG_NOISE, MENU_ID_DBG_DFU, 
-                                       MENU_ID_DBG_RESETCONFIG};
+                                       MENU_ID_DBG_RESETCONFIG, MENU_ID_DBG_DEEPSLEEP};
 static const MenuNode_t debugMenu = {
   .id = MENU_ID_DBG,
   .description = "Debug Menu",
@@ -243,6 +247,21 @@ static const MenuNode_t debugMenuReset = {
   .parameters = &debugMenuResetParam
 };
 
+static ParamContext_t debugMenuDeepSleepParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_DBG_DEEPSLEEP
+};
+static const MenuNode_t debugMenuDeepSleep = {
+  .id = MENU_ID_DBG_DEEPSLEEP,
+  .description = "Enter deep sleep mode",
+  .handler = deepSleep,
+  .parent_id = MENU_ID_DBG,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &debugMenuDeepSleepParam
+};
+
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -253,7 +272,8 @@ bool COMM_RegisterDebugMenu(void)
              registerMenu(&debugMenuNoise) && registerMenu(&debugMenuTemp) &&
              registerMenu(&debugMenuErr) && registerMenu(&debugMenuPwr) &&
              registerMenu(&debugMenuDfu) && registerMenu(&debugMenuReset) &&
-             registerMenu(&debugMenuNoiseF) && registerMenu(&debugMenuNoiseLevel);
+             registerMenu(&debugMenuNoiseF) && registerMenu(&debugMenuNoiseLevel) &&
+             registerMenu(&debugMenuDeepSleep);
   return ret;
 }
 
@@ -435,7 +455,7 @@ void printBackgroundNoise(void* argument)
 
   float background_noise = BackgroundNoise_Get();
 
-  sprintf((char*) context->output_buffer, "\r\nBakground noise: %.3f\r\n", background_noise);
+  sprintf((char*) context->output_buffer, "\r\nBackground noise: %.3f\r\n", background_noise);
   COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
   context->state->state = PARAM_STATE_COMPLETE;
 }
@@ -482,6 +502,7 @@ void resetSavedValues(void* argument)
   } while (old_state > context->state->state);
 }
 
+// TODO: add confirmation similar to above
 void enterDfuMode(void* argument)
 {
   (void)(argument);
@@ -492,4 +513,14 @@ void enterDfuMode(void* argument)
   osDelay(10);
 
   NVIC_SystemReset();
+}
+
+// TODO: add confirmation
+void deepSleep(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  osEventFlagsSet(sleep_events, SLEEP_REQUEST_DEEP);
+
+  context->state->state = PARAM_STATE_COMPLETE;
 }

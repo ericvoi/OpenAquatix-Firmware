@@ -13,6 +13,7 @@
 #include "sys_sensor_timer.h"
 #include "sys_temperature.h"
 #include "sys_led.h"
+#include "sys_sleep.h"
 #include "cfg_main.h"
 #include "cfg_parameters.h"
 #include "cfg_defaults.h"
@@ -67,9 +68,14 @@ void SYS_StartTask(void* argument)
     Error_Routine(ERROR_SYS_INIT);
   }
 
+  if (Sleep_Init() == false) {
+    Error_Routine(ERROR_SYS_INIT);
+  }
+
   for (;;) {
     LED_Update();
     Temperature_Process();
+    Sleep_Check();
     osDelay(100);
   }
 }

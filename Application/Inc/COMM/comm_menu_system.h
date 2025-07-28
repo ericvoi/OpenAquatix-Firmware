@@ -109,6 +109,7 @@ typedef enum {
   MENU_ID_DBG_NOISE,            // Scaleless background noise level
   MENU_ID_DBG_DFU,              // Enter DFU mode to flash new firmware over USB
   MENU_ID_DBG_RESETCONFIG,      // Reset saved configuration 
+  MENU_ID_DBG_DEEPSLEEP,        // Enter deep sleep mode
   MENU_ID_HIST_PWR,             // History of power
   MENU_ID_HIST_PWR_PEAK,        // Peak power consumption since boot
   MENU_ID_HIST_PWR_BOOT,        // Total power consumption since boot
