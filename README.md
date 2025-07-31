@@ -1,4 +1,4 @@
-# UAM_Firmware
+# OpenAquatix Firmware
 Firmware for the Underwater Acoustic Modem capstone project
 
 # Description
