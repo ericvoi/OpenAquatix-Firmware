@@ -1,12 +1,12 @@
 /*
- * sys_main.h
+ * sleep_manager.h
  *
- *  Created on: Mar 11, 2025
+ *  Created on: Aug 2, 2025
  *      Author: ericv
  */
 
-#ifndef SYS_SYS_MAIN_H_
-#define SYS_SYS_MAIN_H_
+#ifndef SLEEP_SLEEP_MANAGER_H_
+#define SLEEP_SLEEP_MANAGER_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,7 +14,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
-
+#include "sleep/sleep_config.h"
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -30,13 +30,11 @@ extern "C" {
 
 /* Exported macro ------------------------------------------------------------*/
 
-#define SLEEP_REQUEST_LIGHT   (1 << 0)
-#define SLEEP_REQUEST_DEEP    (1 << 1)
-#define SLEEP_WAKEUP_MESS     (1 << 2)
+
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-void SYS_StartTask(void* argument);
+void SleepManager_Enter();
 
 /* Private defines -----------------------------------------------------------*/
 
@@ -44,4 +42,4 @@ void SYS_StartTask(void* argument);
 }
 #endif
 
-#endif /* SYS_SYS_MAIN_H_ */
+#endif /* SLEEP_SLEEP_MANAGER_H_ */

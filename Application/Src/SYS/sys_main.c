@@ -13,7 +13,7 @@
 #include "sys_sensor_timer.h"
 #include "sys_temperature.h"
 #include "sys_led.h"
-#include "sys_sleep.h"
+#include "sleep/sleep_manager.h"
 #include "cfg_main.h"
 #include "cfg_parameters.h"
 #include "cfg_defaults.h"
@@ -35,11 +35,12 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-
+osEventFlagsId_t sleep_events = NULL;
 
 /* Private function prototypes -----------------------------------------------*/
 
 bool registerSysParam();
+bool createSleepEvents();
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -68,14 +69,14 @@ void SYS_StartTask(void* argument)
     Error_Routine(ERROR_SYS_INIT);
   }
 
-  if (Sleep_Init() == false) {
+  if (createSleepEvents() == false) {
     Error_Routine(ERROR_SYS_INIT);
   }
 
   for (;;) {
     LED_Update();
     Temperature_Process();
-    Sleep_Check();
+    SleepManager_Enter();
     osDelay(100);
   }
 }
@@ -88,4 +89,11 @@ bool registerSysParam()
     return false;
   }
   return true;
+}
+
+bool createSleepEvents()
+{
+  sleep_events = osEventFlagsNew(NULL);
+
+  return sleep_events != NULL;
 }

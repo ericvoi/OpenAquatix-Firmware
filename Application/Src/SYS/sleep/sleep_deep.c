@@ -1,28 +1,22 @@
 /*
- * sys_sleep.c
+ * sleep_deep.c
  *
- *  Created on: Jul 27, 2025
+ *  Created on: Aug 2, 2025
  *      Author: ericv
  */
 
 /* Private includes ----------------------------------------------------------*/
 
-#include "main.h"
-#include "sys_sleep.h"
-#include "WS2812b-driver.h"
-#include "PGA113-driver.h"
+#include "sleep/sleep_deep.h"
 #include "stm32h7xx_hal.h"
 #include "cmsis_os.h"
-
+#include "WS2812b-driver.h"
+#include "PGA113-driver.h"
 #include <stdbool.h>
 
 /* Private typedef -----------------------------------------------------------*/
 
-typedef enum {
-  SLEEP_NONE,
-  SLEEP_LIGHT,
-  SLEEP_DEEP
-} SleepStates_t;
+
 
 /* Private define ------------------------------------------------------------*/
 
@@ -30,14 +24,9 @@ typedef enum {
 
 /* Private macro -------------------------------------------------------------*/
 
-#define CHECK_DISABLED_PERIPHERAL(x)    do { \
-                                          if ((x) != HAL_OK) sleep_error = true; \
-                                        } while (0)
+
 
 /* Private variables ---------------------------------------------------------*/
-
-osEventFlagsId_t sleep_events = NULL;
-static volatile bool sleep_error = false;
 
 extern ADC_HandleTypeDef hadc1;
 extern ADC_HandleTypeDef hadc2;
@@ -76,70 +65,12 @@ extern PCD_HandleTypeDef hpcd_USB_OTG_HS;
 
 /* Private function prototypes -----------------------------------------------*/
 
-bool createSleepEvents();
-void handleSleep();
-SleepStates_t getSleepMode();
-void enterDeepSleep();
 void disablePeripherals();
 void disableInterrupts();
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool Sleep_Init()
-{
-  return createSleepEvents();
-}
-
-void Sleep_Check()
-{
-  handleSleep();
-}
-
-/* Private function definitions ----------------------------------------------*/
-
-bool createSleepEvents()
-{
-  sleep_events = osEventFlagsNew(NULL);
-
-  return sleep_events != NULL;
-}
-
-void handleSleep()
-{
-  SleepStates_t sleep_state = getSleepMode();
-
-  switch (sleep_state) {
-    case SLEEP_DEEP:
-      enterDeepSleep();
-      break;
-    case SLEEP_LIGHT:
-      break;
-    case SLEEP_NONE:
-    default:
-  }
-}
-
-SleepStates_t getSleepMode()
-{
-  if (sleep_events == NULL) {
-    return SLEEP_NONE;
-  }
-
-  uint32_t events = osEventFlagsGet(sleep_events);
-
-  if (events & SLEEP_REQUEST_LIGHT) {
-    return SLEEP_LIGHT;
-  }
-
-  if (events & SLEEP_REQUEST_DEEP) {
-    return SLEEP_DEEP;
-  }
-
-  return SLEEP_NONE;
-}
-
-// TODO: make it safe by ensuring that there are no pending saves etc
-void enterDeepSleep()
+void SleepDeep_Enter()
 {
   vTaskSuspendAll();
 
@@ -158,17 +89,10 @@ void enterDeepSleep()
   HAL_PWREx_ControlStopModeVoltageScaling(PWR_REGULATOR_SVOS_SCALE5);
   HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
 
-  reinitializePeripherals();
-
-//  SCB_EnableDCache();
-
-  HAL_ResumeTick();
-
-  osEventFlagsClear(sleep_events, SLEEP_REQUEST_DEEP);
-  osEventFlagsSet(sleep_events, SLEEP_WAKEUP_MESS);
-
-  xTaskResumeAll();
+  HAL_NVIC_SystemReset();
 }
+
+/* Private function definitions ----------------------------------------------*/
 
 void disablePeripherals()
 {

@@ -16,7 +16,7 @@
 
 #include "sys_temperature.h"
 #include "sys_led.h"
-#include "sys_sleep.h"
+#include "sys_main.h"
 
 #include "check_inputs.h"
 
