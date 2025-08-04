@@ -39,21 +39,20 @@ extern "C" {
 
 /**
  * @brief Returns the necessary information for modulating a synchronization
- * seqeunce
+ * sequence
  * 
  * @param cfg Configuration struct to use
  * @param waveform_step Parameters of the waveform to use for modulation (modified)
- * @param bit Bit to modulate. Used for FSK/FH-BFSK based synchronization
  * @param step current step
  * @return true if successful, false otherwise
  */
-bool Sync_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, bool* bit, uint16_t step);
+bool Sync_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step);
 
 /**
  * @brief Returns number of steps in the synchronization sequence
  * 
  * @param cfg Configuration struct to use
- * @return uint16_t Number of steps in the synchronziation sequence
+ * @return uint16_t Number of steps in the synchronization sequence
  */
 uint16_t Sync_NumSteps(const DspConfig_t* cfg);
 
@@ -67,7 +66,7 @@ uint16_t Sync_NumSteps(const DspConfig_t* cfg);
 bool Sync_Synchronize(const DspConfig_t* cfg);
 
 /**
- * @brief Resets the synchornization process
+ * @brief Resets the synchronization process
  * 
  * To be called when a message has been started to reset
  */

@@ -189,6 +189,16 @@ extern "C" {
 #define MIN_WINDOW_FUNCTION         0
 #define MAX_WINDOW_FUNCTION         (NUM_WINDOW_FUNCTIONS - 1)
 
+#define DEFAULT_WAKEUP_TONES_STATE  (false)
+#define MIN_WAKEUP_TONES_STATE      (false)
+#define MAX_WAKEUP_TONES_STATE      (true)
+
+#define DEFAULT_WAKEUP_TONE_FREQ1   (27000U)
+#define DEFAULT_WAKEUP_TONE_FREQ2   (30000U)
+#define DEFAULT_WAKEUP_TONE_FREQ3   (33000U)
+#define MIN_WAKEUP_TONE_FREQ        (20000U)
+#define MAX_WAKEUP_TONE_FREQ        (40000U)
+
 /* Exported macro ------------------------------------------------------------*/
 
 

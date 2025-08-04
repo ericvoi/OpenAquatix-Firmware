@@ -17,6 +17,7 @@
 #include "cfg_parameters.h"
 #include "cfg_defaults.h"
 #include "stm32h7xx_hal.h"
+#include <math.h>
 #include <string.h>
 
 /* Private typedef -----------------------------------------------------------*/
@@ -114,7 +115,7 @@ static const uint16_t num_primes = sizeof(primes) / sizeof(primes[0]);
 
 /* Private function prototypes -----------------------------------------------*/
 
-uint32_t getFhbfskSeqeunceNumber(uint32_t normalized_bit_index, const DspConfig_t* cfg);
+uint32_t getFhbfskSequenceNumber(uint32_t normalized_bit_index, const DspConfig_t* cfg);
 uint32_t incrementSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequences);
 uint32_t galoisSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequences);
 uint32_t primeSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequences);
@@ -199,7 +200,7 @@ uint32_t Modulate_GetFhbfskFrequency(bool bit,
       frequency_separation * (2 * cfg->fhbfsk_num_tones - 1) / 2;
   start_freq = (start_freq / frequency_separation) * frequency_separation;
 
-  uint32_t sequence_number = getFhbfskSeqeunceNumber(bit_index / cfg->fhbfsk_dwell_time, cfg);
+  uint32_t sequence_number = getFhbfskSequenceNumber(bit_index / cfg->fhbfsk_dwell_time, cfg);
   uint32_t frequency_index = 2 * sequence_number + bit;
   return start_freq + frequency_separation * frequency_index;
 }
@@ -207,6 +208,26 @@ uint32_t Modulate_GetFhbfskFrequency(bool bit,
 uint32_t Modulate_GetFskFrequency(bool bit, const DspConfig_t* cfg)
 {
   return (bit) ? cfg->fsk_f1 : cfg->fsk_f0;
+}
+
+bool Modulate_DataStep(const DspConfig_t* cfg, BitMessage_t* bit_msg, WaveformStep_t* waveform_step, uint16_t bit_index, uint16_t symbol_index)
+{
+  bool bit;
+  if (Packet_GetBit(bit_msg, bit_index, &bit) == false) {
+    return false;
+  }
+  switch (cfg->mod_demod_method) {
+    case MOD_DEMOD_FSK:
+      waveform_step->freq_hz = Modulate_GetFskFrequency(bit, cfg);
+      break;
+    case MOD_DEMOD_FHBFSK:
+      waveform_step->freq_hz = Modulate_GetFhbfskFrequency(bit, symbol_index, cfg);
+      break;
+    default:
+      return false;
+  }
+  waveform_step->duration_us = (uint32_t) roundf(1000000.0f / cfg->baud_rate);
+  return true;
 }
 
 bool Modulate_RegisterParams()
@@ -273,7 +294,7 @@ bool Modulate_RegisterParams()
 
 /* Private function definitions ----------------------------------------------*/
 
-uint32_t getFhbfskSeqeunceNumber(uint32_t normalized_bit_index, const DspConfig_t* cfg)
+uint32_t getFhbfskSequenceNumber(uint32_t normalized_bit_index, const DspConfig_t* cfg)
 {
   switch (cfg->fhbfsk_hopper) {
     case HOPPER_INCREMENT:
