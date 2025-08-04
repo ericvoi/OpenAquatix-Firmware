@@ -110,9 +110,11 @@ WaveformStep_t MessDacResource_GetStep(uint16_t current_step)
   return waveform_step;
 }
 
-uint16_t MessDacResource_SyncSteps()
+uint16_t MessDacResource_SyncWakeupSteps()
 {
-  return Sync_NumSteps(&cfg);
+  uint16_t sync_steps = Sync_NumSteps(&cfg);
+  uint16_t wakeup_steps = WakeupTones_NumSteps(&cfg);
+  return sync_steps + wakeup_steps;
 }
 
 /* Private function definitions ----------------------------------------------*/

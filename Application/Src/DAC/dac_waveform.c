@@ -14,6 +14,7 @@
 #include "mess_dac_resources.h"
 #include "cfg_defaults.h"
 #include "cfg_parameters.h"
+#include "sleep/wakeup_tones.h"
 #include "FreeRTOS.h"
 #include "cmsis_os.h"
 #include <stdbool.h>
@@ -93,13 +94,13 @@ bool Waveform_InitWaveformGenerator(void)
   return true;
 }
 
-bool Waveform_SetWaveformSequence(uint16_t num_steps)
+bool Waveform_SetWaveformSequence(uint16_t num_steps, bool is_message)
 {
   if (num_steps == 0) return false;
 
-  uint16_t sync_steps = MessDacResource_SyncSteps();
+  uint16_t extra_steps = is_message ? MessDacResource_SyncWakeupSteps() : 0;
 
-  sequence_length = num_steps + sync_steps;
+  sequence_length = num_steps + extra_steps;
   current_step = 0;
 
   return true;
@@ -156,7 +157,7 @@ bool Waveform_RegisterParams()
 
 void Waveform_Flush()
 {
-  Waveform_SetWaveformSequence(1);
+  Waveform_SetWaveformSequence(1, false);
   HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_FEEDBACK);
   wave_ctrl.phase_accumulator = 0;
 

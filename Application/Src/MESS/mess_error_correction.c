@@ -412,7 +412,7 @@ bool addJanusConvolutional(BitMessage_t* bit_msg,
         return false;
       }
     }
-  *bits_added += output_index;
+  *bits_added += output_index - section_info.ecc_start_index;
   return true;
 }
 

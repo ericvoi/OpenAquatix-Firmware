@@ -62,20 +62,13 @@ void MessDacResource_RegisterMessageConfiguration(const DspConfig_t* new_cfg,
 WaveformStep_t MessDacResource_GetStep(uint16_t current_step);
 
 /**
- * @brief Number of steps in the synchronization sequence
+ * @brief Number of steps in the synchronization + wakeup sequence
  * 
- * Useful when no cfg is available
+ * Useful when the registered configuration is needed
  * 
  * @return uint16_t Number of steps
  */
-uint16_t MessDacResource_SyncSteps(void);
-
-/**
- * @brief NUmber of steps needed to send wakeup tones
- * 
- * @return uint16_t Number of wakeup steps
- */
-uint16_t MessDacResource_WakeupSteps(void);
+uint16_t MessDacResource_SyncWakeupSteps(void);
 
 /* Private defines -----------------------------------------------------------*/
 
