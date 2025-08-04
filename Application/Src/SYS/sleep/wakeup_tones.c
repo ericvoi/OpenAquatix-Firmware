@@ -69,9 +69,15 @@ uint16_t WakeupTones_NumSteps(const DspConfig_t* cfg)
 
 void fhbfskWakeupStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step_index)
 {
-  waveform_step->freq_hz = fhbfskWakeupTone(cfg, step_index);
+  if (step_index == NUM_WAKEUP_TONES) {
+    waveform_step->relative_amplitude = 0.0f;
+    waveform_step->duration_us = SILENCE_DURATION_MS;
+    return;
+  }
 
+  waveform_step->freq_hz = fhbfskWakeupTone(cfg, step_index);
   waveform_step->duration_us = (uint32_t) 4 * (1000000.0f / cfg->baud_rate);
+  waveform_step->relative_amplitude = Modulate_GetAmplitude(waveform_step->freq_hz);
 }
 
 uint32_t fhbfskWakeupTone(const DspConfig_t* cfg, uint16_t step_index)
@@ -79,8 +85,9 @@ uint32_t fhbfskWakeupTone(const DspConfig_t* cfg, uint16_t step_index)
   if (step_index > NUM_WAKEUP_TONES) {
     return 0;
   }
+
   DspConfig_t temp_cfg;
-  memcpy(&temp_cfg, &cfg, sizeof(DspConfig_t));
+  memcpy(&temp_cfg, cfg, sizeof(DspConfig_t));
   temp_cfg.fhbfsk_hopper = HOPPER_INCREMENT;
 
   // Calculate the actual center frequency since the one in cfg is not necessarily

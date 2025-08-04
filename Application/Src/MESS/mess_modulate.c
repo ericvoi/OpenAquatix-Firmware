@@ -227,6 +227,7 @@ bool Modulate_DataStep(const DspConfig_t* cfg, BitMessage_t* bit_msg, WaveformSt
       return false;
   }
   waveform_step->duration_us = (uint32_t) roundf(1000000.0f / cfg->baud_rate);
+  waveform_step->relative_amplitude = Modulate_GetAmplitude(waveform_step->freq_hz);
   return true;
 }
 

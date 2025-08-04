@@ -34,6 +34,10 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
+/**
+ * @brief Checks if a sleep mode needs to be entered, and, if so, disables the
+ * scheduler and enters into the corresponding loop
+ */
 void SleepManager_Enter();
 
 /* Private defines -----------------------------------------------------------*/

@@ -116,6 +116,7 @@ bool Sync_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_
     case SYNC_PN_32_JANUS:
       waveform_step->freq_hz = janus_frequencies[step];
       waveform_step->duration_us = (uint32_t) roundf(1000000.0f / cfg->baud_rate);
+      waveform_step->relative_amplitude = Modulate_GetAmplitude(waveform_step->freq_hz);
       return true;
     default:
       return false;

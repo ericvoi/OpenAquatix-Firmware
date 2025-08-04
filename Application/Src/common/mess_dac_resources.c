@@ -107,7 +107,6 @@ WaveformStep_t MessDacResource_GetStep(uint16_t current_step)
     Error_Routine(ERROR_DAC_PROCESSING);
     return waveform_step;
   }
-  waveform_step.relative_amplitude = Modulate_GetAmplitude(waveform_step.freq_hz);
   return waveform_step;
 }
 

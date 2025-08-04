@@ -34,6 +34,10 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
+/**
+ * @brief Enters a deep sleep where all peripherals are disabled and the device
+ * must be woken up by an interrupt
+ */
 void SleepDeep_Enter();
 
 /* Private defines -----------------------------------------------------------*/

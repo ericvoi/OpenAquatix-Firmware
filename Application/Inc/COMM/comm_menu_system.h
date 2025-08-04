@@ -56,6 +56,11 @@ typedef enum {
   MENU_ID_CFG_UNIV_SYNC,        // Synchronization sequence to use
   MENU_ID_CFG_UNIV_EXP,         // Export the configuration options used
   MENU_ID_CFG_UNIV_IMP,         // Import configuration options
+  MENU_ID_CFG_UNIV_WAKEUP,      // Wakeup tones options
+  MENU_ID_CFG_UNIV_WAKEUP_EN,   // Toggle sending wakeup tones
+  MENU_ID_CFG_UNIV_WAKEUP_F1,   // First wakeup tone frequency
+  MENU_ID_CFG_UNIV_WAKEUP_F2,   // Second wakeup tone frequency
+  MENU_ID_CFG_UNIV_WAKEUP_F3,   // Third wakeup tone frequency
   MENU_ID_CFG_MOD,              // Waveform modulation parameters
   MENU_ID_CFG_MOD_TLEN,         // Maximum code change to use with the DAC
   MENU_ID_CFG_MOD_CAL,          // Calibration menu for the modem's modulation
