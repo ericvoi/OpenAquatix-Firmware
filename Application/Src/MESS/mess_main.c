@@ -56,6 +56,7 @@
 
 
 /* Private variables ---------------------------------------------------------*/
+extern osEventFlagsId_t sleep_events;
 
 // Identification parameters
 static uint8_t modem_identifier_4b = DEFAULT_ID;
@@ -84,7 +85,11 @@ static DspConfig_t default_config = {
     .preamble_ecc_method = DEFAULT_ECC_PREAMBLE,
     .cargo_ecc_method = DEFAULT_ECC_MESSAGE,
     .use_interleaver = DEFAULT_INTERLEAVER_STATE,
-    .sync_method = DEFAULT_SYNC_METHOD
+    .sync_method = DEFAULT_SYNC_METHOD,
+    .wakeup_tones = DEFAULT_WAKEUP_TONES_STATE,
+    .wakeup_tone1 = DEFAULT_WAKEUP_TONE_FREQ1,
+    .wakeup_tone2 = DEFAULT_WAKEUP_TONE_FREQ2,
+    .wakeup_tone3 = DEFAULT_WAKEUP_TONE_FREQ3
 };
 static DspConfig_t* cfg = &default_config;
 static BitMessage_t bit_msg;
@@ -648,18 +653,44 @@ static bool registerMessMainParams()
   min_u32 = MIN_ID;
   max_u32 = MAX_ID;
   if (Param_Register(PARAM_ID, "the modem identifier", PARAM_TYPE_UINT8,
-      &modem_identifier_4b, sizeof(uint8_t), &min_u32, &max_u32, NULL) == false) {
+                     &modem_identifier_4b, sizeof(uint8_t), &min_u32, 
+                     &max_u32, NULL) == false) {
     return false;
   }
 
   min_u32 = MIN_STATIONARY_FLAG;
   max_u32 = MAX_STATIONARY_FLAG;
   if (Param_Register(PARAM_STATIONARY_FLAG, "stationary flag", PARAM_TYPE_UINT8,
-      &is_stationary, sizeof(uint8_t), &min_u32, &max_u32, NULL) == false) {
+                     &is_stationary, sizeof(uint8_t), &min_u32, 
+                     &max_u32, NULL) == false) {
     return false;
   }
 
-  return true;
+  min_u32 = MIN_WAKEUP_TONES_STATE;
+  max_u32 = MAX_WAKEUP_TONES_STATE;
+  if (Param_Register(PARAM_WAKEUP_TONES_STATE, "wakeup tones", PARAM_TYPE_UINT8,
+                     &default_config.wakeup_tones, sizeof(bool), &min_u32, 
+                     &max_u32, NULL) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_WAKEUP_TONE_FREQ;
+  max_u32 = MAX_WAKEUP_TONE_FREQ;
+  if (Param_Register(PARAM_WAKEUP_TONE1, "wakeup tone 1", PARAM_TYPE_UINT32,
+                     &default_config.wakeup_tone1, sizeof(uint32_t), &min_u32, 
+                     &max_u32, NULL) == false) {
+    return false;
+  }
+  if (Param_Register(PARAM_WAKEUP_TONE2, "wakeup tone 2", PARAM_TYPE_UINT32,
+                     &default_config.wakeup_tone2, sizeof(uint32_t), &min_u32, 
+                     &max_u32, NULL) == false) {
+    return false;
+  }
+  if (Param_Register(PARAM_WAKEUP_TONE3, "wakeup tone 3", PARAM_TYPE_UINT32,
+                     &default_config.wakeup_tone3, sizeof(uint32_t), &min_u32, 
+                     &max_u32, NULL) == false) {
+    return false;
+  }
 
   return true;
 }

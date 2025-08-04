@@ -71,6 +71,10 @@ typedef enum {
   PARAM_SYNC_METHOD,
   PARAM_PREAMBLE_ERROR_DETECTION,
   PARAM_WINDOW_FUNCTION,
+  PARAM_WAKEUP_TONES_STATE,
+  PARAM_WAKEUP_TONE1,
+  PARAM_WAKEUP_TONE2,
+  PARAM_WAKEUP_TONE3,
   // Add new parameters just above here and nowhere else
   NUM_PARAM
 } ParamIds_t;

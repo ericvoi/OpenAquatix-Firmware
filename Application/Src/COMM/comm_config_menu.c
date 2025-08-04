@@ -48,6 +48,10 @@ void setFhbfskFreqSpacing(void* argument);
 void setFhbfskDwell(void* argument);
 void setFhbfskTones(void* argument);
 void setFhbfskHopper(void* argument);
+void toggleWakeupTones(void* argument);
+void setWakeupTone1(void* argument);
+void setWakeupTone2(void* argument);
+void setWakeupTone3(void* argument);
 void setBaudRate(void* argument);
 void setCenterFrequency(void* argument);
 void getBitPeriod(void* argument);
@@ -119,7 +123,8 @@ static MenuID_t univConfigMenuChildren[] = {
   MENU_ID_CFG_UNIV_BAUD,        MENU_ID_CFG_UNIV_FC,    
   MENU_ID_CFG_UNIV_BP,          MENU_ID_CFG_UNIV_BANDWIDTH, 
   MENU_ID_CFG_UNIV_INTERLEAVER, MENU_ID_CFG_UNIV_SYNC,
-  MENU_ID_CFG_UNIV_EXP,         MENU_ID_CFG_UNIV_IMP
+  MENU_ID_CFG_UNIV_WAKEUP,      MENU_ID_CFG_UNIV_EXP,
+  MENU_ID_CFG_UNIV_IMP
 };
 static const MenuNode_t univConfigMenu = {
   .id = MENU_ID_CFG_UNIV,
@@ -402,6 +407,21 @@ static const MenuNode_t univConfigSync = {
   .num_children = 0,
   .access_level = 0,
   .parameters = &univConfigSyncParam
+};
+
+static MenuID_t univConfigWakeupChildren[] = {
+  MENU_ID_CFG_UNIV_WAKEUP_EN, MENU_ID_CFG_UNIV_WAKEUP_F1,
+  MENU_ID_CFG_UNIV_WAKEUP_F2, MENU_ID_CFG_UNIV_WAKEUP_F3
+};
+static const MenuNode_t univConfigWakeupMenu = {
+  .id = MENU_ID_CFG_UNIV_WAKEUP,
+  .description = "Wakeup Options",
+  .handler = NULL,
+  .parent_id = MENU_ID_CFG_UNIV,
+  .children_ids = univConfigWakeupChildren,
+  .num_children = sizeof(univConfigWakeupChildren) / sizeof(univConfigWakeupChildren[0]),
+  .access_level = 0,
+  .parameters = NULL
 };
 
 static ParamContext_t univConfigExportParam = {
@@ -829,6 +849,66 @@ static const MenuNode_t univFhbfskConfigHopper = {
   .parameters = &univFhbfskConfigHopperParam
 };
 
+static ParamContext_t univWakeupConfigEnParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_UNIV_WAKEUP_EN
+};
+static const MenuNode_t univWakeupConfigEn = {
+  .id = MENU_ID_CFG_UNIV_WAKEUP_EN,
+  .description = "Toggle sending wakeup tones",
+  .handler = toggleWakeupTones,
+  .parent_id = MENU_ID_CFG_UNIV_WAKEUP,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &univWakeupConfigEnParam
+};
+
+static ParamContext_t univWakeupConfigTone1Param = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_UNIV_WAKEUP_F1
+};
+static const MenuNode_t univWakeupConfigTone1 = {
+  .id = MENU_ID_CFG_UNIV_WAKEUP_F1,
+  .description = "First wakeup tone frequency",
+  .handler = setWakeupTone1,
+  .parent_id = MENU_ID_CFG_UNIV_WAKEUP,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &univWakeupConfigTone1Param
+};
+
+static ParamContext_t univWakeupConfigTone2Param = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_UNIV_WAKEUP_F2
+};
+static const MenuNode_t univWakeupConfigTone2 = {
+  .id = MENU_ID_CFG_UNIV_WAKEUP_F2,
+  .description = "Second wakeup tone frequency",
+  .handler = setWakeupTone2,
+  .parent_id = MENU_ID_CFG_UNIV_WAKEUP,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &univWakeupConfigTone2Param
+};
+
+static ParamContext_t univWakeupConfigTone3Param = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_UNIV_WAKEUP_F3
+};
+static const MenuNode_t univWakeupConfigTone3 = {
+  .id = MENU_ID_CFG_UNIV_WAKEUP_F3,
+  .description = "Third wakeup tone frequency",
+  .handler = setWakeupTone3,
+  .parent_id = MENU_ID_CFG_UNIV_WAKEUP,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &univWakeupConfigTone3Param
+};
+
 static ParamContext_t modCalConfigLowFreqParam = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_MOD_CAL_LOWFREQ
@@ -1166,7 +1246,10 @@ bool COMM_RegisterConfigurationMenu()
              registerMenu(&demodConfigFixedGain) && registerMenu(&univConfigEccPreamble) &&
              registerMenu(&univConfigEccMessage) && registerMenu(&univErrConfigPreambleValidation) &&
              registerMenu(&univErrConfigCargoValidation) && registerMenu(&univErrConfigPreambleBehavior) &&
-             registerMenu(&univErrConfigCargoBehavior) && registerMenu(&demodConfigWindowFcn);
+             registerMenu(&univErrConfigCargoBehavior) && registerMenu(&demodConfigWindowFcn) &&
+             registerMenu(&univConfigWakeupMenu) && registerMenu(&univWakeupConfigTone1) &&
+             registerMenu(&univWakeupConfigEn) && registerMenu(&univWakeupConfigTone2) &&
+             registerMenu(&univWakeupConfigTone3);
 
   return ret;
 }
@@ -1281,6 +1364,34 @@ void setFhbfskHopper(void* argument)
 
   COMMLoops_LoopEnum(context, PARAM_FHBFSK_HOPPER, descriptors, 
       sizeof(descriptors) / sizeof(descriptors[0]));
+}
+
+void toggleWakeupTones(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  COMMLoops_LoopToggle(context, PARAM_WAKEUP_TONES_STATE);
+}
+
+void setWakeupTone1(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  COMMLoops_LoopUint32(context, PARAM_WAKEUP_TONE1);
+}
+
+void setWakeupTone2(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  COMMLoops_LoopUint32(context, PARAM_WAKEUP_TONE2);
+}
+
+void setWakeupTone3(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  COMMLoops_LoopUint32(context, PARAM_WAKEUP_TONE3);
 }
 
 void setBaudRate(void* argument)

@@ -1,12 +1,12 @@
 /*
- * sys_main.h
+ * sleep_deep.h
  *
- *  Created on: Mar 11, 2025
+ *  Created on: Aug 2, 2025
  *      Author: ericv
  */
 
-#ifndef SYS_SYS_MAIN_H_
-#define SYS_SYS_MAIN_H_
+#ifndef SLEEP_SLEEP_DEEP_H_
+#define SLEEP_SLEEP_DEEP_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,13 +30,15 @@ extern "C" {
 
 /* Exported macro ------------------------------------------------------------*/
 
-#define SLEEP_REQUEST_LIGHT   (1 << 0)
-#define SLEEP_REQUEST_DEEP    (1 << 1)
-#define SLEEP_WAKEUP_MESS     (1 << 2)
+
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-void SYS_StartTask(void* argument);
+/**
+ * @brief Enters a deep sleep where all peripherals are disabled and the device
+ * must be woken up by an interrupt
+ */
+void SleepDeep_Enter();
 
 /* Private defines -----------------------------------------------------------*/
 
@@ -44,4 +46,4 @@ void SYS_StartTask(void* argument);
 }
 #endif
 
-#endif /* SYS_SYS_MAIN_H_ */
+#endif /* SLEEP_SLEEP_DEEP_H_ */

@@ -95,7 +95,7 @@ HAL_StatusTypeDef WS_Update(uint8_t brightness)
     }
   }
 
-  HAL_StatusTypeDef halStatus = HAL_TIM_PWM_Start_DMA(&WS_TIM, WS_TIM_CHANNEL,
+  volatile HAL_StatusTypeDef halStatus = HAL_TIM_PWM_Start_DMA(&WS_TIM, WS_TIM_CHANNEL,
       (uint32_t *) ws_dma_buf, WS_DMA_BUF_LEN);
 
   return halStatus;

@@ -56,6 +56,11 @@ typedef enum {
   MENU_ID_CFG_UNIV_SYNC,        // Synchronization sequence to use
   MENU_ID_CFG_UNIV_EXP,         // Export the configuration options used
   MENU_ID_CFG_UNIV_IMP,         // Import configuration options
+  MENU_ID_CFG_UNIV_WAKEUP,      // Wakeup tones options
+  MENU_ID_CFG_UNIV_WAKEUP_EN,   // Toggle sending wakeup tones
+  MENU_ID_CFG_UNIV_WAKEUP_F1,   // First wakeup tone frequency
+  MENU_ID_CFG_UNIV_WAKEUP_F2,   // Second wakeup tone frequency
+  MENU_ID_CFG_UNIV_WAKEUP_F3,   // Third wakeup tone frequency
   MENU_ID_CFG_MOD,              // Waveform modulation parameters
   MENU_ID_CFG_MOD_TLEN,         // Maximum code change to use with the DAC
   MENU_ID_CFG_MOD_CAL,          // Calibration menu for the modem's modulation
@@ -109,6 +114,7 @@ typedef enum {
   MENU_ID_DBG_NOISE,            // Scaleless background noise level
   MENU_ID_DBG_DFU,              // Enter DFU mode to flash new firmware over USB
   MENU_ID_DBG_RESETCONFIG,      // Reset saved configuration 
+  MENU_ID_DBG_DEEPSLEEP,        // Enter deep sleep mode
   MENU_ID_HIST_PWR,             // History of power
   MENU_ID_HIST_PWR_PEAK,        // Peak power consumption since boot
   MENU_ID_HIST_PWR_BOOT,        // Total power consumption since boot

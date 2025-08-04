@@ -70,6 +70,13 @@ WaveformStep_t MessDacResource_GetStep(uint16_t current_step);
  */
 uint16_t MessDacResource_SyncSteps(void);
 
+/**
+ * @brief NUmber of steps needed to send wakeup tones
+ * 
+ * @return uint16_t Number of wakeup steps
+ */
+uint16_t MessDacResource_WakeupSteps(void);
+
 /* Private defines -----------------------------------------------------------*/
 
 #ifdef __cplusplus

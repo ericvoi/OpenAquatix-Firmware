@@ -83,21 +83,25 @@ typedef enum {
 // Other configuration parameters belong to modules
 // IMPORTANT: Any modification to parameters here must be reflected in the feedback tests
 typedef struct {
-  float baud_rate;
-  ModDemodMethod_t mod_demod_method;
-  uint32_t fsk_f0;
-  uint32_t fsk_f1;
-  uint32_t fc;
-  uint8_t fhbfsk_freq_spacing;
-  uint8_t fhbfsk_num_tones;
-  uint8_t fhbfsk_dwell_time;
-  ErrorDetectionMethod_t preamble_validation;
-  ErrorDetectionMethod_t cargo_validation;
-  ErrorCorrectionMethod_t preamble_ecc_method;
-  ErrorCorrectionMethod_t cargo_ecc_method;
-  bool use_interleaver;
-  FhbfskHopperMethod_t fhbfsk_hopper;
-  SynchronizationMethod_t sync_method;
+  float baud_rate;                              // b/s
+  ModDemodMethod_t mod_demod_method;            // How to encode information
+  uint32_t fsk_f0;                              // Frequency corresponding to 0 in FSK
+  uint32_t fsk_f1;                              // Frequency corresponding to 1 in FSK
+  uint32_t fc;                                  // Center frequency for FH-BFSK
+  uint8_t fhbfsk_freq_spacing;                  // Integer spacing between adjacent frequencies in FH-BFSK
+  uint8_t fhbfsk_num_tones;                     // Number of FH-BFSK tone pairs
+  uint8_t fhbfsk_dwell_time;                    // Number of symbols to remain on a FH-bFSK tone pair
+  ErrorDetectionMethod_t preamble_validation;   // Error detection method to use on the message preamble
+  ErrorDetectionMethod_t cargo_validation;      // Error detection method to use on the message cargo
+  ErrorCorrectionMethod_t preamble_ecc_method;  // Error correction method to use on the message preamble
+  ErrorCorrectionMethod_t cargo_ecc_method;     // Error correction method to use on the message cargo
+  bool use_interleaver;                         // Whether to interleave the bits in each section with JANUS interleaver
+  FhbfskHopperMethod_t fhbfsk_hopper;           // Decides which tone pair to use in FH-BFSK
+  SynchronizationMethod_t sync_method;          // Synchronization method to use between transmitter and receiver
+  bool wakeup_tones;                            // Whether to precede messages with a series of wakeup tones
+  uint32_t wakeup_tone1;                        // First of three wakeup tones
+  uint32_t wakeup_tone2;                        // Second of three wakeup tones
+  uint32_t wakeup_tone3;                        // Third of three wakeup tones
 } DspConfig_t;
 
 

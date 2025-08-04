@@ -85,7 +85,11 @@ HAL_StatusTypeDef PGA_Update()
 
 HAL_StatusTypeDef PGA_Shutdown()
 {
-  return HAL_OK;
+  tx_buffer = PGA_CMD_SDN_EN;
+
+  HAL_StatusTypeDef ret = SPI_TransmitData(&tx_buffer, 1);
+
+  return ret;
 }
 
 HAL_StatusTypeDef PGA_Enable()

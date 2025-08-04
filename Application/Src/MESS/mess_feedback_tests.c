@@ -481,8 +481,8 @@ static FeedbackTests_t feedback_tests[] = {
     // 7 PN synchronization test
     {
       .cfg = {
-          .baud_rate = 1000.0f,
-          .mod_demod_method = MOD_DEMOD_FSK,
+          .baud_rate = 200.0f,
+          .mod_demod_method = MOD_DEMOD_FHBFSK,
           .fsk_f0 = 29000,
           .fsk_f1 = 33000,
           .fc = 31000,

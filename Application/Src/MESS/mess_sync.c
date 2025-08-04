@@ -19,6 +19,7 @@
 #include "dac_waveform.h"
 #include "goertzel.h"
 #include <string.h>
+#include <math.h>
 #include <stdbool.h>
 
 /* Private typedef -----------------------------------------------------------*/
@@ -106,14 +107,17 @@ static bool evaluateStage2Results();
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool Sync_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, bool* bit, uint16_t step)
+bool Sync_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step)
 {
   (void)(waveform_step); // Planned use for advanced synchronization techniques
   switch (cfg->sync_method) {
     case NO_SYNC:
       return false;
     case SYNC_PN_32_JANUS:
-      return janusPnStep(bit, step);
+      waveform_step->freq_hz = janus_frequencies[step];
+      waveform_step->duration_us = (uint32_t) roundf(1000000.0f / cfg->baud_rate);
+      waveform_step->relative_amplitude = Modulate_GetAmplitude(waveform_step->freq_hz);
+      return true;
     default:
       return false;
   }

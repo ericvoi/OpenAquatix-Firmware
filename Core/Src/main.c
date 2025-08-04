@@ -164,6 +164,7 @@ const osMutexAttr_t dau_uart_mutex_attributes = {
 };
 /* USER CODE BEGIN PV */
 osEventFlagsId_t print_event_handle = NULL;
+extern PCD_HandleTypeDef hpcd_USB_OTG_HS;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -495,7 +496,11 @@ static void MX_ADC1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN ADC1_Init 2 */
-  HAL_ADCEx_Calibration_Start(&hadc1, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED);
+  HAL_Delay(1);
+  if (HAL_ADCEx_Calibration_Start(&hadc1, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE END ADC1_Init 2 */
 
 }
@@ -558,7 +563,11 @@ static void MX_ADC2_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN ADC2_Init 2 */
-  HAL_ADCEx_Calibration_Start(&hadc2, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED);
+  HAL_Delay(1);
+  if (HAL_ADCEx_Calibration_Start(&hadc2, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE END ADC2_Init 2 */
 
 }
@@ -624,7 +633,11 @@ static void MX_ADC3_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN ADC3_Init 2 */
-  HAL_ADCEx_Calibration_Start(&hadc3, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED);
+  HAL_Delay(1);
+  if (HAL_ADCEx_Calibration_Start(&hadc3, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE END ADC3_Init 2 */
 
 }
@@ -1238,7 +1251,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : GPIO_DAU_TO_MAIN_Pin */
   GPIO_InitStruct.Pin = GPIO_DAU_TO_MAIN_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(GPIO_DAU_TO_MAIN_GPIO_Port, &GPIO_InitStruct);
 
