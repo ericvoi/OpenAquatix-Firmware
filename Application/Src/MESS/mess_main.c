@@ -59,8 +59,14 @@
 extern osEventFlagsId_t sleep_events;
 
 // Identification parameters
-static uint8_t modem_identifier_4b = DEFAULT_ID;
+static uint8_t custom_id = DEFAULT_ID;
 static bool is_stationary = DEFAULT_STATIONARY_FLAG;
+static bool tx_rx_capable = DEFAULT_TX_RX_CAPABLE;
+static bool forwarding_capability = DEFAULT_FORWARD_CAPABILITY;
+static uint8_t janus_id = DEFAULT_JANUS_ID;
+static uint8_t janus_destination_id = DEFAULT_JANUS_DESTINATION;
+static CodingInfo_t coding = DEFAULT_CODING;
+static EncryptionInfo_t encryption = DEFAULT_ENCRYPTION;
 
 static QueueHandle_t tx_queue = NULL; // Messages to send
 static QueueHandle_t rx_queue = NULL; // Messages received
@@ -89,7 +95,8 @@ static DspConfig_t default_config = {
     .wakeup_tones = DEFAULT_WAKEUP_TONES_STATE,
     .wakeup_tone1 = DEFAULT_WAKEUP_TONE_FREQ1,
     .wakeup_tone2 = DEFAULT_WAKEUP_TONE_FREQ2,
-    .wakeup_tone3 = DEFAULT_WAKEUP_TONE_FREQ3
+    .wakeup_tone3 = DEFAULT_WAKEUP_TONE_FREQ3,
+    .protocol = DEFAULT_MESSAGING_PROTOCOL
 };
 static DspConfig_t* cfg = &default_config;
 static BitMessage_t bit_msg;
@@ -653,7 +660,7 @@ static bool registerMessMainParams()
   min_u32 = MIN_ID;
   max_u32 = MAX_ID;
   if (Param_Register(PARAM_ID, "the modem identifier", PARAM_TYPE_UINT8,
-                     &modem_identifier_4b, sizeof(uint8_t), &min_u32, 
+                     &custom_id, sizeof(uint8_t), &min_u32, 
                      &max_u32, NULL) == false) {
     return false;
   }
@@ -689,6 +696,62 @@ static bool registerMessMainParams()
   if (Param_Register(PARAM_WAKEUP_TONE3, "wakeup tone 3", PARAM_TYPE_UINT32,
                      &default_config.wakeup_tone3, sizeof(uint32_t), &min_u32, 
                      &max_u32, NULL) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_MESSAGING_PROTOCOL;
+  max_u32 = MAX_MESSAGING_PROTOCOL;
+  if (Param_Register(PARAM_PROTOCOL, "the messaging protocol", PARAM_TYPE_UINT8,
+                     &default_config.protocol, sizeof(uint8_t), &min_u32, 
+                     &max_u32, NULL) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_TX_RX_CAPABLE;
+  max_u32 = MAX_TX_RX_CAPABLE;
+  if (Param_Register(PARAM_TX_RX_ABILITY, "Tx/Rx ability flag", PARAM_TYPE_UINT8,
+                     &tx_rx_capable, sizeof(bool), &min_u32,
+                     &max_u32, NULL) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_FORWARD_CAPABILITY;
+  max_u32 = MAX_FORWARD_CAPABILITY;
+  if (Param_Register(PARAM_FORWARD_CAPABILITY, "packet forward ability flag", 
+                     PARAM_TYPE_UINT8, &forwarding_capability, sizeof(bool),
+                     &min_u32, &max_u32, NULL) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_JANUS_ID;
+  max_u32 = MAX_JANUS_ID;
+  if (Param_Register(PARAM_JANUS_ID, "JANUS ID", PARAM_TYPE_UINT8,
+                     &janus_id, sizeof(uint8_t), &min_u32, &max_u32, 
+                     NULL) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_JANUS_DESTINATION;
+  max_u32 = MAX_JANUS_DESTINATION;
+  if (Param_Register(PARAM_JANUS_DESTINATION, "JANUS destination ID",
+                     PARAM_TYPE_UINT8, &janus_destination_id, sizeof(uint8_t),
+                     &min_u32, &max_u32, NULL) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_CODING;
+  max_u32 = MAX_CODING;
+  if (Param_Register(PARAM_CODING, "string coding", PARAM_TYPE_UINT8,
+                     &coding, sizeof(uint8_t), &min_u32, &max_u32, 
+                     NULL) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_ENCRYPTION;
+  max_u32 = MAX_ENCRYPTION;
+  if (Param_Register(PARAM_ENCRYPTION, "cargo encryption", PARAM_TYPE_UINT8,
+                     &encryption, sizeof(uint8_t), &min_u32, &max_u32, 
+                     NULL) == false) {
     return false;
   }
 

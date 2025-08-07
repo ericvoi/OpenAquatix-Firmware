@@ -199,6 +199,36 @@ extern "C" {
 #define MIN_WAKEUP_TONE_FREQ        (20000U)
 #define MAX_WAKEUP_TONE_FREQ        (40000U)
 
+#define DEFAULT_MESSAGING_PROTOCOL  (PROTOCOL_CUSTOM)
+#define MIN_MESSAGING_PROTOCOL      (0)
+#define MAX_MESSAGING_PROTOCOL      (NUM_PROTOCOLS - 1)
+
+#define TX_ONLY     (false)
+#define BOTH_TX_RX  (true)
+#define DEFAULT_TX_RX_CAPABLE       (BOTH_TX_RX)
+#define MIN_TX_RX_CAPABLE           (0)
+#define MAX_TX_RX_CAPABLE           (1)
+
+#define DEFAULT_FORWARD_CAPABILITY  (false)
+#define MIN_FORWARD_CAPABILITY      (false)
+#define MAX_FORWARD_CAPABILITY      (true)
+
+#define DEFAULT_JANUS_ID            (73U)
+#define MIN_JANUS_ID                (0U)
+#define MAX_JANUS_ID                (254U)
+
+#define DEFAULT_JANUS_DESTINATION   (73U)
+#define MIN_JANUS_DESTINATION       (0U)
+#define MAX_JANUS_DESTINATION       (255U)
+
+#define DEFAULT_CODING              (CODING_ASCII8)
+#define MIN_CODING                  (0)
+#define MAX_CODING                  (NUM_CODING_METHODS)
+
+#define DEFAULT_ENCRYPTION          (ENCRYPTION_NONE)
+#define MIN_ENCRYPTION              (0)
+#define MAX_ENCRYPTION              (NUM_ENCRYPTION_METHODS)
+
 /* Exported macro ------------------------------------------------------------*/
 
 

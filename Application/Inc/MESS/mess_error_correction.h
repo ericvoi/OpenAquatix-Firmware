@@ -82,8 +82,11 @@ bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg,
  * 
  * @return Number of bits in ECC message
  */
-uint16_t ErrorCorrection_GetLength(const uint16_t length, 
-                                   const ErrorCorrectionMethod_t method);
+uint16_t ErrorCorrection_CodedLength(const uint16_t length, 
+                                     const ErrorCorrectionMethod_t method);
+
+uint16_t ErrorCorrection_UncodedLength(const uint16_t length,
+                                       const ErrorCorrectionMethod_t method);
 
 /* Private defines -----------------------------------------------------------*/
 
