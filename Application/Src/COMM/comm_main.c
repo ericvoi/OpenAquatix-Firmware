@@ -115,6 +115,9 @@ void COMM_StartTask(void *argument)
   if (COMM_RegisterEvalMenu() == false) {
     Error_Routine(ERROR_COMM_INIT);
   }
+  if (COMM_RegisterJanusMenu() == false) {
+    Error_Routine(ERROR_COMM_INIT);
+  }
 
   menu_context.current_menu = getMenu(MENU_ID_MAIN);
   displaySubMenus();

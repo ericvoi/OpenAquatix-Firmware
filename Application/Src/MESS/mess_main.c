@@ -248,7 +248,6 @@ void MESS_StartTask(void* argument)
                         MSG_RECEIVED_TRANSDUCER : MSG_RECEIVED_FEEDBACK;
           rx_msg.timestamp = osKernelGetTickCount();
           rx_msg.length_bits = input_bit_msg.data_len_bits;
-          rx_msg.data_type = input_bit_msg.contents_data_type;
 
           if (Interleaver_Undo(&input_bit_msg, cfg, false) == false) {
             Error_Routine(ERROR_MESS_PROCESSING);

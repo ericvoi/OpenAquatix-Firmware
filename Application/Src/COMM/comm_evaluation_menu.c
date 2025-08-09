@@ -47,7 +47,7 @@ void sendEvalMessage(FunctionContext_t* context, Message_t* msg);
 /* Private variables ---------------------------------------------------------*/
 
 static MenuID_t evalMenuChildren[] = {
-  MENU_ID_EVAL_SETMSG,      MENU_ID_EVAL_FEEDBACK, 
+  MENU_ID_EVAL_SETLEN,      MENU_ID_EVAL_FEEDBACK, 
   MENU_ID_EVAL_TRANSDUCER,  MENU_ID_EVAL_FEEDBACKTESTS
 };
 
@@ -64,10 +64,10 @@ static const MenuNode_t evalMenu = {
 
 static ParamContext_t evalSetMsgLenParam = {
   .state = PARAM_STATE_0,
-  .param_id = MENU_ID_EVAL_SETMSG
+  .param_id = MENU_ID_EVAL_SETLEN
 };
 static const MenuNode_t evalSetMsgLen = {
-  .id = MENU_ID_EVAL_SETMSG,
+  .id = MENU_ID_EVAL_SETLEN,
   .description = "Set evaluation message length",
   .handler = setEvalMsgLen,
   .parent_id = MENU_ID_EVAL,

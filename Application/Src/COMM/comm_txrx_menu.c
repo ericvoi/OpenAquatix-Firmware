@@ -58,7 +58,7 @@ void transmitInt(FunctionContext_t* context, bool is_feedback);
 void transmitFloat(FunctionContext_t* context, bool is_feedback);
 
 bool parseHexString(FunctionContext_t* context, uint16_t* num_bytes, uint8_t* decoded_bytes);
-void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_feedback);
+static void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_feedback);
 
 /* Private variables ---------------------------------------------------------*/
 

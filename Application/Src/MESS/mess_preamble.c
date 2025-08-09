@@ -225,7 +225,7 @@ bool calculateJanusReservationBits(Message_t* msg, BitMessage_t* bit_msg, const 
   uint16_t reservation_time_index = (uint16_t) ceilf(required_time * 25.0f / 4.0f + 14.0f);
 
   uint8_t e = 0;
-  while ((15 + 16) * (1 << e) > reservation_time_index) {
+  while ((15 + 16) * (1 << e) < reservation_time_index) {
     e++;
     if (e > 7) return false;
   }
@@ -660,15 +660,14 @@ bool decodeJanusPreamble(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_
   JanusMessageData_t message_type = janusMessageType(class_user_id, application_type);
   if (message_type == JANUS_UNKNOWN) return false;
 
+  msg->janus_data_type = message_type;
+
   const PreambleFieldConfig_t* fields;
   if (janusFields(&fields, message_type) == false) {
     return false;
   }
 
   if (extractPreambleFields(fields, bit_msg, msg) == false) {
-    return false;
-  }
-  if (msg->preamble.message_type.valid == false) {
     return false;
   }
 

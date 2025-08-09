@@ -30,7 +30,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 static MenuID_t mainMenuChildren[] = {
-  MENU_ID_CFG, MENU_ID_DBG, MENU_ID_HIST, MENU_ID_TXRX, MENU_ID_EVAL
+  MENU_ID_CFG, MENU_ID_DBG, MENU_ID_HIST, MENU_ID_TXRX, MENU_ID_JANUS, MENU_ID_EVAL
 };
 static const MenuNode_t mainMenu = {
   .id = MENU_ID_MAIN,
@@ -42,8 +42,6 @@ static const MenuNode_t mainMenu = {
   .access_level = 0,
   .parameters = NULL
 };
-
-
 
 /* Exported function definitions ---------------------------------------------*/
 

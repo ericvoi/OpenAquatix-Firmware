@@ -203,8 +203,8 @@ extern "C" {
 #define MIN_MESSAGING_PROTOCOL      (0)
 #define MAX_MESSAGING_PROTOCOL      (NUM_PROTOCOLS - 1)
 
-#define TX_ONLY     (false)
-#define BOTH_TX_RX  (true)
+#define TX_ONLY                     (false)
+#define BOTH_TX_RX                  (true)
 #define DEFAULT_TX_RX_CAPABLE       (BOTH_TX_RX)
 #define MIN_TX_RX_CAPABLE           (0)
 #define MAX_TX_RX_CAPABLE           (1)
@@ -223,11 +223,11 @@ extern "C" {
 
 #define DEFAULT_CODING              (CODING_ASCII8)
 #define MIN_CODING                  (0)
-#define MAX_CODING                  (NUM_CODING_METHODS)
+#define MAX_CODING                  (NUM_CODING_METHODS - 1)
 
 #define DEFAULT_ENCRYPTION          (ENCRYPTION_NONE)
 #define MIN_ENCRYPTION              (0)
-#define MAX_ENCRYPTION              (NUM_ENCRYPTION_METHODS)
+#define MAX_ENCRYPTION              (NUM_ENCRYPTION_METHODS - 1)
 
 /* Exported macro ------------------------------------------------------------*/
 
