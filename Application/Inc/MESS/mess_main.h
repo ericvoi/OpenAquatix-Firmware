@@ -132,6 +132,8 @@ typedef struct {
   bool error_detected;
   EvalMessageInfo_t eval_info;
   PreambleContent_t preamble;
+  MessagingProtocol_t protocol;
+  uint16_t uncoded_data_len;
 } Message_t;
 
 // defines the structure for analysis of the waveform

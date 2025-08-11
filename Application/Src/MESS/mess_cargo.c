@@ -89,6 +89,7 @@ bool Cargo_Decode(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
 {
   switch (cfg->protocol) {
     case PROTOCOL_CUSTOM:
+      msg->uncoded_data_len = bit_msg->data_len_bits;
       return extractCustomCargo(bit_msg, msg);
     case PROTOCOL_JANUS:
       return extractDataJanusCargo(bit_msg, msg);
@@ -232,7 +233,7 @@ bool addCodedEncryptedData(CodingInfo_t coding, EncryptionInfo_t encryption, Bit
         return false;
     }
     for (uint16_t j = 0; j < coded_len; j++) {
-      bool bit = (coded_value & (1 << (7 - j))) != 0;
+      bool bit = (coded_value & (1 << (coded_len - 1 - j))) != 0;
       if (Packet_AddBit(bit_msg, bit) == false)
         return false;
     }
@@ -275,6 +276,7 @@ bool extractDataJanusCargo(BitMessage_t* bit_msg, Message_t* msg)
 {
   switch (msg->janus_data_type) {
     case JANUS_011_01_SMS:
+      msg->uncoded_data_len = Cargo_RawUncodedLength(bit_msg->data_len_bits, msg->preamble.coding.value);
       return extractJanus_11_01_Cargo(bit_msg, msg);
     default:
       return false;

@@ -60,7 +60,7 @@ extern osEventFlagsId_t sleep_events;
 
 // Identification parameters
 static uint8_t custom_id = DEFAULT_ID;
-static bool is_stationary = DEFAULT_STATIONARY_FLAG;
+static bool is_mobile = DEFAULT_STATIONARY_FLAG;
 static bool tx_rx_capable = DEFAULT_TX_RX_CAPABLE;
 static bool forwarding_capability = DEFAULT_FORWARD_CAPABILITY;
 static uint8_t janus_id = DEFAULT_JANUS_ID;
@@ -248,6 +248,7 @@ void MESS_StartTask(void* argument)
                         MSG_RECEIVED_TRANSDUCER : MSG_RECEIVED_FEEDBACK;
           rx_msg.timestamp = osKernelGetTickCount();
           rx_msg.length_bits = input_bit_msg.data_len_bits;
+          rx_msg.protocol = cfg->protocol;
 
           if (Interleaver_Undo(&input_bit_msg, cfg, false) == false) {
             Error_Routine(ERROR_MESS_PROCESSING);
@@ -667,7 +668,7 @@ static bool registerMessMainParams()
   min_u32 = MIN_STATIONARY_FLAG;
   max_u32 = MAX_STATIONARY_FLAG;
   if (Param_Register(PARAM_STATIONARY_FLAG, "stationary flag", PARAM_TYPE_UINT8,
-                     &is_stationary, sizeof(uint8_t), &min_u32, 
+                     &is_mobile, sizeof(uint8_t), &min_u32, 
                      &max_u32, NULL) == false) {
     return false;
   }

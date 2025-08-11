@@ -68,7 +68,7 @@ static const PreambleFieldConfig_t custom_fields[] = {
   FIELD_ENTRY(0, 4, modem_id),
   FIELD_ENTRY(4, 4, message_type),
   FIELD_ENTRY(8, 7, cargo_length),
-  FIELD_ENTRY(15, 1, is_stationary),
+  FIELD_ENTRY(15, 1, is_mobile),
   FIELDS_END
 };
 
@@ -76,7 +76,7 @@ static const PreambleFieldConfig_t custom_fields[] = {
 
 static const PreambleFieldConfig_t janus_011_01_sms_fields[] = {
   FIELD_FIXED_ENTRY(0, 4, JANUS_VERSION),
-  FIELD_ENTRY(4, 1, is_stationary),
+  FIELD_ENTRY(4, 1, is_mobile),
   #define JANUS_011_01_SMS_SCHEDULE_FLAG      (1U)
   FIELD_ENTRY(5, 1, schedule_flag),
   FIELD_ENTRY(6, 1, tx_rx_capable),
@@ -295,9 +295,9 @@ bool loadCustomParameters(Message_t* msg)
   if (Param_GetUint8(PARAM_STATIONARY_FLAG, &value) == false) {
     return false;
   }
-  if (msg->preamble.is_stationary.valid != true) {
-    msg->preamble.is_stationary.value = value;
-    msg->preamble.is_stationary.valid = true;
+  if (msg->preamble.is_mobile.valid != true) {
+    msg->preamble.is_mobile.value = value;
+    msg->preamble.is_mobile.valid = true;
   }
   return true;
 }
@@ -352,9 +352,9 @@ bool loadJanusParameters(Message_t* msg)
   if (Param_GetUint8(PARAM_STATIONARY_FLAG, &value) == false) {
     return false;
   }
-  if (msg->preamble.is_stationary.valid != true) {
-    msg->preamble.is_stationary.value = value;
-    msg->preamble.is_stationary.valid = true;
+  if (msg->preamble.is_mobile.valid != true) {
+    msg->preamble.is_mobile.value = value;
+    msg->preamble.is_mobile.valid = true;
   }
   return true;
 }

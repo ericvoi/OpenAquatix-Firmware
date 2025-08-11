@@ -82,7 +82,7 @@ static ReferenceMessage_t reference_messages[] = {
             .length_bits = 8 << 0,
             .data_type = BITS,
             .preamble = {
-              .is_stationary = {
+              .is_mobile = {
                 0, true
               },
               .message_type = {
@@ -101,7 +101,7 @@ static ReferenceMessage_t reference_messages[] = {
             .length_bits = 8 << 1,
             .data_type = BITS,
             .preamble = {
-              .is_stationary = {
+              .is_mobile = {
                 0, true
               },
               .message_type = {
@@ -120,7 +120,7 @@ static ReferenceMessage_t reference_messages[] = {
             .length_bits = 8 << 2,
             .data_type = BITS,
             .preamble = {
-              .is_stationary = {
+              .is_mobile = {
                 0, true
               },
               .message_type = {
@@ -139,7 +139,7 @@ static ReferenceMessage_t reference_messages[] = {
             .length_bits = 8 << 3,
             .data_type = BITS,
             .preamble = {
-              .is_stationary = {
+              .is_mobile = {
                 0, true
               },
               .message_type = {
@@ -159,7 +159,7 @@ static ReferenceMessage_t reference_messages[] = {
             .length_bits = 8 << 4,
             .data_type = BITS,
             .preamble = {
-              .is_stationary = {
+              .is_mobile = {
                 0, true
               },
               .message_type = {
@@ -181,7 +181,7 @@ static ReferenceMessage_t reference_messages[] = {
             .length_bits = 8 << 5,
             .data_type = BITS,
             .preamble = {
-              .is_stationary = {
+              .is_mobile = {
                 0, true
               },
               .message_type = {
@@ -207,7 +207,7 @@ static ReferenceMessage_t reference_messages[] = {
             .length_bits = 8 << 6,
             .data_type = BITS,
             .preamble = {
-              .is_stationary = {
+              .is_mobile = {
                 0, true
               },
               .message_type = {
@@ -241,7 +241,7 @@ static ReferenceMessage_t reference_messages[] = {
             .length_bits = 8 << 7,
             .data_type = BITS,
             .preamble = {
-              .is_stationary = {
+              .is_mobile = {
                 0, true
               },
               .message_type = {
@@ -319,7 +319,7 @@ static ReferenceMessage_t reference_messages[] = {
           .length_bits = 8 * 480,
           .data_type = BITS,
           .preamble = {
-            .is_stationary = {
+            .is_mobile = {
               0, true
             },
             .message_type = {
@@ -355,7 +355,8 @@ static FeedbackTests_t feedback_tests[] = {
             .wakeup_tones = false,
             .wakeup_tone1 = 27000,
             .wakeup_tone2 = 30000,
-            .wakeup_tone3 = 33000
+            .wakeup_tone3 = 33000,
+            .protocol = PROTOCOL_CUSTOM
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[MESSAGE_LEN_32],
@@ -383,7 +384,8 @@ static FeedbackTests_t feedback_tests[] = {
             .wakeup_tones = false,
             .wakeup_tone1 = 27000,
             .wakeup_tone2 = 30000,
-            .wakeup_tone3 = 33000
+            .wakeup_tone3 = 33000,
+            .protocol = PROTOCOL_CUSTOM
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[MESSAGE_LEN_32],
@@ -411,7 +413,8 @@ static FeedbackTests_t feedback_tests[] = {
             .wakeup_tones = false,
             .wakeup_tone1 = 27000,
             .wakeup_tone2 = 30000,
-            .wakeup_tone3 = 33000
+            .wakeup_tone3 = 33000,
+            .protocol = PROTOCOL_CUSTOM
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[MESSAGE_LEN_128],
@@ -439,7 +442,8 @@ static FeedbackTests_t feedback_tests[] = {
             .wakeup_tones = false,
             .wakeup_tone1 = 27000,
             .wakeup_tone2 = 30000,
-            .wakeup_tone3 = 33000
+            .wakeup_tone3 = 33000,
+            .protocol = PROTOCOL_CUSTOM
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[MESSAGE_LEN_128],
@@ -467,7 +471,8 @@ static FeedbackTests_t feedback_tests[] = {
             .wakeup_tones = false,
             .wakeup_tone1 = 27000,
             .wakeup_tone2 = 30000,
-            .wakeup_tone3 = 33000
+            .wakeup_tone3 = 33000,
+            .protocol = PROTOCOL_CUSTOM
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[MESSAGE_LEN_128],
@@ -495,7 +500,8 @@ static FeedbackTests_t feedback_tests[] = {
             .wakeup_tones = false,
             .wakeup_tone1 = 27000,
             .wakeup_tone2 = 30000,
-            .wakeup_tone3 = 33000
+            .wakeup_tone3 = 33000,
+            .protocol = PROTOCOL_CUSTOM
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[MESSAGE_LEN_1024],
@@ -523,7 +529,8 @@ static FeedbackTests_t feedback_tests[] = {
             .wakeup_tones = false,
             .wakeup_tone1 = 27000,
             .wakeup_tone2 = 30000,
-            .wakeup_tone3 = 33000
+            .wakeup_tone3 = 33000,
+            .protocol = PROTOCOL_CUSTOM
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[MESSAGE_LEN_128],
@@ -551,7 +558,8 @@ static FeedbackTests_t feedback_tests[] = {
             .wakeup_tones = false,
             .wakeup_tone1 = 27000,
             .wakeup_tone2 = 30000,
-            .wakeup_tone3 = 33000
+            .wakeup_tone3 = 33000,
+            .protocol = PROTOCOL_CUSTOM
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[MESSAGE_LEN_3840],

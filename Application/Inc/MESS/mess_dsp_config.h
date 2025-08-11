@@ -31,7 +31,7 @@ typedef struct {
 typedef struct preamble_content {
   PreambleValue_t modem_id;
   PreambleValue_t message_type;
-  PreambleValue_t is_stationary;
+  PreambleValue_t is_mobile;
   PreambleValue_t cargo_length;
   PreambleValue_t tx_rx_capable;
   PreambleValue_t can_forward;
