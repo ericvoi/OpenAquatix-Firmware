@@ -31,8 +31,17 @@ typedef struct {
 typedef struct preamble_content {
   PreambleValue_t modem_id;
   PreambleValue_t message_type;
-  PreambleValue_t is_stationary;
+  PreambleValue_t is_mobile;
   PreambleValue_t cargo_length;
+  PreambleValue_t tx_rx_capable;
+  PreambleValue_t can_forward;
+  PreambleValue_t coding;
+  PreambleValue_t encryption;
+  PreambleValue_t destination_id;
+  PreambleValue_t reservation_time;
+  PreambleValue_t class_user_id;
+  PreambleValue_t application_type;
+  PreambleValue_t schedule_flag;
   // others as needed
 } PreambleContent_t;
 
@@ -79,6 +88,13 @@ typedef enum {
   NUM_SYNC_METHODS
 } SynchronizationMethod_t;
 
+typedef enum {
+  PROTOCOL_CUSTOM,
+  PROTOCOL_JANUS,
+  // Place others as needed here
+  NUM_PROTOCOLS
+} MessagingProtocol_t;
+
 // Struct for all configuration parameters that are relevant for feedback tests
 // Other configuration parameters belong to modules
 // IMPORTANT: Any modification to parameters here must be reflected in the feedback tests
@@ -102,6 +118,7 @@ typedef struct {
   uint32_t wakeup_tone1;                        // First of three wakeup tones
   uint32_t wakeup_tone2;                        // Second of three wakeup tones
   uint32_t wakeup_tone3;                        // Third of three wakeup tones
+  MessagingProtocol_t protocol;                 // Messaging protocol defining preambles and cargo contents
 } DspConfig_t;
 
 

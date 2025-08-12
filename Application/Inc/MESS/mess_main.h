@@ -38,6 +38,8 @@ extern "C" {
                                            PACKET_LENGTH_BITS + \
                                            PACKET_STATIONARY_BITS)
 
+#define JANUS_PREAMBLE_LEN                (56U)
+
 #define PACKET_DATA_MIN_LENGTH_BITS       (8 * 1)   // If the length index is 0
 #define PACKET_DATA_MAX_LENGTH_BITS       (8 * 480) // If the packet length is 127
 #define PACKET_MAX_ERROR_DETECTION_BITS   32
@@ -84,9 +86,30 @@ typedef enum {
 } CustomMessageData_t;
 
 typedef enum {
+  CODING_ASCII8,
+  CODING_ASCII7,
+  CODING_ASCII6,
+  CODING_UTF8,
+  NUM_CODING_METHODS
+} CodingInfo_t;
+
+typedef enum {
+  ENCRYPTION_NONE,
+  ENCRYPTION_AES_GCM,
+  ENCRYPTION_USER2,
+  ENCRYPTION_USER3,
+  ENCRYPTION_USER4,
+  ENCRYPTION_USER5,
+  ENCRYPTION_USER6,
+  ENCRYPTION_USER7,
+  NUM_ENCRYPTION_METHODS
+} EncryptionInfo_t;
+
+typedef enum {
   JANUS_011_01_SMS,
   JANUS_011_02_TXT,
-  JANUS_011_03_TXT_ACK
+  JANUS_011_03_TXT_ACK,
+  JANUS_UNKNOWN
 } JanusMessageData_t;
 
 typedef struct {
@@ -101,7 +124,7 @@ typedef struct {
   uint8_t data[PACKET_DATA_MAX_LENGTH_BYTES];
   uint16_t length_bits;              // length of message in bits
   uint32_t timestamp;
-  // Blind union to account for different communciation protocol message types
+  // Blind union to account for different communication protocol message types
   union {
     CustomMessageData_t data_type;
     JanusMessageData_t janus_data_type;
@@ -109,6 +132,8 @@ typedef struct {
   bool error_detected;
   EvalMessageInfo_t eval_info;
   PreambleContent_t preamble;
+  MessagingProtocol_t protocol;
+  uint16_t uncoded_data_len;
 } Message_t;
 
 // defines the structure for analysis of the waveform
@@ -131,6 +156,8 @@ typedef enum {
 
 #define DAC_CHANNEL_TRANSDUCER  DAC_CHANNEL_1
 #define DAC_CHANNEL_FEEDBACK    DAC_CHANNEL_2
+
+#define JANUS_VERSION     (4U)
 
 
 typedef enum {

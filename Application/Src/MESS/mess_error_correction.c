@@ -67,6 +67,7 @@ static bool decodeJanusConvolutional(BitMessage_t* bit_msg, bool is_preamble, bo
 
 // Hamming functions
 static uint16_t calculateNumParityBits(const uint16_t num_bits);
+static uint16_t countLeadingZeros(const uint16_t value);
 
 // JANUS 1:2 convolutional encoder functions
 static void janusConvEncoderInit(ConvEncoder_t* encoder);
@@ -174,8 +175,8 @@ bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg,
   }
 }
 
-uint16_t ErrorCorrection_GetLength(const uint16_t length, 
-                                   const ErrorCorrectionMethod_t method)
+uint16_t ErrorCorrection_CodedLength(const uint16_t length, 
+                                     const ErrorCorrectionMethod_t method)
 {
   switch (method) {
     case NO_ECC:
@@ -184,6 +185,21 @@ uint16_t ErrorCorrection_GetLength(const uint16_t length,
       return calculateNumParityBits(length) + length;
     case JANUS_CONVOLUTIONAL:
       return 2 * (length + JANUS_FLUSH_LENGTH);
+    default:
+      return 0;
+  }
+}
+
+uint16_t ErrorCorrection_UncodedLength(const uint16_t length,
+                                       const ErrorCorrectionMethod_t method)
+{
+  switch (method) {
+    case NO_ECC:
+      return length;
+    case HAMMING_CODE:
+      return length - (16 - countLeadingZeros(length));
+    case JANUS_CONVOLUTIONAL:
+      return (length / 2) - 8;
     default:
       return 0;
   }
@@ -412,7 +428,7 @@ bool addJanusConvolutional(BitMessage_t* bit_msg,
         return false;
       }
     }
-  *bits_added += output_index;
+  *bits_added += output_index - section_info.ecc_start_index;
   return true;
 }
 
@@ -512,6 +528,16 @@ uint16_t calculateNumParityBits(const uint16_t num_bits)
     parity_bits++;
   }
   return parity_bits;
+}
+
+static uint16_t countLeadingZeros(const uint16_t value)
+{
+  for (uint16_t i = 0; i < 16; i++) {
+    if (value & (1 << (15 - i))) {
+      return i;
+    }
+  }
+  return 16;
 }
 
 void janusConvEncoderInit(ConvEncoder_t* encoder)

@@ -140,7 +140,7 @@ bool Modulate_StartTransducerOutput(uint16_t num_steps,
   Waveform_StopWaveformOutput();
   osDelay(1);
   MessDacResource_RegisterMessageConfiguration(new_cfg, new_bit_msg);
-  Waveform_SetWaveformSequence(num_steps);
+  Waveform_SetWaveformSequence(num_steps, true);
   if (ADC_StartFeedback() == false) {
     return false;
   }
@@ -159,7 +159,7 @@ bool Modulate_StartFeedbackOutput(uint16_t num_steps,
   Waveform_StopWaveformOutput();
   osDelay(1);
   MessDacResource_RegisterMessageConfiguration(new_cfg, new_bit_msg);
-  Waveform_SetWaveformSequence(num_steps);
+  Waveform_SetWaveformSequence(num_steps, true);
   if (Waveform_StartWaveformOutput(DAC_CHANNEL_FEEDBACK) == false) {
     return false;
   }

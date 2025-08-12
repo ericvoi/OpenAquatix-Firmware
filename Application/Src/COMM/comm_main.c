@@ -62,8 +62,25 @@ static bool isNumber(uint8_t* buf, uint16_t len);
 static bool checkMenuNumberInput(uint8_t* buf, uint16_t len, uint16_t* number);
 static void updateInputEcho(uint8_t* msg_buffer, uint16_t len);
 static void resetInputEcho(void);
+
 static void printReceivedMessage(Message_t* msg);
+static void printCustomHeader(Message_t* msg);
+static void printCustomData(Message_t* msg);
+static void printJanusHeader(Message_t* msg);
+static void printJanusData(Message_t* msg);
+static void printJanusHeaderParameter(PreambleValue_t parameter);
+
+static void printSenderId(Message_t* msg);
+static void printDestinationId(Message_t* msg);
+static void printCoding(Message_t* msg);
+static void printEncryption(Message_t* msg);
+
+static void printStringData(Message_t* msg);
+static void printBitsData(Message_t* msg);
+static void printInteger(Message_t* msg);
+static void printFloat(Message_t* msg);
 static void printEvalMessage(Message_t* msg);
+
 static bool registerCommParams(void);
 
 /* Exported function definitions ---------------------------------------------*/
@@ -113,6 +130,9 @@ void COMM_StartTask(void *argument)
     Error_Routine(ERROR_COMM_INIT);
   }
   if (COMM_RegisterEvalMenu() == false) {
+    Error_Routine(ERROR_COMM_INIT);
+  }
+  if (COMM_RegisterJanusMenu() == false) {
     Error_Routine(ERROR_COMM_INIT);
   }
 
@@ -314,68 +334,213 @@ void printReceivedMessage(Message_t* msg)
     return;
   }
 
-  sprintf((char*) out_buffer, "Received a new message at %ds\r\n", (int) msg->timestamp / 1000);
+  sprintf((char*) out_buffer, "\r\nReceived a new message at %ds\r\n", (int) msg->timestamp / 1000);
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 
+  switch (msg->protocol) {
+    case PROTOCOL_CUSTOM:
+      printCustomHeader(msg);
+      printCustomData(msg);
+      break;
+    case PROTOCOL_JANUS:
+      printJanusHeader(msg);
+      printJanusData(msg);
+      break;
+    default:
+      COMM_TransmitData("Internal error when printing message\r\n", CALC_LEN, menu_context.interface);
+  }
+  COMM_TransmitData("\r\n\r\n", 4, menu_context.interface);
+}
+
+void printCustomHeader(Message_t* msg)
+{
+  sprintf((char*) out_buffer, "Errors Present: %s\r\n", msg->error_detected ? "Yes" : "No");
+  COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
+
+  sprintf((char*) out_buffer, "Sender id: %u\r\n", msg->preamble.modem_id.value);
+  COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
+
+  sprintf((char*) out_buffer, "Message Length (bits): %u\r\n", msg->length_bits);
+  COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
+
+  sprintf((char*) out_buffer, "Mobile sender: %s\r\n", msg->preamble.is_mobile.value ? "Yes" : "No");
+  COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
+}
+
+void printCustomData(Message_t* msg)
+{
   switch (msg->preamble.message_type.value) {
     case STRING:
       sprintf((char*) out_buffer, "String: ");
+      COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
+      printStringData(msg);
       break;
     case BITS:
       sprintf((char*) out_buffer, "Bits: ");
+      COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
+      printBitsData(msg);
       break;
     case INTEGER:
       sprintf((char*) out_buffer, "Integer: ");
+      COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
+      printInteger(msg);
       break;
     case FLOAT:
       sprintf((char*) out_buffer, "Float: ");
+      COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
+      printFloat(msg);
       break;
     case EVAL:
       printEvalMessage(msg);
-      return; // All printing handled by function
+      return;
     default:
-      sprintf((char*) out_buffer, "Unknown data type: ");
+      COMM_TransmitData("Unknown data type: N/A", CALC_LEN, menu_context.interface);
       break;
   }
+}
+
+void printJanusHeader(Message_t* msg)
+{
+  COMM_TransmitData("Mobility flag: ", CALC_LEN, menu_context.interface);
+  printJanusHeaderParameter(msg->preamble.is_mobile);
+
+  COMM_TransmitData("Schedule flag: ", CALC_LEN, menu_context.interface);
+  printJanusHeaderParameter(msg->preamble.schedule_flag);
+
+  COMM_TransmitData("Tx/Rx flag: ", CALC_LEN, menu_context.interface);
+  printJanusHeaderParameter(msg->preamble.tx_rx_capable);
+
+  COMM_TransmitData("Forwarding capability: ", CALC_LEN, menu_context.interface);
+  printJanusHeaderParameter(msg->preamble.can_forward);
+
+  COMM_TransmitData("Class user i.d.: ", CALC_LEN, menu_context.interface);
+  printJanusHeaderParameter(msg->preamble.class_user_id);
+
+  COMM_TransmitData("Application type: ", CALC_LEN, menu_context.interface);
+  printJanusHeaderParameter(msg->preamble.application_type);
+
+  COMM_TransmitData("Message length (bits): ", CALC_LEN, menu_context.interface);
+  sprintf((char*) out_buffer, "%u\r\n", msg->length_bits);
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 
-  switch (msg->preamble.message_type.value) {
-    case STRING:
-      msg->data[msg->length_bits / 8] = '\0';
-      sprintf((char*) out_buffer, "%s", (char*) msg->data);
-      break;
-    case BITS:
-      for (uint16_t i = 0; i < msg->length_bits / 8; i++) {
-        for (uint8_t j = 0; j < 8; j++) {
-          out_buffer[i * 9 + j] = ((msg->data[i] & (1 << (7 - j))) != 0) ? '1' : '0';
-        }
-        out_buffer[i * 9 - 1] = ' ';
-      }
-      out_buffer[msg->length_bits / 8 * 9 - 1] = '\0';
-      break;
-    case INTEGER:
-      sprintf((char*) out_buffer, "%u", *((unsigned int*) &msg->data[0]));
-      break;
-    case FLOAT:
-      float temp_float;
-      memcpy(&temp_float, &msg->data[0], sizeof(float));
-      sprintf((char*) out_buffer, "%f", temp_float);
+  switch (msg->janus_data_type) {
+    case JANUS_011_01_SMS:
+      printSenderId(msg);
+      printDestinationId(msg);
+      printCoding(msg);
+      printEncryption(msg);
       break;
     default:
-      sprintf((char*) out_buffer, "N/A");
+      COMM_TransmitData("Unknown JANUS message!\r\n", CALC_LEN, menu_context.interface);
   }
-  COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
+}
 
-  sprintf((char*) out_buffer, "\r\nErrors Present: %s", msg->error_detected ? "Yes" : "No");
-  COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
+void printJanusData(Message_t* msg)
+{
+  switch (msg->janus_data_type) {
+    case JANUS_011_01_SMS:
+      COMM_TransmitData("SMS: ", CALC_LEN, menu_context.interface);
+      printStringData(msg);
+      break;
+    default:
+  }
+}
 
-  sprintf((char*) out_buffer, "\r\nSender id: %u", msg->preamble.modem_id.value);
-  COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
+void printJanusHeaderParameter(PreambleValue_t parameter)
+{
+  if (parameter.valid == true) {
+    sprintf((char*) out_buffer, "%u\r\n", parameter.value);
+    COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
+  }
+  else {
+    COMM_TransmitData("Parameter not set in preamble!\r\n", CALC_LEN, menu_context.interface);
+  }
+}
 
-  sprintf((char*) out_buffer, "\r\nMessage Length (bits): %u", msg->length_bits);
-  COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
+void printSenderId(Message_t* msg)
+{
+  COMM_TransmitData("Sender i.d.: ", CALC_LEN, menu_context.interface);
+  printJanusHeaderParameter(msg->preamble.modem_id);
+}
 
-  COMM_TransmitData("\r\n\r\n", CALC_LEN, menu_context.interface);
+void printDestinationId(Message_t* msg)
+{
+  COMM_TransmitData("Destination i.d.: ", CALC_LEN, menu_context.interface);
+  printJanusHeaderParameter(msg->preamble.destination_id);
+}
+
+void printCoding(Message_t* msg)
+{
+  COMM_TransmitData("Coding: ", CALC_LEN, menu_context.interface);
+  printJanusHeaderParameter(msg->preamble.coding);
+}
+
+void printEncryption(Message_t* msg)
+{
+  COMM_TransmitData("Encryption: ", CALC_LEN, menu_context.interface);
+  printJanusHeaderParameter(msg->preamble.encryption);
+}
+
+void printStringData(Message_t* msg)
+{
+  uint16_t num_characters = msg->uncoded_data_len / 8;
+  if (num_characters > PACKET_DATA_MAX_LENGTH_BYTES) {
+    sprintf((char*) out_buffer, "Clipped %u : ", num_characters);
+    COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
+    num_characters = PACKET_DATA_MAX_LENGTH_BYTES;
+  }
+
+  // Printing ASCII values above 127 can cause terminal emulators to become
+  // confused and start outputting garbage
+  for (uint16_t i = 0; i < num_characters; i++) {
+    if (msg->data[i] > 127) {
+      msg->data[i] = ' ';
+    }
+  }
+
+  COMM_TransmitData(msg->data, num_characters, menu_context.interface);
+}
+
+void printBitsData(Message_t* msg)
+{
+  uint16_t length_bits = msg->length_bits;
+
+  if (length_bits > PACKET_DATA_MAX_LENGTH_BYTES * 8) {
+    sprintf((char*) out_buffer, "Clipped %u : ", length_bits);
+    COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
+    length_bits = PACKET_DATA_MAX_LENGTH_BYTES * 8;
+  }
+
+  uint16_t remainder_bits = length_bits % 8;
+  uint16_t byte_index = 0;
+
+  uint8_t byte = msg->data[byte_index] >> remainder_bits;
+  sprintf((char*) out_buffer, "%X ", byte);
+
+  while (length_bits != 0) {
+    byte = (msg->data[byte_index] << remainder_bits) | (msg->data[byte_index] >> (7 - remainder_bits));
+    sprintf((char*) out_buffer, "%X ", byte);
+    COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
+    length_bits -= 8;
+  }
+}
+
+void printInteger(Message_t* msg)
+{
+  if (msg->length_bits != sizeof(unsigned int) * 8) {
+    sprintf((char*) out_buffer, "Forcing %u to %u: ", msg->length_bits, sizeof(unsigned int) * 8);
+    COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
+  }
+  sprintf((char*) out_buffer, "%u", *((unsigned int*) &msg->data[0]));
+  COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
+}
+
+void printFloat(Message_t* msg)
+{
+  float temp_float;
+  memcpy(&temp_float, &msg->data[0], sizeof(float));
+  sprintf((char*) out_buffer, "%f", temp_float);
+  COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 }
 
 void printEvalMessage(Message_t* msg)

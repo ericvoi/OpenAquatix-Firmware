@@ -82,8 +82,19 @@ bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg,
  * 
  * @return Number of bits in ECC message
  */
-uint16_t ErrorCorrection_GetLength(const uint16_t length, 
-                                   const ErrorCorrectionMethod_t method);
+uint16_t ErrorCorrection_CodedLength(const uint16_t length, 
+                                     const ErrorCorrectionMethod_t method);
+
+/**
+ * @brief Returns number of bits in a segment after FEC is removed
+ * 
+ * @param length Length of the segment with FEC applied
+ * @param method Method used for FEC
+ * 
+ * @return Number of raw message bits (no FEC)
+ */
+uint16_t ErrorCorrection_UncodedLength(const uint16_t length,
+                                       const ErrorCorrectionMethod_t method);
 
 /* Private defines -----------------------------------------------------------*/
 

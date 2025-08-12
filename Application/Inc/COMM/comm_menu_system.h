@@ -31,6 +31,7 @@ typedef enum {
   MENU_ID_HIST,                 // Menu with historical messages sent and received as well as power and temp
   MENU_ID_TXRX,                 // Transmission/reception menu
   MENU_ID_EVAL,                 // Evaluation option menu
+  MENU_ID_JANUS,                // JANUS Menu
   MENU_ID_CFG_UNIV,             // Universal waveform porcessing parameters
   MENU_ID_CFG_UNIV_ERR,         // Error detection parameters
   MENU_ID_CFG_UNIV_ERR_PREAMBLE,// Preamble error detection method
@@ -136,7 +137,18 @@ typedef enum {
   MENU_ID_TXRX_FLOATOUT,        // Transmit a float through transducer
   MENU_ID_TXRX_FLOATFB,         // Transmit a float through feedback
   MENU_ID_TXRX_ENPNT,           // Enable/disable printing of waveforms as they are received
-  MENU_ID_EVAL_SETMSG,          // Set the message to compare to
+  MENU_ID_JANUS_PROTOCOL,         // Toggle JANUS mode
+  MENU_ID_JANUS_SEND,           // Send JANUS message
+  MENU_ID_JANUS_SEND_011_01_OUT,// Send JANUS 011 01 (SMS) through transducer
+  MENU_ID_JANUS_SEND_011_01_FB, // Send JANUS 011 01 (SMS) through feedback network
+  MENU_ID_JANUS_PARAM,          // Modify JANUS parameters
+  MENU_ID_JANUS_PARAM_TXRX,     // Toggle Tx/Rx capability
+  MENU_ID_JANUS_PARAM_FORWARD,  // Toggle forwarding capability
+  MENU_ID_JANUS_PARAM_CODING,   // Modify data coding
+  MENU_ID_JANUS_PARAM_ENC,      // Modify data encryption
+  MENU_ID_JANUS_PARAM_DEST,     // Destination's JANUS ID
+  MENU_ID_JANUS_PARAM_SENDER,   // Modem's JANUS ID
+  MENU_ID_EVAL_SETLEN,          // Set the message to compare to
   MENU_ID_EVAL_FEEDBACK,        // Send evaluation message through feedback network
   MENU_ID_EVAL_TRANSDUCER,      // Send evaluation message through transducer
   MENU_ID_EVAL_FEEDBACKTESTS,   // Performs the feedback network tests
@@ -177,7 +189,7 @@ typedef struct {
   ParamContext_t* state;
   char input[MAX_COMM_IN_BUFFER_SIZE];
   uint16_t input_len;
-  uint8_t *output_buffer;
+  uint8_t* output_buffer;
   CommInterface_t comm_interface;
 } FunctionContext_t;
 

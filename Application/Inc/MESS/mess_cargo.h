@@ -62,6 +62,24 @@ bool Cargo_Add(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
  */
 bool Cargo_Decode(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
 
+/**
+ * @brief The non-FEC length of the cargo with coding applied
+ * 
+ * @param uncoded_len Uncoded (8-bit ASCII) length
+ * @param coding_method How data is to be coded
+ * @return Non-FEC cargo length with coding applied
+ */
+uint16_t Cargo_RawCodedLength(uint16_t uncoded_len, CodingInfo_t coding_method);
+
+/**
+ * @brief The non-FEC length of the cargo without any coding
+ * 
+ * @param coded_len Coded length of the cargo
+ * @param coding_method How the length was coded
+ * @return uint16_t 
+ */
+uint16_t Cargo_RawUncodedLength(uint16_t coded_len, CodingInfo_t coding_method);
+
 /* Private defines -----------------------------------------------------------*/
 
 #ifdef __cplusplus

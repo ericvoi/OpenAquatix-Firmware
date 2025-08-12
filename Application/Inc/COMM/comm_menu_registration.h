@@ -40,6 +40,7 @@ bool COMM_RegisterDebugMenu(void);
 bool COMM_RegisterHistoryMenu(void);
 bool COMM_RegisterTxRxMenu(void);
 bool COMM_RegisterEvalMenu(void);
+bool COMM_RegisterJanusMenu(void);
 
 /* Private defines -----------------------------------------------------------*/
 
