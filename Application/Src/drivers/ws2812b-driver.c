@@ -7,10 +7,11 @@
 
 /* Private includes ----------------------------------------------------------*/
 
-#include <string.h>
 #include "cfg_defaults.h"
 #include "stm32h7xx_hal.h"
-#include "WS2812b-driver.h"
+#include "ws2812b-driver.h"
+#include <string.h>
+#include <stdbool.h>
 
 /* Private typedef -----------------------------------------------------------*/
 
@@ -25,7 +26,17 @@ typedef union {
 
 /* Private define ------------------------------------------------------------*/
 
+#define WS_NUM_LEDS 	  1
+#define WS_TIM_CHANNEL	TIM_CHANNEL_1
 
+// Assuming 800 kHz and ARR of 100
+#define WS_HI_VAL		    64	// 0.8 us
+#define WS_LO_VAL		    32  // 0.4 us
+
+#define WS_RST_PERIODS	100	// 125 us. 50 us required for reset
+#define WS_BITS_PER_LED	24
+
+#define WS_DMA_BUF_LEN	((WS_NUM_LEDS * WS_BITS_PER_LED) + WS_RST_PERIODS * 2)
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -40,11 +51,13 @@ static volatile uint8_t ws_dma_complete_flag;
 
 extern TIM_HandleTypeDef WS_TIM;
 
-void scaleRgb(uint8_t brightness);
+/* Private function prototypes -----------------------------------------------*/
+
+static void scaleRgb(uint8_t brightness);
 
 /* Exported function prototypes ----------------------------------------------*/
 
-HAL_StatusTypeDef WS_Init()
+bool Ws2812b_Init()
 {
   HAL_TIM_PWM_Stop_DMA(&WS_TIM, WS_TIM_CHANNEL);
   // Initialize PWM timer
@@ -57,20 +70,20 @@ HAL_StatusTypeDef WS_Init()
   // Set DMA Transfer ready flag
   ws_dma_complete_flag = 1;
 
-  WS_SetColour(0, 0, 0);
-  WS_Update(255);
+  Ws2812b_SetColour(0, 0, 0);
+  Ws2812b_Update(255);
 
-  return halStatus;
+  return halStatus == HAL_OK;
 }
 
-void WS_SetColour(uint8_t r, uint8_t g, uint8_t b)
+void Ws2812b_SetColour(uint8_t r, uint8_t g, uint8_t b)
 {
   led_data.colour.r = r;
   led_data.colour.g = g;
   led_data.colour.b = b;
 }
 
-HAL_StatusTypeDef WS_Update(uint8_t brightness)
+bool Ws2812b_Update(uint8_t brightness)
 {
   // Check if previous DMA complete
   if (ws_dma_complete_flag == 0) {
@@ -98,7 +111,7 @@ HAL_StatusTypeDef WS_Update(uint8_t brightness)
   volatile HAL_StatusTypeDef halStatus = HAL_TIM_PWM_Start_DMA(&WS_TIM, WS_TIM_CHANNEL,
       (uint32_t *) ws_dma_buf, WS_DMA_BUF_LEN);
 
-  return halStatus;
+  return halStatus == HAL_OK;
 }
 
 void WS_Callback()

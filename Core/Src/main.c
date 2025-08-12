@@ -23,8 +23,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "WS2812b-driver.h"
-#include "PGA113-driver.h"
+#include "ws2812b-driver.h"
+#include "pga113-driver.h"
 #include "usb_comm.h"
 #include "comm_main.h"
 #include "mess_main.h"
@@ -200,12 +200,7 @@ void startDacTask(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim) {
-	if (htim->Instance == TIM3) {
-		WS_Callback();
-	}
-	return;
-}
+
 /* USER CODE END 0 */
 
 /**
@@ -267,7 +262,7 @@ int main(void)
   MX_TIM16_Init();
   MX_CORDIC_Init();
   /* USER CODE BEGIN 2 */
-  WS_Init();
+  Ws2812b_Init();
 
   if (CFG_CreateFlags() == false) {
     Error_Handler();

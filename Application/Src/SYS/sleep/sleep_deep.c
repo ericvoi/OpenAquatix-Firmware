@@ -10,8 +10,8 @@
 #include "sleep/sleep_deep.h"
 #include "stm32h7xx_hal.h"
 #include "cmsis_os.h"
-#include "WS2812b-driver.h"
-#include "PGA113-driver.h"
+#include "ws2812b-driver.h"
+#include "pga113-driver.h"
 #include <stdbool.h>
 
 /* Private typedef -----------------------------------------------------------*/
@@ -77,9 +77,9 @@ void SleepDeep_Enter()
 //  SCB_CleanInvalidateDCache();
 //  SCB_DisableDCache();
 
-  WS_Update(0);
+  Ws2812b_Update(0);
 
-  PGA_Shutdown();
+  Pga113_Shutdown();
 
   HAL_Delay(5);
 

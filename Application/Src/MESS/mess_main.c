@@ -35,7 +35,7 @@
 #include "cfg_callbacks.h"
 
 #include "dac_waveform.h"
-#include "PGA113-driver.h"
+#include "pga113-driver.h"
 
 #include "mess_dac_resources.h"
 
@@ -156,10 +156,10 @@ void MESS_StartTask(void* argument)
 
   CFG_WaitLoadComplete();
 
-  PGA_Init();
-  PGA_Enable();
+  Pga113_Init();
+  Pga113_Enable();
   osDelay(1);
-  PGA_SetGain(PGA_GAIN_1);
+  Pga113_SetGain(PGA_GAIN_1);
   ADC_Init();
   Input_Init();
   Feedback_Init();

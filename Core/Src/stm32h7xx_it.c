@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include "dau_card-driver.h"
 #include "sys_sensor_timer.h"
+#include "ws2812b-driver.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -511,5 +512,10 @@ void ADC3_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
-
+void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
+{
+  if (htim == &WS_TIM) {
+    WS_Callback();
+  }
+}
 /* USER CODE END 1 */
