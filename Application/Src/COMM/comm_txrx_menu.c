@@ -58,7 +58,9 @@ void transmitInt(FunctionContext_t* context, bool is_feedback);
 void transmitFloat(FunctionContext_t* context, bool is_feedback);
 
 bool parseHexString(FunctionContext_t* context, uint16_t* num_bytes, uint8_t* decoded_bytes);
-static void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_feedback);
+void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_feedback);
+
+bool inCustomMode(FunctionContext_t* context);
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -544,6 +546,8 @@ bool parseHexString(FunctionContext_t* context, uint16_t* num_bytes, uint8_t* de
 
 void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_feedback)
 {
+  if (inCustomMode(context) == false) return;
+
   if (Param_GetUint8(PARAM_ID, (uint8_t*) &msg->preamble.modem_id.value) == false) {
     COMM_TransmitData("\r\nError getting sender ID. Message not sent\r\n", 
         CALC_LEN, context->comm_interface);
@@ -564,4 +568,22 @@ void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_fe
         context->comm_interface);
   }
   context->state->state = PARAM_STATE_COMPLETE;
+}
+
+bool inCustomMode(FunctionContext_t* context)
+{
+  MessagingProtocol_t protocol;
+  if (Param_GetUint8(PARAM_PROTOCOL, &protocol) == false) {
+    context->state->state = PARAM_STATE_COMPLETE;
+    COMM_TransmitData("Cannot find protocol information. Message not sent.\r\n", CALC_LEN, context->comm_interface);
+    return false;
+  }
+
+  if (protocol == PROTOCOL_CUSTOM) {
+    return true;
+  }
+
+  context->state->state = PARAM_STATE_COMPLETE;
+  COMM_TransmitData("Cannot send custom messages in non-custom modes. Message not sent\r\n", CALC_LEN, context->comm_interface);
+  return false;
 }

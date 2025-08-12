@@ -360,10 +360,10 @@ void printCustomHeader(Message_t* msg)
   sprintf((char*) out_buffer, "Sender id: %u\r\n", msg->preamble.modem_id.value);
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 
-  sprintf((char*) out_buffer, "\r\nMessage Length (bits): %u\r\n", msg->length_bits);
+  sprintf((char*) out_buffer, "Message Length (bits): %u\r\n", msg->length_bits);
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 
-  sprintf((char*) out_buffer, "\r\nMobile sender: %s\r\n", msg->preamble.is_mobile.value ? "Yes" : "No");
+  sprintf((char*) out_buffer, "Mobile sender: %s\r\n", msg->preamble.is_mobile.value ? "Yes" : "No");
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 }
 

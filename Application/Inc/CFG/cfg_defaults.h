@@ -229,6 +229,54 @@ extern "C" {
 #define MIN_ENCRYPTION              (0)
 #define MAX_ENCRYPTION              (NUM_ENCRYPTION_METHODS - 1)
 
+
+
+// JANUS basic parameters
+#define JANUS_MOD_DEMOD             (MOD_DEMOD_FHBFSK)
+#define JANUS_FHBFSK_FREQ_SPACING   (1)
+#define JANUS_FHBFSK_NUM_TONES      (13)
+#define JANUS_FHBFSK_DWELL_TIME     (1)
+#define JANUS_PREAMBLE_VALIDATION   (CRC_8)
+#define JANUS_CARGO_VALIDATION      (CRC_16)
+#define JANUS_PREAMBLE_ECC          (JANUS_CONVOLUTIONAL)
+#define JANUS_CARGO_ECC             (JANUS_CONVOLUTIONAL)
+#define JANUS_INTERLEAVER           (true)
+#define JANUS_HOPPER                (HOPPER_GALOIS)
+#define JANUS_SYNC_METHOD           (SYNC_PN_32_JANUS)
+
+// #define JANUS_BAND_A
+// #define JANUS_BAND_B
+// #define JANUS_BAND_C
+// #define JANUS_BAND_D
+#define JANUS_BAND_E
+
+#ifdef JANUS_BAND_A
+#define JANUS_FC                    (11520U)
+#define JANUS_BAUD                  (160U)
+#else
+#ifdef JANUS_BAND_B
+#define JANUS_FC                    (6000U)
+#define JANUS_BAUD                  (80U)
+#else
+#ifdef JANUS_BAND_C
+#define JANUS_FC                    (9700U)
+#define JANUS_BAUD                  (100U)
+#else
+#ifdef JANUS_BAND_D
+#define JANUS_FC                    (14080U)
+#define JANUS_BAUD                  (160U)
+#else
+#ifdef JANUS_BAND_E
+#define JANUS_FC                    (28000U)
+#define JANUS_BAUD                  (250U)
+#else
+# error "Please specify a JANUS band to use"
+#endif
+#endif
+#endif
+#endif
+#endif
+
 /* Exported macro ------------------------------------------------------------*/
 
 

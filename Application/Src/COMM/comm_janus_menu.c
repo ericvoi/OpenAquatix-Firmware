@@ -42,6 +42,7 @@ void setJanusId(void* argument);
 
 static void transmit_011_01(FunctionContext_t* context, bool is_feedback);
 static void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_feedback);
+static bool inJanusMode(FunctionContext_t* context);
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -365,6 +366,8 @@ void transmit_011_01(FunctionContext_t* context, bool is_feedback)
 
 void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_feedback)
 {
+  if (inJanusMode(context) == false) return;
+
   memset(&msg->preamble, 0, sizeof(PreambleContent_t));
   if (MESS_AddMessageToTxQ(msg) == pdPASS) {
     sprintf((char*) context->output_buffer, "\r\nSuccessfully added to"
@@ -379,4 +382,22 @@ void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_fe
         context->comm_interface);
   }
   context->state->state = PARAM_STATE_COMPLETE;
+}
+
+bool inJanusMode(FunctionContext_t* context)
+{
+  MessagingProtocol_t protocol;
+  if (Param_GetUint8(PARAM_PROTOCOL, &protocol) == false) {
+    context->state->state = PARAM_STATE_COMPLETE;
+    COMM_TransmitData("Cannot find protocol information. Message not sent.\r\n", CALC_LEN, context->comm_interface);
+    return false;
+  }
+
+  if (protocol == PROTOCOL_JANUS) {
+    return true;
+  }
+
+  context->state->state = PARAM_STATE_COMPLETE;
+  COMM_TransmitData("Cannot send JANUS messages in non-JANUS modes. Message not sent\r\n", CALC_LEN, context->comm_interface);
+  return false;
 }
