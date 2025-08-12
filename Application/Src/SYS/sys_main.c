@@ -17,7 +17,7 @@
 #include "cfg_main.h"
 #include "cfg_parameters.h"
 #include "cfg_defaults.h"
-#include "WS2812b-driver.h"
+#include "ws2812b-driver.h"
 
 #include <stdbool.h>
 

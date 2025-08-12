@@ -15,7 +15,7 @@
 #include "cfg_defaults.h"
 #include "cfg_parameters.h"
 
-#include "WS2812b-driver.h"
+#include "ws2812b-driver.h"
 #include "cmsis_os.h"
 #include <stdbool.h>
 
@@ -74,16 +74,16 @@ bool LED_Update()
       manual_override = false;
     }
     else {
-      WS_SetColour(manual_r, manual_g, manual_b);
-      WS_Update(brightness);
+      Ws2812b_SetColour(manual_r, manual_g, manual_b);
+      Ws2812b_Update(brightness);
       return true;
     }
   }
 
   // check for errors. If errors exist, set to red
   if (Error_Exists()) {
-    WS_SetColour(ERROR_COLOUR);
-    WS_Update(brightness);
+    Ws2812b_SetColour(ERROR_COLOUR);
+    Ws2812b_Update(brightness);
     return true;
   }
 
@@ -93,20 +93,20 @@ bool LED_Update()
   switch (state) {
     case LISTENING:
       // set led to default if no warnings
-      WS_SetColour(LISTENING_COLOUR);
-      WS_Update(brightness);
+      Ws2812b_SetColour(LISTENING_COLOUR);
+      Ws2812b_Update(brightness);
       return true;
     case DRIVING_TRANSDUCER:
-      WS_SetColour(DRIVING_COLOUR);
-      WS_Update(brightness);
+      Ws2812b_SetColour(DRIVING_COLOUR);
+      Ws2812b_Update(brightness);
       return true;
     case PROCESSING:
-      WS_SetColour(PROCESSING_COLOUR);
-      WS_Update(brightness);
+      Ws2812b_SetColour(PROCESSING_COLOUR);
+      Ws2812b_Update(brightness);
       return true;
     case CHANGING:
-      WS_SetColour(CHANGING_COLOUR);
-      WS_Update(brightness);
+      Ws2812b_SetColour(CHANGING_COLOUR);
+      Ws2812b_Update(brightness);
       return true;
     default:
       return false;

@@ -22,7 +22,7 @@ extern "C" {
 #include "mess_error_correction.h"
 #include "mess_demodulate.h"
 
-#include "PGA113-driver.h"
+#include "pga113-driver.h"
 
 /* Private includes ----------------------------------------------------------*/
 
