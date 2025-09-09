@@ -78,7 +78,7 @@ bool Ws2812b_Update(uint8_t brightness);
  *
  * @note This function should not be called directly from user code.
  */
-void WS_Callback();
+void Ws2812b_Callback();
 
 #ifdef __cplusplus
 }
