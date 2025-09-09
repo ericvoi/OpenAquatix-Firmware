@@ -14,6 +14,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 
+#include "mess_dsp_config.h"
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -44,7 +45,7 @@ void BackgroundNoise_Reset();
 /**
  * @brief Calculates the background noise in band on the most recent data
  */
-void BackgroundNoise_Calculate();
+bool BackgroundNoise_Calculate(const DspConfig_t* cfg);
 
 /**
  * @brief Returns the calculated background noise

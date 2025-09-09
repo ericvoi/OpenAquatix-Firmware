@@ -645,19 +645,6 @@ void FeedbackTests_GetNext()
     return;
   }
 
-  // // Additional delay block since the synchronizations eqeunce requires a new
-  // // noise estimate to be made for every message
-  // static uint32_t start_timestamp = 0;
-  // if (feedback_tests[test_index].cfg.sync_method == SYNC_PN_32_JANUS) {
-  //   if (start_timestamp == 0) {
-  //     start_timestamp = osKernelGetTickCount();
-  //   }
-  //   if ((osKernelGetTickCount() - start_timestamp) < 5000) {
-  //     return;
-  //   }
-  //   start_timestamp = 0;
-  // }
-
   MESS_AddMessageToTxQ(&feedback_tests[test_index].reference_message->test_msg);
   call_count++;
   last_action = SENT_MESSAGE;

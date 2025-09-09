@@ -578,7 +578,7 @@ float frequencyToIndex(float frequency, uint16_t fft_size)
   return frequency * fft_size / ((float) ADC_SAMPLING_RATE);
 }
 
-static float indexToFrequency(float index, uint16_t fft_size)
+float indexToFrequency(float index, uint16_t fft_size)
 {
   return ADC_SAMPLING_RATE * index / ((float) fft_size);
 }

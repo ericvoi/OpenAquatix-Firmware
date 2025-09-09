@@ -237,7 +237,10 @@ void MESS_StartTask(void* argument)
           break;
         }
 
-        BackgroundNoise_Calculate();
+        if (BackgroundNoise_Calculate(cfg) == false) {
+          Error_Routine(ERROR_MESS_PROCESSING);
+          break;
+        }
         break;
       case PROCESSING:
         // Process ADC input data only

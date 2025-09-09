@@ -7,10 +7,14 @@
 
 /* Private includes ----------------------------------------------------------*/
 
+#include "mess_dsp_config.h"
 #include "mess_background_noise.h"
 #include "mess_adc.h"
 #include "mess_demodulate.h"
+#include "mess_modulate.h"
+#include "cfg_main.h"
 #include "arm_math.h"
+#include <math.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -53,9 +57,19 @@ static uint16_t noise_buffer_tail = 0;
 static uint16_t noise_history_index = 0;
 static uint16_t accumulated_noise_entries = 0;
 
+static uint16_t lower_noise_bin = 0;
+static uint16_t upper_noise_bin = 0;
+static uint16_t num_noise_bins = 1;
+
 /* Private function prototypes -----------------------------------------------*/
 
 static void averageNoise();
+static bool updateFrequencyIndices(const DspConfig_t* cfg);
+
+static bool fskFrequencyIndices(const DspConfig_t* cfg);
+static bool fhbfskFrequencyIndices(const DspConfig_t* cfg);
+
+static float frequencyToIndex(float frequency, uint16_t fft_size);
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -68,8 +82,12 @@ void BackgroundNoise_Reset()
   energy_ready = false;
 }
 
-void BackgroundNoise_Calculate()
+bool BackgroundNoise_Calculate(const DspConfig_t* cfg)
 {
+  if (updateFrequencyIndices(cfg) == false) {
+    return false;
+  }
+
   uint16_t head = ADC_InputGetHead();
   while (((head - noise_buffer_tail) & PROCESSING_BUFFER_MASK) > NOISE_BUFFER_SIZE) {
     float fft_in_buf[NOISE_BUFFER_SIZE];
@@ -81,14 +99,14 @@ void BackgroundNoise_Calculate()
     }
     arm_rfft_fast_f32(&fft_handle128, fft_in_buf, fft_out_buf, 0);
 
-    for (uint16_t j = 28; j < 39; j++) {
+    for (uint16_t j = lower_noise_bin; j < upper_noise_bin; j++) {
       float real = fft_out_buf[2 * j];
       float imag = fft_out_buf[2 * j + 1];
 
       // Normalize to PSD (P/Hz)
       float mag = (real * real + imag * imag) / NOISE_BUFFER_SIZE;
       
-      energy_history[noise_history_index].accumulated_energy += mag / 12.0f;
+      energy_history[noise_history_index].accumulated_energy += mag / ((float) num_noise_bins);
     }
     energy_history[noise_history_index].counts++;
     if (energy_history[noise_history_index].counts >= COUNTS_PER_ENTRY) {
@@ -105,6 +123,7 @@ void BackgroundNoise_Calculate()
     }
     noise_buffer_tail = (noise_buffer_tail + NOISE_BUFFER_SIZE) & PROCESSING_BUFFER_MASK;
   }
+  return true;
 }
 
 float BackgroundNoise_Get()
@@ -133,4 +152,65 @@ void averageNoise()
   average /= ((float) accumulated_noise_entries);
   in_band_noise = average;
   energy_ready = accumulated_noise_entries == NUM_NOISE_IN_AVERAGE;
+}
+
+bool updateFrequencyIndices(const DspConfig_t* cfg)
+{
+  static uint32_t previous_version_number = 0; 
+  uint32_t current_version_number = CFG_GetVersionNumber(); 
+
+  if (current_version_number == previous_version_number) {
+    return true; // No updated needed
+  }
+
+  previous_version_number = current_version_number;
+
+  switch (cfg->mod_demod_method) {
+    case MOD_DEMOD_FSK:
+      return fskFrequencyIndices(cfg);
+    case MOD_DEMOD_FHBFSK:
+      return fhbfskFrequencyIndices(cfg);
+    default:
+      return false;
+  }
+}
+
+bool fskFrequencyIndices(const DspConfig_t* cfg)
+{
+  lower_noise_bin = (uint16_t) roundf(frequencyToIndex(cfg->fsk_f0, NOISE_BUFFER_SIZE));
+  upper_noise_bin = (uint16_t) roundf(frequencyToIndex(cfg->fsk_f1, NOISE_BUFFER_SIZE));
+
+  if (lower_noise_bin > upper_noise_bin) {
+    uint16_t tmp = lower_noise_bin;
+    lower_noise_bin = upper_noise_bin;
+    upper_noise_bin = tmp;
+  }
+
+  if (upper_noise_bin > NOISE_BUFFER_SIZE / 2) {
+    return false;
+  }
+
+  num_noise_bins = upper_noise_bin - lower_noise_bin + 1;
+  return true;
+}
+
+bool fhbfskFrequencyIndices(const DspConfig_t* cfg)
+{
+  uint16_t lower_freq = Modulate_GetFhbfskFrequency(false, 0, cfg);
+  uint16_t upper_freq = lower_freq + (uint16_t) (cfg->baud_rate * ((2 * cfg->fhbfsk_num_tones - 1) * cfg->fhbfsk_freq_spacing));
+
+  lower_noise_bin = (uint16_t) roundf(frequencyToIndex(lower_freq, NOISE_BUFFER_SIZE));
+  upper_noise_bin = (uint16_t) roundf(frequencyToIndex(upper_freq, NOISE_BUFFER_SIZE));
+
+  if (upper_noise_bin > NOISE_BUFFER_SIZE / 2) {
+    return false;
+  }
+
+  num_noise_bins = upper_noise_bin - lower_noise_bin + 1;
+  return true;
+}
+
+float frequencyToIndex(float frequency, uint16_t fft_size)
+{
+  return frequency * fft_size / ((float) ADC_SAMPLING_RATE);
 }
