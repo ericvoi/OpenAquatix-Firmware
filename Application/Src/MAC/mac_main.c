@@ -1,0 +1,162 @@
+/*
+ * mac_main.c
+ *
+ *  Created on: Sep 8, 2025
+ *      Author: ericv
+ */
+
+/* Private includes ----------------------------------------------------------*/
+
+#include "cfg_main.h"
+#include "cfg_parameters.h"
+#include "cfg_defaults.h"
+#include "sys_error.h"
+#include "mess_main.h"
+#include "mac_csma_ca_beb.h"
+#include "mac_no_mac.h"
+#include "mac_protocol.h"
+#include "cmsis_os.h"
+#include <stdbool.h>
+
+/* Private typedef -----------------------------------------------------------*/
+
+typedef struct {
+  MacProtocol_t current_protocol;
+  MacProtocol_t requested_protocol;
+
+  MacProtocolInterface_t* interface;
+
+  union {
+    NoMacData_t no_mac_data;
+    CsmaCaBebData_t csma_ca_beb_data;
+  } protocol_data;
+} MacTaskContext_t;
+
+/* Private define ------------------------------------------------------------*/
+
+#define REGULAR_TX_QUEUE_SIZE       5
+#define EMERGENCY_TX_QUEUE_SIZE     3
+#define RX_QUEUE_SIZE               1
+
+/* Private macro -------------------------------------------------------------*/
+
+
+
+/* Private variables ---------------------------------------------------------*/
+
+osMessageQueueId_t regularTxQueue = NULL;
+osMessageQueueId_t emergencyTxQueue = NULL;
+osMessageQueueId_t rxQueue = NULL;
+
+static MacTaskContext_t task_context = {
+  .current_protocol = MAC_PROTOCOL_UNKNOWN,
+  .requested_protocol = DEFAULT_MAC,
+  .interface = NULL
+};
+
+extern const MacProtocolInterface_t* csma_ca_beb_interface;
+extern const MacProtocolInterface_t* no_mac_interface;
+
+static const MacProtocolInterface_t* protocol_registry[] = {
+  [MAC_PROTOCOL_NONE] = no_mac_interface,
+  [MAC_PROTOCOL_CSMA_CA_BEB] = csma_ca_beb_interface
+};
+
+/* Private function prototypes -----------------------------------------------*/
+
+static bool registerMacParams();
+static bool createTxQueues();
+static bool createRxQueues();
+
+static bool switchMacProtocol();
+
+/* Exported function definitions ---------------------------------------------*/
+
+void MAC_StartTask(void* argument)
+{
+  (void) (argument);
+
+  if (Param_RegisterTask(MAC_TASK, "MAC") == false) {
+    Error_Routine(ERROR_MAC_INIT);
+  }
+
+  if (registerMacParams() == false) {
+    Error_Routine(ERROR_MAC_INIT);
+  }
+
+  if (Param_TaskRegistrationComplete(MAC_TASK) == false) {
+    Error_Routine(ERROR_MAC_INIT);
+  }
+
+  if (createRxQueues() == false || createTxQueues() == false) {
+    Error_Routine(ERROR_MAC_INIT);
+  } 
+
+  CFG_WaitLoadComplete();
+
+  for (;;) {
+    osDelay(1);
+  }
+}
+
+/* Private function definitions ----------------------------------------------*/
+
+bool registerMacParams()
+{
+  uint32_t min_u32 = MIN_MAC;
+  uint32_t max_u32 = MAX_MAC;
+  if (Param_Register(PARAM_MAC, "MAC method", PARAM_TYPE_UINT8, 
+                     &task_context.requested_protocol, sizeof(MacProtocol_t),
+                     &min_u32, &max_u32, NULL) == false) {
+    return false;
+  }
+  return true;
+}
+
+bool createTxQueues()
+{
+  if (regularTxQueue != NULL || emergencyTxQueue != NULL) {
+    return false;
+  }
+  regularTxQueue = osMessageQueueNew(REGULAR_TX_QUEUE_SIZE, sizeof(Message_t), NULL);
+  emergencyTxQueue = osMessageQueueNew(EMERGENCY_TX_QUEUE_SIZE, sizeof(Message_t), NULL);
+
+  if (regularTxQueue == NULL || emergencyTxQueue == NULL) {
+    return false;
+  }
+  return true;
+}
+
+bool createRxQueues()
+{
+  if (rxQueue != NULL) {
+    return false;
+  }
+  rxQueue = osMessageQueueNew(RX_QUEUE_SIZE, sizeof(Message_t), NULL);
+
+  return rxQueue != NULL;
+}
+
+bool switchMacProtocol()
+{
+  if (task_context.current_protocol == task_context.requested_protocol) {
+    return true;
+  }
+
+  if (task_context.interface == NULL) {
+    return false;
+  }
+  if (task_context.interface->deinit == NULL) {
+    return false;
+  }
+  task_context.interface->deinit(&task_context.protocol_data);
+
+  for (uint16_t i = 0; i < sizeof(protocol_registry) / sizeof(protocol_registry[0]); i++) {
+    if (protocol_registry[i].protocol != task_context.requested_protocol) continue;
+    
+    protocol_registry[i].init(&task_context.protocol_data);
+    return true;
+  }
+
+  return false;
+}

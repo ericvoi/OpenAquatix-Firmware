@@ -134,6 +134,7 @@ typedef struct {
   PreambleContent_t preamble;
   MessagingProtocol_t protocol;
   uint16_t uncoded_data_len;
+  bool is_emergency;
 } Message_t;
 
 // defines the structure for analysis of the waveform

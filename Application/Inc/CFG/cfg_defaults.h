@@ -13,7 +13,6 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32h7xx_hal.h"
 #include "mess_input.h"
 #include "mess_main.h"
 #include "mess_error_detection.h"
@@ -21,6 +20,7 @@ extern "C" {
 #include "mess_modulate.h"
 #include "mess_error_correction.h"
 #include "mess_demodulate.h"
+#include "mac_protocol.h"
 
 #include "pga113-driver.h"
 
@@ -228,6 +228,10 @@ extern "C" {
 #define DEFAULT_ENCRYPTION          (ENCRYPTION_NONE)
 #define MIN_ENCRYPTION              (0)
 #define MAX_ENCRYPTION              (NUM_ENCRYPTION_METHODS - 1)
+
+#define DEFAULT_MAC                 (MAC_PROTOCOL_NONE)
+#define MIN_MAC                     (0)
+#define MAX_MAC                     (NUM_MAC_PROTOCOL - 1)
 
 
 
