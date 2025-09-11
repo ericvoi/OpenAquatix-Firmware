@@ -16,14 +16,19 @@ extern "C" {
 #include "stm32h7xx_hal.h"
 #include <stdbool.h>
 
-
 /* Private includes ----------------------------------------------------------*/
 
 
 
 /* Exported types ------------------------------------------------------------*/
 
+typedef enum {
+  OUTPUT_CONSTANT_SQUARE,     // Square envelope of a constant frequency and amplitude
+  OUTPUT_CONSTANT_TUKEY       // ^ With Tukey window applied
+} ModulationOutputType_t;
+
 typedef struct {
+  ModulationOutputType_t output_type;
   uint32_t freq_hz;
   float relative_amplitude;
   uint32_t duration_us;
