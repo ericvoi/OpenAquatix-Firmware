@@ -20,6 +20,7 @@
 
 #include "mess_main.h"
 #include "mess_evaluate.h"
+#include "mess_sync.h"
 
 #include "sys_error.h"
 
@@ -364,6 +365,10 @@ void printCustomHeader(Message_t* msg)
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 
   sprintf((char*) out_buffer, "Mobile sender: %s\r\n", msg->preamble.is_mobile.value ? "Yes" : "No");
+  COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
+
+  float most_recent_snr = Sync_MostRecentSnr();
+  sprintf((char*) out_buffer, "SNR: %.2f\r\n", most_recent_snr);
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
 }
 
