@@ -301,7 +301,7 @@ void updateWaveformParameters()
     case OUTPUT_CONSTANT_TUKEY:
       wave_ctrl.initial_tukey_window_index = 0;
       wave_ctrl.initial_tukey_end_index = (uint32_t) (TUKEY_ALPHA * 0.5f * (float) current_waveform_step.duration_us);
-      wave_ctrl.tukey_increment = (wave_ctrl.initial_tukey_end_index << TUKEY_PRECISION) / TUKEY_POINTS;
+      wave_ctrl.tukey_increment = ((TUKEY_POINTS - 1) << TUKEY_PRECISION) / wave_ctrl.initial_tukey_end_index;
       wave_ctrl.final_tukey_window_index = (TUKEY_POINTS - 1) << TUKEY_PRECISION;
       wave_ctrl.final_tukey_start_index = current_waveform_step.duration_us - wave_ctrl.initial_tukey_end_index;
       break;
