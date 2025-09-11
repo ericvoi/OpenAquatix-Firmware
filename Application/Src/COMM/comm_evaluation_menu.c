@@ -173,6 +173,8 @@ void sendEvalMessage(FunctionContext_t* context, Message_t* msg)
 {
   msg->timestamp = osKernelGetTickCount();
   msg->data_type = EVAL;
+  msg->preamble.message_type.value = EVAL;
+  msg->preamble.message_type.valid = true;
   if (Param_GetUint8(PARAM_ID, (uint8_t*) &msg->preamble.modem_id.value) == false) {
     COMM_TransmitData("\r\nError getting sender ID. Message not sent\r\n", 
         CALC_LEN, context->comm_interface);

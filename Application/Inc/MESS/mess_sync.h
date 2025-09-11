@@ -66,6 +66,13 @@ uint16_t Sync_NumSteps(const DspConfig_t* cfg);
 bool Sync_Synchronize(const DspConfig_t* cfg);
 
 /**
+ * @brief Returns most recent snr score from synchronization
+ * 
+ * @return float The most recent synchronization snr score
+ */
+float Sync_MostRecentSnr();
+
+/**
  * @brief Resets the synchronization process
  * 
  * To be called when a message has been started to reset
