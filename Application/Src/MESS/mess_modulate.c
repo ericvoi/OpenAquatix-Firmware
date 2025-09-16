@@ -113,6 +113,8 @@ static const GaloisParameters_t galois_map[MAX_FHBFSK_NUM_TONES - MIN_FHBFSK_NUM
 extern const uint16_t primes[50];
 static const uint16_t num_primes = sizeof(primes) / sizeof(primes[0]);
 
+static bool apply_tukey = DEFAULT_APPLY_TUKEY;
+
 /* Private function prototypes -----------------------------------------------*/
 
 uint32_t getFhbfskSequenceNumber(uint32_t normalized_bit_index, const DspConfig_t* cfg);
@@ -228,6 +230,9 @@ bool Modulate_DataStep(const DspConfig_t* cfg, BitMessage_t* bit_msg, WaveformSt
   }
   waveform_step->duration_us = (uint32_t) roundf(1000000.0f / cfg->baud_rate);
   waveform_step->relative_amplitude = Modulate_GetAmplitude(waveform_step->freq_hz);
+
+  waveform_step->output_type = (apply_tukey) ? (OUTPUT_CONSTANT_TUKEY) : (OUTPUT_CONSTANT_SQUARE);
+
   return true;
 }
 
@@ -286,6 +291,13 @@ bool Modulate_RegisterParams()
   max_f = MAX_MAX_TRANSDUCER_V;
   if (Param_Register(PARAM_MAX_TRANSDUCER_VOLTAGE, "Maximum transducer voltage", PARAM_TYPE_FLOAT,
                      &max_transducer_voltage, sizeof(float), &min_f, &max_f, NULL) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_APPLY_TUKEY;
+  max_u32 = MAX_APPLY_TUKEY;
+  if (Param_Register(PARAM_APPLY_TUKEY, "Tukey window application", PARAM_TYPE_UINT8,
+                     &apply_tukey, sizeof(bool), &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 

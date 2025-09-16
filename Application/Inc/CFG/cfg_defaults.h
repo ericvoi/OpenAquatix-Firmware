@@ -21,6 +21,7 @@ extern "C" {
 #include "mess_error_correction.h"
 #include "mess_demodulate.h"
 #include "mac_protocol.h"
+#include "dac_waveform.h"
 
 #include "pga113-driver.h"
 
@@ -232,6 +233,10 @@ extern "C" {
 #define DEFAULT_MAC                 (MAC_PROTOCOL_NONE)
 #define MIN_MAC                     (0)
 #define MAX_MAC                     (NUM_MAC_PROTOCOL - 1)
+
+#define DEFAULT_APPLY_TUKEY         (true)
+#define MIN_APPLY_TUKEY             (false)
+#define MAX_APPLY_TUKEY             (true)
 
 
 

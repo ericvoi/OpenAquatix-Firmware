@@ -20,17 +20,21 @@
 #include <stdbool.h>
 #include <string.h>
 #include <math.h>
+#include <limits.h>
 
 /* Private typedef -----------------------------------------------------------*/
 
 typedef struct {
   uint32_t phase_accumulator;
   uint32_t phase_increment;
-  uint32_t current_amplitude;
-  uint32_t target_amplitude;
-  int32_t amplitude_step;
-  uint32_t amplitude_counter;
-  bool amplitude_transitioning;
+
+  uint32_t initial_tukey_window_index;
+  uint32_t initial_tukey_end_index;
+  uint32_t tukey_increment;
+  uint32_t final_tukey_window_index;
+  uint32_t final_tukey_start_index;
+
+  uint32_t amplitude;
 } WaveformControl_t;
 
 /* Private define ------------------------------------------------------------*/
@@ -39,9 +43,16 @@ typedef struct {
 #define DAC_MAX_VALUE       4095
 #define PHASE_PRECISION     32
 
+#define TUKEY_PRECISION     10
+#define TUKEY_POINTS        (1 << 8) // 256 points in pre-computed Tukey array
+
+#define TUKEY_ALPHA         (0.05f)
+
+#define AMPLITUDE_PRECISION 10
+
 /* Private macro -------------------------------------------------------------*/
 
-
+#define MIN(a, b)          ((a < b) ? (a) : (b))
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -59,10 +70,11 @@ static uint32_t current_symbol_duration_us = 0;
 
 static volatile uint32_t callback_count = 0;
 
-static uint16_t transition_length = DEFAULT_DAC_TRANSITION_LEN;
+static uint16_t tukey_window[TUKEY_POINTS];
 
 // Output tone that flushes out the DAC and prevents the first message from being scrambled
 WaveformStep_t test_step = {
+    .output_type = OUTPUT_CONSTANT_SQUARE,
     .duration_us = 1000000, // Any lower duration does not work
     .freq_hz = 30000,
     .relative_amplitude = 0.0
@@ -71,6 +83,7 @@ WaveformStep_t test_step = {
 /* Private function prototypes -----------------------------------------------*/
 
 static void generateSineTable(void);
+static void generateTukeyWindow(void);
 static void updateWaveformParameters(void);
 
 /* Exported function definitions ---------------------------------------------*/
@@ -78,6 +91,7 @@ static void updateWaveformParameters(void);
 bool Waveform_InitWaveformGenerator(void)
 {
   generateSineTable();
+  generateTukeyWindow();
 
   // Initialize control structure
   memset(&wave_ctrl, 0, sizeof(wave_ctrl));
@@ -130,9 +144,6 @@ bool Waveform_StopWaveformOutput()
   HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_TRANSDUCER);
 
   wave_ctrl.phase_accumulator = 0;
-  wave_ctrl.current_amplitude = 0;
-  wave_ctrl.target_amplitude = 0;
-  wave_ctrl.amplitude_transitioning = false;
 
   ADC_StopFeedback();
   return true;
@@ -145,12 +156,6 @@ bool Waveform_IsRunning()
 
 bool Waveform_RegisterParams()
 {
-  uint32_t min = MIN_DAC_TRANSITION_LEN;
-  uint32_t max = MAX_DAC_TRANSITION_LEN;
-  if (Param_Register(PARAM_DAC_TRANSITION_LEN, "DAC transition duration (us)", PARAM_TYPE_UINT16,
-                     &transition_length, sizeof(uint16_t), &min, &max, NULL) == false) {
-    return false;
-  }
 
   return true;
 }
@@ -164,10 +169,10 @@ void Waveform_Flush()
   dac_running = true;
   wave_ctrl.phase_increment = 0;
 
-  wave_ctrl.target_amplitude = test_step.relative_amplitude;
-  wave_ctrl.amplitude_step = 0;
-  wave_ctrl.amplitude_counter = 0;
-  wave_ctrl.amplitude_transitioning = false;
+  wave_ctrl.amplitude = test_step.relative_amplitude * (1 << AMPLITUDE_PRECISION);
+  wave_ctrl.tukey_increment = 0;
+  wave_ctrl.initial_tukey_end_index = 0;
+  wave_ctrl.final_tukey_start_index = UINT_MAX;
 
   current_symbol_duration_us = 0;
   memcpy(&current_waveform_step, &test_step, sizeof(WaveformStep_t));
@@ -210,7 +215,6 @@ void Waveform_FillBuffer(FillType_t type)
   uint16_t i = (type == FILL_FIRST_HALF) ? 0 : DAC_BUFFER_SIZE / 2;
 
   const uint16_t start_index = i; // Absolute starting index to use
-  const uint16_t end_index = (type == FILL_FIRST_HALF) ? DAC_BUFFER_SIZE / 2: DAC_BUFFER_SIZE;
 
   if (current_symbol_duration_us >= current_waveform_step.duration_us) { // Current sequence step has gone on long enough
     // start new symbol
@@ -218,54 +222,67 @@ void Waveform_FillBuffer(FillType_t type)
     updateWaveformParameters();
   }
 
-  // Flag to change the output frequency has been set so perform amplitude transition
-  if (wave_ctrl.amplitude_transitioning) {
-    for (;i < start_index + transition_length; i++) {
-      // Take the first 10 bits of the phase as the sine table has 2^10 points
-      uint32_t index = wave_ctrl.phase_accumulator >> (PHASE_PRECISION - 10);
-      uint32_t base_value = sine_table[index & (SINE_POINTS - 1)]; // Ensures nothing out of index
+  const uint16_t end_index = start_index + MIN(DAC_BUFFER_SIZE / 2, current_waveform_step.duration_us - current_symbol_duration_us);
 
-      wave_ctrl.current_amplitude = (uint32_t) ((int32_t) wave_ctrl.current_amplitude + wave_ctrl.amplitude_step);
-      wave_ctrl.amplitude_counter++;
-      if (wave_ctrl.amplitude_counter >= transition_length) {
-        wave_ctrl.amplitude_transitioning = false;
-        wave_ctrl.current_amplitude = wave_ctrl.target_amplitude;
-      }
-      // Add baseline offset and modulation amplitude
-      dac_buffer[i] = (DAC_MAX_VALUE + 1) / 2 - wave_ctrl.current_amplitude / 2 + ((base_value * wave_ctrl.current_amplitude) >> 12);
+  // Initial envelope modulation
+  while (current_symbol_duration_us < wave_ctrl.initial_tukey_end_index && (i < end_index)) {
+    uint32_t index = wave_ctrl.phase_accumulator >> (PHASE_PRECISION - 10);
+    uint32_t base_value = sine_table[index & (SINE_POINTS - 1)]; // Ensures nothing out of index
 
-      // Update phase
-      wave_ctrl.phase_accumulator += wave_ctrl.phase_increment;
-    }
+    uint32_t scaling_value = tukey_window[wave_ctrl.initial_tukey_window_index >> TUKEY_PRECISION] * wave_ctrl.amplitude;
+    dac_buffer[i] = ((DAC_MAX_VALUE + 1) / 2) - ((scaling_value >> (4 + AMPLITUDE_PRECISION)) / 2) + (((uint64_t) base_value * scaling_value) >> (16 + AMPLITUDE_PRECISION));
+    i++; 
+    current_symbol_duration_us++;
+    wave_ctrl.phase_accumulator += wave_ctrl.phase_increment;
+    wave_ctrl.initial_tukey_window_index += wave_ctrl.tukey_increment;
   }
 
-  uint16_t offset_amt = (DAC_MAX_VALUE + 1) / 2 - wave_ctrl.current_amplitude / 2;
-  for (; i < end_index; i++) {
-    // Get current phase
+  // Rectangular window portion
+  uint16_t offset_amt = ((DAC_MAX_VALUE + 1) / 2) - (wave_ctrl.amplitude << (12 - AMPLITUDE_PRECISION - 1));
+  while (current_symbol_duration_us < wave_ctrl.final_tukey_start_index && (i < end_index)) {
     uint32_t index = wave_ctrl.phase_accumulator >> (PHASE_PRECISION - 10);
     uint32_t base_value = sine_table[index & (SINE_POINTS - 1)];
 
-    // Scale output and write to buffer
-    dac_buffer[i] = offset_amt + ((base_value * wave_ctrl.current_amplitude) >> 12);
+    dac_buffer[i] = offset_amt + ((base_value * wave_ctrl.amplitude) >> AMPLITUDE_PRECISION);
 
     // Update phase
     wave_ctrl.phase_accumulator += wave_ctrl.phase_increment;
+    i++;
+    current_symbol_duration_us++;
   }
 
-  current_symbol_duration_us += DAC_BUFFER_SIZE * DAC_SAMPLE_RATE / 1000000 / 2;
+  // Final envelope modulation
+  while (current_symbol_duration_us < current_waveform_step.duration_us && (i < end_index)) {
+    uint32_t index = wave_ctrl.phase_accumulator >> (PHASE_PRECISION - 10);
+    uint32_t base_value = sine_table[index & (SINE_POINTS - 1)]; // Ensures nothing out of index
+
+    uint32_t scaling_value = tukey_window[wave_ctrl.final_tukey_window_index >> TUKEY_PRECISION] * wave_ctrl.amplitude;
+    dac_buffer[i] = ((DAC_MAX_VALUE + 1) / 2) - ((scaling_value >> (4 + AMPLITUDE_PRECISION)) / 2) + (((uint64_t) base_value * scaling_value) >> (16 + AMPLITUDE_PRECISION));
+    i++; 
+    current_symbol_duration_us++;
+    wave_ctrl.phase_accumulator += wave_ctrl.phase_increment;
+    wave_ctrl.final_tukey_window_index -= wave_ctrl.tukey_increment;
+  }
 }
 
 /* Private function definitions ----------------------------------------------*/
 
 // Creates a sine table with 360/SINE_POINTS degree spacing between adjacent points centered at 2047. Table has one full sine wave
-static void generateSineTable(void)
+void generateSineTable(void)
 {
   for(uint16_t i = 0; i < SINE_POINTS; i++) {
     sine_table[i] = (uint16_t)(2047.0f * sinf(2.0f * M_PI * i / SINE_POINTS) + 2047.0f);
   }
 }
 
-static void updateWaveformParameters()
+void generateTukeyWindow(void)
+{
+  for (uint16_t i = 0; i < TUKEY_POINTS; i++) {
+    tukey_window[i] = (uint16_t) (((float) USHRT_MAX / 2.0f) * (1.0f - cosf(M_PI * i / TUKEY_POINTS)));
+  }
+}
+
+void updateWaveformParameters()
 {
   current_waveform_step = MessDacResource_GetStep(current_step);
 
@@ -273,12 +290,24 @@ static void updateWaveformParameters()
   wave_ctrl.phase_increment = (((uint64_t)
       current_waveform_step.freq_hz) << PHASE_PRECISION) / DAC_SAMPLE_RATE;
 
-  // Setup amplitude transition
-  wave_ctrl.target_amplitude = (uint32_t)
-      (current_waveform_step.relative_amplitude * (float) DAC_MAX_VALUE);
-  wave_ctrl.amplitude_step = ((int32_t) wave_ctrl.target_amplitude - (int32_t) wave_ctrl.current_amplitude) / transition_length;
-  wave_ctrl.amplitude_counter = 0;
-  wave_ctrl.amplitude_transitioning = true;
+  wave_ctrl.amplitude = current_waveform_step.relative_amplitude * (1 << AMPLITUDE_PRECISION);
+
+  switch (current_waveform_step.output_type) {
+    case OUTPUT_CONSTANT_SQUARE:
+      wave_ctrl.tukey_increment = 0;
+      wave_ctrl.initial_tukey_end_index = 0;
+      wave_ctrl.final_tukey_start_index = UINT_MAX;
+      break;
+    case OUTPUT_CONSTANT_TUKEY:
+      wave_ctrl.initial_tukey_window_index = 0;
+      wave_ctrl.initial_tukey_end_index = (uint32_t) (TUKEY_ALPHA * 0.5f * (float) current_waveform_step.duration_us);
+      wave_ctrl.tukey_increment = ((TUKEY_POINTS - 1) << TUKEY_PRECISION) / wave_ctrl.initial_tukey_end_index;
+      wave_ctrl.final_tukey_window_index = (TUKEY_POINTS - 1) << TUKEY_PRECISION;
+      wave_ctrl.final_tukey_start_index = current_waveform_step.duration_us - wave_ctrl.initial_tukey_end_index;
+      break;
+    default:
+      break;
+  }
 
   current_symbol_duration_us = 0;
 }

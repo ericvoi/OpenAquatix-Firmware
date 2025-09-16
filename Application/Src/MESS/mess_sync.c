@@ -89,6 +89,8 @@ static Stage2Results_t stage2_results[SYNC_STAGE_234_SUBDIVIDE];
 
 static volatile bool sync_error = false;
 
+static float most_recent_snr = 0.0f;
+
 /* Private function prototypes -----------------------------------------------*/
 
 static void updateParameters(const DspConfig_t* cfg);
@@ -147,6 +149,11 @@ bool Sync_Synchronize(const DspConfig_t* cfg)
     default:
       return false;
   }
+}
+
+float Sync_MostRecentSnr()
+{
+  return most_recent_snr;
 }
 
 void Sync_Reset()
@@ -512,6 +519,8 @@ bool evaluateStage2Results()
   current_samples += stage2_results[best_index].buffer_index;
 
   Sync_Reset();
+
+  most_recent_snr = best_snr;
 
   uint64_t target_samples = current_samples + samples_to_wait;
   uint16_t final_rollover_count = target_samples / PROCESSING_BUFFER_SIZE;
