@@ -12,8 +12,10 @@
 #include "mess_adc.h"
 #include "mess_demodulate.h"
 #include "mess_modulate.h"
+#include "mac_channel_reports.h"
 #include "cfg_main.h"
 #include "arm_math.h"
+#include "cmsis_os.h"
 #include <math.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -30,9 +32,9 @@ typedef struct {
 #define NOISE_BUFFER_SIZE       128
 #define MS_PER_ENTRY            100
 #define COUNTS_PER_ENTRY        (ADC_SAMPLING_RATE * MS_PER_ENTRY / 1000 / NOISE_BUFFER_SIZE)
-#define NOISE_HISTORY_SIZE      (1 << 4)
+#define NOISE_HISTORY_SIZE      (1 << 4) // 16
 
-#define NUM_NOISE_IN_AVERAGE    (1 << 3)
+#define NUM_NOISE_IN_AVERAGE    (1 << 3) // 8
 
 #define WINDOW_INCREMENT        4
 
@@ -61,8 +63,17 @@ static uint16_t lower_noise_bin = 0;
 static uint16_t upper_noise_bin = 0;
 static uint16_t num_noise_bins = 1;
 
+static ChannelReportType_t channel_report_type = REPORT_NONE;
+static uint16_t current_counts_in_report = 0;
+static uint16_t total_counts_in_report = 0;
+static ChannelReport_t channel_report;
+
+osEventFlagsId_t channel_report_flag = NULL;
+osMessageQueueId_t channel_report_queue = NULL;
+
 /* Private function prototypes -----------------------------------------------*/
 
+static void updateBackgroundNoise();
 static void averageNoise();
 static bool updateFrequencyIndices(const DspConfig_t* cfg);
 
@@ -71,7 +82,26 @@ static bool fhbfskFrequencyIndices(const DspConfig_t* cfg);
 
 static float frequencyToIndex(float frequency, uint16_t fft_size);
 
+static bool updateChannelReport();
+static bool channelReportingRequirement(const DspConfig_t* cfg);
+static bool updateChannelReportTotalCount(const DspConfig_t* cfg);
+
 /* Exported function definitions ---------------------------------------------*/
+
+bool BackgroundNoise_Init()
+{
+  channel_report_flag = osEventFlagsNew(NULL);
+  if (channel_report_flag == NULL) {
+    return false;
+  }
+  osEventFlagsClear(channel_report_flag, 0xFFFFFFFF);
+
+  channel_report_queue = osMessageQueueNew(CHANNEL_REPORT_QUEUE_SIZE, sizeof(ChannelReport_t), NULL);
+  if (channel_report_queue == NULL) {
+    return false;
+  }
+  return true;
+}
 
 void BackgroundNoise_Reset()
 {
@@ -109,17 +139,9 @@ bool BackgroundNoise_Calculate(const DspConfig_t* cfg)
       energy_history[noise_history_index].accumulated_energy += mag / ((float) num_noise_bins);
     }
     energy_history[noise_history_index].counts++;
-    if (energy_history[noise_history_index].counts >= COUNTS_PER_ENTRY) {
-      energy_history[noise_history_index].accumulated_energy /= energy_history[noise_history_index].counts;
-      // Check for very first noise entry or if in-line with previous values
-      if (in_band_noise == RESET_NOISE_VALUE || 
-        (energy_history[noise_history_index].accumulated_energy < (in_band_noise * (NOISE_OUTLIER_THRESHOLD)))) {
-        accumulated_noise_entries = MIN(accumulated_noise_entries + 1, NUM_NOISE_IN_AVERAGE);
-        noise_history_index = (noise_history_index + 1) % NOISE_HISTORY_SIZE;
-        averageNoise();
-      }
-      energy_history[noise_history_index].counts = 0;
-      energy_history[noise_history_index].accumulated_energy = 0.0f;
+    updateBackgroundNoise();
+    if (updateChannelReport() == false) {
+      return false;
     }
     noise_buffer_tail = (noise_buffer_tail + NOISE_BUFFER_SIZE) & PROCESSING_BUFFER_MASK;
   }
@@ -137,6 +159,22 @@ bool BackgroundNoise_Ready()
 }
 
 /* Private function definitions ----------------------------------------------*/
+
+void updateBackgroundNoise()
+{
+  if (energy_history[noise_history_index].counts >= COUNTS_PER_ENTRY) {
+    energy_history[noise_history_index].accumulated_energy /= energy_history[noise_history_index].counts;
+    // Check for very first noise entry or if in-line with previous values
+    if (in_band_noise == RESET_NOISE_VALUE || 
+      (energy_history[noise_history_index].accumulated_energy < (in_band_noise * (NOISE_OUTLIER_THRESHOLD)))) {
+      accumulated_noise_entries = MIN(accumulated_noise_entries + 1, NUM_NOISE_IN_AVERAGE);
+      noise_history_index = (noise_history_index + 1) % NOISE_HISTORY_SIZE;
+      averageNoise();
+    }
+    energy_history[noise_history_index].counts = 0;
+    energy_history[noise_history_index].accumulated_energy = 0.0f;
+  }
+}
 
 void averageNoise()
 {
@@ -213,4 +251,93 @@ bool fhbfskFrequencyIndices(const DspConfig_t* cfg)
 float frequencyToIndex(float frequency, uint16_t fft_size)
 {
   return frequency * fft_size / ((float) ADC_SAMPLING_RATE);
+}
+
+bool updateChannelReport()
+{
+  switch (channel_report_type) {
+    case REPORT_NONE:
+      return true;
+    case REPORT_16_CD_PSD:
+      current_counts_in_report++;
+      if (current_counts_in_report >= total_counts_in_report) {
+        channel_report.psd /= current_counts_in_report;
+        current_counts_in_report = 0;
+        if (osMessageQueueGetSpace(channel_report_queue) == 0) {
+          return false;
+        }
+        if (osMessageQueuePut(channel_report_queue, &channel_report, 0, 0) != osOK) {
+          return false;
+        }
+        channel_report.psd = 0.0f;
+      }
+      return true;
+    default:
+      return false;
+  }
+}
+
+bool channelReportingRequirement(const DspConfig_t* cfg)
+{
+  static ChannelReportType_t last_report_type = REPORT_NONE;
+  static uint32_t last_cfg_number = 0;
+  uint32_t current_cfg_number = CFG_GetVersionNumber();
+  if (last_cfg_number != current_cfg_number) {
+    last_cfg_number = current_cfg_number;
+    switch (last_report_type) {
+      case REPORT_NONE:
+        break;
+      case REPORT_16_CD_PSD:
+        return updateChannelReportTotalCount(cfg);
+      default:
+        return false;
+    }
+  }
+
+  uint32_t flags = osEventFlagsWait(channel_report_flag, 0x03, osFlagsWaitAny, 0);
+  if (flags == osFlagsErrorResource) {
+    return true;
+  }
+
+  if (flags & 0x80000000U) {
+    return false;
+  }
+
+  if (flags & REPORT_NONE) {
+    channel_report_type = REPORT_NONE;
+  }
+  else if (flags & REPORT_16_CD_PSD) {
+    channel_report_type = REPORT_16_CD_PSD;
+  }
+
+  if (channel_report_type == last_report_type) {
+    return true;
+  }
+
+  switch (channel_report_type) {
+    case REPORT_NONE:
+      break;
+    case REPORT_16_CD_PSD:
+      return updateChannelReportTotalCount(cfg);
+    default:
+      return false;
+  }
+  return true;
+}
+
+bool updateChannelReportTotalCount(const DspConfig_t* cfg)
+{
+  if (cfg->mod_demod_method != MOD_DEMOD_FSK || cfg->mod_demod_method != MOD_DEMOD_FHBFSK) {
+    return false;
+  }
+  uint32_t samples_per_chip = (uint32_t) ((float) ADC_SAMPLING_RATE) / cfg->baud_rate;
+  uint32_t samples_per_report = samples_per_chip * CHANNEL_REPORT_CD;
+  uint32_t new_total_counts_in_report = (samples_per_report + NOISE_BUFFER_SIZE - 1) / NOISE_BUFFER_SIZE;
+
+  if (total_counts_in_report != new_total_counts_in_report) {
+    channel_report.psd = 0.0f;
+    current_counts_in_report = 0;
+    total_counts_in_report = new_total_counts_in_report;
+  }
+  return true;
 }

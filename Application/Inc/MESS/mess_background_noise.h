@@ -37,6 +37,13 @@ extern "C" {
 /* Exported functions prototypes ---------------------------------------------*/
 
 /**
+ * @brief Initializes events and queues in background noise module
+ * 
+ * @return true if successful, false otherwise
+ */
+bool BackgroundNoise_Init();
+
+/**
  * @brief Restarts the background noise and invalidates the current background
  * noise measurement
  */

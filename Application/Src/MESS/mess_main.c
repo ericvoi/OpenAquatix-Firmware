@@ -56,8 +56,6 @@
 
 
 /* Private variables ---------------------------------------------------------*/
-extern osEventFlagsId_t sleep_events;
-
 static MessagingProtocol_t messaging_protocol = DEFAULT_MESSAGING_PROTOCOL;
 
 // Identification parameters
@@ -121,8 +119,8 @@ static DspConfig_t* cfg = &custom_config;
 static BitMessage_t bit_msg;
 static uint16_t message_length = 0;
 
-Message_t tx_msg;
-Message_t rx_msg;
+static Message_t tx_msg;
+static Message_t rx_msg;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -165,6 +163,7 @@ void MESS_StartTask(void* argument)
   Feedback_Init();
   FeedbackTests_Init();
   Demodulate_Init();
+  BackgroundNoise_Init();
   switchState(LISTENING);
 
   osDelay(10);

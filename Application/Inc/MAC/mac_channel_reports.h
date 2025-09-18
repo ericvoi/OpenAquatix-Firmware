@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32h7xx_hal.h"
+
 
 
 /* Private includes ----------------------------------------------------------*/
@@ -26,9 +26,15 @@ typedef struct {
   float psd;
 } ChannelReport_t;
 
+typedef enum {
+  REPORT_NONE = (1 << 0),
+  REPORT_16_CD_PSD = (1 << 1)
+} ChannelReportType_t
+
 /* Exported constants --------------------------------------------------------*/
 
 #define CHANNEL_REPORT_CD             16 // Number of chip periods in a channel report given to MAC task
+#define CHANNEL_REPORT_QUEUE_SIZE     5
 
 /* Exported macro ------------------------------------------------------------*/
 
