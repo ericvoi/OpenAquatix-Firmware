@@ -46,7 +46,7 @@ static void NoMac_Deinit(void* protocol_data)
 
 }
 
-static MacResult_t NoMac_HandleTxRequest(void* protocol_data, const Message_t* message)
+static MacState_t NoMac_HandleTxRequest(void* protocol_data)
 {
 
 }
@@ -61,7 +61,7 @@ static void NoMac_ProcessRxMessage(void* protocol_data, const Message_t message)
 
 }
 
-static MacResult_t NoMac_EmergencyTx(void* protocol_data, const Message_t* message)
+static MacState_t NoMac_EmergencyTx(void* protocol_data, const Message_t* message)
 {
 
 }

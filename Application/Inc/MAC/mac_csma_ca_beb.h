@@ -30,16 +30,19 @@ extern "C" {
 #define CSMA_REPORTS_IN_SLOT                  (CSMA_SLOT_LENGTH_CD / CHANNEL_REPORT_CD)
 #define CSMA_REPORTS_IN_BACKGROUND_NOISE      (CSMA_BACKGROUND_NOISE_ESTIMATION_CD / CHANNEL_REPORT_CD)
 
-typedef struct {
-  MacState_t state;
+#define STORED_CSMA_CHANNEL_REPORTS           (CSMA_REPORTS_IN_BACKGROUND_NOISE + 5)
 
+typedef struct {
   uint8_t collision_count;
   
   float background_psd;
-  float channel_reports[CSMA_REPORTS_IN_BACKGROUND_NOISE];
+  float channel_reports[STORED_CSMA_CHANNEL_REPORTS];
   uint16_t num_channel_reports;
   uint16_t channel_report_index;
   bool sensing_complete;
+
+  bool last_report_busy;
+  bool fresh_report;
 } CsmaCaBebData_t;
 
 /* Exported constants --------------------------------------------------------*/

@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32h7xx_hal.h"
+
 
 
 /* Private includes ----------------------------------------------------------*/
@@ -24,7 +24,8 @@ extern "C" {
 
 typedef enum {
   MAC_STATE_IDLE,
-  MAC_STATE_WAITING_TO_TRANSMIT
+  MAC_STATE_WAITING_TO_TRANSMIT,
+  MAC_STATE_TRANSMITTED
 } MacState_t;
 
 /* Exported constants --------------------------------------------------------*/

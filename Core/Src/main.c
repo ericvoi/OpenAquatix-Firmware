@@ -100,7 +100,7 @@ const osThreadAttr_t defaultTask_attributes = {
 };
 /* Definitions for messageTask */
 osThreadId_t messageTaskHandle;
-uint32_t messageTaskBuffer[ 8000 ];
+uint32_t messageTaskBuffer[ 8000 ] __attribute__((section(".dma_buf")));
 osStaticThreadDef_t messageTaskControlBlock;
 const osThreadAttr_t messageTask_attributes = {
   .name = "messageTask",
@@ -160,7 +160,7 @@ const osThreadAttr_t dacTask_attributes = {
 };
 /* Definitions for macTask */
 osThreadId_t macTaskHandle;
-uint32_t macTaskBuffer[ 500 ];
+uint32_t macTaskBuffer[ 2000 ];
 osStaticThreadDef_t macTaskControlBlock;
 const osThreadAttr_t macTask_attributes = {
   .name = "macTask",

@@ -36,7 +36,7 @@ typedef enum {
   MAC_RESULT_DEFERRED,
   MAC_RESULT_DROPPED,
   MAC_RESULT_BUSY
-} MacResult_t;
+} MacState_t;
 
 typedef struct {
   MacProtocol_t protocol;
@@ -44,11 +44,11 @@ typedef struct {
   void (*init)(void* protocol_data);
   void (*deinit)(void* protocol_data);
 
-  MacResult_t (*handleTxRequest)(void* protocol_data, const Message_t* message);
+  MacState_t (*handleTxRequest)(void* protocol_data);
   void (*processChannelReport)(void* protocol_data, const ChannelReport_t report);
   void (*processRxMessage)(void* protocol_data, const Message_t* message);
 
-  MacResult_t (*handleEmergencyTx)(void* protocol_data, const Message_t* message);
+  MacState_t (*handleEmergencyTx)(void* protocol_data, const Message_t* message);
 } MacProtocolInterface_t;
 
 typedef struct {

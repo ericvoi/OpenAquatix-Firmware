@@ -21,6 +21,8 @@
 /* Private typedef -----------------------------------------------------------*/
 
 typedef struct {
+  MacState_t state;
+
   MacProtocol_t current_protocol;
   MacProtocol_t requested_protocol;
 
@@ -46,9 +48,10 @@ typedef struct {
 
 osMessageQueueId_t regularTxQueue = NULL;
 osMessageQueueId_t emergencyTxQueue = NULL;
-osMessageQueueId_t rxQueue = NULL;
+osMessageQueueId_t macRxQueue = NULL;
 
 static MacTaskContext_t task_context = {
+  .state = MAC_STATE_IDLE,
   .current_protocol = MAC_PROTOCOL_UNKNOWN,
   .requested_protocol = DEFAULT_MAC,
   .interface = NULL
@@ -61,6 +64,8 @@ static const MacProtocolInterface_t* protocol_registry[] = {
   [MAC_PROTOCOL_NONE] = no_mac_interface,
   [MAC_PROTOCOL_CSMA_CA_BEB] = csma_ca_beb_interface
 };
+
+extern osMessageQueueId_t channel_report_queue;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -95,6 +100,35 @@ void MAC_StartTask(void* argument)
   CFG_WaitLoadComplete();
 
   for (;;) {
+    if (switchMacProtocol() == false) {
+      return false;
+    }
+
+    ChannelReport_t channel_report;
+    if (osMessageQueueGet(channel_report_queue, &channel_report, NULL, 0) != 0) {
+      if (task_context.interface->processChannelReport != NULL) {
+        task_context.interface->processChannelReport(&task_context.protocol_data.csma_ca_beb_data, channel_report);
+      }
+    }
+
+    if (osMessageQueueGetCount(regularTxQueue) != 0) {
+      if (task_context.interface->handleTxRequest != NULL) {
+        task_context.state = task_context.interface->handleTxRequest(&task_context.protocol_data.csma_ca_beb_data)
+      }
+    }
+
+    if (osMessageQueueGetCount(emergencyTxQueue) != 0) {
+      if (task_context.interface->handleEmergencyTx != NULL) {
+        Message_t message_to_send;
+        osMessageQueueGet(emergencyTxQueue, &message_to_send, NULL, 0);
+        task_context.state = task_context.interface->handleEmergencyTx(&task_context.protocol_data.csma_ca_beb_data, &message_to_send);
+      }
+    }
+
+    if (osMessageGetCount(macRxQueue) != 0) {
+      // TODO: add to comm rx queue
+    }
+
     osDelay(1);
   }
 }
@@ -129,12 +163,12 @@ bool createTxQueues()
 
 bool createRxQueues()
 {
-  if (rxQueue != NULL) {
+  if (macRxQueue != NULL) {
     return false;
   }
-  rxQueue = osMessageQueueNew(RX_QUEUE_SIZE, sizeof(Message_t), NULL);
+  macRxQueue = osMessageQueueNew(RX_QUEUE_SIZE, sizeof(Message_t), NULL);
 
-  return rxQueue != NULL;
+  return macRxQueue != NULL;
 }
 
 bool switchMacProtocol()
@@ -155,6 +189,7 @@ bool switchMacProtocol()
     if (protocol_registry[i].protocol != task_context.requested_protocol) continue;
     
     protocol_registry[i].init(&task_context.protocol_data);
+    task_context.state = MAC_STATE_IDLE;
     return true;
   }
 
