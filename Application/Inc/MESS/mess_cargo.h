@@ -3,6 +3,9 @@
  *
  *  Created on: Jul 9, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef MESS_MESS_CARGO_H_

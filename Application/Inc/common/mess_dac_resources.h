@@ -3,6 +3,9 @@
  *
  *  Created on: Apr 29, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef COMMON_MESS_DAC_RESOURCES_H_

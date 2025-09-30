@@ -3,6 +3,9 @@
  *
  *  Created on: Apr 30, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
  // Important note: All error correction codes must not require the input bit

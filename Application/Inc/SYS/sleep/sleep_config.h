@@ -3,6 +3,9 @@
  *
  *  Created on: Aug 2, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef SLEEP_SLEEP_CONFIG_H_

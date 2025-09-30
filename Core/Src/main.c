@@ -15,6 +15,14 @@
   *
   ******************************************************************************
   */
+
+  /**
+  * Modifications Copyright (c) 2025 OpenAquatix Contributors
+  * Licensed under MIT License (see LICENSE file)
+  * 
+  * Modified by: Addition of OpenAquatix application
+  */
+ 
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"

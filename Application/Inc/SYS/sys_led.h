@@ -3,6 +3,9 @@
  *
  *  Created on: Apr 25, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef SYS_SYS_LED_H_

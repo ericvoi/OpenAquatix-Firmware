@@ -3,6 +3,9 @@
  *
  *  Created on: Sep 9, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef MAC_MAC_CHANNEL_REPORTS_H_

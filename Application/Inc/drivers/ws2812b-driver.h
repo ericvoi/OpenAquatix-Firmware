@@ -1,3 +1,13 @@
+/*
+ * usb_comm.h
+ *
+ *  Created on: Feb 1, 2025
+ *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
+ */
+
 #ifndef __WS2812b_DRIVER_H
 #define __WS2812b_DRIVER_H
 

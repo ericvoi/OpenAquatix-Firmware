@@ -3,6 +3,9 @@
  *
  *  Created on: Feb 1, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef __USB_COMM_H_
