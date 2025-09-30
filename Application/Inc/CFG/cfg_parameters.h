@@ -82,6 +82,7 @@ typedef enum {
   PARAM_JANUS_DESTINATION,
   PARAM_CODING,
   PARAM_ENCRYPTION,
+  PARAM_MAC,
   PARAM_APPLY_TUKEY,
   // Add new parameters just above here and nowhere else
   NUM_PARAM

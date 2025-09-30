@@ -289,6 +289,11 @@ bool Input_DecodeBits(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* 
 
   if (bit_msg->preamble_received == false) { // Still looking for preamble
     if (bit_msg->bit_count >= bit_msg->preamble.ecc_len) {
+      // Message timestamp taken when cargo starts. This approach is not precise
+      // and could be improved by considering how far we are into the cargo already
+      // in case precision within 1 ms is required. Current approach likely accurate
+      // to within 5 ms.
+      msg->timestamp = osKernelGetTickCount();
 
       if (Interleaver_Undo(bit_msg, cfg, true) == false) {
         return false;
@@ -578,7 +583,7 @@ float frequencyToIndex(float frequency, uint16_t fft_size)
   return frequency * fft_size / ((float) ADC_SAMPLING_RATE);
 }
 
-static float indexToFrequency(float index, uint16_t fft_size)
+float indexToFrequency(float index, uint16_t fft_size)
 {
   return ADC_SAMPLING_RATE * index / ((float) fft_size);
 }

@@ -86,7 +86,7 @@ static const PreambleFieldConfig_t janus_011_01_sms_fields[] = {
   #define JANUS_011_01_SMS_APPLICATION_TYPE   (1U)
   FIELD_ENTRY(16, 6, application_type),       
   FIELD_FIXED_ENTRY(22, 1, 0U),       // RPT flag = 0
-  FIELD_ENTRY(23, 7, reservation_time),
+  FIELD_ENTRY(23, 7, reservation_time_10ms),
   FIELD_UNUSED(30, 1),
   FIELD_ENTRY(31, 8, modem_id),
   FIELD_ENTRY(39, 8, destination_id),
@@ -221,7 +221,6 @@ bool calculateJanusReservationBits(Message_t* msg, BitMessage_t* bit_msg, const 
 {
   num_bits = ErrorCorrection_CodedLength(num_bits, cfg->cargo_ecc_method);
   float required_time = num_bits / cfg->baud_rate;
-  // reservation_time_index = (m + 16)*2^e
   uint16_t reservation_time_index = (uint16_t) ceilf(required_time * 25.0f / 4.0f + 14.0f);
 
   uint8_t e = 0;
@@ -234,8 +233,8 @@ bool calculateJanusReservationBits(Message_t* msg, BitMessage_t* bit_msg, const 
     return false;
   }
   uint16_t reservation_length = ((e & 0x07) << 4) | (m & 0x0F);
-  msg->preamble.reservation_time.value = reservation_length;
-  msg->preamble.reservation_time.valid = true;
+  msg->preamble.reservation_time_10ms.value = reservation_length / 10;
+  msg->preamble.reservation_time_10ms.valid = true;
   float reservation_time = ((m + 16.0f) * (1 << e) - 14.0f) * (4.0f / 25.0f);
   bit_msg->cargo.ecc_len = (uint16_t) roundf(reservation_time * cfg->baud_rate);
   bit_msg->cargo.raw_len = ErrorCorrection_UncodedLength(bit_msg->cargo.ecc_len, cfg->cargo_ecc_method);
@@ -244,10 +243,10 @@ bool calculateJanusReservationBits(Message_t* msg, BitMessage_t* bit_msg, const 
 
 bool decodeJanusReservationBits(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* cfg)
 {
-  if (msg->preamble.reservation_time.valid == false) {
+  if (msg->preamble.reservation_time_10ms.valid == false) {
     return false;
   }
-  uint16_t reservation_time_index = msg->preamble.reservation_time.value;
+  uint16_t reservation_time_index = msg->preamble.reservation_time_10ms.value;
   if (reservation_time_index > 127) {
     return false;
   }

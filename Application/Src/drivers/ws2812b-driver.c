@@ -114,7 +114,7 @@ bool Ws2812b_Update(uint8_t brightness)
   return halStatus == HAL_OK;
 }
 
-void WS_Callback()
+void Ws2812b_Callback()
 {
   HAL_TIM_PWM_Stop_DMA(&WS_TIM, WS_TIM_CHANNEL);
 

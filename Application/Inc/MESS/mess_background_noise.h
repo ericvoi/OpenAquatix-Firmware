@@ -14,6 +14,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 
+#include "mess_dsp_config.h"
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -36,6 +37,13 @@ extern "C" {
 /* Exported functions prototypes ---------------------------------------------*/
 
 /**
+ * @brief Initializes events and queues in background noise module
+ * 
+ * @return true if successful, false otherwise
+ */
+bool BackgroundNoise_Init();
+
+/**
  * @brief Restarts the background noise and invalidates the current background
  * noise measurement
  */
@@ -44,7 +52,7 @@ void BackgroundNoise_Reset();
 /**
  * @brief Calculates the background noise in band on the most recent data
  */
-void BackgroundNoise_Calculate();
+bool BackgroundNoise_Calculate(const DspConfig_t* cfg);
 
 /**
  * @brief Returns the calculated background noise

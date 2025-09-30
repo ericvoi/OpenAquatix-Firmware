@@ -39,7 +39,7 @@ void setPreambleErrorDetection(void* argument);
 void setCargoErrorDetection(void* argument);
 void preambleErrorBehavior(void* argument);
 void cargoErrorBehavior(void* argument);
-void setPremableEcc(void* argument);
+void setPreambleEcc(void* argument);
 void setMessageEcc(void* argument);
 void setModulationMethod(void* argument);
 void setFskF0(void* argument);
@@ -59,7 +59,7 @@ void getBandwidth(void* argument);
 void toggleInterleaver(void* argument);
 void setSynchronizer(void* argument);
 void printConfigOptions(void* argument);
-void importConfiOptions(void* argument);
+void importConfigOptions(void* argument);
 void setDacTransitionDuration(void* argument);
 void setModPowerControlMethod(void* argument);
 void setModFixedOutput(void* argument);
@@ -92,6 +92,7 @@ void performDemodCal(void* argument);
 void setDemodCalLowerFreq(void* argument);
 void setDemodCalUpperFreq(void* argument);
 void exportDemodCal(void* argument);
+void setMacProtocol(void* argument);
 void setID(void* argument);
 void setStationaryFlag(void* argument);
 
@@ -100,8 +101,8 @@ void setStationaryFlag(void* argument);
 /* Main menu starting point --------------------------------------------------*/
 
 static MenuID_t configMenuChildren[] = {
-  MENU_ID_CFG_UNIV, MENU_ID_CFG_MOD,    MENU_ID_CFG_DEMOD,      MENU_ID_CFG_DAU, 
-  MENU_ID_CFG_LED,  MENU_ID_CFG_SETID,  MENU_ID_CFG_STATIONARY
+  MENU_ID_CFG_UNIV, MENU_ID_CFG_MOD,    MENU_ID_CFG_DEMOD,      MENU_ID_CFG_MAC,
+  MENU_ID_CFG_DAU,  MENU_ID_CFG_LED,    MENU_ID_CFG_SETID,      MENU_ID_CFG_STATIONARY
 };
 static const MenuNode_t configMenu = {
   .id = MENU_ID_CFG,
@@ -168,6 +169,21 @@ static const MenuNode_t demodConfigMenu = {
   .num_children = sizeof(demodConfigMenuChildren) / sizeof(demodConfigMenuChildren[0]),
   .access_level = 0,
   .parameters = NULL
+};
+
+static ParamContext_t changeMacParams = {
+  .param_id = MENU_ID_CFG_MAC,
+  .state = PARAM_STATE_0
+};
+static const MenuNode_t changeMac = {
+  .id = MENU_ID_CFG_MAC,
+  .description = "Change MAC Protocol",
+  .handler = setMacProtocol,
+  .parent_id = MENU_ID_CFG,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &changeMacParams
 };
 
 static MenuID_t dauConfigMenuChildren[] = {
@@ -252,7 +268,7 @@ static ParamContext_t univConfigEccPreambleParam = {
 static const MenuNode_t univConfigEccPreamble = {
   .id = MENU_ID_CFG_UNIV_ECCPREAMBLE,
   .description = "Preamble ECC",
-  .handler = setPremableEcc,
+  .handler = setPreambleEcc,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
   .num_children = 0,
@@ -446,7 +462,7 @@ static ParamContext_t univConfigImportParam = {
 static const MenuNode_t univConfigImport = {
   .id = MENU_ID_CFG_UNIV_IMP,
   .description = "Import Configuration options",
-  .handler = importConfiOptions,
+  .handler = importConfigOptions,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
   .num_children = 0,
@@ -1249,7 +1265,7 @@ bool COMM_RegisterConfigurationMenu()
              registerMenu(&univErrConfigCargoBehavior) && registerMenu(&demodConfigWindowFcn) &&
              registerMenu(&univConfigWakeupMenu) && registerMenu(&univWakeupConfigTone1) &&
              registerMenu(&univWakeupConfigEn) && registerMenu(&univWakeupConfigTone2) &&
-             registerMenu(&univWakeupConfigTone3);
+             registerMenu(&univWakeupConfigTone3) && registerMenu(&changeMac);
 
   return ret;
 }
@@ -1292,7 +1308,7 @@ void cargoErrorBehavior(void* argument)
   COMMLoops_NotImplemented(context);
 }
 
-void setPremableEcc(void* argument)
+void setPreambleEcc(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
   char* descriptors[] = {"None", "1-bit Hamming Code", "1:2 Convolutional Code (JANUS)"};
@@ -1560,7 +1576,7 @@ void printConfigOptions(void* argument)
   }
 }
 
-void importConfiOptions(void* argument)
+void importConfigOptions(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
 
@@ -1818,6 +1834,16 @@ void exportDemodCal(void* argument)
   FunctionContext_t* context = (FunctionContext_t*) argument;
   
   COMMLoops_NotImplemented(context);
+}
+
+void setMacProtocol(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  char* descriptors[] = {"No MAC", "GA CSMA/CA with BEB (JANUS)"};
+
+  COMMLoops_LoopEnum(context, PARAM_MAC, descriptors, 
+    sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
 void setID(void* argument)

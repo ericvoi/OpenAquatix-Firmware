@@ -31,6 +31,7 @@
 #include "cfg_main.h"
 #include "sys_main.h"
 #include "dac_main.h"
+#include "mac_main.h"
 #include "cfg_parameters.h"
 #include "stm32h7xx_ll_cordic.h"
 /* USER CODE END Includes */
@@ -157,6 +158,18 @@ const osThreadAttr_t dacTask_attributes = {
   .stack_size = sizeof(dacTaskBuffer),
   .priority = (osPriority_t) osPriorityHigh7,
 };
+/* Definitions for macTask */
+osThreadId_t macTaskHandle;
+uint32_t macTaskBuffer[ 2000 ];
+osStaticThreadDef_t macTaskControlBlock;
+const osThreadAttr_t macTask_attributes = {
+  .name = "macTask",
+  .cb_mem = &macTaskControlBlock,
+  .cb_size = sizeof(macTaskControlBlock),
+  .stack_mem = &macTaskBuffer[0],
+  .stack_size = sizeof(macTaskBuffer),
+  .priority = (osPriority_t) osPriorityNormal1,
+};
 /* Definitions for dau_uart_mutex */
 osMutexId_t dau_uart_mutexHandle;
 const osMutexAttr_t dau_uart_mutex_attributes = {
@@ -193,6 +206,7 @@ void startSystemManagementTask(void *argument);
 void startCommunicationTask(void *argument);
 void startconfigTask(void *argument);
 void startDacTask(void *argument);
+void startMacTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -315,6 +329,9 @@ int main(void)
 
   /* creation of dacTask */
   dacTaskHandle = osThreadNew(startDacTask, NULL, &dacTask_attributes);
+
+  /* creation of macTask */
+  macTaskHandle = osThreadNew(startMacTask, NULL, &macTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -1386,6 +1403,20 @@ void startDacTask(void *argument)
   /* Infinite loop */
   DAC_StartTask(argument);
   /* USER CODE END startDacTask */
+}
+
+/* USER CODE BEGIN Header_startMacTask */
+/**
+* @brief Function implementing the macTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_startMacTask */
+void startMacTask(void *argument)
+{
+  /* USER CODE BEGIN startMacTask */
+  MAC_StartTask(argument);
+  /* USER CODE END startMacTask */
 }
 
  /* MPU Configuration */

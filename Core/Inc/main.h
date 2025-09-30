@@ -36,12 +36,14 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
+// Whenever a new task is added, an enum must be added here
 typedef enum {
   CFG_TASK,
   COMM_TASK,
   MESS_TASK,
   SYS_TASK,
   DAC_TASK,
+  MAC_TASK,
   NUM_TASKS
 } TaskIds_t;
 /* USER CODE END ET */

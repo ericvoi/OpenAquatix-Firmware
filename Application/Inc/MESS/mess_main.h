@@ -122,8 +122,8 @@ typedef struct {
 typedef struct {
   MessageType_t type;
   uint8_t data[PACKET_DATA_MAX_LENGTH_BYTES];
-  uint16_t length_bits;              // length of message in bits
-  uint32_t timestamp;
+  uint16_t length_bits; // length of message in bits
+  uint32_t timestamp; // Timestamp taken when the cargo starts for compliance with reservation time intervals
   // Blind union to account for different communication protocol message types
   union {
     CustomMessageData_t data_type;
@@ -134,6 +134,7 @@ typedef struct {
   PreambleContent_t preamble;
   MessagingProtocol_t protocol;
   uint16_t uncoded_data_len;
+  bool is_emergency;
 } Message_t;
 
 // defines the structure for analysis of the waveform
@@ -210,44 +211,51 @@ void MESS_InitializeQueues(void);
  *
  * @param msg Pointer to Message_t structure where the retrieved message will be stored
  *
- * @return pdPASS if message was successfully retrieved, pdFAIL otherwise
+ * @return true if message was successfully retrieved, false otherwise
  *
  * @note Non-blocking - returns immediately if no message is available
  */
-BaseType_t MESS_GetMessageFromTxQ(Message_t* msg);
+bool MESS_GetMessageFromTxQ(Message_t* msg);
 
 /**
  * @brief Add a message to the transmission queue
  *
  * @param msg Pointer to Message_t structure containing the message to transmit
  *
- * @return pdPASS if message was successfully added, pdFAIL otherwise
- *
- * @note Uses a timeout of 5 ticks when attempting to add to the queue
+ * @return true if message was successfully added, false otherwise
  */
-BaseType_t MESS_AddMessageToTxQ(Message_t* msg);
+bool MESS_AddMessageToTxQ(const Message_t* msg);
 
 /**
  * @brief Retrieve a message from the reception queue
  *
  * @param msg Pointer to Message_t structure where the retrieved message will be stored
  *
- * @return pdPASS if message was successfully retrieved, pdFAIL otherwise
+ * @return true if message was successfully retrieved, false otherwise
  *
  * @note Non-blocking - returns immediately if no message is available
  */
-BaseType_t MESS_GetMessageFromRxQ(Message_t* msg);
+bool MESS_GetMessageFromRxQ(Message_t* msg);
 
 /**
  * @brief Add a message to the reception queue
  *
  * @param msg Pointer to Message_t structure containing the received message
  *
- * @return pdPASS if message was successfully added, pdFAIL otherwise
- *
- * @note Uses a timeout of 5 ticks when attempting to add to the queue
+ * @return true if message was successfully added, false otherwise
  */
-BaseType_t MESS_AddMessageToRxQ(Message_t* msg);
+bool MESS_AddMessageToRxQ(const Message_t* msg);
+
+/**
+ * @brief Adds a priority message to the Tx queue
+ * 
+ * Clears the queue of any messages and replaces them with the current message
+ * 
+ * @param msg Message to send be sent with priority
+ * 
+ * @return true is message was successfully added, false otherwise
+ */
+bool MESS_PriorityTransmission(const Message_t* msg);
 
 /**
  * @brief Adjust baud rate to conform to hardware constraints

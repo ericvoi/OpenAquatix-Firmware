@@ -56,8 +56,6 @@
 
 
 /* Private variables ---------------------------------------------------------*/
-extern osEventFlagsId_t sleep_events;
-
 static MessagingProtocol_t messaging_protocol = DEFAULT_MESSAGING_PROTOCOL;
 
 // Identification parameters
@@ -70,8 +68,8 @@ static uint8_t janus_destination_id = DEFAULT_JANUS_DESTINATION;
 static CodingInfo_t coding = DEFAULT_CODING;
 static EncryptionInfo_t encryption = DEFAULT_ENCRYPTION;
 
-static QueueHandle_t tx_queue = NULL; // Messages to send
-static QueueHandle_t rx_queue = NULL; // Messages received
+static osMessageQueueId_t tx_queue = NULL; // Messages to send
+static osMessageQueueId_t rx_queue = NULL; // Messages received
 
 static ProcessingState_t task_state = CHANGING;
 
@@ -121,8 +119,10 @@ static DspConfig_t* cfg = &custom_config;
 static BitMessage_t bit_msg;
 static uint16_t message_length = 0;
 
-Message_t tx_msg;
-Message_t rx_msg;
+static Message_t tx_msg;
+static Message_t rx_msg;
+
+extern osMessageQueueId_t macRxQueue;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -165,6 +165,7 @@ void MESS_StartTask(void* argument)
   Feedback_Init();
   FeedbackTests_Init();
   Demodulate_Init();
+  BackgroundNoise_Init();
   switchState(LISTENING);
 
   osDelay(10);
@@ -198,7 +199,7 @@ void MESS_StartTask(void* argument)
         FeedbackTests_GetNext();
         getConfig();
 
-        if (MESS_GetMessageFromTxQ(&tx_msg) == pdPASS) {
+        if (MESS_GetMessageFromTxQ(&tx_msg) == true) {
           getConfig();
 
           if (Packet_PrepareTx(&tx_msg, &bit_msg, cfg) == false) {
@@ -237,7 +238,10 @@ void MESS_StartTask(void* argument)
           break;
         }
 
-        BackgroundNoise_Calculate();
+        if (BackgroundNoise_Calculate(cfg) == false) {
+          Error_Routine(ERROR_MESS_PROCESSING);
+          break;
+        }
         break;
       case PROCESSING:
         // Process ADC input data only
@@ -302,7 +306,7 @@ void MESS_StartTask(void* argument)
           rx_msg.error_detected |= input_bit_msg.error_preamble;
           // send it via queue
           if (FeedbackTests_Check(&rx_msg, &input_bit_msg) == false) {
-            MESS_AddMessageToRxQ(&rx_msg);
+            osMessageQueuePut(macRxQueue, &rx_msg, 0, 0);
           }
           input_bit_msg.added_to_queue = true;
         }
@@ -324,55 +328,69 @@ void MESS_StartTask(void* argument)
 
 void MESS_InitializeQueues(void)
 {
-  tx_queue = xQueueCreate(MSG_QUEUE_SIZE, sizeof(Message_t));
-  rx_queue = xQueueCreate(MSG_QUEUE_SIZE, sizeof(Message_t));
+  tx_queue = osMessageQueueNew(MSG_QUEUE_SIZE, sizeof(Message_t), NULL);
+  rx_queue = osMessageQueueNew(MSG_QUEUE_SIZE, sizeof(Message_t), NULL);
 
   if (tx_queue == NULL || rx_queue == NULL) {
     // TODO: Handle error
   }
 }
 
-BaseType_t MESS_GetMessageFromTxQ(Message_t* msg)
+bool MESS_GetMessageFromTxQ(Message_t* msg)
 {
   if (tx_queue == NULL || msg == NULL) {
-    return pdFAIL;
+    return false;
   }
 
-  if (uxQueueMessagesWaiting(tx_queue) > 0) {
-    return xQueueReceive(tx_queue, (void*)msg, 0);
+  if (osMessageQueueGetCount(tx_queue) > 0) {
+    return osMessageQueueGet(tx_queue, (void*) msg, NULL, 0) == osOK;
   }
 
-  return pdFAIL;
+  return false;
 }
 
-BaseType_t MESS_AddMessageToTxQ(Message_t* msg)
+bool MESS_AddMessageToTxQ(const Message_t* msg)
 {
   if (tx_queue == NULL || msg == NULL) {
-    return pdFAIL;
+    return false;
   }
 
-  return xQueueSend(tx_queue, msg, 5);
-}
-BaseType_t MESS_GetMessageFromRxQ(Message_t* msg)
-{
-  if (rx_queue == NULL || msg == NULL) {
-    return pdFAIL;
-  }
-
-  if (uxQueueMessagesWaiting(rx_queue) > 0) {
-    return xQueueReceive(rx_queue, (void*)msg, 0);
-  }
-
-  return pdFAIL;
+  return osMessageQueuePut(tx_queue, msg, 0, 0) == osOK;
 }
 
-BaseType_t MESS_AddMessageToRxQ(Message_t* msg)
+bool MESS_GetMessageFromRxQ(Message_t* msg)
 {
   if (rx_queue == NULL || msg == NULL) {
-    return pdFAIL;
+    return false;
   }
 
-  return xQueueSend(rx_queue, msg, 5);
+  if (osMessageQueueGetCount(rx_queue) > 0) {
+    return osMessageQueueGet(rx_queue, (void*) msg, NULL, 0) == osOK;
+  }
+
+  return false;
+}
+
+bool MESS_AddMessageToRxQ(const Message_t* msg)
+{
+  if (rx_queue == NULL || msg == NULL) {
+    return false;
+  }
+
+  return osMessageQueuePut(rx_queue, msg, 0, 0) == osOK;
+}
+
+bool MESS_PriorityTransmission(const Message_t* msg)
+{
+  if (tx_queue == NULL || msg == NULL) {
+    return false;
+  }
+
+  if (osMessageQueueReset(tx_queue) != osOK) {
+    return false;
+  }
+
+  return osMessageQueuePut(tx_queue, msg, 0, 0) == osOK;
 }
 
 void MESS_RoundBaud(float* baud)

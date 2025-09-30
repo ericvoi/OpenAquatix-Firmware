@@ -1,20 +1,19 @@
 /*
- * sys_error.h
+ * mac_main.h
  *
- *  Created on: Mar 11, 2025
+ *  Created on: Sep 8, 2025
  *      Author: ericv
  */
 
-#ifndef SYS_SYS_ERROR_H_
-#define SYS_SYS_ERROR_H_
+#ifndef MAC_MAC_MAIN_H_
+#define MAC_MAC_MAIN_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32h7xx_hal.h"
-#include <Stdbool.h>
+
 
 
 /* Private includes ----------------------------------------------------------*/
@@ -24,19 +23,12 @@ extern "C" {
 /* Exported types ------------------------------------------------------------*/
 
 typedef enum {
-  ERROR_CFG_INIT,
-  ERROR_COMM_INIT,
-  ERROR_MESS_INIT,
-  ERROR_SYS_INIT,
-  ERROR_MESS_PROCESSING,
-  ERROR_FLASH,
-  ERROR_DAC_INIT,
-  ERROR_DAC_PROCESSING,
-  ERROR_MESS_DAC_RESOURCE,
-  ERROR_MAC_INIT,
-  ERROR_MAC_PROCESSING,
-  ERROR_OTHER
-} ErrorCodes_t;
+  MAC_STATE_SUCCESS,
+  MAC_STATE_DEFERRED,
+  MAC_STATE_DROPPED,
+  MAC_STATE_ERROR,
+  MAC_STATE_IDLE
+} MacState_t;
 
 /* Exported constants --------------------------------------------------------*/
 
@@ -48,8 +40,7 @@ typedef enum {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-void Error_Routine(ErrorCodes_t error_code);
-bool Error_Exists(void);
+void MAC_StartTask(void* argument);
 
 /* Private defines -----------------------------------------------------------*/
 
@@ -57,4 +48,4 @@ bool Error_Exists(void);
 }
 #endif
 
-#endif /* SYS_SYS_ERROR_H_ */
+#endif /* MAC_MAC_MAIN_H_ */

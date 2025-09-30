@@ -515,7 +515,7 @@ void ADC3_IRQHandler(void)
 void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
 {
   if (htim == &WS_TIM) {
-    WS_Callback();
+    Ws2812b_Callback();
   }
 }
 /* USER CODE END 1 */
