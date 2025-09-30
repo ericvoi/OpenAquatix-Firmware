@@ -60,14 +60,13 @@ static MacTaskContext_t task_context = {
 extern const MacProtocolInterface_t* csma_ca_beb_interface;
 extern const MacProtocolInterface_t* no_mac_interface;
 
-static const MacProtocolInterface_t* protocol_registry[] = {
-  [MAC_PROTOCOL_NONE] = no_mac_interface,
-  [MAC_PROTOCOL_CSMA_CA_BEB] = csma_ca_beb_interface
-};
+static const MacProtocolInterface_t* protocol_registry[NUM_MAC_PROTOCOL];
 
 extern osMessageQueueId_t channel_report_queue;
 
 /* Private function prototypes -----------------------------------------------*/
+
+static void registerProtocols();
 
 static bool registerMacParams();
 static bool createTxQueues();
@@ -95,13 +94,15 @@ void MAC_StartTask(void* argument)
 
   if (createRxQueues() == false || createTxQueues() == false) {
     Error_Routine(ERROR_MAC_INIT);
-  } 
+  }
+
+  registerProtocols();
 
   CFG_WaitLoadComplete();
 
   for (;;) {
     if (switchMacProtocol() == false) {
-      return false;
+      Error_Routine(ERROR_MAC_PROCESSING);
     }
 
     ChannelReport_t channel_report;
@@ -113,7 +114,29 @@ void MAC_StartTask(void* argument)
 
     if (osMessageQueueGetCount(regularTxQueue) != 0) {
       if (task_context.interface->handleTxRequest != NULL) {
-        task_context.state = task_context.interface->handleTxRequest(&task_context.protocol_data.csma_ca_beb_data)
+        task_context.state = task_context.interface->handleTxRequest(&task_context.protocol_data.csma_ca_beb_data);
+        switch (task_context.state) {
+          case MAC_STATE_DROPPED:
+            // TODO: inform user
+            break;
+          case MAC_STATE_ERROR:
+            Error_Routine(ERROR_MAC_PROCESSING);
+            break;
+          case MAC_STATE_SUCCESS: {
+            // add to mess queue
+            Message_t message;
+            if (osMessageQueueGet(regularTxQueue, &message, NULL, 0) != osOK) {
+              Error_Routine(ERROR_MAC_PROCESSING);
+              break;
+            }
+            if (MESS_AddMessageToTxQ(&message) == false) {
+              Error_Routine(ERROR_MAC_PROCESSING);
+            }
+            break;
+          }
+          default:
+            break;
+        }
       }
     }
 
@@ -125,8 +148,13 @@ void MAC_StartTask(void* argument)
       }
     }
 
-    if (osMessageGetCount(macRxQueue) != 0) {
+    if (osMessageQueueGetCount(macRxQueue) != 0) {
       // TODO: add to comm rx queue
+      Message_t received_message;
+      osMessageQueueGet(macRxQueue, &received_message, NULL, 0);
+      if (task_context.interface->processRxMessage != NULL) {
+        task_context.state = task_context.interface->processRxMessage(&task_context.protocol_data.csma_ca_beb_data, &received_message);
+      }
     }
 
     osDelay(1);
@@ -134,6 +162,12 @@ void MAC_StartTask(void* argument)
 }
 
 /* Private function definitions ----------------------------------------------*/
+
+void registerProtocols()
+{
+  protocol_registry[MAC_PROTOCOL_NONE] = no_mac_interface;
+  protocol_registry[MAC_PROTOCOL_CSMA_CA_BEB] = csma_ca_beb_interface;
+}
 
 bool registerMacParams()
 {
@@ -177,19 +211,22 @@ bool switchMacProtocol()
     return true;
   }
 
-  if (task_context.interface == NULL) {
-    return false;
+  if (task_context.current_protocol != MAC_PROTOCOL_UNKNOWN) {
+    if (task_context.interface == NULL) {
+      return false;
+    }
+    if (task_context.interface->deinit == NULL) {
+      return false;
+    }
+    task_context.interface->deinit(&task_context.protocol_data);
   }
-  if (task_context.interface->deinit == NULL) {
-    return false;
-  }
-  task_context.interface->deinit(&task_context.protocol_data);
 
   for (uint16_t i = 0; i < sizeof(protocol_registry) / sizeof(protocol_registry[0]); i++) {
-    if (protocol_registry[i].protocol != task_context.requested_protocol) continue;
+    if (protocol_registry[i]->protocol != task_context.requested_protocol) continue;
     
-    protocol_registry[i].init(&task_context.protocol_data);
+    protocol_registry[i]->init(&task_context.protocol_data);
     task_context.state = MAC_STATE_IDLE;
+    task_context.interface = protocol_registry[i];
     return true;
   }
 

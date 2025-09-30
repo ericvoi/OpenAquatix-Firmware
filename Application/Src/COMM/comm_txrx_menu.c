@@ -64,6 +64,8 @@ bool inCustomMode(FunctionContext_t* context);
 
 /* Private variables ---------------------------------------------------------*/
 
+extern osMessageQueueId_t regularTxQueue;
+
 static MenuID_t txrxMenuChildren[] = {
   MENU_ID_TXRX_BITSOUT,   MENU_ID_TXRX_BITSFB,    MENU_ID_TXRX_STROUT, 
   MENU_ID_TXRX_STRFB,     MENU_ID_TXRX_INTOUT,    MENU_ID_TXRX_INTFB,
@@ -555,7 +557,7 @@ void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_fe
     return;
   }
   msg->preamble.modem_id.valid = true;
-  if (MESS_AddMessageToTxQ(msg) == pdPASS) {
+  if (osMessageQueuePut(regularTxQueue, msg, 0, 0) == true) {
     sprintf((char*) context->output_buffer, "\r\nSuccessfully added to"
         " %s queue!\r\n\r\n", is_feedback ? "feedback network" : "transducer");
     COMM_TransmitData(context->output_buffer, CALC_LEN, 

@@ -142,7 +142,7 @@ void COMM_StartTask(void *argument)
   // Main task loop - processes messages and handles menu navigation
   for(;;) {
     Message_t rx_msg;
-    if (MESS_GetMessageFromRxQ(&rx_msg) == pdPASS) {
+    if (MESS_GetMessageFromRxQ(&rx_msg) == true) {
       printReceivedMessage(&rx_msg);
     }
 

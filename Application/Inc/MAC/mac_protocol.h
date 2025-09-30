@@ -14,6 +14,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "mess_main.h"
+#include "mac_main.h"
 #include "mac_channel_reports.h"
 #include <stdbool.h>
 
@@ -31,13 +32,6 @@ typedef enum {
   MAC_PROTOCOL_UNKNOWN
 } MacProtocol_t;
 
-typedef enum {
-  MAC_RESULT_SUCCESS,
-  MAC_RESULT_DEFERRED,
-  MAC_RESULT_DROPPED,
-  MAC_RESULT_BUSY
-} MacState_t;
-
 typedef struct {
   MacProtocol_t protocol;
 
@@ -46,7 +40,7 @@ typedef struct {
 
   MacState_t (*handleTxRequest)(void* protocol_data);
   void (*processChannelReport)(void* protocol_data, const ChannelReport_t report);
-  void (*processRxMessage)(void* protocol_data, const Message_t* message);
+  MacState_t (*processRxMessage)(void* protocol_data, const Message_t* message);
 
   MacState_t (*handleEmergencyTx)(void* protocol_data, const Message_t* message);
 } MacProtocolInterface_t;
@@ -60,7 +54,7 @@ typedef struct {
 
 /* Exported constants --------------------------------------------------------*/
 
-
+#define MAXIMUM_RESERVATION_TIME_MS                 (632640) // Maximum reservation time in ms as specified by JANUS
 
 /* Exported macro ------------------------------------------------------------*/
 

@@ -12,6 +12,7 @@
 #include "comm_function_loops.h"
 #include "comm_main.h"
 #include "mess_main.h"
+#include "cmsis_os.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -45,6 +46,8 @@ static void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, boo
 static bool inJanusMode(FunctionContext_t* context);
 
 /* Private variables ---------------------------------------------------------*/
+
+extern osMessageQueueId_t regularTxQueue;
 
 static MenuID_t janusMenuChildren[] = {
   MENU_ID_JANUS_PROTOCOL, MENU_ID_JANUS_SEND, MENU_ID_JANUS_PARAM
@@ -369,7 +372,7 @@ void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_fe
   if (inJanusMode(context) == false) return;
 
   memset(&msg->preamble, 0, sizeof(PreambleContent_t));
-  if (MESS_AddMessageToTxQ(msg) == pdPASS) {
+  if (osMessageQueuePut(regularTxQueue, msg, 0, 0) == true) {
     sprintf((char*) context->output_buffer, "\r\nSuccessfully added to"
         " %s queue!\r\n\r\n", is_feedback ? "feedback network" : "transducer");
     COMM_TransmitData(context->output_buffer, CALC_LEN, 

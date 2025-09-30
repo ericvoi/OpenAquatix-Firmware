@@ -16,6 +16,7 @@ extern "C" {
 #include "mac_channel_reports.h"
 #include "mac_main.h"
 #include "stm32h7xx_hal.h"
+#include "cfg_defaults.h"
 
 
 /* Private includes ----------------------------------------------------------*/
@@ -32,8 +33,17 @@ extern "C" {
 
 #define STORED_CSMA_CHANNEL_REPORTS           (CSMA_REPORTS_IN_BACKGROUND_NOISE + 5)
 
+typedef enum {
+  NO_BACKOFF,
+  CONTINUOUS_BACKOFF,
+  SLOT_BACKOFF
+} BackoffState_t;
+
 typedef struct {
-  uint8_t collision_count;
+  BackoffState_t backoff_state;
+  uint8_t C;
+  uint16_t reports_remaining_in_slot;
+  bool busy_slot;
   
   float background_psd;
   float channel_reports[STORED_CSMA_CHANNEL_REPORTS];
@@ -43,6 +53,12 @@ typedef struct {
 
   bool last_report_busy;
   bool fresh_report;
+
+  uint32_t channel_reserved_until;
+  bool active_reservation;
+
+  bool message_deferred;
+  uint32_t deferral_timestamp; // Watchdog timestamp that ensures the mac task does not get stuck trying to send a message when there is no channel information available
 } CsmaCaBebData_t;
 
 /* Exported constants --------------------------------------------------------*/

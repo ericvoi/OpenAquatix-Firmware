@@ -15,6 +15,8 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 
 #include "mac_main.h"
+#include <stdint.h>
+#include <stdbool.h>
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -23,7 +25,8 @@ extern "C" {
 /* Exported types ------------------------------------------------------------*/
 
 typedef struct {
-  MacState_t state;
+  uint32_t channel_reserved_until;
+  bool active_reservation;
 } NoMacData_t;
 
 /* Exported constants --------------------------------------------------------*/

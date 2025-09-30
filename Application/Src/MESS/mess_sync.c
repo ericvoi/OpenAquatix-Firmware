@@ -56,7 +56,7 @@ typedef struct {
 #define SYNC_STAGE_1_STEP         30
 #define SYNC_STAGE_1_SUBDIVIDE    16
 #define SYNC_STAGE_234_SUBDIVIDE  16
-#define STAGE_RESULTS_LEN         512 // exxcessive for poc //((FREQUENCIES_PER_STAGE + 4) * SYNC_STAGE_1_SUBDIVIDE)
+#define STAGE_RESULTS_LEN         512 // excessive for poc //((FREQUENCIES_PER_STAGE + 4) * SYNC_STAGE_1_SUBDIVIDE)
 #define COARSE_STEP_PRECISION     6
 
 #define TARGET_SNR                (8.0f)

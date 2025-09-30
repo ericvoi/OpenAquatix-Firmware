@@ -29,7 +29,7 @@ typedef struct {
 typedef enum {
   REPORT_NONE = (1 << 0),
   REPORT_16_CD_PSD = (1 << 1)
-} ChannelReportType_t
+} ChannelReportType_t;
 
 /* Exported constants --------------------------------------------------------*/
 

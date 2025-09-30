@@ -23,9 +23,11 @@ extern "C" {
 /* Exported types ------------------------------------------------------------*/
 
 typedef enum {
-  MAC_STATE_IDLE,
-  MAC_STATE_WAITING_TO_TRANSMIT,
-  MAC_STATE_TRANSMITTED
+  MAC_STATE_SUCCESS,
+  MAC_STATE_DEFERRED,
+  MAC_STATE_DROPPED,
+  MAC_STATE_ERROR,
+  MAC_STATE_IDLE
 } MacState_t;
 
 /* Exported constants --------------------------------------------------------*/

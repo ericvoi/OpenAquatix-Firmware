@@ -19,6 +19,7 @@
 
 #include "check_inputs.h"
 #include "usb_comm.h"
+#include "cmsis_os.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
@@ -45,6 +46,8 @@ void startFeedbackTests(void* argument);
 void sendEvalMessage(FunctionContext_t* context, Message_t* msg);
 
 /* Private variables ---------------------------------------------------------*/
+
+extern osMessageQueueId_t regularTxQueue;
 
 static MenuID_t evalMenuChildren[] = {
   MENU_ID_EVAL_SETLEN,      MENU_ID_EVAL_FEEDBACK, 
@@ -190,7 +193,7 @@ void sendEvalMessage(FunctionContext_t* context, Message_t* msg)
   }
   msg->length_bits *= 8;
 
-  if (MESS_AddMessageToTxQ(msg) == pdPASS) {
+  if (osMessageQueuePut(regularTxQueue, msg, 0, 0) == osOK) {
     sprintf((char*) context->output_buffer, "\r\nSuccessfully added to feedback queue!\r\n\r\n");
   }
   else {

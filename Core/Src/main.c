@@ -100,7 +100,7 @@ const osThreadAttr_t defaultTask_attributes = {
 };
 /* Definitions for messageTask */
 osThreadId_t messageTaskHandle;
-uint32_t messageTaskBuffer[ 8000 ] __attribute__((section(".dma_buf")));
+uint32_t messageTaskBuffer[ 8000 ] __attribute__((section(".dtcm")));
 osStaticThreadDef_t messageTaskControlBlock;
 const osThreadAttr_t messageTask_attributes = {
   .name = "messageTask",

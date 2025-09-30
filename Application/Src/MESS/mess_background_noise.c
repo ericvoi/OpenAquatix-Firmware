@@ -118,6 +118,10 @@ bool BackgroundNoise_Calculate(const DspConfig_t* cfg)
     return false;
   }
 
+  if (channelReportingRequirement(cfg) == false) {
+    return false;
+  }
+
   uint16_t head = ADC_InputGetHead();
   while (((head - noise_buffer_tail) & PROCESSING_BUFFER_MASK) > NOISE_BUFFER_SIZE) {
     float fft_in_buf[NOISE_BUFFER_SIZE];

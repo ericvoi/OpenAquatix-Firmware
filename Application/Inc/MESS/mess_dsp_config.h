@@ -38,7 +38,7 @@ typedef struct preamble_content {
   PreambleValue_t coding;
   PreambleValue_t encryption;
   PreambleValue_t destination_id;
-  PreambleValue_t reservation_time;
+  PreambleValue_t reservation_time_10ms; // Pre-divided by 10ms to fit within uint16
   PreambleValue_t class_user_id;
   PreambleValue_t application_type;
   PreambleValue_t schedule_flag;
