@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # OpenAquatix Firmware
-Firmware for the Underwater Acoustic Modem capstone project
+Firmware for the OpenAquatix: a JANUS compatible software defined underwater acoustic modem for research purposes
 
 # Description
 The firmware in this repository is for the underwater acoustic modem found [here](https://github.com/ericvoi/UAM_PCB/tree/main).
@@ -16,7 +16,7 @@ The firmware in this repository is for the underwater acoustic modem found [here
 - Feedback networks for both the input and output networks to ensure that the system is calibrated
 
 # Application Overview
-The firmware for this project consists of a six-task FreeRTOS application that manages modulation, demodulation, external communication over USB or UART, system monitoring, and storing configuration data.
+The firmware for this project consists of a six-task FreeRTOS application that manages modulation, demodulation, external communication over USB or UART, system monitoring, medium access control, and storing configuration data.
 
 ## Message Processing (MESS)
 This task handles all of the signal processing for both the input and output as well as handling the feedback networks which ensure calibration of the device. Task functions:
