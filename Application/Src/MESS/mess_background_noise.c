@@ -140,7 +140,9 @@ bool BackgroundNoise_Calculate(const DspConfig_t* cfg)
       // Normalize to PSD (P/Hz)
       float mag = (real * real + imag * imag) / NOISE_BUFFER_SIZE;
       
-      energy_history[noise_history_index].accumulated_energy += mag / ((float) num_noise_bins);
+      float increment = mag / ((float) num_noise_bins);
+      energy_history[noise_history_index].accumulated_energy += increment;
+      channel_report.psd += increment;
     }
     energy_history[noise_history_index].counts++;
     updateBackgroundNoise();
@@ -298,13 +300,9 @@ bool channelReportingRequirement(const DspConfig_t* cfg)
     }
   }
 
-  uint32_t flags = osEventFlagsWait(channel_report_flag, 0x03, osFlagsWaitAny, 0);
-  if (flags == osFlagsErrorResource) {
+  uint32_t flags = osEventFlagsGet(channel_report_flag);
+  if (flags == 0) {
     return true;
-  }
-
-  if (flags & 0x80000000U) {
-    return false;
   }
 
   if (flags & REPORT_NONE) {
@@ -331,7 +329,7 @@ bool channelReportingRequirement(const DspConfig_t* cfg)
 
 bool updateChannelReportTotalCount(const DspConfig_t* cfg)
 {
-  if (cfg->mod_demod_method != MOD_DEMOD_FSK || cfg->mod_demod_method != MOD_DEMOD_FHBFSK) {
+  if (cfg->mod_demod_method != MOD_DEMOD_FSK && cfg->mod_demod_method != MOD_DEMOD_FHBFSK) {
     return false;
   }
   uint32_t samples_per_chip = (uint32_t) ((float) ADC_SAMPLING_RATE) / cfg->baud_rate;

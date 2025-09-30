@@ -12,6 +12,7 @@
 #include "mac_protocol.h"
 #include "mac_csma_ca_beb.h"
 #include "mess_main.h"
+#include "cfg_main.h"
 #include "cmsis_os.h"
 #include <string.h>
 #include <stdint.h>
@@ -69,7 +70,11 @@ static void CsmaCaBeb_Init(void* protocol_data)
   data->active_reservation = false;
   data->message_deferred = false;
 
+  while (channel_report_flag == NULL) {
+    osDelay(1);
+  }
   osEventFlagsSet(channel_report_flag, REPORT_16_CD_PSD);
+  CFG_IncrementVersionNumber();
 }
 
 static void CsmaCaBeb_Deinit(void* protocol_data)
@@ -239,8 +244,8 @@ float averageBackgroundNoise(CsmaCaBebData_t* data)
 {
   float background_noise = 0.0f;
   for (uint16_t i = 0; i < data->num_channel_reports; i++) {
-    uint16_t index = (data->channel_report_index + STORED_CSMA_CHANNEL_REPORTS 
-                    - data->num_channel_reports - 1) % STORED_CSMA_CHANNEL_REPORTS;
+    uint16_t index = (i + data->channel_report_index + STORED_CSMA_CHANNEL_REPORTS
+                    - data->num_channel_reports) % STORED_CSMA_CHANNEL_REPORTS;
     background_noise += data->channel_reports[index];
   }
   return background_noise /= data->num_channel_reports;

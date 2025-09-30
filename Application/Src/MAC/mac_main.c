@@ -106,7 +106,7 @@ void MAC_StartTask(void* argument)
     }
 
     ChannelReport_t channel_report;
-    if (osMessageQueueGet(channel_report_queue, &channel_report, NULL, 0) != 0) {
+    if (osMessageQueueGet(channel_report_queue, &channel_report, NULL, 0) == osOK) {
       if (task_context.interface->processChannelReport != NULL) {
         task_context.interface->processChannelReport(&task_context.protocol_data.csma_ca_beb_data, channel_report);
       }
@@ -227,6 +227,7 @@ bool switchMacProtocol()
     protocol_registry[i]->init(&task_context.protocol_data);
     task_context.state = MAC_STATE_IDLE;
     task_context.interface = protocol_registry[i];
+    task_context.current_protocol = protocol_registry[i]->protocol;
     return true;
   }
 
