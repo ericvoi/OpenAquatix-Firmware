@@ -11,7 +11,7 @@ This project uses multiple licenses:
 
 #### STM32 CubeMX Generated Files
 - **License**: ST's BSD-3-Clause
-- **Location**: `Core/`, `Drivers/STM32H7xx_HAL_Driver/`, `Middlewares/ST/`
+- **Location**: `Core/`, `Drivers/STM32H7xx_HAL_Driver/`, `Middlewares/ST/`, `USB_DEVICE/`, `./`
 - **Note**: Modified files retain original ST license
 
 #### FreeRTOS Real-Time Kernel
