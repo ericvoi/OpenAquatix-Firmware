@@ -178,8 +178,8 @@ void updateBackgroundNoise()
       (energy_history[noise_history_index].accumulated_energy < (in_band_noise * (NOISE_OUTLIER_THRESHOLD)))) {
       accumulated_noise_entries = MIN(accumulated_noise_entries + 1, NUM_NOISE_IN_AVERAGE);
       noise_history_index = (noise_history_index + 1) % NOISE_HISTORY_SIZE;
-      averageNoise();
     }
+    averageNoise();
     energy_history[noise_history_index].counts = 0;
     energy_history[noise_history_index].accumulated_energy = 0.0f;
   }

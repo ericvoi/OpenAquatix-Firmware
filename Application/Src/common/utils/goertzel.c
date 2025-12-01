@@ -20,7 +20,8 @@
 
 /* Private define ------------------------------------------------------------*/
 
-#define WINDOW_PRECISION    8
+#define WINDOW_PRECISION                8
+#define SLIDING_CALLS_BEFORE_RESET      128
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -28,10 +29,10 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-
+#define MAX_SLIDING_INDEX 32
+static uint16_t sliding_goertzel_index = 0;
 
 /* Private function prototypes -----------------------------------------------*/
-
 
 
 /* Exported function definitions ---------------------------------------------*/
@@ -196,6 +197,77 @@ void goertzel_6(GoertzelInfo_t* goertzel_info)
   goertzel_info->e_f[3] = energy_f3 * normalization_factor;
   goertzel_info->e_f[4] = energy_f4 * normalization_factor;
   goertzel_info->e_f[5] = energy_f5 * normalization_factor;
+}
+
+void goertzel_SlidingInit(SlidingGoertzelInfo_t* goertzel_info, uint32_t f, uint16_t window_length)
+{
+  goertzel_info->f = f;
+  goertzel_info->q[0] = 0.0f;
+  goertzel_info->q[1] = 0.0f;
+  goertzel_info->q[2] = 0.0f;
+
+  float omega_f = 2.0f * goertzel_info->f / ((float) ADC_SAMPLING_RATE);
+  goertzel_info->coeff = 2.0 * uam_cosf(omega_f);
+
+  goertzel_info->normalization_factor = 1.0f / ((float) window_length);
+
+  goertzel_info->window_length = window_length;
+  goertzel_info->calls_before_reset = sliding_goertzel_index * (SLIDING_CALLS_BEFORE_RESET / MAX_SLIDING_INDEX);
+  sliding_goertzel_index = (sliding_goertzel_index + 1) % MAX_SLIDING_INDEX;
+}
+
+void goertzel_SlidingPerform(SlidingGoertzelInfo_t* goertzel_info, uint16_t start_index, uint16_t samples, uint16_t buf_len)
+{
+  uint16_t mask = buf_len - 1;
+
+  if (goertzel_info->calls_before_reset == 0) {
+    start_index = start_index + samples - goertzel_info->window_length;
+    start_index &= mask;
+    goertzel_info->q[0] = 0.0f;
+    goertzel_info->q[1] = 0.0f;
+    goertzel_info->q[2] = 0.0f;
+
+    goertzel_info->calls_before_reset = SLIDING_CALLS_BEFORE_RESET;
+    goertzel_SlidingReset(goertzel_info, start_index, buf_len);
+    return;
+  }
+  goertzel_info->calls_before_reset--;
+
+  for (uint16_t i = 0; i < samples; i++) {
+    uint16_t new_index = (i + start_index) & mask;
+    uint16_t old_index = (new_index - goertzel_info->window_length) & mask;
+    float new_data_value = ADC_InputGetDataAbsolute(new_index);
+    float old_data_value = ADC_InputGetDataAbsolute(old_index);
+
+    goertzel_info->q[0] = goertzel_info->coeff * goertzel_info->q[1] - goertzel_info->q[2] + new_data_value - old_data_value;
+    goertzel_info->q[2] = goertzel_info->q[1];
+    goertzel_info->q[1] = goertzel_info->q[0];
+  }
+
+  goertzel_info->e_f = goertzel_info->q[1] * goertzel_info->q[1] + 
+                       goertzel_info->q[2] * goertzel_info->q[2] -
+                       goertzel_info->coeff * goertzel_info->q[1] * goertzel_info->q[2];
+
+  goertzel_info->e_f *= goertzel_info->normalization_factor;
+}
+
+void goertzel_SlidingReset(SlidingGoertzelInfo_t* goertzel_info, uint16_t start_index, uint16_t buf_len)
+{
+  uint16_t mask = buf_len - 1;
+  for (uint16_t i = 0; i < goertzel_info->window_length; i++) {
+    uint16_t index = (i + start_index) & mask;
+    float data_value = ADC_InputGetDataAbsolute(index);
+
+    goertzel_info->q[0] = goertzel_info->coeff * goertzel_info->q[1] - goertzel_info->q[2] + data_value;
+    goertzel_info->q[2] = goertzel_info->q[1];
+    goertzel_info->q[1] = goertzel_info->q[0];
+  }
+
+  goertzel_info->e_f = goertzel_info->q[1] * goertzel_info->q[1] + 
+                       goertzel_info->q[2] * goertzel_info->q[2] -
+                       goertzel_info->coeff * goertzel_info->q[1] * goertzel_info->q[2];
+
+  goertzel_info->e_f *= goertzel_info->normalization_factor;
 }
 
 /* Private function definitions ----------------------------------------------*/

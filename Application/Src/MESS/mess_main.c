@@ -222,7 +222,6 @@ void MESS_StartTask(void* argument)
             Error_Routine(ERROR_MESS_PROCESSING);
           }
           message_length = bit_msg.bit_count;
-          // convert to frequencies in message_sequence
           switch (tx_msg.type) {
             case MSG_TRANSMIT_TRANSDUCER:
               switchState(DRIVING_TRANSDUCER);
@@ -236,9 +235,17 @@ void MESS_StartTask(void* argument)
           }
         }
 
-        if (Sync_Synchronize(cfg) == true) {
-          switchState(PROCESSING);
-          break;
+        SyncState_t sync_state = Sync_Synchronize(cfg);
+        switch (sync_state) {
+          case SYNC_SUCCESS:
+            switchState(PROCESSING);
+            break;
+          case SYNC_OK:
+            break; // Do nothing, still synchronizing
+          case SYNC_ERROR:
+          default:
+            Error_Routine(ERROR_MESS_PROCESSING);
+            break;
         }
 
         if (BackgroundNoise_Calculate(cfg) == false) {

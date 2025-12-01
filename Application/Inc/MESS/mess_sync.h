@@ -28,7 +28,11 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
-
+typedef enum {
+  SYNC_OK,
+  SYNC_ERROR,
+  SYNC_SUCCESS
+} SyncState_t;
 
 /* Exported constants --------------------------------------------------------*/
 
@@ -60,13 +64,16 @@ bool Sync_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_
 uint16_t Sync_NumSteps(const DspConfig_t* cfg);
 
 /**
- * @brief Synchronizes the receiver and sender (NOT IMPLEMENTED YET)
+ * @brief Synchronizes the receiver and sender using either an amplitude detection
+ * or a 32-chip JANUS preamble
  * 
  * @param cfg 
- * @return true 
- * @return false 
+ * 
+ * @return SYNC_OK if no errors and no synchronization yet 
+ * @return SYNC_ERROR if error occurred
+ * @return SYNC_SUCCESS if successfully synchronized
  */
-bool Sync_Synchronize(const DspConfig_t* cfg);
+SyncState_t Sync_Synchronize(const DspConfig_t* cfg);
 
 /**
  * @brief Returns most recent snr score from synchronization

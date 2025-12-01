@@ -29,7 +29,7 @@ typedef struct {
   MacProtocol_t current_protocol;
   MacProtocol_t requested_protocol;
 
-  MacProtocolInterface_t* interface;
+  const MacProtocolInterface_t* interface;
 
   union {
     NoMacData_t no_mac_data;
