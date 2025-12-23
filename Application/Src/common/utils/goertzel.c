@@ -13,6 +13,7 @@
 #include "goertzel.h"
 #include "uam_math.h"
 #include "mess_adc.h"
+#include "math.h"
 
 /* Private typedef -----------------------------------------------------------*/
 
@@ -21,7 +22,7 @@
 /* Private define ------------------------------------------------------------*/
 
 #define WINDOW_PRECISION                8
-#define SLIDING_CALLS_BEFORE_RESET      128
+#define SLIDING_CALLS_BEFORE_RESET      64
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -202,17 +203,23 @@ void goertzel_6(GoertzelInfo_t* goertzel_info)
 void goertzel_SlidingInit(SlidingGoertzelInfo_t* goertzel_info, uint32_t f, uint16_t window_length)
 {
   goertzel_info->f = f;
-  goertzel_info->q[0] = 0.0f;
-  goertzel_info->q[1] = 0.0f;
-  goertzel_info->q[2] = 0.0f;
+  goertzel_info->x_real = 0.0f;
+  goertzel_info->x_imag = 0.0f;
 
-  float omega_f = 2.0f * goertzel_info->f / ((float) ADC_SAMPLING_RATE);
-  goertzel_info->coeff = 2.0 * uam_cosf(omega_f);
+  // Compute normalized frequency: omega_normalized = 2*f/fs (will be multiplied by π in CORDIC)
+  float omega_normalized = 2.0f * (float)f / (float)ADC_SAMPLING_RATE;
+  
+  // Precompute rotation factors - these are used every sample, so precomputing is critical
+  goertzel_info->cos_omega = cosf(omega_normalized * M_PI);
+  goertzel_info->sin_omega = sinf(omega_normalized * M_PI);
+  goertzel_info->coeff = 2.0f * goertzel_info->cos_omega;
 
-  goertzel_info->normalization_factor = 1.0f / ((float) window_length);
+  goertzel_info->normalization_factor = 1.0f / (float)window_length;
 
   goertzel_info->window_length = window_length;
-  goertzel_info->calls_before_reset = sliding_goertzel_index * (SLIDING_CALLS_BEFORE_RESET / MAX_SLIDING_INDEX);
+  
+  // Stagger resets across filters to spread computational load
+  goertzel_info->calls_before_reset = sliding_goertzel_index * SLIDING_CALLS_BEFORE_RESET / MAX_SLIDING_INDEX;
   sliding_goertzel_index = (sliding_goertzel_index + 1) % MAX_SLIDING_INDEX;
 }
 
@@ -220,54 +227,83 @@ void goertzel_SlidingPerform(SlidingGoertzelInfo_t* goertzel_info, uint16_t star
 {
   uint16_t mask = buf_len - 1;
 
+  // Periodic reset to combat numerical drift
   if (goertzel_info->calls_before_reset == 0) {
-    start_index = start_index + samples - goertzel_info->window_length;
-    start_index &= mask;
-    goertzel_info->q[0] = 0.0f;
-    goertzel_info->q[1] = 0.0f;
-    goertzel_info->q[2] = 0.0f;
-
+    uint16_t window_start = (start_index + samples - goertzel_info->window_length) & mask;
+    
     goertzel_info->calls_before_reset = SLIDING_CALLS_BEFORE_RESET;
-    goertzel_SlidingReset(goertzel_info, start_index, buf_len);
+    goertzel_SlidingReset(goertzel_info, window_start, buf_len);
     return;
   }
   goertzel_info->calls_before_reset--;
 
-  for (uint16_t i = 0; i < samples; i++) {
-    uint16_t new_index = (i + start_index) & mask;
-    uint16_t old_index = (new_index - goertzel_info->window_length) & mask;
-    float new_data_value = ADC_InputGetDataAbsolute(new_index);
-    float old_data_value = ADC_InputGetDataAbsolute(old_index);
+  // Load rotation factors into registers (helps compiler optimize)
+  const float cos_w = goertzel_info->cos_omega;
+  const float sin_w = goertzel_info->sin_omega;
+  const uint16_t win_len = goertzel_info->window_length;
+  
+  float x_real = goertzel_info->x_real;
+  float x_imag = goertzel_info->x_imag;
 
-    goertzel_info->q[0] = goertzel_info->coeff * goertzel_info->q[1] - goertzel_info->q[2] + new_data_value - old_data_value;
-    goertzel_info->q[2] = goertzel_info->q[1];
-    goertzel_info->q[1] = goertzel_info->q[0];
+  // Correct sliding DFT update
+  // Formula: X_new = e^(jω) × (X_old + x_new - x_old)
+  // This accounts for the phase shift when sliding the window
+  for (uint16_t i = 0; i < samples; i++) {
+    uint16_t new_index = (start_index + i) & mask;
+    uint16_t old_index = (new_index - win_len) & mask;
+    
+    float new_sample = ADC_InputGetDataAbsolute(new_index);
+    float old_sample = ADC_InputGetDataAbsolute(old_index);
+
+    float delta = new_sample - old_sample;
+    float temp_real = x_real + delta;
+    float temp_imag = x_imag;
+
+    // This rotation accounts for all samples shifting one position in the window,
+    // which changes their phase contribution to the DFT
+    x_real = temp_real * cos_w - temp_imag * sin_w;
+    x_imag = temp_real * sin_w + temp_imag * cos_w;
   }
 
-  goertzel_info->e_f = goertzel_info->q[1] * goertzel_info->q[1] + 
-                       goertzel_info->q[2] * goertzel_info->q[2] -
-                       goertzel_info->coeff * goertzel_info->q[1] * goertzel_info->q[2];
+  // Store updated state
+  goertzel_info->x_real = x_real;
+  goertzel_info->x_imag = x_imag;
 
-  goertzel_info->e_f *= goertzel_info->normalization_factor;
+  // Compute energy: |X|² = Re(X)² + Im(X)²
+  goertzel_info->e_f = (x_real * x_real + x_imag * x_imag) * goertzel_info->normalization_factor;
 }
 
 void goertzel_SlidingReset(SlidingGoertzelInfo_t* goertzel_info, uint16_t start_index, uint16_t buf_len)
 {
   uint16_t mask = buf_len - 1;
+  
+  // Use standard Goertzel algorithm for efficient block computation
+  // This is O(N) with only 3 ops per sample - faster than direct DFT
+  float q0 = 0.0f;
+  float q1 = 0.0f;
+  float q2 = 0.0f;
+  const float coeff = goertzel_info->coeff;
+  
   for (uint16_t i = 0; i < goertzel_info->window_length; i++) {
-    uint16_t index = (i + start_index) & mask;
-    float data_value = ADC_InputGetDataAbsolute(index);
+    uint16_t index = (start_index + i) & mask;
+    float sample = ADC_InputGetDataAbsolute(index);
 
-    goertzel_info->q[0] = goertzel_info->coeff * goertzel_info->q[1] - goertzel_info->q[2] + data_value;
-    goertzel_info->q[2] = goertzel_info->q[1];
-    goertzel_info->q[1] = goertzel_info->q[0];
+    q0 = sample + coeff * q1 - q2;
+    q2 = q1;
+    q1 = q0;
   }
 
-  goertzel_info->e_f = goertzel_info->q[1] * goertzel_info->q[1] + 
-                       goertzel_info->q[2] * goertzel_info->q[2] -
-                       goertzel_info->coeff * goertzel_info->q[1] * goertzel_info->q[2];
+  // Extract complex DFT value from final Goertzel states
+  // X[k] = s[N-1] - e^(-jω)·s[N-2]
+  //      = s[N-1] - (cos(ω) - j·sin(ω))·s[N-2]
+  //      = (s[N-1] - cos(ω)·s[N-2]) + j·(sin(ω)·s[N-2])
+  goertzel_info->x_real = q1 - goertzel_info->cos_omega * q2;
+  goertzel_info->x_imag = goertzel_info->sin_omega * q2;
 
-  goertzel_info->e_f *= goertzel_info->normalization_factor;
+  // Compute energy
+  float x_real = goertzel_info->x_real;
+  float x_imag = goertzel_info->x_imag;
+  goertzel_info->e_f = (x_real * x_real + x_imag * x_imag) * goertzel_info->normalization_factor;
 }
 
 /* Private function definitions ----------------------------------------------*/

@@ -37,6 +37,7 @@ typedef struct {
 
   float capped_snr;
   float uncapped_snr;
+  float ambient_snr;
   uint8_t symbols_exceeding_threshold;
 
   uint8_t frequencies_added;
@@ -56,10 +57,11 @@ typedef struct {
 #define NUM_SYNC_FREQUENCIES            32
 #define PN_SYNC_SUBDIVIDE               16 // The number of subdivisions to make of each chip duration during synchronization
 #define MIN_NUM_CANDIDATES              (NUM_SYNC_FREQUENCIES * PN_SYNC_SUBDIVIDE)
-#define NUM_PN_SYNC_CANDIDATES          (MIN_NUM_CANDIDATES * 4 / 3) // Extra 33% to verify maxima and prevent overrun
+#define NUM_PN_SYNC_CANDIDATES          (MIN_NUM_CANDIDATES * 4 / 3) // Extra 33% to prevent overrun
 
 #define TARGET_SNR                      (8.0f)
 #define CAP_RATIO                       (2.0f) // Capped SNR statistics are truncated to CAP_RATIO * TARGET_SNR
+#define AMBIENT_RATIO                   (2.0f)
 #define MIN_SYMBOLS_ABOVE_THRESH        24
 #define REQUIRED_CANDIDATES_AFTER_BEST  8
 
@@ -276,7 +278,8 @@ bool updateSlidingGoertzel(uint16_t new_samples)
   // Loops through and updates each sliding goertzel filter and updates candidate accordingly
   for (uint16_t i = 0; i < NUM_SYNC_FREQUENCIES; i++) {
     goertzel_SlidingPerform(&sliding_goertzel[i], ADC_InputGetTail(), new_samples, PROCESSING_BUFFER_SIZE);
-    float in_band_energy = MAX(sliding_goertzel[i].e_f - background_noise, 0.0f);
+     float next_bin_e = (i == NUM_SYNC_FREQUENCIES - 1) ? (background_noise) : (MAX(sliding_goertzel[i + 1].e_f, background_noise));
+    float in_band_energy = MAX(sliding_goertzel[i].e_f - next_bin_e, 0.0f);
     float snr = (in_band_energy) / background_noise;
     float scaled_snr = snr / NUM_SYNC_FREQUENCIES;
     float capped_scaled_snr = MIN(scaled_snr, TARGET_SNR * CAP_RATIO / NUM_SYNC_FREQUENCIES);
@@ -292,6 +295,14 @@ bool updateSlidingGoertzel(uint16_t new_samples)
     pn_sync_candidates[sliding_index].uncapped_snr += scaled_snr;
     pn_sync_candidates[sliding_index].symbols_exceeding_threshold += (snr > TARGET_SNR) ? 1 : 0;
     pn_sync_candidates[sliding_index].frequencies_added++;
+    if (pn_sync_candidates[sliding_index].frequencies_added == NUM_SYNC_FREQUENCIES) {
+      float sum = 0;
+      for (uint16_t j = 0; j < NUM_SYNC_FREQUENCIES; j++) {
+        sum += sliding_goertzel[j].e_f;
+      }
+      float average_energy = sum / NUM_SYNC_FREQUENCIES;
+      pn_sync_candidates[sliding_index].ambient_snr = (average_energy - background_noise) / background_noise;
+    }
     if (pn_sync_candidates[sliding_index].frequencies_added > NUM_SYNC_FREQUENCIES) {
       return false;
     }
@@ -304,7 +315,7 @@ bool updateSlidingGoertzel(uint16_t new_samples)
   return true;
 }
 
-static SyncState_t evaluateSlidingPnWindows()
+SyncState_t evaluateSlidingPnWindows()
 {
   while (candidate_tracker.num_candidates > MIN_NUM_CANDIDATES) {
     int16_t s_idx = candidate_index - candidate_tracker.num_candidates;
@@ -313,17 +324,22 @@ static SyncState_t evaluateSlidingPnWindows()
     if (candidate->frequencies_added != NUM_SYNC_FREQUENCIES)  {
       return SYNC_ERROR;
     }
+    bool exceeds_capped_snr = candidate->capped_snr > TARGET_SNR;
+    bool exceeds_symbol_count = candidate->symbols_exceeding_threshold > MIN_SYMBOLS_ABOVE_THRESH;
+    bool exceeds_target_snr = candidate->uncapped_snr > TARGET_SNR;
+    bool exceeds_ambient = candidate->uncapped_snr > (candidate->ambient_snr * AMBIENT_RATIO);
     switch (candidate_tracker.state) {
       case TRACKER_IDLE:
-        if ((candidate->capped_snr > TARGET_SNR) && (candidate->symbols_exceeding_threshold > MIN_SYMBOLS_ABOVE_THRESH) && (candidate->uncapped_snr > TARGET_SNR)) {
+        if (exceeds_target_snr && exceeds_symbol_count && exceeds_capped_snr && exceeds_ambient) {
           candidate_tracker.state = TRACKER_SEARCHING;
           candidate_tracker.best_index = idx;
           candidate_tracker.best_snr = candidate->uncapped_snr;
           candidate_tracker.candidates_after_best = 0;
         }
         break;
+
       case TRACKER_SEARCHING:
-        if (candidate->uncapped_snr > candidate_tracker.best_snr) {
+        if (candidate->uncapped_snr > candidate_tracker.best_snr && (candidate->symbols_exceeding_threshold > MIN_SYMBOLS_ABOVE_THRESH)) {
           candidate_tracker.best_index = idx;
           candidate_tracker.best_snr = candidate->uncapped_snr;
           candidate_tracker.candidates_after_best = 0;
@@ -331,6 +347,7 @@ static SyncState_t evaluateSlidingPnWindows()
           candidate_tracker.candidates_after_best++;
           if (candidate_tracker.candidates_after_best >= REQUIRED_CANDIDATES_AFTER_BEST) {
             uint32_t new_tail = (pn_sync_candidates[candidate_tracker.best_index].start_buffer_index + NUM_SYNC_FREQUENCIES * samples_per_symbol) % PROCESSING_BUFFER_SIZE;
+            most_recent_snr = candidate_tracker.best_snr;
             ADC_InputSetTail(new_tail);
             return SYNC_SUCCESS;
           }
@@ -344,3 +361,4 @@ static SyncState_t evaluateSlidingPnWindows()
   }
   return SYNC_OK;
 }
+

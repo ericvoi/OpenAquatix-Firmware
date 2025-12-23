@@ -38,9 +38,16 @@ typedef struct {
 
 typedef struct {
   uint32_t f;
-  float e_f;
-  float q[3];
-  float coeff;
+  
+  float x_real;
+  float x_imag;
+  
+  // Precomputed rotation factors (computed once at init)
+  float cos_omega;        // cos(2πf/fs)
+  float sin_omega;        // sin(2πf/fs)
+  float coeff;            // 2*cos(omega) - used for Goertzel reset
+  
+  float e_f;              // Energy at frequency f
   float normalization_factor;
   uint16_t window_length;
   uint16_t calls_before_reset;
