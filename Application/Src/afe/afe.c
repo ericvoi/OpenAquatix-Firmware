@@ -1,0 +1,232 @@
+/*
+ * afe.c
+ *
+ *  Created on: Dec 31, 2025
+ *      Author: ericv
+ *
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
+ */
+
+/* Private includes ----------------------------------------------------------*/
+
+#include "stm32h723xx.h"
+#include "stm32h7xx_hal.h"
+#include "cmsis_os.h"
+#include "afe.h"
+#include "main.h"
+#include "internal/feedback.h"
+#include "internal/dac_switch.h"
+#include "internal/tpa32xx-driver.h"
+#include "internal/tr_switch.h"
+#include "pwr_domains.h"
+#include "mess_adc.h"
+#include "mess_input.h"
+#include "mess_sync.h"
+#include <stdbool.h>
+
+/* Private typedef -----------------------------------------------------------*/
+
+
+
+/* Private define ------------------------------------------------------------*/
+
+#define TRANSDUCER_SETTLE_TIME_MS         200
+#define TRANSITION_TIMEOUT_MS             750
+
+/* Private macro -------------------------------------------------------------*/
+
+
+
+/* Private variables ---------------------------------------------------------*/
+
+static AfeMode_t afe_mode;
+
+extern TIM_HandleTypeDef htim6;
+extern DAC_HandleTypeDef hdac1;
+
+/* Private function prototypes -----------------------------------------------*/
+
+static AfeStatus_t enterIdle(void);
+static AfeStatus_t enterRx(void);
+static AfeStatus_t enterRxFeedback(void);
+static AfeStatus_t enterTx(bool with_feedback);
+
+static bool isTimedOut(uint64_t start_time);
+static bool restartADCs(void);
+
+/* Exported function definitions ---------------------------------------------*/
+
+void AFE_Init()
+{
+  enterIdle();
+}
+
+AfeStatus_t AFE_SetMode(AfeMode_t new_mode)
+{
+  switch (new_mode) {
+    case AFE_MODE_IDLE:
+      return enterIdle();
+    case AFE_MODE_RX:
+      return enterRx();
+    case AFE_MODE_RX_FEEDBACK:
+      return enterRxFeedback();
+    case AFE_MODE_TX:
+      return enterTx(false);
+    case AFE_MODE_TX_FEEDBACK:
+      return enterTx(true);
+    default:
+      return AFE_ERROR;
+  }
+}
+
+AfeMode_t AFE_GetMode(void)
+{
+  return afe_mode;
+}
+
+bool AFE_IsTransmitting(void)
+{
+  return (afe_mode == AFE_MODE_TX) || (afe_mode == AFE_MODE_TX_FEEDBACK);
+}
+
+bool AFE_IsReceiving(void)
+{
+  return (afe_mode == AFE_MODE_RX) || (afe_mode == AFE_MODE_RX_FEEDBACK);
+}
+
+/* Private function definitions ----------------------------------------------*/
+
+AfeStatus_t enterIdle(void)
+{
+  uint64_t start_timestamp = HAL_AbsoluteTimestamp();
+  Feedback_SwitchInput(false);
+  Feedback_SwitchOutput(false);
+  PWR_Analog(false);
+  PWR_30V(false);
+  TR_Change(TR_NONE);
+  // No need to change anything with the dac switch or the tpa since they are
+  // powered off and I/Os protected
+  while (PWR_State30V() != PWR_OFF && PWR_StateAnalog() != PWR_OFF) {
+    if (isTimedOut(start_timestamp)) {
+      return AFE_TRANSITION_TIMEOUT;
+    }
+    osDelay(1);
+  }
+  afe_mode = AFE_MODE_IDLE;
+  return AFE_OK;
+}
+
+AfeStatus_t enterRx(void)
+{
+  uint64_t start_timestamp = HAL_AbsoluteTimestamp();
+  HAL_TIM_Base_Stop(&htim6);
+  HAL_DAC_Stop(&hdac1, DAC_CHANNEL_1);
+  Feedback_SwitchInput(false);
+  Feedback_SwitchOutput(false);
+  PWR_Analog(true);
+  PWR_30V(false);
+  if (AFE_IsTransmitting()) {
+    osDelay(TRANSDUCER_SETTLE_TIME_MS);
+  }
+  TR_Change(TR_INPUT_MODE);
+  osDelay(1); // Small delay for the TR switch
+  while (PWR_State30V() != PWR_OFF && PWR_StateAnalog() != PWR_READY) {
+    if (isTimedOut(start_timestamp)) {
+      return AFE_TRANSITION_TIMEOUT;
+    }
+    osDelay(1);
+  }
+  // DAC switch does not matter since no modulation
+  // TPA not configured since powered off by no 30V
+  if (restartADCs() == false) {
+    return AFE_ERROR;
+  }
+  afe_mode = AFE_MODE_RX;
+  return AFE_OK;
+}
+
+AfeStatus_t enterRxFeedback(void)
+{
+  uint64_t start_timestamp = HAL_AbsoluteTimestamp();
+  Feedback_SwitchInput(true);
+  Feedback_SwitchOutput(false);
+  PWR_Analog(true);
+  PWR_30V(false);
+  TR_Change(TR_NONE);
+  DACSwitch_Change(DAC_DIRECTION_FEEDBACK);
+  osDelay(1); // Small delay to ensure TR switch has changed
+  // TPA configuration does not matter since powered off
+  while (PWR_State30V() != PWR_OFF && PWR_StateAnalog() != PWR_READY) {
+    if (isTimedOut(start_timestamp)) {
+      return AFE_TRANSITION_TIMEOUT;
+    }
+    osDelay(1);
+  }
+  if (restartADCs() == false) {
+    return AFE_ERROR;
+  }
+  afe_mode = AFE_MODE_RX_FEEDBACK;
+  return AFE_OK;
+}
+
+AfeStatus_t enterTx(bool with_feedback)
+{
+  uint64_t start_timestamp = HAL_AbsoluteTimestamp();
+  if (ADC_StopAll() == false) {
+    return AFE_ERROR;
+  }
+  Feedback_SwitchInput(false);
+  Feedback_SwitchOutput(with_feedback);
+  TPA_Mute(); // Mute PA prior to voltage rails being turned on to turn on in defined state
+  PWR_Analog(true);
+  PWR_30V(true);
+
+  // Setting the DAC to mid-value prevents high frequency spike when DAC starts modulating
+  HAL_TIM_Base_Start(&htim6);
+  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2048);
+  HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
+
+  osDelay(1);
+  HAL_TIM_Base_Stop(&htim6);
+  while (PWR_State30V() != PWR_READY && PWR_StateAnalog() != PWR_READY) {
+    if (isTimedOut(start_timestamp)) {
+      return AFE_TRANSITION_TIMEOUT;
+    }
+    osDelay(1);
+  }
+  TPA_Unmute();
+  TR_Change(TR_OUTPUT_MODE);
+  DACSwitch_Change(DAC_DIRECTION_TRANSDUCER);
+  osDelay(1); // Small delay to ensure TR switch has fully switched
+  if (with_feedback == true) {
+    afe_mode = AFE_MODE_TX_FEEDBACK;
+  }
+  else {
+    afe_mode = AFE_MODE_TX;
+  }
+  return AFE_OK;
+}
+
+bool isTimedOut(uint64_t start_time)
+{
+  return (HAL_AbsoluteTimestamp() - start_time) > TRANSITION_TIMEOUT_MS;
+}
+
+// Function only called when transitioning to receiving state
+bool restartADCs()
+{
+  if (ADC_StopAll() == false) {
+    return false;
+  }
+  Input_Reset();
+  if (ADC_StartInput() == false) {
+    return false;
+  }
+  // If receiving prior, then the sync state is fine, but not if transmitting prior
+  // Reset not used if not needed since computationally expensive
+  if (AFE_IsTransmitting()) {
+    Sync_Reset();
+  }
+  return true;
+}

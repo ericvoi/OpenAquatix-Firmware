@@ -60,7 +60,7 @@ extern TIM_HandleTypeDef htim16;
 extern TIM_HandleTypeDef htim17;
 extern DMA_HandleTypeDef hdma_tim3_ch1;
 
-extern UART_HandleTypeDef huart5;
+extern UART_HandleTypeDef hlpuart1;
 extern DMA_HandleTypeDef hdma_uart5_rx;
 extern DMA_HandleTypeDef hdma_uart5_tx;
 
@@ -131,7 +131,7 @@ void disablePeripherals()
   __HAL_RCC_TIM16_CLK_DISABLE();
   __HAL_RCC_TIM17_CLK_DISABLE();
   
-  HAL_UART_MspDeInit(&huart5);
+  HAL_UART_MspDeInit(&hlpuart1);
   __HAL_RCC_UART5_CLK_DISABLE();
   
   __HAL_RCC_CORDIC_CLK_DISABLE();

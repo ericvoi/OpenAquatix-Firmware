@@ -42,7 +42,7 @@ volatile uint16_t input_tail_pos = 0;
 volatile uint16_t feedback_head_pos = 0;
 volatile uint16_t feedback_tail_pos = 0;
 
-static float dc_estimate = 2048.0f;
+static float dc_estimate = 32768.0f;
 static const float dc_alpha = 1e-5;
 
 /*

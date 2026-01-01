@@ -19,6 +19,7 @@
 #include "cfg_parameters.h"
 
 #include "ws2812b-driver.h"
+#include "power_leds.h"
 #include "cmsis_os.h"
 #include <stdbool.h>
 
@@ -62,6 +63,8 @@ static uint8_t manual_g;
 static uint8_t manual_b;
 static uint32_t manual_override_start_time;
 
+static const uint8_t power_led_state = 0x0F;
+
 /* Private function prototypes -----------------------------------------------*/
 
 
@@ -70,6 +73,8 @@ static uint32_t manual_override_start_time;
 
 bool LED_Update()
 {
+  PWRLED_Update(power_led_state); // TODO: change to be updatable
+
   uint8_t brightness = led_enable ? led_brightness : 0;
   if (manual_override == true) {
     uint32_t current_ticks = osKernelGetTickCount();

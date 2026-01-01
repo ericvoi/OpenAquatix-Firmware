@@ -13,6 +13,7 @@
 #include "cfg_defaults.h"
 #include "stm32h7xx_hal.h"
 #include "ws2812b-driver.h"
+#include "pwr_domains.h"
 #include <string.h>
 #include <stdbool.h>
 
@@ -96,6 +97,16 @@ bool Ws2812b_Update(uint8_t brightness)
   memset(ws_dma_buf, 0, sizeof(ws_dma_buf));
 
   scaleRgb(brightness);
+
+  // Disabled WS if the light is off for power savings
+  if (scaled_led_data.colour.r == 0 &&
+      scaled_led_data.colour.g == 0 &&
+      scaled_led_data.colour.b == 0) {
+    PWR_Ws5V(false);
+  }
+  else {
+    PWR_Ws5V(true);
+  }
 
   uint16_t buf_index = WS_RST_PERIODS;
 
