@@ -49,6 +49,7 @@ extern I2C_HandleTypeDef hi2c1;
 extern DMA_HandleTypeDef hdma_i2c1_rx;
 extern DMA_HandleTypeDef hdma_i2c1_tx;
 
+extern SPI_HandleTypeDef hspi3;
 extern SPI_HandleTypeDef hspi4;
 extern DMA_HandleTypeDef hdma_spi4_tx;
 extern DMA_HandleTypeDef hdma_spi4_rx;
@@ -117,6 +118,8 @@ void disablePeripherals()
   HAL_I2C_MspDeInit(&hi2c1);
   __HAL_RCC_I2C1_CLK_DISABLE();
   
+  HAL_SPI_MspDeInit(&hspi3);
+  __HAL_RCC_SPI4_CLK_DISABLE();
   HAL_SPI_MspDeInit(&hspi4);
   __HAL_RCC_SPI4_CLK_DISABLE();
   
@@ -143,12 +146,13 @@ void disablePeripherals()
   __HAL_RCC_DMA2_CLK_DISABLE();
   __HAL_RCC_BDMA_CLK_DISABLE();
 
+  // TODO: update for new pinout
   __HAL_RCC_GPIOE_CLK_DISABLE();  // Has many unused pins
   __HAL_RCC_GPIOA_CLK_DISABLE();  // Check if needed for wakeup
   __HAL_RCC_GPIOB_CLK_DISABLE();  // Has many unused pins
   // Keep GPIOC enabled (has some control pins)
   // Keep GPIOD enabled (has control pins and potential wakeup)
-  __HAL_RCC_GPIOH_CLK_DISABLE();  // Usually just oscillator pins
+  __HAL_RCC_GPIOH_CLK_DISABLE();
 }
 
 void disableInterrupts()
@@ -174,6 +178,7 @@ void disableInterrupts()
   HAL_NVIC_DisableIRQ(UART5_IRQn);
   HAL_NVIC_DisableIRQ(I2C1_EV_IRQn);
   HAL_NVIC_DisableIRQ(I2C1_ER_IRQn);
+  HAL_NVIC_DisableIRQ(SPI3_IRQn);
   HAL_NVIC_DisableIRQ(SPI4_IRQn);
   HAL_NVIC_DisableIRQ(OTG_HS_IRQn);
 }

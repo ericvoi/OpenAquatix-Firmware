@@ -115,6 +115,9 @@ uint64_t HAL_AbsoluteTimestamp(void);
 #define WS_EN_GPIO_Port GPIOC
 #define EN__3V3_Pin GPIO_PIN_8
 #define EN__3V3_GPIO_Port GPIOC
+#define LPS_INT_DRDY_Pin GPIO_PIN_0
+#define LPS_INT_DRDY_GPIO_Port GPIOD
+#define LPS_INT_DRDY_EXTI_IRQn EXTI0_IRQn
 #define HW_ID_PIN0_Pin GPIO_PIN_4
 #define HW_ID_PIN0_GPIO_Port GPIOD
 #define HW_ID_PIN1_Pin GPIO_PIN_5

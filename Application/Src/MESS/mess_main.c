@@ -793,8 +793,3 @@ void getConfig()
       break;
   }
 }
-
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-  (void)(GPIO_Pin);
-}

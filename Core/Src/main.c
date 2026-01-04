@@ -33,6 +33,7 @@
 /* USER CODE BEGIN Includes */
 #include "ws2812b-driver.h"
 #include "pga113-driver.h"
+#include "power_leds.h"
 #include "usb_comm.h"
 #include "comm_main.h"
 #include "mess_main.h"
@@ -64,6 +65,7 @@ typedef StaticTask_t osStaticThreadDef_t;
 ADC_HandleTypeDef hadc1;
 ADC_HandleTypeDef hadc2;
 ADC_HandleTypeDef hadc3;
+DMA_HandleTypeDef hdma_adc1;
 DMA_HandleTypeDef hdma_adc2;
 
 CORDIC_HandleTypeDef hcordic;
@@ -104,7 +106,7 @@ const osThreadAttr_t defaultTask_attributes = {
 };
 /* Definitions for messageTask */
 osThreadId_t messageTaskHandle;
-uint32_t messageTaskBuffer[ 8000 ] __attribute__((section(".dtcm")));
+uint32_t messageTaskBuffer[ 8000 ];
 osStaticThreadDef_t messageTaskControlBlock;
 const osThreadAttr_t messageTask_attributes = {
   .name = "messageTask",
@@ -304,6 +306,7 @@ int main(void)
   MX_RTC_Init();
   MX_SPI3_Init();
   /* USER CODE BEGIN 2 */
+  PWRLED_Update(0x0F);
   Ws2812b_Init();
 
   if (CFG_CreateFlags() == false) {
@@ -1291,6 +1294,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream0_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
+  /* DMA2_Stream0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
   /* DMA2_Stream2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
@@ -1392,17 +1398,21 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PD0 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0;
+  /*Configure GPIO pin : LPS_INT_DRDY_Pin */
+  GPIO_InitStruct.Pin = LPS_INT_DRDY_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(LPS_INT_DRDY_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : HW_ID_PIN0_Pin HW_ID_PIN1_Pin HW_ID_PIN2_Pin HW_ID_PIN3_Pin */
   GPIO_InitStruct.Pin = HW_ID_PIN0_Pin|HW_ID_PIN1_Pin|HW_ID_PIN2_Pin|HW_ID_PIN3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(LPS_INT_DRDY_EXTI_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(LPS_INT_DRDY_EXTI_IRQn);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
   HAL_Delay(100); // Small delay to ensure that voltage rails have stabilized
