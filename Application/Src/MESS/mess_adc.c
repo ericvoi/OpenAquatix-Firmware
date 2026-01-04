@@ -247,7 +247,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
     addToFeedbackBuffer(false);
   }
   else if (hadc == &TEMPERATURE_ADC) {
-    Temperature_AddValue();
+    Temperature_AddTjValue();
   }
 }
 

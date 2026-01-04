@@ -17,6 +17,7 @@
 #include "sys_error.h"
 #include "sys_sensor_timer.h"
 #include "sys_temperature.h"
+#include "sys_pressure.h"
 #include "sys_led.h"
 #include "sleep/sleep_manager.h"
 #include "cfg_main.h"

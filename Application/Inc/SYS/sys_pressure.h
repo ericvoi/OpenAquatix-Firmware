@@ -37,8 +37,24 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
+/**
+ * @brief Sets up pressure module by initializing buffer and registering it
+ * 
+ * @return true if successfully regsitered, false otherwise
+ */
 bool Pressure_Init(void);
+
+/**
+ * @brief Processes all unprocessed raw temperature readings and updates most
+ * recent pressure
+ */
 void Pressure_Process(void);
+
+/**
+ * @brief The most recent reading from the LPS22HH
+ * 
+ * @return float Pressure in hPa
+ */
 float Pressure_GetCurrent(void);
 
 /* Private defines -----------------------------------------------------------*/

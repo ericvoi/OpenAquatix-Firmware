@@ -44,7 +44,7 @@ extern "C" {
  * 
  * @return true 
  */
-bool Temperature_Init();
+bool Temperature_Init(void);
 
 /**
  * @brief Starts conversion in interrupt mode. Only call from sys_sensor_timer
@@ -53,14 +53,14 @@ bool Temperature_Init();
  * 
  * @see SensorTimer_Tick
  */
-bool Temperature_TriggerConversion();
+bool Temperature_TriggerTjConversion(void);
 
 /**
  * @brief Reads the temperature ADC and adds to ring buffer
  * 
- * @see Temperature_TriggerConversion()
+ * @see Temperature_TriggerTjConversion()
  */
-void Temperature_AddValue();
+void Temperature_AddTjValue(void);
 
 /**
  * @brief Processes unprocessed temperature data in temperature buffer
@@ -69,28 +69,49 @@ void Temperature_AddValue();
  * 
  * @return true 
  */
-bool Temperature_Process();
+bool Temperature_Process(void);
 
 /**
- * @brief Average temperature since reset
+ * @brief Average uC junction/die temperature since reset
  * 
- * @return floating point average temperature in C
+ * @return floating point average uC junction/die temperature in C
  */
-float Temperature_GetAverage();
+float Temperature_GetAverageTj(void);
 
 /**
- * @brief Current temperature
+ * @brief Current uC junction/die temperature
  * 
- * @return floating point current temperature in C
+ * @return floating point current uC junction/die temperature in C
  */
-float Temperature_GetCurrent();
+float Temperature_GetCurrentTj(void);
 
 /**
- * @brief Peak temperature since reset
+ * @brief Peak uC junction/die temperature since reset
  * 
- * @return floating point peak temperature in C
+ * @return floating point peak uC junction/die temperature in C
  */
-float Temperature_GetPeak();
+float Temperature_GetPeakTj(void);
+
+/**
+ * @brief Average ambient temperature since reset
+ * 
+ * @return floating point average ambient temperature in C
+ */
+float Temperature_GetAverageTa(void);
+
+/**
+ * @brief Current ambient temperature
+ * 
+ * @return floating point average ambient temperature in C
+ */
+float Temperature_GetCurrentTa(void);
+
+/**
+ * @brief Peak ambient temperature since reset
+ * 
+ * @return floating point peak ambient temperature in C
+ */
+float Temperature_GetPeakTa(void);
 
 /* Private defines -----------------------------------------------------------*/
 

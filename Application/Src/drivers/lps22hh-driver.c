@@ -10,7 +10,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 
-#include "stm32h7xx_hal_spi.h"
+#include "stm32h723xx.h"
+#include "main.h"
+#include "stm32h7xx_hal.h"
 #include "lps22hh-driver.h"
 #include "cmsis_os.h"
 #include <stdbool.h>
@@ -162,7 +164,7 @@ bool LPS_Init(LpsOdr_t odr)
 bool LPS_RegisterPressureBuf(uint32_t* p_buf, uint16_t buf_len, uint16_t* buf_head)
 {
   if ((p_buf == NULL) || (buf_len == 0) || (buf_head == 0)) return false;
-  p_buf_info.buf = p_buf;
+  p_buf_info.buf = (RawPressureData_t*) p_buf;
   p_buf_info.len = buf_len;
   p_buf_info.head = buf_head;
   *buf_head = 0;
@@ -171,7 +173,7 @@ bool LPS_RegisterPressureBuf(uint32_t* p_buf, uint16_t buf_len, uint16_t* buf_he
 bool LPS_RegisterTemperatureBuf(uint16_t* t_buf, uint16_t buf_len, uint16_t* buf_head)
 {
   if ((t_buf == NULL) || (buf_len == 0) || (buf_head == 0)) return false;
-  t_buf_info.buf = t_buf;
+  t_buf_info.buf = (RawTemperatureData_t*) t_buf;
   t_buf_info.len = buf_len;
   t_buf_info.head = buf_head;
   *buf_head = 0;
@@ -281,8 +283,8 @@ bool regWrite(uint8_t address, uint8_t data)
   if (waitForMutex() == false) return false;
 
   address &= 0x7F; // Set the MSB to 0 for W
-  uint8_t data[2] = {address, data};
-  if (HAL_SPI_Transmit_IT(&LPS22HH_SPI_BUS, data, 2) != HAL_OK) {
+  uint8_t full_command[2] = {address, data};
+  if (HAL_SPI_Transmit_IT(&LPS22HH_SPI_BUS, full_command, 2) != HAL_OK) {
     ret = false;
   }
 
@@ -303,7 +305,7 @@ bool regRead(uint8_t address)
 
   if (waitForSpiClearFlag() == false) ret = false;
   if (osMutexRelease(lps_spi_mutex) != osOK) ret = false;
-  return true;
+  return ret;
 }
 
 bool waitForMutex()

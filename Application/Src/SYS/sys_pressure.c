@@ -48,6 +48,7 @@ bool Pressure_Init(void)
   if (LPS_RegisterPressureBuf(p_buf, PRESSURE_BUFFER_SIZE, &p_buf_head) == false) {
     return false;
   }
+  return true;
 }
 
 void Pressure_Process(void)

@@ -55,7 +55,7 @@ void SensorTimer_Tick()
   sensor_ticks++;
 
   if ((sensor_ticks % TICKS_FOR_TEMPERATURE) == 0) {
-    Temperature_TriggerConversion();
+    Temperature_TriggerTjConversion();
   }
 }
 
