@@ -3,6 +3,9 @@
  *
  *  Created on: Feb 12, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 /* Private includes ----------------------------------------------------------*/
@@ -17,6 +20,7 @@
 #include "cfg_parameters.h"
 #include "cfg_defaults.h"
 #include "stm32h7xx_hal.h"
+#include <math.h>
 #include <string.h>
 
 /* Private typedef -----------------------------------------------------------*/
@@ -112,9 +116,11 @@ static const GaloisParameters_t galois_map[MAX_FHBFSK_NUM_TONES - MIN_FHBFSK_NUM
 extern const uint16_t primes[50];
 static const uint16_t num_primes = sizeof(primes) / sizeof(primes[0]);
 
+static bool apply_tukey = DEFAULT_APPLY_TUKEY;
+
 /* Private function prototypes -----------------------------------------------*/
 
-uint32_t getFhbfskSeqeunceNumber(uint32_t normalized_bit_index, const DspConfig_t* cfg);
+uint32_t getFhbfskSequenceNumber(uint32_t normalized_bit_index, const DspConfig_t* cfg);
 uint32_t incrementSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequences);
 uint32_t galoisSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequences);
 uint32_t primeSequenceNumber(uint32_t normalized_bit_index, uint16_t num_sequences);
@@ -139,7 +145,7 @@ bool Modulate_StartTransducerOutput(uint16_t num_steps,
   Waveform_StopWaveformOutput();
   osDelay(1);
   MessDacResource_RegisterMessageConfiguration(new_cfg, new_bit_msg);
-  Waveform_SetWaveformSequence(num_steps);
+  Waveform_SetWaveformSequence(num_steps, true);
   if (ADC_StartFeedback() == false) {
     return false;
   }
@@ -158,7 +164,7 @@ bool Modulate_StartFeedbackOutput(uint16_t num_steps,
   Waveform_StopWaveformOutput();
   osDelay(1);
   MessDacResource_RegisterMessageConfiguration(new_cfg, new_bit_msg);
-  Waveform_SetWaveformSequence(num_steps);
+  Waveform_SetWaveformSequence(num_steps, true);
   if (Waveform_StartWaveformOutput(DAC_CHANNEL_FEEDBACK) == false) {
     return false;
   }
@@ -199,7 +205,7 @@ uint32_t Modulate_GetFhbfskFrequency(bool bit,
       frequency_separation * (2 * cfg->fhbfsk_num_tones - 1) / 2;
   start_freq = (start_freq / frequency_separation) * frequency_separation;
 
-  uint32_t sequence_number = getFhbfskSeqeunceNumber(bit_index / cfg->fhbfsk_dwell_time, cfg);
+  uint32_t sequence_number = getFhbfskSequenceNumber(bit_index / cfg->fhbfsk_dwell_time, cfg);
   uint32_t frequency_index = 2 * sequence_number + bit;
   return start_freq + frequency_separation * frequency_index;
 }
@@ -207,6 +213,30 @@ uint32_t Modulate_GetFhbfskFrequency(bool bit,
 uint32_t Modulate_GetFskFrequency(bool bit, const DspConfig_t* cfg)
 {
   return (bit) ? cfg->fsk_f1 : cfg->fsk_f0;
+}
+
+bool Modulate_DataStep(const DspConfig_t* cfg, BitMessage_t* bit_msg, WaveformStep_t* waveform_step, uint16_t bit_index, uint16_t symbol_index)
+{
+  bool bit;
+  if (Packet_GetBit(bit_msg, bit_index, &bit) == false) {
+    return false;
+  }
+  switch (cfg->mod_demod_method) {
+    case MOD_DEMOD_FSK:
+      waveform_step->freq_hz = Modulate_GetFskFrequency(bit, cfg);
+      break;
+    case MOD_DEMOD_FHBFSK:
+      waveform_step->freq_hz = Modulate_GetFhbfskFrequency(bit, symbol_index, cfg);
+      break;
+    default:
+      return false;
+  }
+  waveform_step->duration_us = (uint32_t) roundf(1000000.0f / cfg->baud_rate);
+  waveform_step->relative_amplitude = Modulate_GetAmplitude(waveform_step->freq_hz);
+
+  waveform_step->output_type = (apply_tukey) ? (OUTPUT_CONSTANT_TUKEY) : (OUTPUT_CONSTANT_SQUARE);
+
+  return true;
 }
 
 bool Modulate_RegisterParams()
@@ -267,13 +297,20 @@ bool Modulate_RegisterParams()
     return false;
   }
 
+  min_u32 = MIN_APPLY_TUKEY;
+  max_u32 = MAX_APPLY_TUKEY;
+  if (Param_Register(PARAM_APPLY_TUKEY, "Tukey window application", PARAM_TYPE_UINT8,
+                     &apply_tukey, sizeof(bool), &min_u32, &max_u32, NULL) == false) {
+    return false;
+  }
+
   return true;
 }
 
 
 /* Private function definitions ----------------------------------------------*/
 
-uint32_t getFhbfskSeqeunceNumber(uint32_t normalized_bit_index, const DspConfig_t* cfg)
+uint32_t getFhbfskSequenceNumber(uint32_t normalized_bit_index, const DspConfig_t* cfg)
 {
   switch (cfg->fhbfsk_hopper) {
     case HOPPER_INCREMENT:

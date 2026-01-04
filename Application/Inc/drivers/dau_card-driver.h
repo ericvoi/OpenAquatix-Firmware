@@ -3,6 +3,9 @@
  *
  *  Created on: Mar 17, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef DRIVERS_DAU_CARD_DRIVER_H_

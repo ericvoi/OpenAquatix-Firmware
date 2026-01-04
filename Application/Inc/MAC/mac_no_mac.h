@@ -1,20 +1,25 @@
 /*
- * PGA113-driver.h
+ * mac_no_mac.h
  *
- *  Created on: Jan 31, 2025
+ *  Created on: Sep 9, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
-#ifndef __PGA113_DRIVER_H_
-#define __PGA113_DRIVER_H_
+#ifndef MAC_MAC_NO_MAC_H_
+#define MAC_MAC_NO_MAC_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32h7xx_hal.h"
 
+#include "mac_main.h"
+#include <stdint.h>
+#include <stdbool.h>
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -22,18 +27,10 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
-typedef enum {
-  PGA_GAIN_1,
-  PGA_GAIN_2,
-  PGA_GAIN_5,
-  PGA_GAIN_10,
-  PGA_GAIN_20,
-  PGA_GAIN_50,
-  PGA_GAIN_100,
-  PGA_GAIN_200,
-
-  PGA_NUM_CODES
-} PgaGain_t;
+typedef struct {
+  uint32_t channel_reserved_until;
+  bool active_reservation;
+} NoMacData_t;
 
 /* Exported constants --------------------------------------------------------*/
 
@@ -45,14 +42,6 @@ typedef enum {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-HAL_StatusTypeDef PGA_Init();
-void              PGA_SetGain(PgaGain_t gain);
-HAL_StatusTypeDef PGA_Read();
-HAL_StatusTypeDef PGA_Update();
-HAL_StatusTypeDef PGA_Shutdown();
-HAL_StatusTypeDef PGA_Enable();
-HAL_StatusTypeDef PGA_Status();
-uint8_t           PGA_GetGain();
 
 
 /* Private defines -----------------------------------------------------------*/
@@ -61,4 +50,4 @@ uint8_t           PGA_GetGain();
 }
 #endif
 
-#endif /* __PGA113_DRIVER_H_ */
+#endif /* MAC_MAC_NO_MAC_H_ */

@@ -3,6 +3,9 @@
  *
  *  Created on: Feb 13, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 /* Private includes ----------------------------------------------------------*/
@@ -21,7 +24,7 @@
 #include "cfg_parameters.h"
 #include "cfg_main.h"
 #include "usb_comm.h"
-#include "PGA113-driver.h"
+#include "pga113-driver.h"
 #include "cmsis_os.h"
 #include "arm_math.h"
 #include "arm_const_structs.h"
@@ -289,6 +292,11 @@ bool Input_DecodeBits(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* 
 
   if (bit_msg->preamble_received == false) { // Still looking for preamble
     if (bit_msg->bit_count >= bit_msg->preamble.ecc_len) {
+      // Message timestamp taken when cargo starts. This approach is not precise
+      // and could be improved by considering how far we are into the cargo already
+      // in case precision within 1 ms is required. Current approach likely accurate
+      // to within 5 ms.
+      msg->timestamp = osKernelGetTickCount();
 
       if (Interleaver_Undo(bit_msg, cfg, true) == false) {
         return false;
@@ -464,8 +472,8 @@ bool Input_UpdatePgaGain()
   // TODO: add automatic gain control
   if (automatic_gain_control == true) return false;
 
-  if (PGA_GetGain() != fixed_pga_gain) {
-    PGA_SetGain(fixed_pga_gain);
+  if (Pga113_GetGain() != fixed_pga_gain) {
+    Pga113_SetGain(fixed_pga_gain);
   }
 
   return true;
@@ -578,7 +586,7 @@ float frequencyToIndex(float frequency, uint16_t fft_size)
   return frequency * fft_size / ((float) ADC_SAMPLING_RATE);
 }
 
-static float indexToFrequency(float index, uint16_t fft_size)
+float indexToFrequency(float index, uint16_t fft_size)
 {
   return ADC_SAMPLING_RATE * index / ((float) fft_size);
 }

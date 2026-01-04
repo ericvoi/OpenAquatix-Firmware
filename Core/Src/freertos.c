@@ -15,6 +15,13 @@
   *
   ******************************************************************************
   */
+
+  /**
+  * Modifications Copyright (c) 2025 OpenAquatix Contributors
+  * Licensed under MIT License (see LICENSE file)
+  * 
+  * Modified by: Addition of profiling hook
+  */
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
@@ -82,6 +89,20 @@ void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName)
   (void)(pcTaskName);
 }
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN PREPOSTSLEEP */
+__weak void PreSleepProcessing(uint32_t ulExpectedIdleTime)
+{
+  (void)(ulExpectedIdleTime);
+/* place for user code */
+}
+
+__weak void PostSleepProcessing(uint32_t ulExpectedIdleTime)
+{
+  (void)(ulExpectedIdleTime);
+/* place for user code */
+}
+/* USER CODE END PREPOSTSLEEP */
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */

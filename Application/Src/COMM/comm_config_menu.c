@@ -3,6 +3,9 @@
  *
  *  Created on: Feb 2, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 /* Private includes ----------------------------------------------------------*/
@@ -39,7 +42,7 @@ void setPreambleErrorDetection(void* argument);
 void setCargoErrorDetection(void* argument);
 void preambleErrorBehavior(void* argument);
 void cargoErrorBehavior(void* argument);
-void setPremableEcc(void* argument);
+void setPreambleEcc(void* argument);
 void setMessageEcc(void* argument);
 void setModulationMethod(void* argument);
 void setFskF0(void* argument);
@@ -48,6 +51,10 @@ void setFhbfskFreqSpacing(void* argument);
 void setFhbfskDwell(void* argument);
 void setFhbfskTones(void* argument);
 void setFhbfskHopper(void* argument);
+void toggleWakeupTones(void* argument);
+void setWakeupTone1(void* argument);
+void setWakeupTone2(void* argument);
+void setWakeupTone3(void* argument);
 void setBaudRate(void* argument);
 void setCenterFrequency(void* argument);
 void getBitPeriod(void* argument);
@@ -55,7 +62,7 @@ void getBandwidth(void* argument);
 void toggleInterleaver(void* argument);
 void setSynchronizer(void* argument);
 void printConfigOptions(void* argument);
-void importConfiOptions(void* argument);
+void importConfigOptions(void* argument);
 void setDacTransitionDuration(void* argument);
 void setModPowerControlMethod(void* argument);
 void setModFixedOutput(void* argument);
@@ -88,6 +95,7 @@ void performDemodCal(void* argument);
 void setDemodCalLowerFreq(void* argument);
 void setDemodCalUpperFreq(void* argument);
 void exportDemodCal(void* argument);
+void setMacProtocol(void* argument);
 void setID(void* argument);
 void setStationaryFlag(void* argument);
 
@@ -96,8 +104,8 @@ void setStationaryFlag(void* argument);
 /* Main menu starting point --------------------------------------------------*/
 
 static MenuID_t configMenuChildren[] = {
-  MENU_ID_CFG_UNIV, MENU_ID_CFG_MOD,    MENU_ID_CFG_DEMOD,      MENU_ID_CFG_DAU, 
-  MENU_ID_CFG_LED,  MENU_ID_CFG_SETID,  MENU_ID_CFG_STATIONARY
+  MENU_ID_CFG_UNIV, MENU_ID_CFG_MOD,    MENU_ID_CFG_DEMOD,      MENU_ID_CFG_MAC,
+  MENU_ID_CFG_DAU,  MENU_ID_CFG_LED,    MENU_ID_CFG_SETID,      MENU_ID_CFG_STATIONARY
 };
 static const MenuNode_t configMenu = {
   .id = MENU_ID_CFG,
@@ -119,7 +127,8 @@ static MenuID_t univConfigMenuChildren[] = {
   MENU_ID_CFG_UNIV_BAUD,        MENU_ID_CFG_UNIV_FC,    
   MENU_ID_CFG_UNIV_BP,          MENU_ID_CFG_UNIV_BANDWIDTH, 
   MENU_ID_CFG_UNIV_INTERLEAVER, MENU_ID_CFG_UNIV_SYNC,
-  MENU_ID_CFG_UNIV_EXP,         MENU_ID_CFG_UNIV_IMP
+  MENU_ID_CFG_UNIV_WAKEUP,      MENU_ID_CFG_UNIV_EXP,
+  MENU_ID_CFG_UNIV_IMP
 };
 static const MenuNode_t univConfigMenu = {
   .id = MENU_ID_CFG_UNIV,
@@ -163,6 +172,21 @@ static const MenuNode_t demodConfigMenu = {
   .num_children = sizeof(demodConfigMenuChildren) / sizeof(demodConfigMenuChildren[0]),
   .access_level = 0,
   .parameters = NULL
+};
+
+static ParamContext_t changeMacParams = {
+  .param_id = MENU_ID_CFG_MAC,
+  .state = PARAM_STATE_0
+};
+static const MenuNode_t changeMac = {
+  .id = MENU_ID_CFG_MAC,
+  .description = "Change MAC Protocol",
+  .handler = setMacProtocol,
+  .parent_id = MENU_ID_CFG,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &changeMacParams
 };
 
 static MenuID_t dauConfigMenuChildren[] = {
@@ -247,7 +271,7 @@ static ParamContext_t univConfigEccPreambleParam = {
 static const MenuNode_t univConfigEccPreamble = {
   .id = MENU_ID_CFG_UNIV_ECCPREAMBLE,
   .description = "Preamble ECC",
-  .handler = setPremableEcc,
+  .handler = setPreambleEcc,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
   .num_children = 0,
@@ -404,6 +428,21 @@ static const MenuNode_t univConfigSync = {
   .parameters = &univConfigSyncParam
 };
 
+static MenuID_t univConfigWakeupChildren[] = {
+  MENU_ID_CFG_UNIV_WAKEUP_EN, MENU_ID_CFG_UNIV_WAKEUP_F1,
+  MENU_ID_CFG_UNIV_WAKEUP_F2, MENU_ID_CFG_UNIV_WAKEUP_F3
+};
+static const MenuNode_t univConfigWakeupMenu = {
+  .id = MENU_ID_CFG_UNIV_WAKEUP,
+  .description = "Wakeup Options",
+  .handler = NULL,
+  .parent_id = MENU_ID_CFG_UNIV,
+  .children_ids = univConfigWakeupChildren,
+  .num_children = sizeof(univConfigWakeupChildren) / sizeof(univConfigWakeupChildren[0]),
+  .access_level = 0,
+  .parameters = NULL
+};
+
 static ParamContext_t univConfigExportParam = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_EXP  
@@ -426,7 +465,7 @@ static ParamContext_t univConfigImportParam = {
 static const MenuNode_t univConfigImport = {
   .id = MENU_ID_CFG_UNIV_IMP,
   .description = "Import Configuration options",
-  .handler = importConfiOptions,
+  .handler = importConfigOptions,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
   .num_children = 0,
@@ -829,6 +868,66 @@ static const MenuNode_t univFhbfskConfigHopper = {
   .parameters = &univFhbfskConfigHopperParam
 };
 
+static ParamContext_t univWakeupConfigEnParam = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_UNIV_WAKEUP_EN
+};
+static const MenuNode_t univWakeupConfigEn = {
+  .id = MENU_ID_CFG_UNIV_WAKEUP_EN,
+  .description = "Toggle sending wakeup tones",
+  .handler = toggleWakeupTones,
+  .parent_id = MENU_ID_CFG_UNIV_WAKEUP,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &univWakeupConfigEnParam
+};
+
+static ParamContext_t univWakeupConfigTone1Param = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_UNIV_WAKEUP_F1
+};
+static const MenuNode_t univWakeupConfigTone1 = {
+  .id = MENU_ID_CFG_UNIV_WAKEUP_F1,
+  .description = "First wakeup tone frequency",
+  .handler = setWakeupTone1,
+  .parent_id = MENU_ID_CFG_UNIV_WAKEUP,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &univWakeupConfigTone1Param
+};
+
+static ParamContext_t univWakeupConfigTone2Param = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_UNIV_WAKEUP_F2
+};
+static const MenuNode_t univWakeupConfigTone2 = {
+  .id = MENU_ID_CFG_UNIV_WAKEUP_F2,
+  .description = "Second wakeup tone frequency",
+  .handler = setWakeupTone2,
+  .parent_id = MENU_ID_CFG_UNIV_WAKEUP,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &univWakeupConfigTone2Param
+};
+
+static ParamContext_t univWakeupConfigTone3Param = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_UNIV_WAKEUP_F3
+};
+static const MenuNode_t univWakeupConfigTone3 = {
+  .id = MENU_ID_CFG_UNIV_WAKEUP_F3,
+  .description = "Third wakeup tone frequency",
+  .handler = setWakeupTone3,
+  .parent_id = MENU_ID_CFG_UNIV_WAKEUP,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &univWakeupConfigTone3Param
+};
+
 static ParamContext_t modCalConfigLowFreqParam = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_MOD_CAL_LOWFREQ
@@ -1166,7 +1265,10 @@ bool COMM_RegisterConfigurationMenu()
              registerMenu(&demodConfigFixedGain) && registerMenu(&univConfigEccPreamble) &&
              registerMenu(&univConfigEccMessage) && registerMenu(&univErrConfigPreambleValidation) &&
              registerMenu(&univErrConfigCargoValidation) && registerMenu(&univErrConfigPreambleBehavior) &&
-             registerMenu(&univErrConfigCargoBehavior) && registerMenu(&demodConfigWindowFcn);
+             registerMenu(&univErrConfigCargoBehavior) && registerMenu(&demodConfigWindowFcn) &&
+             registerMenu(&univConfigWakeupMenu) && registerMenu(&univWakeupConfigTone1) &&
+             registerMenu(&univWakeupConfigEn) && registerMenu(&univWakeupConfigTone2) &&
+             registerMenu(&univWakeupConfigTone3) && registerMenu(&changeMac);
 
   return ret;
 }
@@ -1209,7 +1311,7 @@ void cargoErrorBehavior(void* argument)
   COMMLoops_NotImplemented(context);
 }
 
-void setPremableEcc(void* argument)
+void setPreambleEcc(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
   char* descriptors[] = {"None", "1-bit Hamming Code", "1:2 Convolutional Code (JANUS)"};
@@ -1281,6 +1383,34 @@ void setFhbfskHopper(void* argument)
 
   COMMLoops_LoopEnum(context, PARAM_FHBFSK_HOPPER, descriptors, 
       sizeof(descriptors) / sizeof(descriptors[0]));
+}
+
+void toggleWakeupTones(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  COMMLoops_LoopToggle(context, PARAM_WAKEUP_TONES_STATE);
+}
+
+void setWakeupTone1(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  COMMLoops_LoopUint32(context, PARAM_WAKEUP_TONE1);
+}
+
+void setWakeupTone2(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  COMMLoops_LoopUint32(context, PARAM_WAKEUP_TONE2);
+}
+
+void setWakeupTone3(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  COMMLoops_LoopUint32(context, PARAM_WAKEUP_TONE3);
 }
 
 void setBaudRate(void* argument)
@@ -1449,7 +1579,7 @@ void printConfigOptions(void* argument)
   }
 }
 
-void importConfiOptions(void* argument)
+void importConfigOptions(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
 
@@ -1707,6 +1837,16 @@ void exportDemodCal(void* argument)
   FunctionContext_t* context = (FunctionContext_t*) argument;
   
   COMMLoops_NotImplemented(context);
+}
+
+void setMacProtocol(void* argument)
+{
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+
+  char* descriptors[] = {"No MAC", "GA CSMA/CA with BEB (JANUS)"};
+
+  COMMLoops_LoopEnum(context, PARAM_MAC, descriptors, 
+    sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
 void setID(void* argument)

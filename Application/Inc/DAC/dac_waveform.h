@@ -3,6 +3,9 @@
  *
  *  Created on: Feb 5, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef __DAC_WAVEFORM_H_
@@ -16,14 +19,19 @@ extern "C" {
 #include "stm32h7xx_hal.h"
 #include <stdbool.h>
 
-
 /* Private includes ----------------------------------------------------------*/
 
 
 
 /* Exported types ------------------------------------------------------------*/
 
+typedef enum {
+  OUTPUT_CONSTANT_SQUARE,     // Square envelope of a constant frequency and amplitude
+  OUTPUT_CONSTANT_TUKEY       // ^ With Tukey window applied
+} ModulationOutputType_t;
+
 typedef struct {
+  ModulationOutputType_t output_type;
   uint32_t freq_hz;
   float relative_amplitude;
   uint32_t duration_us;
@@ -60,21 +68,16 @@ extern TIM_HandleTypeDef htim6;  // Timer for sequence timing
 bool Waveform_InitWaveformGenerator(void);
 
 /**
- * @brief Configures a sequence of waveform steps for generation
+ * @brief Configures the maximum number of waveform steps for the output
+ * 
+ * This is used to generate blocks of the transmission output
  *
- * Sets up a sequence of waveform steps (frequency, duration, etc.) for the DAC
- * to output. Validates that all step durations are compatible with the DAC buffer
- * configuration and calculates necessary phase increments.
- *
- * @param sequence Pointer to an array of waveform steps
  * @param num_steps Number of steps in the sequence
+ * @param is_message Whether the transmission is a full message or not
  *
  * @return true if sequence is valid and was set successfully, false otherwise
- *
- * @note Each step's duration must be a multiple of half the DAC buffer duration
- *       (currently DAC_BUFFER_SIZE/2 * DAC_SAMPLE_RATE/1000000 microseconds)
  */
-bool Waveform_SetWaveformSequence(uint16_t num_steps);
+bool Waveform_SetWaveformSequence(uint16_t num_steps, bool is_message);
 
 /**
  * @brief Starts the waveform output on the specified DAC channel

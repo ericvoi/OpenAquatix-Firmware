@@ -3,6 +3,9 @@
  *
  *  Created on: Apr 21, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 /* Private includes ----------------------------------------------------------*/
@@ -82,7 +85,7 @@ static ReferenceMessage_t reference_messages[] = {
             .length_bits = 8 << 0,
             .data_type = BITS,
             .preamble = {
-              .is_stationary = {
+              .is_mobile = {
                 0, true
               },
               .message_type = {
@@ -101,7 +104,7 @@ static ReferenceMessage_t reference_messages[] = {
             .length_bits = 8 << 1,
             .data_type = BITS,
             .preamble = {
-              .is_stationary = {
+              .is_mobile = {
                 0, true
               },
               .message_type = {
@@ -120,7 +123,7 @@ static ReferenceMessage_t reference_messages[] = {
             .length_bits = 8 << 2,
             .data_type = BITS,
             .preamble = {
-              .is_stationary = {
+              .is_mobile = {
                 0, true
               },
               .message_type = {
@@ -139,7 +142,7 @@ static ReferenceMessage_t reference_messages[] = {
             .length_bits = 8 << 3,
             .data_type = BITS,
             .preamble = {
-              .is_stationary = {
+              .is_mobile = {
                 0, true
               },
               .message_type = {
@@ -159,7 +162,7 @@ static ReferenceMessage_t reference_messages[] = {
             .length_bits = 8 << 4,
             .data_type = BITS,
             .preamble = {
-              .is_stationary = {
+              .is_mobile = {
                 0, true
               },
               .message_type = {
@@ -181,7 +184,7 @@ static ReferenceMessage_t reference_messages[] = {
             .length_bits = 8 << 5,
             .data_type = BITS,
             .preamble = {
-              .is_stationary = {
+              .is_mobile = {
                 0, true
               },
               .message_type = {
@@ -207,7 +210,7 @@ static ReferenceMessage_t reference_messages[] = {
             .length_bits = 8 << 6,
             .data_type = BITS,
             .preamble = {
-              .is_stationary = {
+              .is_mobile = {
                 0, true
               },
               .message_type = {
@@ -241,7 +244,7 @@ static ReferenceMessage_t reference_messages[] = {
             .length_bits = 8 << 7,
             .data_type = BITS,
             .preamble = {
-              .is_stationary = {
+              .is_mobile = {
                 0, true
               },
               .message_type = {
@@ -319,7 +322,7 @@ static ReferenceMessage_t reference_messages[] = {
           .length_bits = 8 * 480,
           .data_type = BITS,
           .preamble = {
-            .is_stationary = {
+            .is_mobile = {
               0, true
             },
             .message_type = {
@@ -351,7 +354,12 @@ static FeedbackTests_t feedback_tests[] = {
             .cargo_ecc_method = NO_ECC,
             .use_interleaver = false,
             .fhbfsk_hopper = HOPPER_INCREMENT,
-            .sync_method = NO_SYNC
+            .sync_method = NO_SYNC,
+            .wakeup_tones = false,
+            .wakeup_tone1 = 27000,
+            .wakeup_tone2 = 30000,
+            .wakeup_tone3 = 33000,
+            .protocol = PROTOCOL_CUSTOM
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[MESSAGE_LEN_32],
@@ -375,7 +383,12 @@ static FeedbackTests_t feedback_tests[] = {
             .cargo_ecc_method = NO_ECC,
             .use_interleaver = false,
             .fhbfsk_hopper = HOPPER_INCREMENT,
-            .sync_method = NO_SYNC
+            .sync_method = NO_SYNC,
+            .wakeup_tones = false,
+            .wakeup_tone1 = 27000,
+            .wakeup_tone2 = 30000,
+            .wakeup_tone3 = 33000,
+            .protocol = PROTOCOL_CUSTOM
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[MESSAGE_LEN_32],
@@ -399,7 +412,12 @@ static FeedbackTests_t feedback_tests[] = {
             .cargo_ecc_method = HAMMING_CODE,
             .use_interleaver = false,
             .fhbfsk_hopper = HOPPER_INCREMENT,
-            .sync_method = NO_SYNC
+            .sync_method = NO_SYNC,
+            .wakeup_tones = false,
+            .wakeup_tone1 = 27000,
+            .wakeup_tone2 = 30000,
+            .wakeup_tone3 = 33000,
+            .protocol = PROTOCOL_CUSTOM
         },
         .expected_result = IDENTICAL,
         .reference_message = &reference_messages[MESSAGE_LEN_128],
@@ -408,123 +426,148 @@ static FeedbackTests_t feedback_tests[] = {
     },
     // 4 Base convolutional code test
     {
-      .cfg = {
-          .baud_rate = 1000.0f,
-          .mod_demod_method = MOD_DEMOD_FSK,
-          .fsk_f0 = 29000,
-          .fsk_f1 = 33000,
-          .fc = 31000,
-          .fhbfsk_freq_spacing = 1,
-          .fhbfsk_num_tones = 10,
-          .fhbfsk_dwell_time = 1,
-          .preamble_validation = CRC_8,
-          .cargo_validation = CRC_16,
-          .preamble_ecc_method = JANUS_CONVOLUTIONAL,
-          .cargo_ecc_method = JANUS_CONVOLUTIONAL,
-          .use_interleaver = false,
-          .fhbfsk_hopper = HOPPER_INCREMENT,
-          .sync_method = NO_SYNC
-      },
-      .expected_result = IDENTICAL,
-      .reference_message = &reference_messages[MESSAGE_LEN_128],
-      .errors_added = 2,
-      .repetitions = 20
+        .cfg = {
+            .baud_rate = 1000.0f,
+            .mod_demod_method = MOD_DEMOD_FSK,
+            .fsk_f0 = 29000,
+            .fsk_f1 = 33000,
+            .fc = 31000,
+            .fhbfsk_freq_spacing = 1,
+            .fhbfsk_num_tones = 10,
+            .fhbfsk_dwell_time = 1,
+            .preamble_validation = CRC_8,
+            .cargo_validation = CRC_16,
+            .preamble_ecc_method = JANUS_CONVOLUTIONAL,
+            .cargo_ecc_method = JANUS_CONVOLUTIONAL,
+            .use_interleaver = false,
+            .fhbfsk_hopper = HOPPER_INCREMENT,
+            .sync_method = NO_SYNC,
+            .wakeup_tones = false,
+            .wakeup_tone1 = 27000,
+            .wakeup_tone2 = 30000,
+            .wakeup_tone3 = 33000,
+            .protocol = PROTOCOL_CUSTOM
+        },
+        .expected_result = IDENTICAL,
+        .reference_message = &reference_messages[MESSAGE_LEN_128],
+        .errors_added = 2,
+        .repetitions = 20
     },
     // 5 Base interleaver test
     {
-      .cfg = {
-          .baud_rate = 1000.0f,
-          .mod_demod_method = MOD_DEMOD_FSK,
-          .fsk_f0 = 29000,
-          .fsk_f1 = 33000,
-          .fc = 31000,
-          .fhbfsk_freq_spacing = 1,
-          .fhbfsk_num_tones = 10,
-          .fhbfsk_dwell_time = 1,
-          .preamble_validation = CRC_8,
-          .cargo_validation = CRC_16,
-          .preamble_ecc_method = NO_ECC,
-          .cargo_ecc_method = NO_ECC,
-          .use_interleaver = true,
-          .fhbfsk_hopper = HOPPER_INCREMENT,
-          .sync_method = NO_SYNC
-      },
-      .expected_result = IDENTICAL,
-      .reference_message = &reference_messages[MESSAGE_LEN_128],
-      .errors_added = 0,
-      .repetitions = 1
+        .cfg = {
+            .baud_rate = 1000.0f,
+            .mod_demod_method = MOD_DEMOD_FSK,
+            .fsk_f0 = 29000,
+            .fsk_f1 = 33000,
+            .fc = 31000,
+            .fhbfsk_freq_spacing = 1,
+            .fhbfsk_num_tones = 10,
+            .fhbfsk_dwell_time = 1,
+            .preamble_validation = CRC_8,
+            .cargo_validation = CRC_16,
+            .preamble_ecc_method = NO_ECC,
+            .cargo_ecc_method = NO_ECC,
+            .use_interleaver = true,
+            .fhbfsk_hopper = HOPPER_INCREMENT,
+            .sync_method = NO_SYNC,
+            .wakeup_tones = false,
+            .wakeup_tone1 = 27000,
+            .wakeup_tone2 = 30000,
+            .wakeup_tone3 = 33000,
+            .protocol = PROTOCOL_CUSTOM
+        },
+        .expected_result = IDENTICAL,
+        .reference_message = &reference_messages[MESSAGE_LEN_128],
+        .errors_added = 0,
+        .repetitions = 1
     },
     // 6 Advanced interleaver/convolutional test (long)
     {
-      .cfg = {
-          .baud_rate = 1000.0f,
-          .mod_demod_method = MOD_DEMOD_FSK,
-          .fsk_f0 = 29000,
-          .fsk_f1 = 33000,
-          .fc = 31000,
-          .fhbfsk_freq_spacing = 1,
-          .fhbfsk_num_tones = 10,
-          .fhbfsk_dwell_time = 1,
-          .preamble_validation = CRC_8,
-          .cargo_validation = CRC_16,
-          .preamble_ecc_method = JANUS_CONVOLUTIONAL,
-          .cargo_ecc_method = JANUS_CONVOLUTIONAL,
-          .use_interleaver = true,
-          .fhbfsk_hopper = HOPPER_INCREMENT,
-          .sync_method = NO_SYNC
-      },
-      .expected_result = IDENTICAL,
-      .reference_message = &reference_messages[MESSAGE_LEN_1024],
-      .errors_added = 5,
-      .repetitions = 1
+        .cfg = {
+            .baud_rate = 1000.0f,
+            .mod_demod_method = MOD_DEMOD_FSK,
+            .fsk_f0 = 29000,
+            .fsk_f1 = 33000,
+            .fc = 31000,
+            .fhbfsk_freq_spacing = 1,
+            .fhbfsk_num_tones = 10,
+            .fhbfsk_dwell_time = 1,
+            .preamble_validation = CRC_8,
+            .cargo_validation = CRC_16,
+            .preamble_ecc_method = JANUS_CONVOLUTIONAL,
+            .cargo_ecc_method = JANUS_CONVOLUTIONAL,
+            .use_interleaver = true,
+            .fhbfsk_hopper = HOPPER_INCREMENT,
+            .sync_method = NO_SYNC,
+            .wakeup_tones = false,
+            .wakeup_tone1 = 27000,
+            .wakeup_tone2 = 30000,
+            .wakeup_tone3 = 33000,
+            .protocol = PROTOCOL_CUSTOM
+        },
+        .expected_result = IDENTICAL,
+        .reference_message = &reference_messages[MESSAGE_LEN_1024],
+        .errors_added = 5,
+        .repetitions = 1
     },
     // 7 PN synchronization test
     {
-      .cfg = {
-          .baud_rate = 1000.0f,
-          .mod_demod_method = MOD_DEMOD_FSK,
-          .fsk_f0 = 29000,
-          .fsk_f1 = 33000,
-          .fc = 31000,
-          .fhbfsk_freq_spacing = 1,
-          .fhbfsk_num_tones = 10,
-          .fhbfsk_dwell_time = 1,
-          .preamble_validation = CRC_8,
-          .cargo_validation = CRC_16,
-          .preamble_ecc_method = NO_ECC,
-          .cargo_ecc_method = NO_ECC,
-          .use_interleaver = false,
-          .fhbfsk_hopper = HOPPER_GALOIS,
-          .sync_method = SYNC_PN_32_JANUS
-      },
-      .expected_result = IDENTICAL,
-      .reference_message = &reference_messages[MESSAGE_LEN_128],
-      .errors_added = 0,
-      .repetitions = 1
+        .cfg = {
+            .baud_rate = 200.0f,
+            .mod_demod_method = MOD_DEMOD_FHBFSK,
+            .fsk_f0 = 29000,
+            .fsk_f1 = 33000,
+            .fc = 31000,
+            .fhbfsk_freq_spacing = 1,
+            .fhbfsk_num_tones = 10,
+            .fhbfsk_dwell_time = 1,
+            .preamble_validation = CRC_8,
+            .cargo_validation = CRC_16,
+            .preamble_ecc_method = NO_ECC,
+            .cargo_ecc_method = NO_ECC,
+            .use_interleaver = false,
+            .fhbfsk_hopper = HOPPER_GALOIS,
+            .sync_method = SYNC_PN_32_JANUS,
+            .wakeup_tones = false,
+            .wakeup_tone1 = 27000,
+            .wakeup_tone2 = 30000,
+            .wakeup_tone3 = 33000,
+            .protocol = PROTOCOL_CUSTOM
+        },
+        .expected_result = IDENTICAL,
+        .reference_message = &reference_messages[MESSAGE_LEN_128],
+        .errors_added = 0,
+        .repetitions = 1
     },
     // 8 Max message length test
     {
-      .cfg = {
-          .baud_rate = 1000.0f,
-          .mod_demod_method = MOD_DEMOD_FSK,
-          .fsk_f0 = 29000,
-          .fsk_f1 = 33000,
-          .fc = 31000,
-          .fhbfsk_freq_spacing = 1,
-          .fhbfsk_num_tones = 10,
-          .fhbfsk_dwell_time = 1,
-          .preamble_validation = CRC_8,
-          .cargo_validation = NO_ERROR_DETECTION,
-          .preamble_ecc_method = NO_ECC,
-          .cargo_ecc_method = NO_ECC,
-          .use_interleaver = false,
-          .fhbfsk_hopper = HOPPER_GALOIS,
-          .sync_method = NO_SYNC
-      },
-      .expected_result = IDENTICAL,
-      .reference_message = &reference_messages[MESSAGE_LEN_3840],
-      .errors_added = 0,
-      .repetitions = 1
+        .cfg = {
+            .baud_rate = 1000.0f,
+            .mod_demod_method = MOD_DEMOD_FSK,
+            .fsk_f0 = 29000,
+            .fsk_f1 = 33000,
+            .fc = 31000,
+            .fhbfsk_freq_spacing = 1,
+            .fhbfsk_num_tones = 10,
+            .fhbfsk_dwell_time = 1,
+            .preamble_validation = CRC_8,
+            .cargo_validation = NO_ERROR_DETECTION,
+            .preamble_ecc_method = NO_ECC,
+            .cargo_ecc_method = NO_ECC,
+            .use_interleaver = false,
+            .fhbfsk_hopper = HOPPER_GALOIS,
+            .sync_method = NO_SYNC,
+            .wakeup_tones = false,
+            .wakeup_tone1 = 27000,
+            .wakeup_tone2 = 30000,
+            .wakeup_tone3 = 33000,
+            .protocol = PROTOCOL_CUSTOM
+        },
+        .expected_result = IDENTICAL,
+        .reference_message = &reference_messages[MESSAGE_LEN_3840],
+        .errors_added = 0,
+        .repetitions = 1
     },
 };
 
@@ -594,6 +637,7 @@ void FeedbackTests_GetNext()
     return;
   }
 
+  // Wait for MESS task to detect message
   if (last_action == SENT_MESSAGE) {
     return;
   }

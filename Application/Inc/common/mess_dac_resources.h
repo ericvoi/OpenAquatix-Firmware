@@ -3,6 +3,9 @@
  *
  *  Created on: Apr 29, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef COMMON_MESS_DAC_RESOURCES_H_
@@ -62,13 +65,13 @@ void MessDacResource_RegisterMessageConfiguration(const DspConfig_t* new_cfg,
 WaveformStep_t MessDacResource_GetStep(uint16_t current_step);
 
 /**
- * @brief Number of steps in the synchronization sequence
+ * @brief Number of steps in the synchronization + wakeup sequence
  * 
- * Useful when no cfg is available
+ * Useful when the registered configuration is needed
  * 
  * @return uint16_t Number of steps
  */
-uint16_t MessDacResource_SyncSteps(void);
+uint16_t MessDacResource_SyncWakeupSteps(void);
 
 /* Private defines -----------------------------------------------------------*/
 

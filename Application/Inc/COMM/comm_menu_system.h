@@ -3,6 +3,9 @@
  *
  *  Created on: Feb 2, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef __COMM_MENU_SYSTEM_H_
@@ -31,6 +34,7 @@ typedef enum {
   MENU_ID_HIST,                 // Menu with historical messages sent and received as well as power and temp
   MENU_ID_TXRX,                 // Transmission/reception menu
   MENU_ID_EVAL,                 // Evaluation option menu
+  MENU_ID_JANUS,                // JANUS Menu
   MENU_ID_CFG_UNIV,             // Universal waveform porcessing parameters
   MENU_ID_CFG_UNIV_ERR,         // Error detection parameters
   MENU_ID_CFG_UNIV_ERR_PREAMBLE,// Preamble error detection method
@@ -56,6 +60,11 @@ typedef enum {
   MENU_ID_CFG_UNIV_SYNC,        // Synchronization sequence to use
   MENU_ID_CFG_UNIV_EXP,         // Export the configuration options used
   MENU_ID_CFG_UNIV_IMP,         // Import configuration options
+  MENU_ID_CFG_UNIV_WAKEUP,      // Wakeup tones options
+  MENU_ID_CFG_UNIV_WAKEUP_EN,   // Toggle sending wakeup tones
+  MENU_ID_CFG_UNIV_WAKEUP_F1,   // First wakeup tone frequency
+  MENU_ID_CFG_UNIV_WAKEUP_F2,   // Second wakeup tone frequency
+  MENU_ID_CFG_UNIV_WAKEUP_F3,   // Third wakeup tone frequency
   MENU_ID_CFG_MOD,              // Waveform modulation parameters
   MENU_ID_CFG_MOD_TLEN,         // Maximum code change to use with the DAC
   MENU_ID_CFG_MOD_CAL,          // Calibration menu for the modem's modulation
@@ -91,6 +100,7 @@ typedef enum {
   MENU_ID_CFG_DEMOD_AGCEN,      // Enable/disable automatic gain control (AGC)
   MENU_ID_CFG_DEMOD_GAIN,       // Set fixed PGA gain
   MENU_ID_CFG_DEMOD_WINDOWFCN,  // Window function to use
+  MENU_ID_CFG_MAC,              // Which MAC protocol to use
   MENU_ID_CFG_DAU,              // Daughter card configuration options
   MENU_ID_CFG_DAU_SLEEP,        // Enable/disable sleep modes from the daughter card
   MENU_ID_CFG_LED,              // LED configuration options
@@ -109,6 +119,7 @@ typedef enum {
   MENU_ID_DBG_NOISE,            // Scaleless background noise level
   MENU_ID_DBG_DFU,              // Enter DFU mode to flash new firmware over USB
   MENU_ID_DBG_RESETCONFIG,      // Reset saved configuration 
+  MENU_ID_DBG_DEEPSLEEP,        // Enter deep sleep mode
   MENU_ID_HIST_PWR,             // History of power
   MENU_ID_HIST_PWR_PEAK,        // Peak power consumption since boot
   MENU_ID_HIST_PWR_BOOT,        // Total power consumption since boot
@@ -130,7 +141,18 @@ typedef enum {
   MENU_ID_TXRX_FLOATOUT,        // Transmit a float through transducer
   MENU_ID_TXRX_FLOATFB,         // Transmit a float through feedback
   MENU_ID_TXRX_ENPNT,           // Enable/disable printing of waveforms as they are received
-  MENU_ID_EVAL_SETMSG,          // Set the message to compare to
+  MENU_ID_JANUS_PROTOCOL,         // Toggle JANUS mode
+  MENU_ID_JANUS_SEND,           // Send JANUS message
+  MENU_ID_JANUS_SEND_011_01_OUT,// Send JANUS 011 01 (SMS) through transducer
+  MENU_ID_JANUS_SEND_011_01_FB, // Send JANUS 011 01 (SMS) through feedback network
+  MENU_ID_JANUS_PARAM,          // Modify JANUS parameters
+  MENU_ID_JANUS_PARAM_TXRX,     // Toggle Tx/Rx capability
+  MENU_ID_JANUS_PARAM_FORWARD,  // Toggle forwarding capability
+  MENU_ID_JANUS_PARAM_CODING,   // Modify data coding
+  MENU_ID_JANUS_PARAM_ENC,      // Modify data encryption
+  MENU_ID_JANUS_PARAM_DEST,     // Destination's JANUS ID
+  MENU_ID_JANUS_PARAM_SENDER,   // Modem's JANUS ID
+  MENU_ID_EVAL_SETLEN,          // Set the message to compare to
   MENU_ID_EVAL_FEEDBACK,        // Send evaluation message through feedback network
   MENU_ID_EVAL_TRANSDUCER,      // Send evaluation message through transducer
   MENU_ID_EVAL_FEEDBACKTESTS,   // Performs the feedback network tests
@@ -171,7 +193,7 @@ typedef struct {
   ParamContext_t* state;
   char input[MAX_COMM_IN_BUFFER_SIZE];
   uint16_t input_len;
-  uint8_t *output_buffer;
+  uint8_t* output_buffer;
   CommInterface_t comm_interface;
 } FunctionContext_t;
 

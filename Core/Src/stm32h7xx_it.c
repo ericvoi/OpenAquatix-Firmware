@@ -15,6 +15,13 @@
   *
   ******************************************************************************
   */
+
+  /**
+  * Modifications Copyright (c) 2025 OpenAquatix Contributors
+  * Licensed under MIT License (see LICENSE file)
+  * 
+  * Modified by: Addition of callbacks
+  */
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
@@ -24,6 +31,7 @@
 /* USER CODE BEGIN Includes */
 #include "dau_card-driver.h"
 #include "sys_sensor_timer.h"
+#include "ws2812b-driver.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -511,5 +519,10 @@ void ADC3_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
-
+void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
+{
+  if (htim == &WS_TIM) {
+    Ws2812b_Callback();
+  }
+}
 /* USER CODE END 1 */

@@ -3,6 +3,9 @@
  *
  *  Created on: Mar 11, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 /* Private includes ----------------------------------------------------------*/
@@ -13,10 +16,11 @@
 #include "sys_sensor_timer.h"
 #include "sys_temperature.h"
 #include "sys_led.h"
+#include "sleep/sleep_manager.h"
 #include "cfg_main.h"
 #include "cfg_parameters.h"
 #include "cfg_defaults.h"
-#include "WS2812b-driver.h"
+#include "ws2812b-driver.h"
 
 #include <stdbool.h>
 
@@ -34,11 +38,12 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-
+osEventFlagsId_t sleep_events = NULL;
 
 /* Private function prototypes -----------------------------------------------*/
 
 bool registerSysParam();
+bool createSleepEvents();
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -67,9 +72,14 @@ void SYS_StartTask(void* argument)
     Error_Routine(ERROR_SYS_INIT);
   }
 
+  if (createSleepEvents() == false) {
+    Error_Routine(ERROR_SYS_INIT);
+  }
+
   for (;;) {
     LED_Update();
     Temperature_Process();
+    SleepManager_Enter();
     osDelay(100);
   }
 }
@@ -82,4 +92,11 @@ bool registerSysParam()
     return false;
   }
   return true;
+}
+
+bool createSleepEvents()
+{
+  sleep_events = osEventFlagsNew(NULL);
+
+  return sleep_events != NULL;
 }

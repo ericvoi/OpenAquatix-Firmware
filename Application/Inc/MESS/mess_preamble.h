@@ -3,6 +3,9 @@
  *
  *  Created on: Jul 6, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef MESS_MESS_PREAMBLE_H_

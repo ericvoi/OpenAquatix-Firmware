@@ -15,6 +15,14 @@
   *
   ******************************************************************************
   */
+
+  /**
+  * Modifications Copyright (c) 2025 OpenAquatix Contributors
+  * Licensed under MIT License (see LICENSE file)
+  * 
+  * Modified by: Addition of OpenAquatix application
+  */
+ 
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -23,14 +31,15 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "WS2812b-driver.h"
-#include "PGA113-driver.h"
+#include "ws2812b-driver.h"
+#include "pga113-driver.h"
 #include "usb_comm.h"
 #include "comm_main.h"
 #include "mess_main.h"
 #include "cfg_main.h"
 #include "sys_main.h"
 #include "dac_main.h"
+#include "mac_main.h"
 #include "cfg_parameters.h"
 #include "stm32h7xx_ll_cordic.h"
 /* USER CODE END Includes */
@@ -157,6 +166,18 @@ const osThreadAttr_t dacTask_attributes = {
   .stack_size = sizeof(dacTaskBuffer),
   .priority = (osPriority_t) osPriorityHigh7,
 };
+/* Definitions for macTask */
+osThreadId_t macTaskHandle;
+uint32_t macTaskBuffer[ 2000 ];
+osStaticThreadDef_t macTaskControlBlock;
+const osThreadAttr_t macTask_attributes = {
+  .name = "macTask",
+  .cb_mem = &macTaskControlBlock,
+  .cb_size = sizeof(macTaskControlBlock),
+  .stack_mem = &macTaskBuffer[0],
+  .stack_size = sizeof(macTaskBuffer),
+  .priority = (osPriority_t) osPriorityNormal1,
+};
 /* Definitions for dau_uart_mutex */
 osMutexId_t dau_uart_mutexHandle;
 const osMutexAttr_t dau_uart_mutex_attributes = {
@@ -164,6 +185,7 @@ const osMutexAttr_t dau_uart_mutex_attributes = {
 };
 /* USER CODE BEGIN PV */
 osEventFlagsId_t print_event_handle = NULL;
+extern PCD_HandleTypeDef hpcd_USB_OTG_HS;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -192,6 +214,7 @@ void startSystemManagementTask(void *argument);
 void startCommunicationTask(void *argument);
 void startconfigTask(void *argument);
 void startDacTask(void *argument);
+void startMacTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -199,12 +222,7 @@ void startDacTask(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim) {
-	if (htim->Instance == TIM3) {
-		WS_Callback();
-	}
-	return;
-}
+
 /* USER CODE END 0 */
 
 /**
@@ -266,7 +284,7 @@ int main(void)
   MX_TIM16_Init();
   MX_CORDIC_Init();
   /* USER CODE BEGIN 2 */
-  WS_Init();
+  Ws2812b_Init();
 
   if (CFG_CreateFlags() == false) {
     Error_Handler();
@@ -319,6 +337,9 @@ int main(void)
 
   /* creation of dacTask */
   dacTaskHandle = osThreadNew(startDacTask, NULL, &dacTask_attributes);
+
+  /* creation of macTask */
+  macTaskHandle = osThreadNew(startMacTask, NULL, &macTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -495,7 +516,11 @@ static void MX_ADC1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN ADC1_Init 2 */
-  HAL_ADCEx_Calibration_Start(&hadc1, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED);
+  HAL_Delay(1);
+  if (HAL_ADCEx_Calibration_Start(&hadc1, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE END ADC1_Init 2 */
 
 }
@@ -558,7 +583,11 @@ static void MX_ADC2_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN ADC2_Init 2 */
-  HAL_ADCEx_Calibration_Start(&hadc2, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED);
+  HAL_Delay(1);
+  if (HAL_ADCEx_Calibration_Start(&hadc2, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE END ADC2_Init 2 */
 
 }
@@ -624,7 +653,11 @@ static void MX_ADC3_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN ADC3_Init 2 */
-  HAL_ADCEx_Calibration_Start(&hadc3, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED);
+  HAL_Delay(1);
+  if (HAL_ADCEx_Calibration_Start(&hadc3, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE END ADC3_Init 2 */
 
 }
@@ -1238,7 +1271,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : GPIO_DAU_TO_MAIN_Pin */
   GPIO_InitStruct.Pin = GPIO_DAU_TO_MAIN_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(GPIO_DAU_TO_MAIN_GPIO_Port, &GPIO_InitStruct);
 
@@ -1378,6 +1411,20 @@ void startDacTask(void *argument)
   /* Infinite loop */
   DAC_StartTask(argument);
   /* USER CODE END startDacTask */
+}
+
+/* USER CODE BEGIN Header_startMacTask */
+/**
+* @brief Function implementing the macTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_startMacTask */
+void startMacTask(void *argument)
+{
+  /* USER CODE BEGIN startMacTask */
+  MAC_StartTask(argument);
+  /* USER CODE END startMacTask */
 }
 
  /* MPU Configuration */

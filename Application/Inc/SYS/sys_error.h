@@ -3,6 +3,9 @@
  *
  *  Created on: Mar 11, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef SYS_SYS_ERROR_H_
@@ -33,6 +36,8 @@ typedef enum {
   ERROR_DAC_INIT,
   ERROR_DAC_PROCESSING,
   ERROR_MESS_DAC_RESOURCE,
+  ERROR_MAC_INIT,
+  ERROR_MAC_PROCESSING,
   ERROR_OTHER
 } ErrorCodes_t;
 

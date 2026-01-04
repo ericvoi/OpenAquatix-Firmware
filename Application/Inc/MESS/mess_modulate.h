@@ -3,6 +3,9 @@
  *
  *  Created on: Feb 12, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef MESS_MESS_MODULATE_H_
@@ -118,6 +121,17 @@ uint32_t Modulate_GetFhbfskFrequency(bool bit,
  * @return The calculated frequency in Hertz
  */
 uint32_t Modulate_GetFskFrequency(bool bit, const DspConfig_t* cfg);
+
+/**
+ * @brief Populates the waveform step for data symbols
+ * 
+ * @param cfg DSP configuration for the bit's transmission
+ * @param bit_msg Bit message to take the bits from
+ * @param waveform_step Waveform step to populate with symbol information
+ * @param transmission_step Step in transmission, corresponds to bit index
+ * @return true if successful, false otherwise
+ */
+bool Modulate_DataStep(const DspConfig_t* cfg, BitMessage_t* bit_msg, WaveformStep_t* waveform_step, uint16_t bit_index, uint16_t symbol_index);
 
 /**
  * @brief Registers modulation parameters with the parameter system for HMI access

@@ -3,6 +3,9 @@
  *
  *  Created on: Apr 20, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef SYS_SYS_TEMPERATURE_H_

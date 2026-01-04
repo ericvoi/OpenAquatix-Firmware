@@ -1,0 +1,39 @@
+/*
+ * sleep_config.c
+ *
+ *  Created on: Aug 2, 2025
+ *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
+ */
+
+/* Private includes ----------------------------------------------------------*/
+
+#include "sleep/sleep_config.h"
+
+/* Private typedef -----------------------------------------------------------*/
+
+
+
+/* Private define ------------------------------------------------------------*/
+
+
+
+/* Private macro -------------------------------------------------------------*/
+
+
+
+/* Private variables ---------------------------------------------------------*/
+
+
+
+/* Private function prototypes -----------------------------------------------*/
+
+
+
+/* Exported function definitions ---------------------------------------------*/
+
+
+
+/* Private function definitions ----------------------------------------------*/

@@ -36,12 +36,14 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
+// Whenever a new task is added, an enum must be added here
 typedef enum {
   CFG_TASK,
   COMM_TASK,
   MESS_TASK,
   SYS_TASK,
   DAC_TASK,
+  MAC_TASK,
   NUM_TASKS
 } TaskIds_t;
 /* USER CODE END ET */
@@ -62,7 +64,6 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

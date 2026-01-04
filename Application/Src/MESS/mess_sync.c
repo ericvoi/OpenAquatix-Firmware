@@ -3,6 +3,9 @@
  *
  *  Created on: Jun 22, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 /* Private includes ----------------------------------------------------------*/
@@ -19,6 +22,7 @@
 #include "dac_waveform.h"
 #include "goertzel.h"
 #include <string.h>
+#include <math.h>
 #include <stdbool.h>
 
 /* Private typedef -----------------------------------------------------------*/
@@ -55,7 +59,7 @@ typedef struct {
 #define SYNC_STAGE_1_STEP         30
 #define SYNC_STAGE_1_SUBDIVIDE    16
 #define SYNC_STAGE_234_SUBDIVIDE  16
-#define STAGE_RESULTS_LEN         512 // exxcessive for poc //((FREQUENCIES_PER_STAGE + 4) * SYNC_STAGE_1_SUBDIVIDE)
+#define STAGE_RESULTS_LEN         512 // excessive for poc //((FREQUENCIES_PER_STAGE + 4) * SYNC_STAGE_1_SUBDIVIDE)
 #define COARSE_STEP_PRECISION     6
 
 #define TARGET_SNR                (8.0f)
@@ -65,8 +69,6 @@ typedef struct {
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 /* Private variables ---------------------------------------------------------*/
-
-extern float window[512];
 
 static const uint32_t janus_pn_32 = 0b10101110110001111100110100100000U;
 static uint32_t janus_frequencies[32];
@@ -90,6 +92,8 @@ static Stage2Results_t stage2_results[SYNC_STAGE_234_SUBDIVIDE];
 
 static volatile bool sync_error = false;
 
+static float most_recent_snr = 0.0f;
+
 /* Private function prototypes -----------------------------------------------*/
 
 static void updateParameters(const DspConfig_t* cfg);
@@ -108,14 +112,17 @@ static bool evaluateStage2Results();
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool Sync_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, bool* bit, uint16_t step)
+bool Sync_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step)
 {
   (void)(waveform_step); // Planned use for advanced synchronization techniques
   switch (cfg->sync_method) {
     case NO_SYNC:
       return false;
     case SYNC_PN_32_JANUS:
-      return janusPnStep(bit, step);
+      waveform_step->freq_hz = janus_frequencies[step];
+      waveform_step->duration_us = (uint32_t) roundf(1000000.0f / cfg->baud_rate);
+      waveform_step->relative_amplitude = Modulate_GetAmplitude(waveform_step->freq_hz);
+      return true;
     default:
       return false;
   }
@@ -145,6 +152,11 @@ bool Sync_Synchronize(const DspConfig_t* cfg)
     default:
       return false;
   }
+}
+
+float Sync_MostRecentSnr()
+{
+  return most_recent_snr;
 }
 
 void Sync_Reset()
@@ -225,7 +237,7 @@ void fillWindowOffsets(const DspConfig_t* cfg)
  * synchronization sequence. The first stage looking at bits 0-7 is the most
  * coarse of the stages and is used to detect when a message has started. The
  * following stages hone in on the start of the message and can also be used
- * to estimate doppler effects. (doppler estiamation not implemented yet)
+ * to estimate doppler effects. (doppler estimation not implemented yet)
  */
 bool janusPnSynchronize()
 {
@@ -308,7 +320,7 @@ void scoreOffsets()
   uint16_t results_per_stage = SYNC_STAGE_1_SUBDIVIDE * FREQUENCIES_PER_STAGE;
 
   if (BackgroundNoise_Ready() == false) {
-    stage_results_len = 0;
+    Sync_Reset();
     return;
   }
 
@@ -386,7 +398,8 @@ void findGlobalMax()
   uint16_t new_tail = ((uint32_t) stage1_buffer_index + (FREQUENCIES_PER_STAGE - 1) * samples_per_symbol) % PROCESSING_BUFFER_SIZE;
   new_tail += stage2_offsets[0];
   new_tail %= PROCESSING_BUFFER_SIZE;
-  ADC_InputSetTail(new_tail); 
+  uint16_t new_rollover = stage1_rollover_index + (stage1_buffer_index + stage2_offsets[0] + (FREQUENCIES_PER_STAGE - 1) * samples_per_symbol) / PROCESSING_BUFFER_SIZE;
+  waitSynchronizationComplete(new_rollover, new_tail);
 }
 
 void stage1TailIncrement()
@@ -467,13 +480,15 @@ void waitSynchronizationComplete(uint16_t final_rollover_index, uint16_t final_b
   ADC_InputSetTail(final_buffer_index);
 }
 
+static float rect_window[1] = {1.0f};
 void populateGoertzelInfo(GoertzelInfo_t* goertzel_info)
 {
   goertzel_info->buf_len = PROCESSING_BUFFER_SIZE;
   goertzel_info->data_len = samples_per_symbol;
-  goertzel_info->window = window;
-  goertzel_info->energy_normalization = Demodulate_PowerNormalization();
-  goertzel_info->window_size = 512;
+  // Force a rectangular window
+  goertzel_info->window = rect_window;
+  goertzel_info->energy_normalization = 1.0f;
+  goertzel_info->window_size = 0;
 }
 
 bool evaluateStage2Results()
@@ -505,6 +520,10 @@ bool evaluateStage2Results()
 
   uint64_t current_samples = stage2_results[best_index].rollover_count * PROCESSING_BUFFER_SIZE;
   current_samples += stage2_results[best_index].buffer_index;
+
+  Sync_Reset();
+
+  most_recent_snr = best_snr;
 
   uint64_t target_samples = current_samples + samples_to_wait;
   uint16_t final_rollover_count = target_samples / PROCESSING_BUFFER_SIZE;

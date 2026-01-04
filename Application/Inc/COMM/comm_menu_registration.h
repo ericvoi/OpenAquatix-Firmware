@@ -3,6 +3,9 @@
  *
  *  Created on: Feb 2, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef __COMM_MENU_REGISTRATION_H_
@@ -40,6 +43,7 @@ bool COMM_RegisterDebugMenu(void);
 bool COMM_RegisterHistoryMenu(void);
 bool COMM_RegisterTxRxMenu(void);
 bool COMM_RegisterEvalMenu(void);
+bool COMM_RegisterJanusMenu(void);
 
 /* Private defines -----------------------------------------------------------*/
 

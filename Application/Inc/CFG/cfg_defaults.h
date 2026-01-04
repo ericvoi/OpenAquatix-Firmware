@@ -3,6 +3,9 @@
  *
  *  Created on: Mar 11, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef CFG_CFG_DEFAULTS_H_
@@ -13,7 +16,6 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32h7xx_hal.h"
 #include "mess_input.h"
 #include "mess_main.h"
 #include "mess_error_detection.h"
@@ -21,8 +23,10 @@ extern "C" {
 #include "mess_modulate.h"
 #include "mess_error_correction.h"
 #include "mess_demodulate.h"
+#include "mac_protocol.h"
+#include "dac_waveform.h"
 
-#include "PGA113-driver.h"
+#include "pga113-driver.h"
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -188,6 +192,102 @@ extern "C" {
 #define DEFAULT_WINDOW_FUNCTION     (WINDOW_HANN)
 #define MIN_WINDOW_FUNCTION         0
 #define MAX_WINDOW_FUNCTION         (NUM_WINDOW_FUNCTIONS - 1)
+
+#define DEFAULT_WAKEUP_TONES_STATE  (false)
+#define MIN_WAKEUP_TONES_STATE      (false)
+#define MAX_WAKEUP_TONES_STATE      (true)
+
+#define DEFAULT_WAKEUP_TONE_FREQ1   (27000U)
+#define DEFAULT_WAKEUP_TONE_FREQ2   (30000U)
+#define DEFAULT_WAKEUP_TONE_FREQ3   (33000U)
+#define MIN_WAKEUP_TONE_FREQ        (20000U)
+#define MAX_WAKEUP_TONE_FREQ        (40000U)
+
+#define DEFAULT_MESSAGING_PROTOCOL  (PROTOCOL_CUSTOM)
+#define MIN_MESSAGING_PROTOCOL      (0)
+#define MAX_MESSAGING_PROTOCOL      (NUM_PROTOCOLS - 1)
+
+#define TX_ONLY                     (false)
+#define BOTH_TX_RX                  (true)
+#define DEFAULT_TX_RX_CAPABLE       (BOTH_TX_RX)
+#define MIN_TX_RX_CAPABLE           (0)
+#define MAX_TX_RX_CAPABLE           (1)
+
+#define DEFAULT_FORWARD_CAPABILITY  (false)
+#define MIN_FORWARD_CAPABILITY      (false)
+#define MAX_FORWARD_CAPABILITY      (true)
+
+#define DEFAULT_JANUS_ID            (73U)
+#define MIN_JANUS_ID                (0U)
+#define MAX_JANUS_ID                (254U)
+
+#define DEFAULT_JANUS_DESTINATION   (73U)
+#define MIN_JANUS_DESTINATION       (0U)
+#define MAX_JANUS_DESTINATION       (255U)
+
+#define DEFAULT_CODING              (CODING_ASCII8)
+#define MIN_CODING                  (0)
+#define MAX_CODING                  (NUM_CODING_METHODS - 1)
+
+#define DEFAULT_ENCRYPTION          (ENCRYPTION_NONE)
+#define MIN_ENCRYPTION              (0)
+#define MAX_ENCRYPTION              (NUM_ENCRYPTION_METHODS - 1)
+
+#define DEFAULT_MAC                 (MAC_PROTOCOL_NONE)
+#define MIN_MAC                     (0)
+#define MAX_MAC                     (NUM_MAC_PROTOCOL - 1)
+
+#define DEFAULT_APPLY_TUKEY         (true)
+#define MIN_APPLY_TUKEY             (false)
+#define MAX_APPLY_TUKEY             (true)
+
+
+
+// JANUS basic parameters
+#define JANUS_MOD_DEMOD             (MOD_DEMOD_FHBFSK)
+#define JANUS_FHBFSK_FREQ_SPACING   (1)
+#define JANUS_FHBFSK_NUM_TONES      (13)
+#define JANUS_FHBFSK_DWELL_TIME     (1)
+#define JANUS_PREAMBLE_VALIDATION   (CRC_8)
+#define JANUS_CARGO_VALIDATION      (CRC_16)
+#define JANUS_PREAMBLE_ECC          (JANUS_CONVOLUTIONAL)
+#define JANUS_CARGO_ECC             (JANUS_CONVOLUTIONAL)
+#define JANUS_INTERLEAVER           (true)
+#define JANUS_HOPPER                (HOPPER_GALOIS)
+#define JANUS_SYNC_METHOD           (SYNC_PN_32_JANUS)
+
+// #define JANUS_BAND_A
+// #define JANUS_BAND_B
+// #define JANUS_BAND_C
+// #define JANUS_BAND_D
+#define JANUS_BAND_E
+
+#ifdef JANUS_BAND_A
+#define JANUS_FC                    (11520U)
+#define JANUS_BAUD                  (160U)
+#else
+#ifdef JANUS_BAND_B
+#define JANUS_FC                    (6000U)
+#define JANUS_BAUD                  (80U)
+#else
+#ifdef JANUS_BAND_C
+#define JANUS_FC                    (9700U)
+#define JANUS_BAUD                  (100U)
+#else
+#ifdef JANUS_BAND_D
+#define JANUS_FC                    (14080U)
+#define JANUS_BAUD                  (160U)
+#else
+#ifdef JANUS_BAND_E
+#define JANUS_FC                    (28000U)
+#define JANUS_BAUD                  (250U)
+#else
+# error "Please specify a JANUS band to use"
+#endif
+#endif
+#endif
+#endif
+#endif
 
 /* Exported macro ------------------------------------------------------------*/
 

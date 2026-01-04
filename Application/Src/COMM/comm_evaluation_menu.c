@@ -3,6 +3,9 @@
  *
  *  Created on: Mar 16, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 /* Private includes ----------------------------------------------------------*/
@@ -19,6 +22,7 @@
 
 #include "check_inputs.h"
 #include "usb_comm.h"
+#include "cmsis_os.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
@@ -46,8 +50,10 @@ void sendEvalMessage(FunctionContext_t* context, Message_t* msg);
 
 /* Private variables ---------------------------------------------------------*/
 
+extern osMessageQueueId_t regularTxQueue;
+
 static MenuID_t evalMenuChildren[] = {
-  MENU_ID_EVAL_SETMSG,      MENU_ID_EVAL_FEEDBACK, 
+  MENU_ID_EVAL_SETLEN,      MENU_ID_EVAL_FEEDBACK, 
   MENU_ID_EVAL_TRANSDUCER,  MENU_ID_EVAL_FEEDBACKTESTS
 };
 
@@ -64,10 +70,10 @@ static const MenuNode_t evalMenu = {
 
 static ParamContext_t evalSetMsgLenParam = {
   .state = PARAM_STATE_0,
-  .param_id = MENU_ID_EVAL_SETMSG
+  .param_id = MENU_ID_EVAL_SETLEN
 };
 static const MenuNode_t evalSetMsgLen = {
-  .id = MENU_ID_EVAL_SETMSG,
+  .id = MENU_ID_EVAL_SETLEN,
   .description = "Set evaluation message length",
   .handler = setEvalMsgLen,
   .parent_id = MENU_ID_EVAL,
@@ -173,6 +179,8 @@ void sendEvalMessage(FunctionContext_t* context, Message_t* msg)
 {
   msg->timestamp = osKernelGetTickCount();
   msg->data_type = EVAL;
+  msg->preamble.message_type.value = EVAL;
+  msg->preamble.message_type.valid = true;
   if (Param_GetUint8(PARAM_ID, (uint8_t*) &msg->preamble.modem_id.value) == false) {
     COMM_TransmitData("\r\nError getting sender ID. Message not sent\r\n", 
         CALC_LEN, context->comm_interface);
@@ -188,7 +196,7 @@ void sendEvalMessage(FunctionContext_t* context, Message_t* msg)
   }
   msg->length_bits *= 8;
 
-  if (MESS_AddMessageToTxQ(msg) == pdPASS) {
+  if (osMessageQueuePut(regularTxQueue, msg, 0, 0) == osOK) {
     sprintf((char*) context->output_buffer, "\r\nSuccessfully added to feedback queue!\r\n\r\n");
   }
   else {

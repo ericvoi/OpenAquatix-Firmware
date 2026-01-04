@@ -3,6 +3,9 @@
  *
  *  Created on: Apr 17, 2025
  *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef CFG_CFG_IMPORT_EXPORT_H_

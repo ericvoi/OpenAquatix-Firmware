@@ -1,0 +1,56 @@
+/*
+ * mac_channel_reports.h
+ *
+ *  Created on: Sep 9, 2025
+ *      Author: ericv
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
+ */
+
+#ifndef MAC_MAC_CHANNEL_REPORTS_H_
+#define MAC_MAC_CHANNEL_REPORTS_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Includes ------------------------------------------------------------------*/
+
+
+
+/* Private includes ----------------------------------------------------------*/
+
+
+
+/* Exported types ------------------------------------------------------------*/
+
+typedef struct {
+  float psd;
+} ChannelReport_t;
+
+typedef enum {
+  REPORT_NONE = (1 << 0),
+  REPORT_16_CD_PSD = (1 << 1)
+} ChannelReportType_t;
+
+/* Exported constants --------------------------------------------------------*/
+
+#define CHANNEL_REPORT_CD             16 // Number of chip periods in a channel report given to MAC task
+#define CHANNEL_REPORT_QUEUE_SIZE     5
+
+/* Exported macro ------------------------------------------------------------*/
+
+
+
+/* Exported functions prototypes ---------------------------------------------*/
+
+
+
+/* Private defines -----------------------------------------------------------*/
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* MAC_MAC_CHANNEL_REPORTS_H_ */
