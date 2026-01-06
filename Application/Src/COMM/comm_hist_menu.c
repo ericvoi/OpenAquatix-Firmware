@@ -316,7 +316,7 @@ void printCurrTemp(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
   
-  float temp = Temperature_GetCurrent();
+  float temp = Temperature_GetCurrentTj();
 
   sprintf((char*) context->output_buffer, "\r\nCurrent temperature: %.2f C\r\n",
           temp);
@@ -328,7 +328,7 @@ void printPeakTemp(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
   
-  float temp = Temperature_GetPeak();
+  float temp = Temperature_GetPeakTj();
 
   sprintf((char*) context->output_buffer, "\r\nPeak temperature: %.2f C\r\n",
           temp);
@@ -340,7 +340,7 @@ void printAvgTemp(void* argument)
 {
   FunctionContext_t* context = (FunctionContext_t*) argument;
   
-  float temp = Temperature_GetAverage();
+  float temp = Temperature_GetAverageTj();
 
   sprintf((char*) context->output_buffer, "\r\nAverage temperature: %.2f C\r\n",
           temp);
