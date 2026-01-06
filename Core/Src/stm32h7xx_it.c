@@ -70,9 +70,14 @@ extern PCD_HandleTypeDef hpcd_USB_OTG_HS;
 extern DMA_HandleTypeDef hdma_adc1;
 extern DMA_HandleTypeDef hdma_adc2;
 extern ADC_HandleTypeDef hadc3;
+extern DMA_HandleTypeDef hdma_dac1_ch1;
 extern DAC_HandleTypeDef hdac1;
 extern I2C_HandleTypeDef hi2c1;
+extern DMA_HandleTypeDef hdma_lpuart1_rx;
+extern DMA_HandleTypeDef hdma_lpuart1_tx;
 extern UART_HandleTypeDef hlpuart1;
+extern DMA_HandleTypeDef hdma_spi4_rx;
+extern DMA_HandleTypeDef hdma_spi4_tx;
 extern SPI_HandleTypeDef hspi3;
 extern SPI_HandleTypeDef hspi4;
 extern DMA_HandleTypeDef hdma_tim3_ch1;
@@ -210,6 +215,48 @@ void DMA1_Stream0_IRQHandler(void)
   /* USER CODE BEGIN DMA1_Stream0_IRQn 1 */
 
   /* USER CODE END DMA1_Stream0_IRQn 1 */
+}
+
+/**
+  * @brief This function handles DMA1 stream1 global interrupt.
+  */
+void DMA1_Stream1_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA1_Stream1_IRQn 0 */
+
+  /* USER CODE END DMA1_Stream1_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_dac1_ch1);
+  /* USER CODE BEGIN DMA1_Stream1_IRQn 1 */
+
+  /* USER CODE END DMA1_Stream1_IRQn 1 */
+}
+
+/**
+  * @brief This function handles DMA1 stream3 global interrupt.
+  */
+void DMA1_Stream3_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA1_Stream3_IRQn 0 */
+
+  /* USER CODE END DMA1_Stream3_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_spi4_tx);
+  /* USER CODE BEGIN DMA1_Stream3_IRQn 1 */
+
+  /* USER CODE END DMA1_Stream3_IRQn 1 */
+}
+
+/**
+  * @brief This function handles DMA1 stream4 global interrupt.
+  */
+void DMA1_Stream4_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA1_Stream4_IRQn 0 */
+
+  /* USER CODE END DMA1_Stream4_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_spi4_rx);
+  /* USER CODE BEGIN DMA1_Stream4_IRQn 1 */
+
+  /* USER CODE END DMA1_Stream4_IRQn 1 */
 }
 
 /**
@@ -379,6 +426,34 @@ void ADC3_IRQHandler(void)
   /* USER CODE BEGIN ADC3_IRQn 1 */
 
   /* USER CODE END ADC3_IRQn 1 */
+}
+
+/**
+  * @brief This function handles BDMA channel0 global interrupt.
+  */
+void BDMA_Channel0_IRQHandler(void)
+{
+  /* USER CODE BEGIN BDMA_Channel0_IRQn 0 */
+
+  /* USER CODE END BDMA_Channel0_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_lpuart1_rx);
+  /* USER CODE BEGIN BDMA_Channel0_IRQn 1 */
+
+  /* USER CODE END BDMA_Channel0_IRQn 1 */
+}
+
+/**
+  * @brief This function handles BDMA channel1 global interrupt.
+  */
+void BDMA_Channel1_IRQHandler(void)
+{
+  /* USER CODE BEGIN BDMA_Channel1_IRQn 0 */
+
+  /* USER CODE END BDMA_Channel1_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_lpuart1_tx);
+  /* USER CODE BEGIN BDMA_Channel1_IRQn 1 */
+
+  /* USER CODE END BDMA_Channel1_IRQn 1 */
 }
 
 /**

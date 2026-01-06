@@ -71,12 +71,15 @@ DMA_HandleTypeDef hdma_adc2;
 CORDIC_HandleTypeDef hcordic;
 
 DAC_HandleTypeDef hdac1;
+DMA_HandleTypeDef hdma_dac1_ch1;
 
 DTS_HandleTypeDef hdts;
 
 I2C_HandleTypeDef hi2c1;
 
 UART_HandleTypeDef hlpuart1;
+DMA_HandleTypeDef hdma_lpuart1_rx;
+DMA_HandleTypeDef hdma_lpuart1_tx;
 
 OSPI_HandleTypeDef hospi1;
 
@@ -84,6 +87,8 @@ RTC_HandleTypeDef hrtc;
 
 SPI_HandleTypeDef hspi3;
 SPI_HandleTypeDef hspi4;
+DMA_HandleTypeDef hdma_spi4_rx;
+DMA_HandleTypeDef hdma_spi4_tx;
 
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim6;
@@ -106,7 +111,7 @@ const osThreadAttr_t defaultTask_attributes = {
 };
 /* Definitions for messageTask */
 osThreadId_t messageTaskHandle;
-uint32_t messageTaskBuffer[ 8000 ] __attribute__((section(".dtcm")));
+uint32_t messageTaskBuffer[ 8000 ];
 osStaticThreadDef_t messageTaskControlBlock;
 const osThreadAttr_t messageTask_attributes = {
   .name = "messageTask",
@@ -192,6 +197,7 @@ void PeriphCommonClock_Config(void);
 static void MPU_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
+static void MX_BDMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_ADC3_Init(void);
 static void MX_DAC1_Init(void);
@@ -288,6 +294,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
+  MX_BDMA_Init();
   MX_ADC1_Init();
   MX_ADC3_Init();
   MX_DAC1_Init();
@@ -1283,6 +1290,25 @@ static void MX_TIM17_Init(void)
 /**
   * Enable DMA controller clock
   */
+static void MX_BDMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_BDMA_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* BDMA_Channel0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(BDMA_Channel0_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(BDMA_Channel0_IRQn);
+  /* BDMA_Channel1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(BDMA_Channel1_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(BDMA_Channel1_IRQn);
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
 static void MX_DMA_Init(void)
 {
 
@@ -1294,8 +1320,17 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream0_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
+  /* DMA1_Stream1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
+  /* DMA1_Stream3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream3_IRQn);
+  /* DMA1_Stream4_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
   /* DMA2_Stream0_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
   /* DMA2_Stream2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 5, 0);
