@@ -1,9 +1,17 @@
-// sys_INA219.c
+/*
+ * sys_power.c
+ *
+ *  Created on: Jan 31, 2025
+ *      Author: cjcockrall
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
+ */
 
 
 /* Private includes ----------------------------------------------------------*/
-#include "INA219-driver.h"
-#include "sys_INA219.h"
+#include "ina219-driver.h"
+#include "sys_power.h"
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -11,13 +19,13 @@
 
 // Structure to hold each power reading and matching timestamp
 typedef struct { 
-    uint32_t timestamp; // Timestamp in milliseconds
-    float power; // Power reading in watts
+  uint32_t timestamp; // Timestamp in milliseconds
+  float power; // Power reading in watts
 } PowerReading_t;
 
 /* Private define ------------------------------------------------------------*/
 
-#define power_buffer_size 50 // Size of the power buffer for averaging
+#define power_buffer_size 64 // Size of the power buffer for averaging
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -31,11 +39,11 @@ static volatile uint32_t ms_counter = 0;
 static volatile bool reading_in_progress = false;
 
 /* External variables --------------------------------------------------------*/
-extern I2C_HandleTypeDef hi2c1; // External i2c handle
+extern I2C_HandleTypeDef hi2c1;
 
 /* Private function prototypes -----------------------------------------------*/
-static void StartPowerReading(void);
 
+static void StartPowerReading(void);
 
 /* Exported function definitions ---------------------------------------------*/
 bool INA219_System_Init(void)
@@ -116,7 +124,7 @@ float Power_GetRecentAverage(uint8_t numsamples)
 
 /* Private function definitions ----------------------------------------------*/
 
-static void StartPowerReading(void)
+void StartPowerReading(void)
 {
     // Start power reading
     reading_in_progress = true;
@@ -125,7 +133,7 @@ static void StartPowerReading(void)
                              POWER_ADDRESS,
                              I2C_MEMADD_SIZE_8BIT,
                              (uint8_t*)&power_buffer[buffer_index].power,
-                            sizeof(uint16_t)) != HAL_OK) {
+                             sizeof(uint16_t)) != HAL_OK) {
         reading_in_progress = false;
     } 
 }

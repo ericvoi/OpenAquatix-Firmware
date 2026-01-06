@@ -1,7 +1,15 @@
-// sys_INA219.h
+/*
+ * sys_power.h
+ *
+ *  Created on: Jan 31, 2025
+ *      Author: cjcockrall
+ * 
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
+ */
 
-#ifndef __SYS_INA219_H_
-#define __SYS_INA219_H_
+#ifndef __SYS_POWER_H_
+#define __SYS_POWER_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -10,7 +18,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
 #include <stdbool.h>
-#include "INA219-driver.h"  // Get access to INA219 constants
+#include "INA219-driver.h"
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -34,7 +42,7 @@ extern "C" {
 bool INA219_System_Init(void);
 void INA219_Timer_Callback(void);
 void INA219_ReadComplete_Callback(bool success);
-float Power_GetRecentAverage(uint8_t numsamples)
+float Power_GetRecentAverage(uint8_t numsamples);
 
 #ifdef __cplusplus
 }

@@ -16,8 +16,9 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32h7xx_hal.h"
 
+#include "stm32h7xx_hal.h"
+#include <stdbool.h>
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -25,7 +26,12 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
-
+typedef struct {
+  float current_A;
+  float bus_voltage;
+  float power;
+  uint32_t timestamp;
+} InaPowerValues_t;
 
 /* Exported constants --------------------------------------------------------*/
 
@@ -33,24 +39,15 @@ extern "C" {
 
 /* Exported macro ------------------------------------------------------------*/
 
-#define INA219_ADDRESS          0x40    // Device base address
-#define POWER_ADDRESS           0x00    // Power register address
-#define INA219_CURRENT_LSB 0.00001f // Amps per LSB, may adjust if needed
+
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-/** 
- *@brief Initializes the INA219 Power monitor
- *
- * Configures the INA219 with default settings and prepares it for operation.
- *
- * @return HAL_StatusTypeDef HAL status (HAL_OK if successful)
- *
- * @note This function should be called once during system initialization
- *       before any other INA219 functions are used.
- */
-HAL_StatusTypeDef INA219_Init();
-
+bool INA_Init(void);
+bool INA_RegisterBuffer(InaPowerValues_t* buf, uint16_t buf_len, uint16_t* buf_head);
+bool INA_Read(void);
+void INA_TxComplete(void);
+void INA_RxComplete(void);
 
 /* Private defines -----------------------------------------------------------*/
 
