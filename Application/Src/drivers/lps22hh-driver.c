@@ -130,7 +130,6 @@ bool LPS_Init(LpsOdr_t odr)
 
   lps_events = osEventFlagsNew(NULL);
   if (lps_events == NULL) return false;
-  if (setSpiClearFlag() == false) return false;
 
   if (regWrite(REG_INTERRUPT_CFG, 0x00) == false) return false;
 
@@ -277,13 +276,15 @@ bool readTemperature(void)
   return true;
 }
 
+uint8_t full_command[2];
 bool regWrite(uint8_t address, uint8_t data)
 {
   bool ret = true;
   if (waitForMutex() == false) return false;
 
   address &= 0x7F; // Set the MSB to 0 for W
-  uint8_t full_command[2] = {address, data};
+  full_command[0] = address;
+  full_command[1] = data;
   if (HAL_SPI_Transmit_IT(&LPS22HH_SPI_BUS, full_command, 2) != HAL_OK) {
     ret = false;
   }
@@ -299,7 +300,7 @@ bool regRead(uint8_t address)
   if (waitForMutex() == false) return false;
 
   address |= 0x80; // Set MSB to 1 for R
-  if (HAL_SPI_TransmitReceive_IT(&LPS22HH_SPI_BUS, &address, &rx_data, 1) != HAL_OK) {
+  if (HAL_SPI_TransmitReceive_IT(&LPS22HH_SPI_BUS, &address, &rx_data, 2) != HAL_OK) {
     ret = false;
   }
 
@@ -322,7 +323,7 @@ bool waitForMutex()
 bool setSpiClearFlag(void)
 {
   if (lps_events == NULL) return false;
-  if (osEventFlagsSet(lps_events, LPS_SPI_CLEAR) != osOK) return false;
+  if (osEventFlagsSet(lps_events, LPS_SPI_CLEAR) & 0x80000000) return false;
 
   return true;
 }
@@ -330,9 +331,9 @@ bool setSpiClearFlag(void)
 bool waitForSpiClearFlag(void)
 {
   if (lps_events == NULL) return false;
-  if (osEventFlagsWait(lps_events, LPS_SPI_CLEAR, osFlagsWaitAny, TIMEOUT_MS) != osOK) return false;
+  if (osEventFlagsWait(lps_events, LPS_SPI_CLEAR, osFlagsWaitAny, TIMEOUT_MS) & 0x80000000) return false;
 
-  if (osEventFlagsClear(lps_events, LPS_SPI_CLEAR) != osOK) return false;
+  if (osEventFlagsClear(lps_events, LPS_SPI_CLEAR) & 0x80000000) return false;
 
   return true;
 }

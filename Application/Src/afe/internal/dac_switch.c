@@ -40,7 +40,7 @@ static DacDirection_t dac_direction = DAC_DIRECTION_FEEDBACK;
 
 void DACSwitch_Change(DacDirection_t direction)
 {
-  GPIO_PinState pin_state = (direction == DAC_DIRECTION_TRANSDUCER) ? GPIO_PIN_RESET : GPIO_PIN_SET;
+  GPIO_PinState pin_state = (direction == DAC_DIRECTION_TRANSDUCER) ? GPIO_PIN_SET : GPIO_PIN_RESET;
   HAL_GPIO_WritePin(DAC_SEL_GPIO_Port, DAC_SEL_Pin, pin_state);
   dac_direction = direction;
 }

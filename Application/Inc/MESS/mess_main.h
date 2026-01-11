@@ -140,13 +140,6 @@ typedef struct {
   bool is_emergency;
 } Message_t;
 
-// defines the structure for analysis of the waveform
-typedef struct {
-  uint16_t start_index;
-  uint16_t end_index;   // Will never exceed array length
-  uint16_t bit_index;   // Index of the bit in the message
-} ProcessingData_t;
-
 typedef enum {
   DRIVING_TRANSDUCER,
   LISTENING,
@@ -159,7 +152,7 @@ typedef enum {
 #define MSG_QUEUE_SIZE    4
 
 #define DAC_CHANNEL_TRANSDUCER  DAC_CHANNEL_1
-#define DAC_CHANNEL_FEEDBACK    DAC_CHANNEL_2
+#define DAC_CHANNEL_FEEDBACK    DAC_CHANNEL_1
 
 #define JANUS_VERSION     (4U)
 

@@ -64,6 +64,7 @@ void AFE_Init()
 
 AfeStatus_t AFE_SetMode(AfeMode_t new_mode)
 {
+  Feedback_ChangeInputAttenuation(ATTENUATION_63DB);
   switch (new_mode) {
     case AFE_MODE_IDLE:
       return enterIdle();
@@ -163,9 +164,9 @@ AfeStatus_t enterRxFeedback(void)
     }
     osDelay(1);
   }
-  if (restartADCs() == false) {
-    return AFE_ERROR;
-  }
+  // if (restartADCs() == false) {
+  //   return AFE_ERROR;
+  // }
   afe_mode = AFE_MODE_RX_FEEDBACK;
   return AFE_OK;
 }

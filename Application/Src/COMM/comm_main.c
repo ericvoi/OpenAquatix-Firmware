@@ -240,7 +240,7 @@ void COMM_TransmitData(const void *data, uint32_t data_len, CommInterface_t inte
       break;
     case COMM_BOTH:
       USB_TransmitData((uint8_t*) data, (uint16_t) data_len);
-      DAU_TransmitData((uint8_t*) data, (uint16_t) data_len);
+//      DAU_TransmitData((uint8_t*) data, (uint16_t) data_len);
       break;
     default:
       break;
@@ -530,6 +530,7 @@ void printBitsData(Message_t* msg)
     sprintf((char*) out_buffer, "%X ", byte);
     COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
     length_bits -= 8;
+    byte_index++;
   }
 }
 

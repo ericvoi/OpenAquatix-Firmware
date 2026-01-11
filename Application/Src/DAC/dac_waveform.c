@@ -62,7 +62,7 @@ typedef struct {
 extern osThreadId_t dacTaskHandle;
 
 static uint16_t sine_table[SINE_POINTS];
-static uint32_t dac_buffer[DAC_BUFFER_SIZE] __attribute__((section(".dma_buf")));
+static uint16_t dac_buffer[DAC_BUFFER_SIZE] __attribute__((section(".dma_buf")));
 
 static WaveformControl_t wave_ctrl __attribute__((section(".dtcm")));
 static WaveformStep_t current_waveform_step;
@@ -105,8 +105,7 @@ bool Waveform_InitWaveformGenerator(void)
   current_symbol_duration_us = 0;
 
   // Configure DAC and DMA here
-  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_FEEDBACK);
-  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_TRANSDUCER);
+  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
 
   return true;
 }
@@ -125,7 +124,7 @@ bool Waveform_SetWaveformSequence(uint16_t num_steps, bool is_message)
 
 bool Waveform_StartWaveformOutput(uint32_t channel)
 {
-  HAL_DAC_Stop_DMA(&hdac1, channel);
+  if (HAL_DAC_Stop_DMA(&hdac1, channel) != HAL_OK) return false;
   wave_ctrl.phase_accumulator = 0;
 
   dac_running = true;
@@ -143,12 +142,11 @@ bool Waveform_StopWaveformOutput()
 {
   // reset flags and end DMA transfer to ease DMA channels
   dac_running = false;
-  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_FEEDBACK);
-  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_TRANSDUCER);
+  if (HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1) != HAL_OK) return false;
 
   wave_ctrl.phase_accumulator = 0;
 
-  ADC_StopFeedback();
+  if (ADC_StopFeedback() == false) return false;
   return true;
 }
 
@@ -166,7 +164,7 @@ bool Waveform_RegisterParams()
 void Waveform_Flush()
 {
   Waveform_SetWaveformSequence(1, false);
-  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_FEEDBACK);
+  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
   wave_ctrl.phase_accumulator = 0;
 
   dac_running = true;
@@ -182,7 +180,7 @@ void Waveform_Flush()
   Waveform_FillBuffer(FILL_FIRST_HALF);
   Waveform_FillBuffer(FILL_LAST_HALF);
 
-  HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_FEEDBACK, (uint32_t*) dac_buffer,
+  HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t*) dac_buffer,
       DAC_BUFFER_SIZE, DAC_ALIGN_12B_R);
 
   HAL_TIM_Base_Start(&htim6);

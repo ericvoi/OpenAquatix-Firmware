@@ -134,7 +134,7 @@ void switchNegative3V3(bool on)
       ((on == false) && (info_negative_3V3.state == PWR_OFF))) {
     return;
   }
-  HAL_GPIO_WritePin(EN__3V3_GPIO_Port, EN__3V3_Pin, on);
+  HAL_GPIO_WritePin(EN__5V_GPIO_Port, EN__5V_Pin, on);
   info_negative_3V3.state = PWR_TRANSITIONING;
   info_negative_3V3.transitioning_on = on;
   info_negative_3V3.transition_finished_timestamp = HAL_AbsoluteTimestamp() + STABILIZATION_DELAY_NEGATIVE_3V3;
