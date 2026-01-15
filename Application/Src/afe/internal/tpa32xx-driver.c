@@ -121,7 +121,7 @@ bool switchReset(bool on)
 bool switchFilter(bool on)
 {
   // Filter EN is protected by hardware so the uC cannot damage the filter
-  HAL_GPIO_WritePin(FILTER_GPIO_PORT, FILTER_GPIO_PIN, on);
+  HAL_GPIO_WritePin(FILTER_GPIO_PORT, FILTER_GPIO_PIN, ! on);
   filter_active = on;
   return true;
 }

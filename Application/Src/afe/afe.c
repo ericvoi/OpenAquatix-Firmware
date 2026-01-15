@@ -130,7 +130,6 @@ AfeStatus_t enterRx(void)
   if (AFE_IsTransmitting()) {
     osDelay(TRANSDUCER_SETTLE_TIME_MS);
   }
-  TR_Change(TR_INPUT_MODE);
   osDelay(1); // Small delay for the TR switch
   while (PWR_State30V() != PWR_OFF && PWR_StateAnalog() != PWR_READY) {
     if (isTimedOut(start_timestamp)) {
@@ -138,6 +137,7 @@ AfeStatus_t enterRx(void)
     }
     osDelay(1);
   }
+  TR_Change(TR_INPUT_MODE);
   // DAC switch does not matter since no modulation
   // TPA not configured since powered off by no 30V
   if (restartADCs() == false) {
@@ -164,9 +164,9 @@ AfeStatus_t enterRxFeedback(void)
     }
     osDelay(1);
   }
-  // if (restartADCs() == false) {
-  //   return AFE_ERROR;
-  // }
+  if (restartADCs() == false) {
+    return AFE_ERROR;
+  }
   afe_mode = AFE_MODE_RX_FEEDBACK;
   return AFE_OK;
 }
