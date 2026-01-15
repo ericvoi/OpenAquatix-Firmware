@@ -50,29 +50,29 @@ void sendEvalMessage(FunctionContext_t* context, Message_t* msg);
 
 /* Private variables ---------------------------------------------------------*/
 
-extern osMessageQueueId_t regularTxQueue;
+extern osMessageQueueId_t regular_tx_queue;
 
-static MenuID_t evalMenuChildren[] = {
+static MenuID_t eval_menu_children[] = {
   MENU_ID_EVAL_SETLEN,      MENU_ID_EVAL_FEEDBACK, 
   MENU_ID_EVAL_TRANSDUCER,  MENU_ID_EVAL_FEEDBACKTESTS
 };
 
-static const MenuNode_t evalMenu = {
+static const MenuNode_t eval_menu = {
   .id = MENU_ID_EVAL,
   .description = "Evaluation Menu",
   .handler = NULL,
   .parent_id = MENU_ID_MAIN,
-  .children_ids = evalMenuChildren,
-  .num_children = sizeof(evalMenuChildren) / sizeof(evalMenuChildren[0]),
+  .children_ids = eval_menu_children,
+  .num_children = sizeof(eval_menu_children) / sizeof(eval_menu_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
 
-static ParamContext_t evalSetMsgLenParam = {
+static ParamContext_t eval_set_msg_len_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_EVAL_SETLEN
 };
-static const MenuNode_t evalSetMsgLen = {
+static const MenuNode_t eval_set_msg_len = {
   .id = MENU_ID_EVAL_SETLEN,
   .description = "Set evaluation message length",
   .handler = setEvalMsgLen,
@@ -80,14 +80,14 @@ static const MenuNode_t evalSetMsgLen = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &evalSetMsgLenParam
+  .parameters = &eval_set_msg_len_param
 };
 
-static ParamContext_t evalFeedbackParam = {
+static ParamContext_t eval_feedback_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_EVAL_FEEDBACK
 };
-static const MenuNode_t evalFeedback = {
+static const MenuNode_t eval_feedback = {
   .id = MENU_ID_EVAL_FEEDBACK,
   .description = "Send evaluation message through feedback network",
   .handler = sendEvalFeedback,
@@ -95,14 +95,14 @@ static const MenuNode_t evalFeedback = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &evalFeedbackParam
+  .parameters = &eval_feedback_param
 };
 
-static ParamContext_t evalTransducerParam = {
+static ParamContext_t eval_transducer_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_EVAL_TRANSDUCER
 };
-static const MenuNode_t evalTransducer = {
+static const MenuNode_t eval_transducer = {
   .id = MENU_ID_EVAL_TRANSDUCER,
   .description = "Send evaluation message through transducer",
   .handler = sendEvalTransducer,
@@ -110,14 +110,14 @@ static const MenuNode_t evalTransducer = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &evalTransducerParam
+  .parameters = &eval_transducer_param
 };
 
-static ParamContext_t feedbackTestsParam = {
+static ParamContext_t feedback_tests_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_EVAL_FEEDBACKTESTS
 };
-static const MenuNode_t feedbackTests = {
+static const MenuNode_t feedback_tests = {
   .id = MENU_ID_EVAL_FEEDBACKTESTS,
   .description = "Perform feedback network tests",
   .handler = startFeedbackTests,
@@ -125,16 +125,16 @@ static const MenuNode_t feedbackTests = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &feedbackTestsParam
+  .parameters = &feedback_tests_param
 };
 
 /* Exported function definitions ---------------------------------------------*/
 
 bool COMM_RegisterEvalMenu(void)
 {
-  bool ret = registerMenu(&evalMenu) && 
-             registerMenu(&evalSetMsgLen) && registerMenu(&evalFeedback) &&
-             registerMenu(&evalTransducer) && registerMenu(&feedbackTests);
+  bool ret = registerMenu(&eval_menu) && 
+             registerMenu(&eval_set_msg_len) && registerMenu(&eval_feedback) &&
+             registerMenu(&eval_transducer) && registerMenu(&feedback_tests);
   return ret;
 }
 
@@ -196,7 +196,7 @@ void sendEvalMessage(FunctionContext_t* context, Message_t* msg)
   }
   msg->length_bits *= 8;
 
-  if (osMessageQueuePut(regularTxQueue, msg, 0, 0) == osOK) {
+  if (osMessageQueuePut(regular_tx_queue, msg, 0, 0) == osOK) {
     sprintf((char*) context->output_buffer, "\r\nSuccessfully added to feedback queue!\r\n\r\n");
   }
   else {

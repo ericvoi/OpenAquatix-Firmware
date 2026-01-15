@@ -125,7 +125,7 @@ static uint16_t message_length = 0;
 static Message_t tx_msg;
 static Message_t rx_msg;
 
-extern osMessageQueueId_t macRxQueue;
+extern osMessageQueueId_t mac_rx_queue;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -309,7 +309,7 @@ void MESS_StartTask(void* argument)
           rx_msg.error_detected |= input_bit_msg.error_preamble;
           // send it via queue
           if (FeedbackTests_Check(&rx_msg, &input_bit_msg) == false) {
-            osMessageQueuePut(macRxQueue, &rx_msg, 0, 0);
+            osMessageQueuePut(mac_rx_queue, &rx_msg, 0, 0);
           }
           input_bit_msg.added_to_queue = true;
         }

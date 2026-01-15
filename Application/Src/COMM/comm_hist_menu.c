@@ -44,55 +44,55 @@ void printAvgTemp(void* argument);
 
 /* Private variables ---------------------------------------------------------*/
 
-static MenuID_t histMenuChildren[] = {
+static MenuID_t hist_menu_children[] = {
   MENU_ID_HIST_PWR,   MENU_ID_HIST_RECV,  MENU_ID_HIST_SENT,
   MENU_ID_HIST_ERR,   MENU_ID_HIST_TEMP
 };
-static const MenuNode_t histMenu = {
+static const MenuNode_t hist_menu = {
   .id = MENU_ID_HIST,
   .description = "History Menu",
   .handler = NULL,
   .parent_id = MENU_ID_MAIN,
-  .children_ids = histMenuChildren,
-  .num_children = sizeof(histMenuChildren) / sizeof(histMenuChildren[0]),
+  .children_ids = hist_menu_children,
+  .num_children = sizeof(hist_menu_children) / sizeof(hist_menu_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
 
-static MenuID_t pwrHistMenuChildren[] = {
+static MenuID_t pwr_hist_menu_children[] = {
   MENU_ID_HIST_PWR_PEAK,  MENU_ID_HIST_PWR_BOOT,
   MENU_ID_HIST_PWR_AVG,   MENU_ID_HIST_PWR_CURR
 };
-static const MenuNode_t pwrHistMenu = {
+static const MenuNode_t pwr_hist_menu = {
   .id = MENU_ID_HIST_PWR,
   .description = "Power Menu",
   .handler = NULL,
   .parent_id = MENU_ID_HIST,
-  .children_ids = pwrHistMenuChildren,
-  .num_children = sizeof(pwrHistMenuChildren) / sizeof(pwrHistMenuChildren[0]),
+  .children_ids = pwr_hist_menu_children,
+  .num_children = sizeof(pwr_hist_menu_children) / sizeof(pwr_hist_menu_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
 
-static MenuID_t tempHistMenuChildren[] = {
+static MenuID_t temp_hist_menu_children[] = {
   MENU_ID_HIST_TEMP_CURR, MENU_ID_HIST_TEMP_PEAK, MENU_ID_HIST_TEMP_AVG
 };
-static const MenuNode_t tempHistMenu = {
+static const MenuNode_t temp_hist_menu = {
   .id = MENU_ID_HIST_TEMP,
   .description = "Temperature Menu",
   .handler = NULL,
   .parent_id = MENU_ID_HIST,
-  .children_ids = tempHistMenuChildren,
-  .num_children = sizeof(tempHistMenuChildren) / sizeof(tempHistMenuChildren[0]),
+  .children_ids = temp_hist_menu_children,
+  .num_children = sizeof(temp_hist_menu_children) / sizeof(temp_hist_menu_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
 
-static ParamContext_t receivedHistParam = {
+static ParamContext_t received_hist_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_HIST_RECV
 };
-static const MenuNode_t receivedHist = {
+static const MenuNode_t received_hist = {
   .id = MENU_ID_HIST_RECV,
   .description = "Print Last 5 Received Messages",
   .handler = printReceivedMessages,
@@ -100,14 +100,14 @@ static const MenuNode_t receivedHist = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &receivedHistParam
+  .parameters = &received_hist_param
 };
 
-static ParamContext_t sentHistParam = {
+static ParamContext_t sent_hist_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_HIST_SENT,
 };
-static const MenuNode_t sentHist = {
+static const MenuNode_t sent_hist = {
   .id = MENU_ID_HIST_SENT,
   .description = "Print Last 5 Sent Messages",
   .handler = printSentMessages,
@@ -115,14 +115,14 @@ static const MenuNode_t sentHist = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &sentHistParam
+  .parameters = &sent_hist_param
 };
 
-static ParamContext_t errHistParam = {
+static ParamContext_t err_hist_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_HIST_ERR
 };
-static const MenuNode_t errHist = {
+static const MenuNode_t err_hist = {
   .id = MENU_ID_HIST_ERR,
   .description = "Print Error Log",
   .handler = printErrorLog,
@@ -130,14 +130,14 @@ static const MenuNode_t errHist = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &errHistParam
+  .parameters = &err_hist_param
 };
 
-static ParamContext_t peakPwrHistParam = {
+static ParamContext_t peak_pwr_hist_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_HIST_PWR_PEAK
 };
-static const MenuNode_t peakPwrHist = {
+static const MenuNode_t peak_pwr_hist = {
   .id = MENU_ID_HIST_PWR_PEAK,
   .description = "Peak Power",
   .handler = printPeakPwr,
@@ -145,14 +145,14 @@ static const MenuNode_t peakPwrHist = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &peakPwrHistParam
+  .parameters = &peak_pwr_hist_param
 };
 
-static ParamContext_t bootPwrHistParam = {
+static ParamContext_t boot_pwr_hist_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_HIST_PWR_BOOT
 };
-static const MenuNode_t bootPwrHist = {
+static const MenuNode_t boot_pwr_hist = {
   .id = MENU_ID_HIST_PWR_BOOT,
   .description = "Power Consumption Since Startup",
   .handler = printPwrSinceBoot,
@@ -160,14 +160,14 @@ static const MenuNode_t bootPwrHist = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &bootPwrHistParam
+  .parameters = &boot_pwr_hist_param
 };
 
-static ParamContext_t avgPwrHistParam = {
+static ParamContext_t avg_pwr_hist_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_HIST_PWR_AVG
 };
-static const MenuNode_t avgPwrHist = {
+static const MenuNode_t avg_pwr_hist = {
   .id = MENU_ID_HIST_PWR_AVG,
   .description = "Average Power",
   .handler = printAvgPwr,
@@ -175,14 +175,14 @@ static const MenuNode_t avgPwrHist = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &avgPwrHistParam
+  .parameters = &avg_pwr_hist_param
 };
 
-static ParamContext_t currPwrHistParam = {
+static ParamContext_t curr_pwr_hist_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_HIST_PWR_CURR
 };
-static const MenuNode_t currPwrHist = {
+static const MenuNode_t curr_pwr_hist = {
   .id = MENU_ID_HIST_PWR_CURR,
   .description = "Current Power",
   .handler = printCurrPwr,
@@ -190,14 +190,14 @@ static const MenuNode_t currPwrHist = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &currPwrHistParam
+  .parameters = &curr_pwr_hist_param
 };
 
-static ParamContext_t currTempHistParam = {
+static ParamContext_t curr_temp_hist_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_HIST_TEMP_CURR
 };
-static const MenuNode_t currTempHist = {
+static const MenuNode_t curr_temp_hist = {
   .id = MENU_ID_HIST_TEMP_CURR,
   .description = "Current Temperature",
   .handler = printCurrTemp,
@@ -205,14 +205,14 @@ static const MenuNode_t currTempHist = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &currTempHistParam
+  .parameters = &curr_temp_hist_param
 };
 
-static ParamContext_t peakTempHistParam = {
+static ParamContext_t peak_temp_hist_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_HIST_TEMP_PEAK
 };
-static const MenuNode_t peakTempHist = {
+static const MenuNode_t peak_temp_hist = {
   .id = MENU_ID_HIST_TEMP_PEAK,
   .description = "Peak Temperature",
   .handler = printPeakTemp,
@@ -220,14 +220,14 @@ static const MenuNode_t peakTempHist = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &peakTempHistParam
+  .parameters = &peak_temp_hist_param
 };
 
-static ParamContext_t avgTempHistParam = {
+static ParamContext_t avg_temp_hist_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_HIST_TEMP_AVG
 };
-static const MenuNode_t avgTempHist = {
+static const MenuNode_t avg_temp_hist = {
   .id = MENU_ID_HIST_TEMP_AVG,
   .description = "Average Temperature",
   .handler = printAvgTemp,
@@ -235,7 +235,7 @@ static const MenuNode_t avgTempHist = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &avgTempHistParam
+  .parameters = &avg_temp_hist_param
 };
 
 
@@ -244,13 +244,13 @@ static const MenuNode_t avgTempHist = {
 
 bool COMM_RegisterHistoryMenu()
 {
-  bool ret = registerMenu(&histMenu) && registerMenu(&pwrHistMenu) &&
-             registerMenu(&tempHistMenu) && registerMenu(&receivedHist) &&
-             registerMenu(&sentHist) && registerMenu(&errHist) &&
-             registerMenu(&peakPwrHist) && registerMenu(&bootPwrHist) &&
-             registerMenu(&avgPwrHist) && registerMenu(&currPwrHist) &&
-             registerMenu(&currTempHist) && registerMenu(&peakTempHist) &&
-             registerMenu(&avgTempHist);
+  bool ret = registerMenu(&hist_menu) && registerMenu(&pwr_hist_menu) &&
+             registerMenu(&temp_hist_menu) && registerMenu(&received_hist) &&
+             registerMenu(&sent_hist) && registerMenu(&err_hist) &&
+             registerMenu(&peak_pwr_hist) && registerMenu(&boot_pwr_hist) &&
+             registerMenu(&avg_pwr_hist) && registerMenu(&curr_pwr_hist) &&
+             registerMenu(&curr_temp_hist) && registerMenu(&peak_temp_hist) &&
+             registerMenu(&avg_temp_hist);
   return ret;
 }
 

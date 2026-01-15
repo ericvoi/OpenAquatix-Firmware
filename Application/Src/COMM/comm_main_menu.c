@@ -32,16 +32,16 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-static MenuID_t mainMenuChildren[] = {
+static MenuID_t main_menu_children[] = {
   MENU_ID_CFG, MENU_ID_DBG, MENU_ID_HIST, MENU_ID_TXRX, MENU_ID_JANUS, MENU_ID_EVAL
 };
-static const MenuNode_t mainMenu = {
+static const MenuNode_t main_menu = {
   .id = MENU_ID_MAIN,
   .description = "Main Menu",
   .handler = NULL,
   .parent_id = MENU_ID_MAIN,
-  .children_ids = mainMenuChildren,
-  .num_children = sizeof(mainMenuChildren) / sizeof(mainMenuChildren[0]),
+  .children_ids = main_menu_children,
+  .num_children = sizeof(main_menu_children) / sizeof(main_menu_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
@@ -50,7 +50,7 @@ static const MenuNode_t mainMenu = {
 
 bool COMM_RegisterMainMenu(void)
 {
-  bool ret = registerMenu(&mainMenu);
+  bool ret = registerMenu(&main_menu);
   return ret;
 }
 
