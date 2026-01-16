@@ -31,16 +31,16 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-void printReceivedMessages(void* argument);
-void printSentMessages(void* argument);
-void printErrorLog(void* argument);
-void printPeakPwr(void* argument);
-void printPwrSinceBoot(void* argument);
-void printAvgPwr(void* argument);
-void printCurrPwr(void* argument);
-void printCurrTemp(void* argument);
-void printPeakTemp(void* argument);
-void printAvgTemp(void* argument);
+void printReceivedMessages(FunctionContext_t* context);
+void printSentMessages(FunctionContext_t* context);
+void printErrorLog(FunctionContext_t* context);
+void printPeakPwr(FunctionContext_t* context);
+void printPwrSinceBoot(FunctionContext_t* context);
+void printAvgPwr(FunctionContext_t* context);
+void printCurrPwr(FunctionContext_t* context);
+void printCurrTemp(FunctionContext_t* context);
+void printPeakTemp(FunctionContext_t* context);
+void printAvgTemp(FunctionContext_t* context);
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -257,65 +257,49 @@ bool COMM_RegisterHistoryMenu()
 /* Private function definitions ----------------------------------------------*/
 
 // TODO: implement
-void printReceivedMessages(void* argument)
+void printReceivedMessages(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
 // TODO: implement
-void printSentMessages(void* argument)
+void printSentMessages(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
 // TODO: implement
-void printErrorLog(void* argument)
+void printErrorLog(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
 // TODO: implement
-void printPeakPwr(void* argument)
+void printPeakPwr(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
 // TODO: implement
-void printPwrSinceBoot(void* argument)
+void printPwrSinceBoot(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
 // TODO: implement
-void printAvgPwr(void* argument)
+void printAvgPwr(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
 // TODO: implement
-void printCurrPwr(void* argument)
+void printCurrPwr(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
-void printCurrTemp(void* argument)
+void printCurrTemp(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   float temp = Temperature_GetCurrent();
 
   sprintf((char*) context->output_buffer, "\r\nCurrent temperature: %.2f C\r\n",
@@ -324,10 +308,8 @@ void printCurrTemp(void* argument)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void printPeakTemp(void* argument)
+void printPeakTemp(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   float temp = Temperature_GetPeak();
 
   sprintf((char*) context->output_buffer, "\r\nPeak temperature: %.2f C\r\n",
@@ -336,10 +318,8 @@ void printPeakTemp(void* argument)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void printAvgTemp(void* argument)
+void printAvgTemp(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   float temp = Temperature_GetAverage();
 
   sprintf((char*) context->output_buffer, "\r\nAverage temperature: %.2f C\r\n",

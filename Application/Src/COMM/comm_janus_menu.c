@@ -34,15 +34,15 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-void setMessagingProtocol(void* argument);
-void send_011_01_Transducer(void* argument);
-void send_011_01_Feedback(void* argument);
-void toggleTxRxFlag(void* argument);
-void toggleForwardCapability(void* argument);
-void setMessageCoding(void* argument);
-void setMessageEncryption(void* argument);
-void setJanusDestinationId(void* argument);
-void setJanusId(void* argument);
+void setMessagingProtocol(FunctionContext_t* context);
+void send_011_01_Transducer(FunctionContext_t* context);
+void send_011_01_Feedback(FunctionContext_t* context);
+void toggleTxRxFlag(FunctionContext_t* context);
+void toggleForwardCapability(FunctionContext_t* context);
+void setMessageCoding(FunctionContext_t* context);
+void setMessageEncryption(FunctionContext_t* context);
+void setJanusDestinationId(FunctionContext_t* context);
+void setJanusId(FunctionContext_t* context);
 
 static void transmit_011_01(FunctionContext_t* context, bool is_feedback);
 static void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_feedback);
@@ -247,55 +247,42 @@ bool COMM_RegisterJanusMenu()
 
 /* Private function definitions ----------------------------------------------*/
 
-void setMessagingProtocol(void* argument)
+void setMessagingProtocol(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
   char* descriptors[] = {"Custom", "JANUS"};
 
   COMMLoops_LoopEnum(context, PARAM_PROTOCOL, descriptors, sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
-void send_011_01_Transducer(void* argument)
+void send_011_01_Transducer(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   transmit_011_01(context, false);
 }
 
-void send_011_01_Feedback(void* argument)
+void send_011_01_Feedback(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   transmit_011_01(context, true);
 }
 
-void toggleTxRxFlag(void* argument)
+void toggleTxRxFlag(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopToggle(context, PARAM_TX_RX_ABILITY);
 }
 
-void toggleForwardCapability(void* argument)
+void toggleForwardCapability(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopToggle(context, PARAM_FORWARD_CAPABILITY);
 }
 
-void setMessageCoding(void* argument)
+void setMessageCoding(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   char* descriptors[] = {"8 bit ASCII", "7 bit ASCII", "6 bit ASCII (AIS)", "UTF-8"};
 
   COMMLoops_LoopEnum(context, PARAM_CODING, descriptors, sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
-void setMessageEncryption(void* argument)
+void setMessageEncryption(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   char* descriptors[] = {"No encryption",                     "AES-GCM (not yet implemented)", 
                          "user type 2 (not yet implemented)", "user type 3 (not yet implemented)",
                          "user type 4 (not yet implemented)", "user type 5 (not yet implemented)",
@@ -304,17 +291,13 @@ void setMessageEncryption(void* argument)
   COMMLoops_LoopEnum(context, PARAM_ENCRYPTION, descriptors, sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
-void setJanusDestinationId(void* argument)
+void setJanusDestinationId(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint8(context, PARAM_JANUS_DESTINATION);
 }
 
-void setJanusId(void* argument)
+void setJanusId(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint8(context, PARAM_JANUS_ID);
 }
 

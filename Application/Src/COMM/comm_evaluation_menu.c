@@ -41,10 +41,10 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-void setEvalMsgLen(void* argument);
-void sendEvalFeedback(void* argument);
-void sendEvalTransducer(void* argument);
-void startFeedbackTests(void* argument);
+void setEvalMsgLen(FunctionContext_t* context);
+void sendEvalFeedback(FunctionContext_t* context);
+void sendEvalTransducer(FunctionContext_t* context);
+void startFeedbackTests(FunctionContext_t* context);
 
 void sendEvalMessage(FunctionContext_t* context, Message_t* msg);
 
@@ -141,35 +141,27 @@ bool COMM_RegisterEvalMenu(void)
 
 /* Private function definitions ----------------------------------------------*/
 
-void setEvalMsgLen(void* argument)
+void setEvalMsgLen(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint16(context, PARAM_EVAL_MESSAGE_LEN);
 }
 
-void sendEvalFeedback(void* argument)
+void sendEvalFeedback(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   Message_t msg;
   msg.type = MSG_TRANSMIT_FEEDBACK;
   sendEvalMessage(context, &msg);
 }
 
-void sendEvalTransducer(void* argument)
+void sendEvalTransducer(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   Message_t msg;
   msg.type = MSG_TRANSMIT_TRANSDUCER;
   sendEvalMessage(context, &msg);
 }
 
-void startFeedbackTests(void* argument) 
+void startFeedbackTests(FunctionContext_t* context) 
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   osEventFlagsSet(print_event_handle, MESS_FEEDBACK_TESTS);
 
   context->state->state = PARAM_STATE_COMPLETE;

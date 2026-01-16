@@ -45,15 +45,15 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-void transmitBitsOut(void* argument);
-void transmitBitsFb(void* argument);
-void transmitStringOut(void* argument);
-void transmitStringFb(void* argument);
-void transmitIntOut(void* argument);
-void transmitIntFb(void* argument);
-void transmitFloatOut(void* argument);
-void transmitFloatFb(void* argument);
-void togglePrint(void* argument);
+void transmitBitsOut(FunctionContext_t* context);
+void transmitBitsFb(FunctionContext_t* context);
+void transmitStringOut(FunctionContext_t* context);
+void transmitStringFb(FunctionContext_t* context);
+void transmitIntOut(FunctionContext_t* context);
+void transmitIntFb(FunctionContext_t* context);
+void transmitFloatOut(FunctionContext_t* context);
+void transmitFloatFb(FunctionContext_t* context);
+void togglePrint(FunctionContext_t* context);
 
 void transmitBits(FunctionContext_t* context, bool is_feedback);
 void transmitString(FunctionContext_t* context, bool is_feedback);
@@ -235,65 +235,48 @@ bool COMM_RegisterTxRxMenu()
 
 /* Private function definitions ----------------------------------------------*/
 
-void transmitBitsOut(void* argument)
+void transmitBitsOut(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   transmitBits(context, false);
 }
  
-void transmitBitsFb(void* argument) {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
+void transmitBitsFb(FunctionContext_t* context) 
+{
   transmitBits(context, true);
 }
 
-void transmitStringOut(void* argument)
+void transmitStringOut(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   transmitString(context, false);
 }
 
-void transmitStringFb(void* argument)
+void transmitStringFb(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   transmitString(context, true);
 }
 
-void transmitIntOut(void* argument)
+void transmitIntOut(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   transmitInt(context, false);
 }
 
-void transmitIntFb(void* argument)
+void transmitIntFb(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   transmitInt(context, true);
 }
 
-void transmitFloatOut(void* argument)
+void transmitFloatOut(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   transmitFloat(context, false);
 }
 
-void transmitFloatFb(void* argument)
+void transmitFloatFb(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   transmitFloat(context, true);
 }
 
-void togglePrint(void* argument)
+void togglePrint(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopToggle(context, PARAM_PRINT_ENABLED);
 }
 

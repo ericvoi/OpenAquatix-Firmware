@@ -38,66 +38,66 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-void setPreambleErrorDetection(void* argument);
-void setCargoErrorDetection(void* argument);
-void preambleErrorBehavior(void* argument);
-void cargoErrorBehavior(void* argument);
-void setPreambleEcc(void* argument);
-void setMessageEcc(void* argument);
-void setModulationMethod(void* argument);
-void setFskF0(void* argument);
-void setFskF1(void* argument);
-void setFhbfskFreqSpacing(void* argument);
-void setFhbfskDwell(void* argument);
-void setFhbfskTones(void* argument);
-void setFhbfskHopper(void* argument);
-void toggleWakeupTones(void* argument);
-void setWakeupTone1(void* argument);
-void setWakeupTone2(void* argument);
-void setWakeupTone3(void* argument);
-void setBaudRate(void* argument);
-void setCenterFrequency(void* argument);
-void getBitPeriod(void* argument);
-void getBandwidth(void* argument);
-void toggleInterleaver(void* argument);
-void setSynchronizer(void* argument);
-void printConfigOptions(void* argument);
-void importConfigOptions(void* argument);
-void setDacTransitionDuration(void* argument);
-void setModPowerControlMethod(void* argument);
-void setModFixedOutput(void* argument);
-void setMessageStartFunction(void* argument);
-void setBitDecisionFunction(void* argument);
-void setHistoricalComparisonThreshold(void* argument);
-void toggleAgc(void* argument);
-void setFixedPgaGain(void* argument);
-void setWindowFunction(void* argument);
-void configureSleep(void* argument);
-void setLedBrightness(void* argument);
-void toggleLed(void* argument);
-void setModCalLowerFreq(void* argument);
-void setModCalUpperFreq(void* argument);
-void updateTvr(void* argument);
-void modCalibration(void* argument);
-void exportModCalibration(void* argument);
-void tuneMatchingNetwork(void* argument);
-void updateOcrr(void* argument);
-void updateVmax(void* argument);
-void toggleModFeedback(void* argument);
-void setModFeedbackRatio(void* argument);
-void setModOutputPower(void* argument);
-void setTransducerR(void* argument);
-void setTransducerC0(void* argument);
-void setTransducerL0(void* argument);
-void setTransducerC1(void* argument);
-void setDemodCalRatio(void* argument);
-void performDemodCal(void* argument);
-void setDemodCalLowerFreq(void* argument);
-void setDemodCalUpperFreq(void* argument);
-void exportDemodCal(void* argument);
-void setMacProtocol(void* argument);
-void setID(void* argument);
-void setStationaryFlag(void* argument);
+void setPreambleErrorDetection(FunctionContext_t* context);
+void setCargoErrorDetection(FunctionContext_t* context);
+void preambleErrorBehavior(FunctionContext_t* context);
+void cargoErrorBehavior(FunctionContext_t* context);
+void setPreambleEcc(FunctionContext_t* context);
+void setMessageEcc(FunctionContext_t* context);
+void setModulationMethod(FunctionContext_t* context);
+void setFskF0(FunctionContext_t* context);
+void setFskF1(FunctionContext_t* context);
+void setFhbfskFreqSpacing(FunctionContext_t* context);
+void setFhbfskDwell(FunctionContext_t* context);
+void setFhbfskTones(FunctionContext_t* context);
+void setFhbfskHopper(FunctionContext_t* context);
+void toggleWakeupTones(FunctionContext_t* context);
+void setWakeupTone1(FunctionContext_t* context);
+void setWakeupTone2(FunctionContext_t* context);
+void setWakeupTone3(FunctionContext_t* context);
+void setBaudRate(FunctionContext_t* context);
+void setCenterFrequency(FunctionContext_t* context);
+void getBitPeriod(FunctionContext_t* context);
+void getBandwidth(FunctionContext_t* context);
+void toggleInterleaver(FunctionContext_t* context);
+void setSynchronizer(FunctionContext_t* context);
+void printConfigOptions(FunctionContext_t* context);
+void importConfigOptions(FunctionContext_t* context);
+void setDacTransitionDuration(FunctionContext_t* context);
+void setModPowerControlMethod(FunctionContext_t* context);
+void setModFixedOutput(FunctionContext_t* context);
+void setMessageStartFunction(FunctionContext_t* context);
+void setBitDecisionFunction(FunctionContext_t* context);
+void setHistoricalComparisonThreshold(FunctionContext_t* context);
+void toggleAgc(FunctionContext_t* context);
+void setFixedPgaGain(FunctionContext_t* context);
+void setWindowFunction(FunctionContext_t* context);
+void configureSleep(FunctionContext_t* context);
+void setLedBrightness(FunctionContext_t* context);
+void toggleLed(FunctionContext_t* context);
+void setModCalLowerFreq(FunctionContext_t* context);
+void setModCalUpperFreq(FunctionContext_t* context);
+void updateTvr(FunctionContext_t* context);
+void modCalibration(FunctionContext_t* context);
+void exportModCalibration(FunctionContext_t* context);
+void tuneMatchingNetwork(FunctionContext_t* context);
+void updateOcrr(FunctionContext_t* context);
+void updateVmax(FunctionContext_t* context);
+void toggleModFeedback(FunctionContext_t* context);
+void setModFeedbackRatio(FunctionContext_t* context);
+void setModOutputPower(FunctionContext_t* context);
+void setTransducerR(FunctionContext_t* context);
+void setTransducerC0(FunctionContext_t* context);
+void setTransducerL0(FunctionContext_t* context);
+void setTransducerC1(FunctionContext_t* context);
+void setDemodCalRatio(FunctionContext_t* context);
+void performDemodCal(FunctionContext_t* context);
+void setDemodCalLowerFreq(FunctionContext_t* context);
+void setDemodCalUpperFreq(FunctionContext_t* context);
+void exportDemodCal(FunctionContext_t* context);
+void setMacProtocol(FunctionContext_t* context);
+void setID(FunctionContext_t* context);
+void setStationaryFlag(FunctionContext_t* context);
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -1275,9 +1275,8 @@ bool COMM_RegisterConfigurationMenu()
 
 /* Private function definitions ----------------------------------------------*/
 
-void setPreambleErrorDetection(void* argument)
+void setPreambleErrorDetection(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
   char* descriptors[] = {"None",
                          "CRC-8",      "CRC-16",      "CRC-32", 
                          "Checksum-8", "Checksum-16", "Checksum-32"};
@@ -1286,9 +1285,8 @@ void setPreambleErrorDetection(void* argument)
     sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
-void setCargoErrorDetection(void* argument)
+void setCargoErrorDetection(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
   char* descriptors[] = {"None",
                          "CRC-8",      "CRC-16",      "CRC-32", 
                          "Checksum-8", "Checksum-16", "Checksum-32"};
@@ -1297,87 +1295,67 @@ void setCargoErrorDetection(void* argument)
     sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
-void preambleErrorBehavior(void* argument)
+void preambleErrorBehavior(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
-void cargoErrorBehavior(void* argument)
+void cargoErrorBehavior(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
-void setPreambleEcc(void* argument)
+void setPreambleEcc(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
   char* descriptors[] = {"None", "1-bit Hamming Code", "1:2 Convolutional Code (JANUS)"};
 
   COMMLoops_LoopEnum(context, PARAM_ECC_PREAMBLE, descriptors,
     sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
-void setMessageEcc(void* argument)
+void setMessageEcc(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
   char* descriptors[] = {"None", "1-bit Hamming Code", "1:2 Convolutional Code (JANUS)"};
 
   COMMLoops_LoopEnum(context, PARAM_ECC_MESSAGE, descriptors,
     sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
-void setModulationMethod(void* argument)
+void setModulationMethod(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   char* descriptors[] = {"FSK", "FHBFSK"};
   
   COMMLoops_LoopEnum(context, PARAM_MOD_DEMOD_METHOD, descriptors, 
     sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
-void setFskF0(void* argument)
+void setFskF0(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint32(context, PARAM_FSK_F0);
 }
 
-void setFskF1(void* argument)
+void setFskF1(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint32(context, PARAM_FSK_F1);
 }
 
-void setFhbfskFreqSpacing(void* argument)
+void setFhbfskFreqSpacing(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint8(context, PARAM_FHBFSK_FREQ_SPACING);
 }
 
-void setFhbfskDwell(void* argument)
+void setFhbfskDwell(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint8(context, PARAM_FHBFSK_DWELL_TIME);
 }
 
-void setFhbfskTones(void* argument)
+void setFhbfskTones(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint8(context, PARAM_FHBFSK_NUM_TONES);
 }
 
-void setFhbfskHopper(void* argument)
+void setFhbfskHopper(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   char *descriptors[] = {"Increment by 1", "Galois Field arithmetic (JANUS)", 
                          "Prime selector"};
 
@@ -1385,38 +1363,28 @@ void setFhbfskHopper(void* argument)
       sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
-void toggleWakeupTones(void* argument)
+void toggleWakeupTones(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopToggle(context, PARAM_WAKEUP_TONES_STATE);
 }
 
-void setWakeupTone1(void* argument)
+void setWakeupTone1(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint32(context, PARAM_WAKEUP_TONE1);
 }
 
-void setWakeupTone2(void* argument)
+void setWakeupTone2(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint32(context, PARAM_WAKEUP_TONE2);
 }
 
-void setWakeupTone3(void* argument)
+void setWakeupTone3(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint32(context, PARAM_WAKEUP_TONE3);
 }
 
-void setBaudRate(void* argument)
+void setBaudRate(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   ParamIds_t param_id = PARAM_BAUD;
 
   ParamState_t old_state = context->state->state;
@@ -1504,17 +1472,13 @@ void setBaudRate(void* argument)
   } while (old_state > context->state->state);
 }
 
-void setCenterFrequency(void* argument)
+void setCenterFrequency(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint32(context, PARAM_FC);
 }
 
-void getBitPeriod(void* argument)
+void getBitPeriod(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   float bit_period_ms;
 
   if (MESS_GetBitPeriod(&bit_period_ms) == false) {
@@ -1529,10 +1493,8 @@ void getBitPeriod(void* argument)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void getBandwidth(void* argument)
+void getBandwidth(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   uint32_t bandwidth, lower_freq, upper_freq;
 
   if (MESS_GetBandwidth(&bandwidth, &lower_freq, &upper_freq) == false) {
@@ -1553,111 +1515,85 @@ void getBandwidth(void* argument)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void toggleInterleaver(void* argument)
+void toggleInterleaver(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopToggle(context, PARAM_USE_INTERLEAVER);
 }
 
-void setSynchronizer(void* argument) 
+void setSynchronizer(FunctionContext_t* context) 
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   char* descriptors[] = {"None", "JANUS 32-chips"};
 
   COMMLoops_LoopEnum(context, PARAM_SYNC_METHOD, descriptors,
     sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
-void printConfigOptions(void* argument)
+void printConfigOptions(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   if (ImportExport_ExportConfiguration(context) == false) {
     COMM_TransmitData("\r\nInternal Error!\r\n", CALC_LEN, context->comm_interface);
   }
 }
 
-void importConfigOptions(void* argument)
+void importConfigOptions(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   ImportExport_ImportConfiguration(context);
 }
 
-void setDacTransitionDuration(void* argument)
+void setDacTransitionDuration(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint16(context, PARAM_DAC_TRANSITION_LEN);
 }
 
-void setModPowerControlMethod(void* argument)
+void setModPowerControlMethod(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   char* descriptors[] = {"Static DAC output", "Static Output Power"};
 
   COMMLoops_LoopEnum(context, PARAM_MODULATION_OUTPUT_METHOD, descriptors, 
     sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
-void setModFixedOutput(void* argument)
+void setModFixedOutput(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_LoopFloat(context, PARAM_OUTPUT_AMPLITUDE);
 }
 
-void setMessageStartFunction(void* argument)
+void setMessageStartFunction(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   char* descriptors[] = {"Use amplitude threshold", "Use overlapping FFTs"};
 
   COMMLoops_LoopEnum(context, PARAM_MSG_START_FCN, descriptors, 
     sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
-void setBitDecisionFunction(void* argument)
+void setBitDecisionFunction(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   char* descriptors[] = {"Use energy comparison", "Use historical comparison"};
 
   COMMLoops_LoopEnum(context, PARAM_DEMODULATION_DECISION, descriptors, 
     sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
-void setHistoricalComparisonThreshold(void* argument)
+void setHistoricalComparisonThreshold(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopFloat(context, PARAM_HISTORICAL_COMPARISON_THRESHOLD);
 }
 
-void toggleAgc(void* argument)
+void toggleAgc(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopToggle(context, PARAM_AGC_ENABLE);
 }
 
-void setFixedPgaGain(void* argument)
+void setFixedPgaGain(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   char* descriptors[] = {"1", "2", "5", "10", "20", "50", "100", "200"};
 
   COMMLoops_LoopEnum(context, PARAM_FIXED_PGA_GAIN, descriptors, 
     sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
-void setWindowFunction(void* argument)
+void setWindowFunction(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   char* descriptors[] = {"Rectangular", "Hann", "Hamming"};
 
   COMMLoops_LoopEnum(context, PARAM_WINDOW_FUNCTION, descriptors, 
@@ -1665,53 +1601,39 @@ void setWindowFunction(void* argument)
 }
 
 // TODO: implement
-void configureSleep(void* argument)
+void configureSleep(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
-void setLedBrightness(void* argument)
+void setLedBrightness(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_LoopUint16(context, PARAM_LED_BRIGHTNESS);
 }
 
-void toggleLed(void* argument)
+void toggleLed(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_LoopToggle(context, PARAM_LED_ENABLE);
 }
 
-void setModCalLowerFreq(void* argument)
+void setModCalLowerFreq(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint32(context, PARAM_MOD_CAL_LOWER_FREQ);
 }
 
-void setModCalUpperFreq(void* argument)
+void setModCalUpperFreq(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint32(context, PARAM_MOD_CAL_UPPER_FREQ);
 }
 
 // TODO: implement
-void updateTvr(void* argument)
+void updateTvr(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
-void modCalibration(void* argument)
+void modCalibration(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   if (print_event_handle == NULL) return;
 
   osEventFlagsSet(print_event_handle, MESS_FREQ_RESP);
@@ -1720,145 +1642,107 @@ void modCalibration(void* argument)
 }
 
 // TODO: implement
-void exportModCalibration(void* argument)
+void exportModCalibration(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
 // TODO: implement
-void tuneMatchingNetwork(void* argument)
+void tuneMatchingNetwork(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
 // TODO: implement
-void updateOcrr(void* argument)
+void updateOcrr(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
-void updateVmax(void* argument)
+void updateVmax(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_LoopFloat(context, PARAM_MAX_TRANSDUCER_VOLTAGE);
 }
 
 // TODO: implement
-void toggleModFeedback(void* argument)
+void toggleModFeedback(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
 // TODO: implement
-void setModFeedbackRatio(void* argument)
+void setModFeedbackRatio(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
-void setModOutputPower(void* argument)
+void setModOutputPower(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_LoopFloat(context, PARAM_MODULATION_TARGET_POWER);
 }
 
-void setTransducerR(void* argument)
+void setTransducerR(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_LoopFloat(context, PARAM_R);
 }
 
-void setTransducerC0(void* argument)
+void setTransducerC0(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_LoopFloat(context, PARAM_C0);
 }
 
-void setTransducerL0(void* argument)
+void setTransducerL0(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_LoopFloat(context, PARAM_L0);
 }
 
-void setTransducerC1(void* argument)
+void setTransducerC1(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_LoopFloat(context, PARAM_C1);
 }
 
 // TODO: implement
-void setDemodCalRatio(void* argument)
+void setDemodCalRatio(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
 // TODO: implement
-void performDemodCal(void* argument)
+void performDemodCal(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
-void setDemodCalLowerFreq(void* argument)
+void setDemodCalLowerFreq(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_LoopUint32(context, PARAM_DEMOD_CAL_LOWER_FREQ);
 }
 
-void setDemodCalUpperFreq(void* argument)
+void setDemodCalUpperFreq(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_LoopUint32(context, PARAM_DEMOD_CAL_UPPER_FREQ);
 }
 
 // TODO: implement
-void exportDemodCal(void* argument)
+void exportDemodCal(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
-void setMacProtocol(void* argument)
+void setMacProtocol(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   char* descriptors[] = {"No MAC", "GA CSMA/CA with BEB (JANUS)"};
 
   COMMLoops_LoopEnum(context, PARAM_MAC, descriptors, 
     sizeof(descriptors) / sizeof(descriptors[0]));
 }
 
-void setID(void* argument)
+void setID(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint8(context, PARAM_ID);
 }
 
-void setStationaryFlag(void* argument)
+void setStationaryFlag(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopToggle(context, PARAM_STATIONARY_FLAG);
 }
