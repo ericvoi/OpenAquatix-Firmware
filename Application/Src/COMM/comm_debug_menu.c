@@ -136,7 +136,7 @@ static ParamContext_t debug_menu_noise_param = {
 };
 static const MenuNode_t debug_menu_noise = {
   .id = MENU_ID_DBG_BGDUMP,
-  .description = "1000 sample ADC dump",
+  .description = "Get 1000 ADC samples",
   .handler = dumpAdcData,
   .parent_id = MENU_ID_DBG,
   .children_ids = NULL,
@@ -151,7 +151,7 @@ static ParamContext_t debug_menu_noise_f_param = {
 };
 static const MenuNode_t debug_menu_noise_f = {
   .id = MENU_ID_DBG_BGFREQ,
-  .description = "Frequency content of background noise",
+  .description = "Get frequency content of background noise (FFT)",
   .handler = noiseSpectralAnalysis,
   .parent_id = MENU_ID_DBG,
   .children_ids = NULL,
@@ -211,7 +211,7 @@ static ParamContext_t debug_menu_noise_level_param = {
 };
 static const MenuNode_t debug_menu_noise_level = {
   .id = MENU_ID_DBG_NOISE,
-  .description = "Scaleless background noise level",
+  .description = "Get scaleless background noise level",
   .handler = printBackgroundNoise,
   .parent_id = MENU_ID_DBG,
   .children_ids = NULL,

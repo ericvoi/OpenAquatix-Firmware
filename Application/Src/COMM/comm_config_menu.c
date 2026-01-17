@@ -109,7 +109,7 @@ static MenuID_t config_menu_children[] = {
 };
 static const MenuNode_t config_menu = {
   .id = MENU_ID_CFG,
-  .description = "Configuration Parameters Menu",
+  .description = "Configuration Menu",
   .handler = NULL,
   .parent_id = MENU_ID_MAIN,
   .children_ids = config_menu_children,
@@ -132,7 +132,7 @@ static MenuID_t univ_config_menu_children[] = {
 };
 static const MenuNode_t univ_config_menu = {
   .id = MENU_ID_CFG_UNIV,
-  .description = "Universal Waveform Processing Parameters",
+  .description = "Universal Waveform Processing Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG,
   .children_ids = univ_config_menu_children,
@@ -148,7 +148,7 @@ static MenuID_t mod_config_menu_children[] = {
 };
 static const MenuNode_t mod_config_menu = {
   .id = MENU_ID_CFG_MOD,
-  .description = "Modulation Waveform Processing Parameters",
+  .description = "Modulation Waveform Processing Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG,
   .children_ids = mod_config_menu_children,
@@ -165,7 +165,7 @@ static MenuID_t demod_config_menu_children[] = {
 };
 static const MenuNode_t demod_config_menu = {
   .id = MENU_ID_CFG_DEMOD,
-  .description = "Demodulation Waveform Processing Parameters",
+  .description = "Demodulation Waveform Processing Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG,
   .children_ids = demod_config_menu_children,
@@ -180,7 +180,7 @@ static ParamContext_t change_mac_params = {
 };
 static const MenuNode_t change_mac = {
   .id = MENU_ID_CFG_MAC,
-  .description = "Change MAC Protocol",
+  .description = "Set MAC protocol",
   .handler = setMacProtocol,
   .parent_id = MENU_ID_CFG,
   .children_ids = NULL,
@@ -194,7 +194,7 @@ static MenuID_t dau_config_menu_children[] = {
 };
 static const MenuNode_t dau_config_menu = {
   .id = MENU_ID_CFG_DAU,
-  .description = "Daughter Card Communication Parameters",
+  .description = "Daughter Card Communication Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG,
   .children_ids = dau_config_menu_children,
@@ -208,7 +208,7 @@ static MenuID_t led_config_menu_children[] = {
 };
 static const MenuNode_t led_config_menu = {
   .id = MENU_ID_CFG_LED,
-  .description = "LED Configuration Parameters",
+  .description = "LED Configuration Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG,
   .children_ids = led_config_menu_children,
@@ -223,7 +223,7 @@ static ParamContext_t set_new_id_param = {
 };
 static const MenuNode_t set_new_id = {
   .id = MENU_ID_CFG_SETID,
-  .description = "Set Modem ID",
+  .description = "Set modem ID",
   .handler = setID,
   .parent_id = MENU_ID_CFG,
   .children_ids = NULL,
@@ -238,7 +238,7 @@ static ParamContext_t set_stationary_param = {
 };
 static const MenuNode_t set_stationary = {
   .id = MENU_ID_CFG_STATIONARY,
-  .description = "Toggle Stationary Flag",
+  .description = "Toggle stationary flag",
   .handler = setStationaryFlag,
   .parent_id = MENU_ID_CFG,
   .children_ids = NULL,
@@ -255,7 +255,7 @@ static MenuID_t univ_config_err_children[] = {
 };
 static const MenuNode_t univ_config_err_menu = {
   .id = MENU_ID_CFG_UNIV_ERR,
-  .description = "Error Detection Options",
+  .description = "Error Detection Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = univ_config_err_children,
@@ -270,7 +270,7 @@ static ParamContext_t univ_config_ecc_preamble_param = {
 };
 static const MenuNode_t univ_config_ecc_preamble = {
   .id = MENU_ID_CFG_UNIV_ECCPREAMBLE,
-  .description = "Preamble ECC",
+  .description = "Set preamble ECC",
   .handler = setPreambleEcc,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
@@ -285,7 +285,7 @@ static ParamContext_t univ_config_ecc_message_param = {
 };
 static const MenuNode_t univ_config_ecc_message = {
   .id = MENU_ID_CFG_UNIV_ECCMESSAGE,
-  .description = "Message ECC",
+  .description = "Set message ECC",
   .handler = setMessageEcc,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
@@ -300,7 +300,7 @@ static ParamContext_t univ_config_mod_param = {
 };
 static const MenuNode_t univ_config_mod = {
   .id = MENU_ID_CFG_UNIV_MOD,
-  .description = "Modulation Method",
+  .description = "Set modulation method",
   .handler = setModulationMethod,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
@@ -314,7 +314,7 @@ static MenuID_t univ_config_fsk_children[] = {
 };
 static const MenuNode_t univ_config_fsk_menu = {
   .id = MENU_ID_CFG_UNIV_FSK,
-  .description = "FSK Options",
+  .description = "FSK Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = univ_config_fsk_children,
@@ -329,7 +329,7 @@ static MenuID_t univ_config_fhbfsk_children[] = {
 };
 static const MenuNode_t univ_config_fhbsk_menu = {
   .id = MENU_ID_CFG_UNIV_FHBFSK,
-  .description = "FHBFSK Options",
+  .description = "FHBFSK Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = univ_config_fhbfsk_children,
@@ -344,7 +344,7 @@ static ParamContext_t univ_config_baud_param = {
 };
 static const MenuNode_t univ_config_baud = {
   .id = MENU_ID_CFG_UNIV_BAUD,
-  .description = "Configure Baud Rate",
+  .description = "Set baud rate",
   .handler = setBaudRate,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
@@ -359,7 +359,7 @@ static ParamContext_t univ_config_fc_param = {
 };
 static const MenuNode_t univ_config_fc = {
   .id = MENU_ID_CFG_UNIV_FC,
-  .description = "Set Center Frequency",
+  .description = "Set center frequency",
   .handler = setCenterFrequency,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
@@ -374,7 +374,7 @@ static ParamContext_t univ_config_bit_period_param = {
 };
 static const MenuNode_t univ_config_bit_period = {
   .id = MENU_ID_CFG_UNIV_BP,
-  .description = "Get Bit Period",
+  .description = "Get bit period",
   .handler = getBitPeriod,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
@@ -389,7 +389,7 @@ static ParamContext_t univ_config_bandwidth_param = {
 };
 static const MenuNode_t univ_config_bandwidth = {
   .id = MENU_ID_CFG_UNIV_BANDWIDTH,
-  .description = "Get Bandwidth",
+  .description = "Get bandwidth",
   .handler = getBandwidth,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
@@ -404,7 +404,7 @@ static ParamContext_t univ_config_interleaver_param = {
 };
 static const MenuNode_t univ_config_interleaver = {
   .id = MENU_ID_CFG_UNIV_INTERLEAVER,
-  .description = "Toggle Interleaver",
+  .description = "Toggle interleaver",
   .handler = toggleInterleaver,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
@@ -419,7 +419,7 @@ static ParamContext_t univ_config_sync_param = {
 };
 static const MenuNode_t univ_config_sync = {
   .id = MENU_ID_CFG_UNIV_SYNC,
-  .description = "Set Synchronization Method",
+  .description = "Set synchronization method",
   .handler = setSynchronizer,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
@@ -434,7 +434,7 @@ static MenuID_t univ_config_wakeup_children[] = {
 };
 static const MenuNode_t univ_config_wakeup_menu = {
   .id = MENU_ID_CFG_UNIV_WAKEUP,
-  .description = "Wakeup Options",
+  .description = "Wakeup Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = univ_config_wakeup_children,
@@ -449,7 +449,7 @@ static ParamContext_t univ_config_export_param = {
 };
 static const MenuNode_t univ_config_export = {
   .id = MENU_ID_CFG_UNIV_EXP,
-  .description = "Export Configuration Options Used",
+  .description = "Export current configuration",
   .handler = printConfigOptions,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
@@ -464,7 +464,7 @@ static ParamContext_t univ_config_import_param = {
 };
 static const MenuNode_t univ_config_import = {
   .id = MENU_ID_CFG_UNIV_IMP,
-  .description = "Import Configuration options",
+  .description = "Import configuration",
   .handler = importConfigOptions,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
@@ -479,7 +479,7 @@ static ParamContext_t mod_config_dac_transition_param = {
 };
 static const MenuNode_t mod_config_dac_transition = {
   .id = MENU_ID_CFG_MOD_TLEN,
-  .description = "Set DAC Transition Duration",
+  .description = "Set DAC transition duration",
   .handler = setDacTransitionDuration,
   .parent_id = MENU_ID_CFG_MOD,
   .children_ids = NULL,
@@ -496,7 +496,7 @@ static MenuID_t mod_config_cal_children[] = {
 };
 static const MenuNode_t mod_config_cal_menu = {
   .id = MENU_ID_CFG_MOD_CAL,
-  .description = "Modulation Calibration Options",
+  .description = "Modulation Calibration Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG_MOD,
   .children_ids = mod_config_cal_children,
@@ -510,7 +510,7 @@ static MenuID_t mod_config_feedback_children[] = {
 };
 static const MenuNode_t mod_config_feedback_menu = {
   .id = MENU_ID_CFG_MOD_FB,
-  .description = "Modulation Feedback Options",
+  .description = "Modulation Feedback Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG_MOD,
   .children_ids = mod_config_feedback_children,
@@ -540,7 +540,7 @@ static ParamContext_t mod_config_fixed_param = {
 };
 static const MenuNode_t mod_config_fixed = {
   .id = MENU_ID_CFG_MOD_FIXED,
-  .description = "Fixed relative DAC output strength to use",
+  .description = "Set DAC scale (fixed output only)",
   .handler = setModFixedOutput,
   .parent_id = MENU_ID_CFG_MOD,
   .children_ids = NULL,
@@ -556,7 +556,7 @@ static MenuID_t mod_config_power_children[] = {
 };
 static const MenuNode_t mod_config_power_menu = {
   .id = MENU_ID_CFG_MOD_PWROPT,
-  .description = "Fixed output power level options",
+  .description = "Fixed Output Power Level Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG_MOD,
   .children_ids = mod_config_power_children,
@@ -572,7 +572,7 @@ static MenuID_t demod_config_cal_children[] = {
 };
 static const MenuNode_t demod_config_cal_menu = {
   .id = MENU_ID_CFG_DEMOD_CAL,
-  .description = "Demodulation Cablibration Options",
+  .description = "Demodulation Cablibration Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG_DEMOD,
   .children_ids = demod_config_cal_children,
@@ -587,7 +587,7 @@ static ParamContext_t demod_config_start_fcn_param = {
 };
 static const MenuNode_t demod_config_start_fcn = {
   .id = MENU_ID_CFG_DEMOD_START,
-  .description = "Select the message start function to use",
+  .description = "Set message start function (no message synchronization sequence)",
   .handler = setMessageStartFunction,
   .parent_id = MENU_ID_CFG_DEMOD,
   .children_ids = NULL,
@@ -602,7 +602,7 @@ static ParamContext_t demod_config_decision_fcn_param = {
 };
 static const MenuNode_t demod_config_decision_fcn = {
   .id = MENU_ID_CFG_DEMOD_DECISION,
-  .description = "Select the bit decision function to use",
+  .description = "Set bit decision function",
   .handler = setBitDecisionFunction,
   .parent_id = MENU_ID_CFG_DEMOD,
   .children_ids = NULL,
@@ -632,7 +632,7 @@ static ParamContext_t demod_config_use_agc_param = {
 };
 static const MenuNode_t demod_config_use_agc = {
   .id = MENU_ID_CFG_DEMOD_AGCEN,
-  .description = "Enable/disable automatic gain control (AGC)",
+  .description = "Toggle automatic gain control (AGC)",
   .handler = toggleAgc,
   .parent_id = MENU_ID_CFG_DEMOD,
   .children_ids = NULL,
@@ -677,7 +677,7 @@ static ParamContext_t dau_config_sleep_param = {
 };
 static const MenuNode_t dau_config_sleep = {
   .id = MENU_ID_CFG_DAU_SLEEP,
-  .description = "Enable or Disable Sleep Modes",
+  .description = "Toggle sleep modes",
   .handler = configureSleep,
   .parent_id = MENU_ID_CFG_DAU,
   .children_ids = NULL,
@@ -692,7 +692,7 @@ static ParamContext_t led_config_brightness_param = {
 };
 static const MenuNode_t led_config_brightness = {
   .id = MENU_ID_CFG_LED_BRIGHTNESS,
-  .description = "Set LED Brightness",
+  .description = "Set LED brightness",
   .handler = setLedBrightness,
   .parent_id = MENU_ID_CFG_LED,
   .children_ids = NULL,
@@ -724,7 +724,7 @@ static ParamContext_t univ_err_config_preamble_validation_param = {
 };
 static const MenuNode_t univ_err_config_preamble_validation = {
   .id = MENU_ID_CFG_UNIV_ERR_PREAMBLE,
-  .description = "Preamble error detection method",
+  .description = "Set preamble error detection method",
   .handler = setPreambleErrorDetection,
   .parent_id = MENU_ID_CFG_UNIV_ERR,
   .children_ids = NULL,
@@ -739,7 +739,7 @@ static ParamContext_t univ_err_config_cargo_validation_param = {
 };
 static const MenuNode_t univ_err_config_cargo_validation = {
   .id = MENU_ID_CFG_UNIV_ERR_CARGO,
-  .description = "Cargo error detection method",
+  .description = "Set cargo error detection method",
   .handler = setCargoErrorDetection,
   .parent_id = MENU_ID_CFG_UNIV_ERR,
   .children_ids = NULL,
@@ -754,7 +754,7 @@ static ParamContext_t univ_err_config_preamble_behavior_param = {
 };
 static const MenuNode_t univ_err_config_preamble_behavior = {
   .id = MENU_ID_CFG_UNIV_ERR_PREERR,
-  .description = "Preamble error behavior",
+  .description = "Set preamble error behavior",
   .handler = preambleErrorBehavior,
   .parent_id = MENU_ID_CFG_UNIV_ERR,
   .children_ids = NULL,
@@ -769,7 +769,7 @@ static ParamContext_t univ_err_config_cargo_behavior_param = {
 };
 static const MenuNode_t univ_err_config_cargo_behavior = {
   .id = MENU_ID_CFG_UNIV_ERR_CARGOERR,
-  .description = "Cargo error behavior",
+  .description = "Set cargo error behavior",
   .handler = cargoErrorBehavior,
   .parent_id = MENU_ID_CFG_UNIV_ERR,
   .children_ids = NULL,
@@ -784,7 +784,7 @@ static ParamContext_t univ_fsk_config_f0_param = {
 };
 static const MenuNode_t univ_fsk_config_f0 = {
   .id = MENU_ID_CFG_UNIV_FSK_F0,
-  .description = "Set FSK Frequency '0'",
+  .description = "Set FSK frequency '0'",
   .handler = setFskF0,
   .parent_id = MENU_ID_CFG_UNIV_FSK,
   .children_ids = NULL,
@@ -799,7 +799,7 @@ static ParamContext_t univ_fsk_config_f1_param = {
 };
 static const MenuNode_t univ_fsk_config_f1 = {
   .id = MENU_ID_CFG_UNIV_FSK_F1,
-  .description = "Set FSK Frequency '1'",
+  .description = "Set FSK frequency '1'",
   .handler = setFskF1,
   .parent_id = MENU_ID_CFG_UNIV_FSK,
   .children_ids = NULL,
@@ -814,7 +814,7 @@ static ParamContext_t univ_fhbfsk_config_freq_spacing_param = {
 };
 static const MenuNode_t univ_fhbfsk_config_freq_spacing = {
   .id = MENU_ID_CFG_UNIV_FHBFSK_FSEP,
-  .description = "Set Frequency Spacing",
+  .description = "Set frequency spacing",
   .handler = setFhbfskFreqSpacing,
   .parent_id = MENU_ID_CFG_UNIV_FHBFSK,
   .children_ids = NULL,
@@ -829,7 +829,7 @@ static ParamContext_t univ_fhbfsk_config_dwell_param = {
 };
 static const MenuNode_t univ_fhbfsk_config_dwell = {
   .id = MENU_ID_CFG_UNIV_FHBFSK_DWELL,
-  .description = "Set Number of Bit Dwell Periods",
+  .description = "Set number of bit dwell periods",
   .handler = setFhbfskDwell,
   .parent_id = MENU_ID_CFG_UNIV_FHBFSK,
   .children_ids = NULL,
@@ -844,7 +844,7 @@ static ParamContext_t univ_fhbfsk_config_tones_param = {
 };
 static const MenuNode_t univ_fhbfsk_config_tones = {
   .id = MENU_ID_CFG_UNIV_FHBFSK_TONES,
-  .description = "Set Number of Tones",
+  .description = "Set number of tones",
   .handler = setFhbfskTones,
   .parent_id = MENU_ID_CFG_UNIV_FHBFSK,
   .children_ids = NULL,
@@ -859,7 +859,7 @@ static ParamContext_t univ_fhbfsk_config_hopper_param = {
 };
 static const MenuNode_t univ_fhbfsk_config_hopper = {
   .id = MENU_ID_CFG_UNIV_FHBFSK_HOPP,
-  .description = "Set Frequency Hopper",
+  .description = "Set frequency hopper",
   .handler = setFhbfskHopper,
   .parent_id = MENU_ID_CFG_UNIV_FHBFSK,
   .children_ids = NULL,
@@ -889,7 +889,7 @@ static ParamContext_t univ_wakeup_config_tone1_param = {
 };
 static const MenuNode_t univ_wakeup_config_tone1 = {
   .id = MENU_ID_CFG_UNIV_WAKEUP_F1,
-  .description = "First wakeup tone frequency",
+  .description = "Set wakeup tone frequency 1",
   .handler = setWakeupTone1,
   .parent_id = MENU_ID_CFG_UNIV_WAKEUP,
   .children_ids = NULL,
@@ -904,7 +904,7 @@ static ParamContext_t univ_wakeup_config_tone2_param = {
 };
 static const MenuNode_t univ_wakeup_config_tone2 = {
   .id = MENU_ID_CFG_UNIV_WAKEUP_F2,
-  .description = "Second wakeup tone frequency",
+  .description = "Set wakeup tone frequency 2",
   .handler = setWakeupTone2,
   .parent_id = MENU_ID_CFG_UNIV_WAKEUP,
   .children_ids = NULL,
@@ -919,7 +919,7 @@ static ParamContext_t univ_wakeup_config_tone3_param = {
 };
 static const MenuNode_t univ_wakeup_config_tone3 = {
   .id = MENU_ID_CFG_UNIV_WAKEUP_F3,
-  .description = "Third wakeup tone frequency",
+  .description = "Set wakeup tone frequency 3",
   .handler = setWakeupTone3,
   .parent_id = MENU_ID_CFG_UNIV_WAKEUP,
   .children_ids = NULL,
@@ -934,7 +934,7 @@ static ParamContext_t mod_cal_config_low_freq_param = {
 };
 static const MenuNode_t mod_cal_config_low_freq = {
   .id = MENU_ID_CFG_MOD_CAL_LOWFREQ,
-  .description = "Lower Frequency for Calibration",
+  .description = "Set calibration lower frequency",
   .handler = setModCalLowerFreq,
   .parent_id = MENU_ID_CFG_MOD_CAL,
   .children_ids = NULL,
@@ -949,7 +949,7 @@ static ParamContext_t mod_cal_config_upper_freq_param = {
 };
 static const MenuNode_t mod_cal_config_upper_freq = {
   .id = MENU_ID_CFG_MOD_CAL_HIFREQ,
-  .description = "Upper Frequency for Calibration",
+  .description = "Set calibration upper frequency",
   .handler = setModCalUpperFreq,
   .parent_id = MENU_ID_CFG_MOD_CAL,
   .children_ids = NULL,
@@ -979,7 +979,7 @@ static ParamContext_t mod_cal_config_perform_param = {
 };
 static const MenuNode_t mod_cal_config_perform = {
   .id = MENU_ID_CFG_MOD_CAL_PERFORM,
-  .description = "Perform Calibration",
+  .description = "Perform calibration",
   .handler = modCalibration,
   .parent_id = MENU_ID_CFG_MOD_CAL,
   .children_ids = NULL,
@@ -994,7 +994,7 @@ static ParamContext_t mod_cal_config_export_param = {
 };
 static const MenuNode_t mod_cal_config_export = {
   .id = MENU_ID_CFG_MOD_CAL_EXP,
-  .description = "Export Calibration",
+  .description = "Export calibration",
   .handler = exportModCalibration,
   .parent_id = MENU_ID_CFG_MOD_CAL,
   .children_ids = NULL,
@@ -1009,7 +1009,7 @@ static ParamContext_t mod_cal_config_tune_param = {
 };
 static const MenuNode_t mod_cal_config_tune = {
   .id = MENU_ID_CFG_MOD_CAL_TUNE,
-  .description = "Tune Matching Network",
+  .description = "Tune matching network",
   .handler = tuneMatchingNetwork,
   .parent_id = MENU_ID_CFG_MOD_CAL,
   .children_ids = NULL,
@@ -1039,7 +1039,7 @@ static ParamContext_t mod_cal_config_vmax_param = {
 };
 static const MenuNode_t mod_cal_config_vmax = {
   .id = MENU_ID_CFG_MOD_CAL_VMAX,
-  .description = "Set Maximum Output Voltage",
+  .description = "Set maximum output voltage",
   .handler = updateVmax,
   .parent_id = MENU_ID_CFG_MOD_CAL,
   .children_ids = NULL,
@@ -1054,7 +1054,7 @@ static ParamContext_t mod_fb_config_toggle_param = {
 };
 static const MenuNode_t mod_fb_config_toggle = {
   .id = MENU_ID_CFG_MOD_FB_EN,
-  .description = "Toggle Feedback Network",
+  .description = "Toggle feedback network",
   .handler = toggleModFeedback,
   .parent_id = MENU_ID_CFG_MOD_FB,
   .children_ids = NULL,
@@ -1069,7 +1069,7 @@ static ParamContext_t mod_fb_config_ratio_param = {
 };
 static const MenuNode_t mod_fb_config_ratio = {
   .id = MENU_ID_CFG_MOD_FB_RATIO,
-  .description = "Set Feedback Division Ratio",
+  .description = "Set feedback division ratio",
   .handler = setModFeedbackRatio,
   .parent_id = MENU_ID_CFG_MOD_FB,
   .children_ids = NULL,
@@ -1084,7 +1084,7 @@ static ParamContext_t mod_pwr_config_target_param = {
 };
 static const MenuNode_t mod_pwr_config_target = {
   .id = MENU_ID_CFG_MOD_PWROPT_PWR,
-  .description = "Target output power (W)",
+  .description = "Set target output power (W)",
   .handler = setModOutputPower,
   .parent_id = MENU_ID_CFG_MOD_PWROPT,
   .children_ids = NULL,
@@ -1099,7 +1099,7 @@ static ParamContext_t mod_pwr_config_r_param = {
 };
 static const MenuNode_t mod_pwr_config_r = {
   .id = MENU_ID_CFG_MOD_PWROPT_R,
-  .description = "Series resistance of the motional branch (R) [ohms]",
+  .description = "Set motional branch series resistance (R) [ohms]",
   .handler = setTransducerR,
   .parent_id = MENU_ID_CFG_MOD_PWROPT,
   .children_ids = NULL,
@@ -1114,7 +1114,7 @@ static ParamContext_t mod_pwr_config_c0_param = {
 };
 static const MenuNode_t mod_pwr_config_c0 = {
   .id = MENU_ID_CFG_MOD_PWROPT_C0,
-  .description = "Series capacitance of the motional branch (C0) [nF]",
+  .description = "Set motional branch series capacitance (C0) [nF]",
   .handler = setTransducerC0,
   .parent_id = MENU_ID_CFG_MOD_PWROPT,
   .children_ids = NULL,
@@ -1129,7 +1129,7 @@ static ParamContext_t mod_pwr_config_l0_param = {
 };
 static const MenuNode_t mod_pwr_config_l0 = {
   .id = MENU_ID_CFG_MOD_PWROPT_L0,
-  .description = "Series inductance of the motional branch (L0) [mH]",
+  .description = "Set motional branch series inductance [mH]",
   .handler = setTransducerL0,
   .parent_id = MENU_ID_CFG_MOD_PWROPT,
   .children_ids = NULL,
@@ -1144,7 +1144,7 @@ static ParamContext_t mod_pwr_config_c1_param = {
 };
 static const MenuNode_t mod_pwr_config_c1 = {
   .id = MENU_ID_CFG_MOD_PWROPT_C1,
-  .description = "Parallel capacitance with the motional branch (C1) [nF]",
+  .description = "Set capacitance parallel to the motional branch (C1) [nF]",
   .handler = setTransducerC1,
   .parent_id = MENU_ID_CFG_MOD_PWROPT,
   .children_ids = NULL,
@@ -1159,7 +1159,7 @@ static ParamContext_t demod_cal_config_ratio_param = {
 };
 static const MenuNode_t demod_cal_config_ratio = {
   .id = MENU_ID_CFG_DEMOD_CAL_RATIO,
-  .description = "Set Feedback Network Voltage Division Ratio",
+  .description = "Set feedback network voltage division ratio",
   .handler = setDemodCalRatio,
   .parent_id = MENU_ID_CFG_DEMOD_CAL,
   .children_ids = NULL,
@@ -1174,7 +1174,7 @@ static ParamContext_t demod_cal_config_perform_param = {
 };
 static const MenuNode_t demod_cal_config_perform = {
   .id = MENU_ID_CFG_DEMOD_CAL_PERFORM,
-  .description = "Perform Calibration",
+  .description = "Perform calibration",
   .handler = performDemodCal,
   .parent_id = MENU_ID_CFG_DEMOD_CAL,
   .children_ids = NULL,
@@ -1189,7 +1189,7 @@ static ParamContext_t demod_cal_config_low_freq_param = {
 };
 static const MenuNode_t demod_cal_config_low_freq = {
   .id = MENU_ID_CFG_DEMOD_CAL_LOWFREQ,
-  .description = "Lower frequency used for demodulation calibration",
+  .description = "Set demodulation calibration lower frequency",
   .handler = setDemodCalLowerFreq,
   .parent_id = MENU_ID_CFG_DEMOD_CAL,
   .children_ids = NULL,
@@ -1204,7 +1204,7 @@ static ParamContext_t demod_cal_config_upper_freq_param = {
 };
 static const MenuNode_t demod_cal_config_upper_freq = {
   .id = MENU_ID_CFG_DEMOD_CAL_HIFREQ,
-  .description = "Upper frequency used for demodulation calibration",
+  .description = "Set demodulation calibration upper frequency",
   .handler = setDemodCalUpperFreq,
   .parent_id = MENU_ID_CFG_DEMOD_CAL,
   .children_ids = NULL,
@@ -1219,7 +1219,7 @@ static ParamContext_t demod_cal_config_export_param = {
 };
 static const MenuNode_t demod_cal_config_export = {
   .id = MENU_ID_CFG_DEMOD_CAL_EXP,
-  .description = "Export Calibration Results",
+  .description = "Export calibration results",
   .handler = exportDemodCal,
   .parent_id = MENU_ID_CFG_DEMOD_CAL,
   .children_ids = NULL,

@@ -103,7 +103,7 @@ static MenuID_t janus_param_menu_children[] = {
 };
 static const MenuNode_t janus_param_menu = {
   .id = MENU_ID_JANUS_PARAM,
-  .description = "Modify JANUS parameters",
+  .description = "JANUS Configuration Menu",
   .handler = NULL,
   .parent_id = MENU_ID_JANUS,
   .children_ids = janus_param_menu_children,
@@ -178,7 +178,7 @@ static ParamContext_t janus_coding_param = {
 };
 static const MenuNode_t janus_coding = {
   .id = MENU_ID_JANUS_PARAM_CODING,
-  .description = "Modify data coding",
+  .description = "Set data coding",
   .handler = setMessageCoding,
   .parent_id = MENU_ID_JANUS_PARAM,
   .children_ids = NULL,
@@ -193,7 +193,7 @@ static ParamContext_t janus_encryption_param = {
 };
 static const MenuNode_t janus_encryption = {
   .id = MENU_ID_JANUS_PARAM_ENC,
-  .description = "Modify data encryption",
+  .description = "Set data encryption",
   .handler = setMessageEncryption,
   .parent_id = MENU_ID_JANUS_PARAM,
   .children_ids = NULL,
@@ -208,7 +208,7 @@ static ParamContext_t janus_dest_param = {
 };
 static const MenuNode_t janus_dest = {
   .id = MENU_ID_JANUS_PARAM_DEST,
-  .description = "Destination's JANUS ID",
+  .description = "Set destination JANUS ID",
   .handler = setJanusDestinationId,
   .parent_id = MENU_ID_JANUS_PARAM,
   .children_ids = NULL,
@@ -223,7 +223,7 @@ static ParamContext_t janus_sender_param = {
 };
 static const MenuNode_t janus_sender = {
   .id = MENU_ID_JANUS_PARAM_SENDER,
-  .description = "Modem's JANUS ID",
+  .description = "Set modem JANUS ID",
   .handler = setJanusId,
   .parent_id = MENU_ID_JANUS_PARAM,
   .children_ids = NULL,

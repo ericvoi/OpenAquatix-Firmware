@@ -94,7 +94,7 @@ static ParamContext_t received_hist_param = {
 };
 static const MenuNode_t received_hist = {
   .id = MENU_ID_HIST_RECV,
-  .description = "Print Last 5 Received Messages",
+  .description = "Get last 5 received messages",
   .handler = printReceivedMessages,
   .parent_id = MENU_ID_HIST,
   .children_ids = NULL,
@@ -109,7 +109,7 @@ static ParamContext_t sent_hist_param = {
 };
 static const MenuNode_t sent_hist = {
   .id = MENU_ID_HIST_SENT,
-  .description = "Print Last 5 Sent Messages",
+  .description = "Get last 5 sent messages",
   .handler = printSentMessages,
   .parent_id = MENU_ID_HIST,
   .children_ids = NULL,
@@ -124,7 +124,7 @@ static ParamContext_t err_hist_param = {
 };
 static const MenuNode_t err_hist = {
   .id = MENU_ID_HIST_ERR,
-  .description = "Print Error Log",
+  .description = "Get error log",
   .handler = printErrorLog,
   .parent_id = MENU_ID_HIST,
   .children_ids = NULL,
@@ -139,7 +139,7 @@ static ParamContext_t peak_pwr_hist_param = {
 };
 static const MenuNode_t peak_pwr_hist = {
   .id = MENU_ID_HIST_PWR_PEAK,
-  .description = "Peak Power",
+  .description = "Get peak power",
   .handler = printPeakPwr,
   .parent_id = MENU_ID_HIST_PWR,
   .children_ids = NULL,
@@ -154,7 +154,7 @@ static ParamContext_t boot_pwr_hist_param = {
 };
 static const MenuNode_t boot_pwr_hist = {
   .id = MENU_ID_HIST_PWR_BOOT,
-  .description = "Power Consumption Since Startup",
+  .description = "Get power consumption since startup",
   .handler = printPwrSinceBoot,
   .parent_id = MENU_ID_HIST_PWR,
   .children_ids = NULL,
@@ -169,7 +169,7 @@ static ParamContext_t avg_pwr_hist_param = {
 };
 static const MenuNode_t avg_pwr_hist = {
   .id = MENU_ID_HIST_PWR_AVG,
-  .description = "Average Power",
+  .description = "Get average power",
   .handler = printAvgPwr,
   .parent_id = MENU_ID_HIST_PWR,
   .children_ids = NULL,
@@ -184,7 +184,7 @@ static ParamContext_t curr_pwr_hist_param = {
 };
 static const MenuNode_t curr_pwr_hist = {
   .id = MENU_ID_HIST_PWR_CURR,
-  .description = "Current Power",
+  .description = "Get current power",
   .handler = printCurrPwr,
   .parent_id = MENU_ID_HIST_PWR,
   .children_ids = NULL,
@@ -199,7 +199,7 @@ static ParamContext_t curr_temp_hist_param = {
 };
 static const MenuNode_t curr_temp_hist = {
   .id = MENU_ID_HIST_TEMP_CURR,
-  .description = "Current Temperature",
+  .description = "Get current temperature",
   .handler = printCurrTemp,
   .parent_id = MENU_ID_HIST_TEMP,
   .children_ids = NULL,
@@ -214,7 +214,7 @@ static ParamContext_t peak_temp_hist_param = {
 };
 static const MenuNode_t peak_temp_hist = {
   .id = MENU_ID_HIST_TEMP_PEAK,
-  .description = "Peak Temperature",
+  .description = "Get peak temperature",
   .handler = printPeakTemp,
   .parent_id = MENU_ID_HIST_TEMP,
   .children_ids = NULL,
@@ -229,7 +229,7 @@ static ParamContext_t avg_temp_hist_param = {
 };
 static const MenuNode_t avg_temp_hist = {
   .id = MENU_ID_HIST_TEMP_AVG,
-  .description = "Average Temperature",
+  .description = "Get average temperature",
   .handler = printAvgTemp,
   .parent_id = MENU_ID_HIST_TEMP,
   .children_ids = NULL,
