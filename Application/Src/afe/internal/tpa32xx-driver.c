@@ -42,7 +42,7 @@ static bool filter_active = false;
 
 /* Private function prototypes -----------------------------------------------*/
 
-static bool switchReset(bool on);
+static bool enableTpa(bool disable);
 static bool switchFilter(bool on);
 
 /* Exported function definitions ---------------------------------------------*/
@@ -67,14 +67,14 @@ bool TPA_Enable(void)
 
 bool TPA_Mute(void)
 {
-  if (switchReset(false) == false) return false;
+  if (enableTpa(false) == false) return false;
   if (switchFilter(true) == false) return false;
   return true;
 }
 
 bool TPA_Unmute(void)
 {
-  if (switchReset(true) == false) return false;
+  if (enableTpa(true) == false) return false;
   if (switchFilter(false) == false) return false;
   return true;
 }
@@ -97,16 +97,17 @@ TpaState_t TPA_State(void)
 bool TPA_Ready(void)
 {
   if (current_state != TPA_ACTIVE) return false;
-  return !filter_active;
+  return ! filter_active;
 }
 
 /* Private function definitions ----------------------------------------------*/
 
-bool switchReset(bool on)
+bool enableTpa(bool enable)
 {
   // The RESET pin is hardware protected so no need to check if TPA powered on
-  HAL_GPIO_WritePin(RESET_GPIO_PORT, RESET_GPIO_PIN, on);
-  if (on == true) {
+  // TPA is enabled when RST_N is high or GPIO is low
+  HAL_GPIO_WritePin(RESET_GPIO_PORT, RESET_GPIO_PIN, ! enable);
+  if (enable == false) {
     current_state = TPA_ACTIVE;
   }
   else if (PWR_State30V() == PWR_READY) { // Powered on but reset asserted
