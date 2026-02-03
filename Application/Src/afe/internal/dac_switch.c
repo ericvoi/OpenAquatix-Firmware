@@ -1,20 +1,19 @@
 /*
- * sys_sensor_timer.c
+ * dac_switch.c
  *
- *  Created on: Apr 20, 2025
+ *  Created on: Dec 30, 2025
  *      Author: ericv
- * 
+ *
  * Copyright (c) 2025 OpenAquatix Contributors
  * SPDX-License-Identifier: MIT
  */
 
 /* Private includes ----------------------------------------------------------*/
 
+#include "stm32h723xx.h"
 #include "stm32h7xx_hal.h"
-
-#include "sys_sensor_timer.h"
-#include "sys_temperature.h"
-
+#include "main.h"
+#include "internal/dac_switch.h"
 #include <stdbool.h>
 
 /* Private typedef -----------------------------------------------------------*/
@@ -23,9 +22,7 @@
 
 /* Private define ------------------------------------------------------------*/
 
-#define TICKS_FOR_TEMPERATURE ((TEMPERATURE_SENSOR_PERIOD_MS * \
-                                SENSOR_TIMER_TICK_RATE_HZ) / \
-                                1000)
+
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -33,7 +30,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-static uint32_t sensor_ticks = 0;
+static DacDirection_t dac_direction = DAC_DIRECTION_FEEDBACK;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -41,22 +38,16 @@ static uint32_t sensor_ticks = 0;
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool SensorTimer_Init()
+void DACSwitch_Change(DacDirection_t direction)
 {
-  if (HAL_TIM_Base_Start_IT(&SENSOR_TIMER_SOURCE) != HAL_OK) {
-    return false;
-  }
-
-  return true;
+  GPIO_PinState pin_state = (direction == DAC_DIRECTION_TRANSDUCER) ? GPIO_PIN_SET : GPIO_PIN_RESET;
+  HAL_GPIO_WritePin(DAC_SEL_GPIO_Port, DAC_SEL_Pin, pin_state);
+  dac_direction = direction;
 }
 
-void SensorTimer_Tick()
+DacDirection_t DACSwitch_Current(void)
 {
-  sensor_ticks++;
-
-  if ((sensor_ticks % TICKS_FOR_TEMPERATURE) == 0) {
-    Temperature_TriggerTjConversion();
-  }
+  return dac_direction;
 }
 
 /* Private function definitions ----------------------------------------------*/

@@ -560,7 +560,7 @@ void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_fe
     return;
   }
   msg->preamble.modem_id.valid = true;
-  if (osMessageQueuePut(regularTxQueue, msg, 0, 0) == true) {
+  if (osMessageQueuePut(regularTxQueue, msg, 0, 0) == osOK) {
     sprintf((char*) context->output_buffer, "\r\nSuccessfully added to"
         " %s queue!\r\n\r\n", is_feedback ? "feedback network" : "transducer");
     COMM_TransmitData(context->output_buffer, CALC_LEN, 

@@ -42,7 +42,7 @@ static volatile uint32_t rx_tail;
 static uint8_t tx_buffer[DAU_TX_BUFFER_SIZE] __attribute__((section(".dma_buf")));
 static volatile uint8_t tx_busy = 0;
 
-extern UART_HandleTypeDef huart5;
+extern UART_HandleTypeDef hlpuart1;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -58,18 +58,15 @@ void DAU_Init(void)
   dau_buffer.contents_changed = false;
   dau_buffer.source = COMM_UART;
 
-  __HAL_UART_ENABLE_IT(&huart5, UART_IT_IDLE);
+  __HAL_UART_ENABLE_IT(&hlpuart1, UART_IT_IDLE);
 
-  HAL_UART_Receive_DMA(&huart5, rx_buffer, DAU_RX_BUFFER_SIZE);
+  HAL_UART_Receive_DMA(&hlpuart1, rx_buffer, DAU_RX_BUFFER_SIZE);
 }
 
 void DAU_TransmitData(uint8_t* data, uint16_t len)
 {
   if (osMutexAcquire(dau_uart_mutexHandle, osWaitForever) == osOK) {
-    while (tx_busy == 1) {
-      // TODO: Replace busy-wait with proper timeout or notification mechanism
-      osDelay(1);
-    }
+    osDelay(5); // TODO: find out why interrupt for tx_busy not triggering
     if (len > DAU_TX_BUFFER_SIZE) {
       osMutexRelease(dau_uart_mutexHandle);
       return;
@@ -79,7 +76,7 @@ void DAU_TransmitData(uint8_t* data, uint16_t len)
 
     tx_busy = 1;
 
-    HAL_UART_Transmit_DMA(&huart5, tx_buffer, len);
+    HAL_UART_Transmit_DMA(&hlpuart1, tx_buffer, len);
     osMutexRelease(dau_uart_mutexHandle);
   }
 }
@@ -87,7 +84,7 @@ void DAU_TransmitData(uint8_t* data, uint16_t len)
 void DAU_GetNewData()
 {
   // Calculate current DMA position
-  uint32_t dma_position = (DAU_RX_BUFFER_SIZE - __HAL_DMA_GET_COUNTER(huart5.hdmarx)) % DAU_RX_BUFFER_SIZE;
+  uint32_t dma_position = (DAU_RX_BUFFER_SIZE - __HAL_DMA_GET_COUNTER(hlpuart1.hdmarx)) % DAU_RX_BUFFER_SIZE;
   rx_tail = dma_position; // Update tail to current DMA position
 
   // Process all data between head and tail
@@ -162,7 +159,8 @@ RxState_t DAU_GetMessage(uint8_t* buffer, uint16_t* len)
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
-  if (huart == &huart5) {
+  if (huart == &hlpuart1) {
     tx_busy = 0;
   }
 }
+

@@ -37,6 +37,7 @@
 #include "cfg_defaults.h"
 #include "cfg_callbacks.h"
 
+#include "afe.h"
 #include "dac_waveform.h"
 #include "pga113-driver.h"
 
@@ -130,8 +131,6 @@ extern osMessageQueueId_t macRxQueue;
 /* Private function prototypes -----------------------------------------------*/
 
 static void switchState(ProcessingState_t newState);
-static void switchTrTransmit();
-static void switchTrReceive();
 static bool handleFlags();
 static bool registerMessParams();
 static bool registerMessMainParams();
@@ -158,6 +157,7 @@ void MESS_StartTask(void* argument)
   }
 
   CFG_WaitLoadComplete();
+
 
   Pga113_Init();
   Pga113_Enable();
@@ -228,6 +228,9 @@ void MESS_StartTask(void* argument)
               switchState(DRIVING_TRANSDUCER);
               break;
             case MSG_TRANSMIT_FEEDBACK:
+              if (AFE_SetMode(AFE_MODE_RX_FEEDBACK) != AFE_OK) {
+                Error_Routine(ERROR_MESS_PROCESSING);
+              }
               Modulate_StartFeedbackOutput(message_length, cfg, &bit_msg);
               // Should automatically go to processing once waveform being received without intervention
               break;
@@ -453,22 +456,15 @@ ProcessingState_t MESS_GetState()
 
 /* Private function definitions ----------------------------------------------*/
 
-static void switchState(ProcessingState_t newState)
+void switchState(ProcessingState_t newState)
 {
   // First deactivate and clear all adcs, dacs, and all buffers except for the input buffer when transitioning from listening to processing
   task_state = CHANGING;
   switch (newState) {
     case DRIVING_TRANSDUCER:
-      ADC_StopAll();
-      HAL_TIM_Base_Start(&htim6);
-      HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2048);
-      HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
-      osDelay(1);
-      HAL_TIM_Base_Stop(&htim6);
-      HAL_GPIO_WritePin(PAMP_MUTE_GPIO_Port, PAMP_MUTE_Pin, GPIO_PIN_RESET);
-      osDelay(1);
-      switchTrTransmit();
-      osDelay(10);
+      if (AFE_SetMode(AFE_MODE_TX) != AFE_OK) { // TODO: change to include feedback for input and output
+        Error_Routine(ERROR_MESS_PROCESSING);
+      }
       Modulate_StartTransducerOutput(message_length, cfg, &bit_msg);
       task_state = DRIVING_TRANSDUCER;
       break;
@@ -476,16 +472,9 @@ static void switchState(ProcessingState_t newState)
       cfg = &custom_config;
       CFG_IncrementVersionNumber();
       Waveform_StopWaveformOutput();
-      HAL_TIM_Base_Stop(&htim6);
-      HAL_DAC_Stop(&hdac1, DAC_CHANNEL_1);
-      HAL_GPIO_WritePin(PAMP_MUTE_GPIO_Port, PAMP_MUTE_Pin, GPIO_PIN_SET);
-      ADC_StopAll();
-      Input_Reset();
-      osDelay(100); // I am terrified of the pre-amplifier being exposed to residual voltage from the power amplifier
-      switchTrReceive();
-      osDelay(5);
-      ADC_StartInput();
-      Sync_Reset();
+      if (AFE_SetMode(AFE_MODE_RX) != AFE_OK) {
+        Error_Routine(ERROR_MESS_PROCESSING);
+      }
       task_state = LISTENING;
       break;
     case PROCESSING:
@@ -497,17 +486,7 @@ static void switchState(ProcessingState_t newState)
   }
 }
 
-static void switchTrTransmit()
-{
-  HAL_GPIO_WritePin(GPIOD, TR_CTRL_Pin, GPIO_PIN_RESET);
-}
-
-static void switchTrReceive()
-{
-  HAL_GPIO_WritePin(GPIOD, TR_CTRL_Pin, GPIO_PIN_SET);
-}
-
-static bool handleFlags()
+bool handleFlags()
 {
   uint32_t flags = osEventFlagsWait(print_event_handle, 0x7F, osFlagsWaitAny, 0);
 
@@ -546,7 +525,7 @@ static bool handleFlags()
   return true;
 }
 
-static bool registerMessParams()
+bool registerMessParams()
 {
   // register all parameters from all files
   if (Modulate_RegisterParams() == false) {
@@ -583,7 +562,7 @@ static bool registerMessParams()
   return true;
 }
 
-static bool registerMessMainParams()
+bool registerMessMainParams()
 {
   float min_f = MIN_BAUD_RATE;
   float max_f = MAX_BAUD_RATE;
@@ -814,9 +793,4 @@ void getConfig()
     default:
       break;
   }
-}
-
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-  (void)(GPIO_Pin);
 }

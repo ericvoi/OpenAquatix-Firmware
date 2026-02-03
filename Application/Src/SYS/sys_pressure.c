@@ -1,20 +1,18 @@
 /*
- * sys_sensor_timer.c
+ * sys_pressure.c
  *
- *  Created on: Apr 20, 2025
+ *  Created on: Jan 4, 2026
  *      Author: ericv
- * 
+ *
  * Copyright (c) 2025 OpenAquatix Contributors
  * SPDX-License-Identifier: MIT
  */
 
 /* Private includes ----------------------------------------------------------*/
 
-#include "stm32h7xx_hal.h"
-
-#include "sys_sensor_timer.h"
-#include "sys_temperature.h"
-
+#include "sys_pressure.h"
+#include "lps22hh-driver.h"
+#include <stdint.h>
 #include <stdbool.h>
 
 /* Private typedef -----------------------------------------------------------*/
@@ -23,9 +21,7 @@
 
 /* Private define ------------------------------------------------------------*/
 
-#define TICKS_FOR_TEMPERATURE ((TEMPERATURE_SENSOR_PERIOD_MS * \
-                                SENSOR_TIMER_TICK_RATE_HZ) / \
-                                1000)
+#define PRESSURE_BUFFER_SIZE      16
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -33,7 +29,11 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-static uint32_t sensor_ticks = 0;
+static uint32_t p_buf[PRESSURE_BUFFER_SIZE];
+static uint16_t p_buf_head = 0;
+static uint16_t p_buf_tail = 0;
+
+static float current_pressure_hpa = 0.0f;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -41,22 +41,27 @@ static uint32_t sensor_ticks = 0;
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool SensorTimer_Init()
+bool Pressure_Init(void)
 {
-  if (HAL_TIM_Base_Start_IT(&SENSOR_TIMER_SOURCE) != HAL_OK) {
+  p_buf_head = 0;
+  p_buf_tail = 0;
+  if (LPS_RegisterPressureBuf(p_buf, PRESSURE_BUFFER_SIZE, &p_buf_head) == false) {
     return false;
   }
-
   return true;
 }
 
-void SensorTimer_Tick()
+void Pressure_Process(void)
 {
-  sensor_ticks++;
-
-  if ((sensor_ticks % TICKS_FOR_TEMPERATURE) == 0) {
-    Temperature_TriggerTjConversion();
+  while (p_buf_head != p_buf_tail) {
+    current_pressure_hpa = LPS_ConvertRawPressure(p_buf[p_buf_tail]);
+    p_buf_tail = (p_buf_tail + 1) % PRESSURE_BUFFER_SIZE;
   }
+}
+
+float Pressure_GetCurrent(void)
+{
+  return current_pressure_hpa;
 }
 
 /* Private function definitions ----------------------------------------------*/
