@@ -88,6 +88,7 @@ typedef enum {
   PARAM_MAC,
   PARAM_APPLY_TUKEY,
   PARAM_PREAMBLE_ERROR_BEHAVIOR,
+  PARAM_CARGO_ERROR_BEHAVIOR,
   // Add new parameters just above here and nowhere else
   NUM_PARAM
 } ParamIds_t;

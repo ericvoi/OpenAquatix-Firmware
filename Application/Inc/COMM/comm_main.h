@@ -41,6 +41,13 @@ typedef enum {
   COMM_BOTH
 } CommInterface_t;
 
+typedef enum {
+  CARGO_ERROR_DROP,
+  CARGO_ERROR_PRINT,
+  CARGO_ERROR_NOTIFY,
+  NUM_CARGO_ERROR_BEHAVIORS
+} CargoErrorBehavior_t;
+
 typedef struct {
   uint8_t buffer[MAX_COMM_IN_BUFFER_SIZE];
   uint16_t length;

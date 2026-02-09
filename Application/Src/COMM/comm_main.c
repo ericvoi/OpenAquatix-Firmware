@@ -58,6 +58,7 @@ static MenuContext_t menu_context;
 uint8_t out_buffer[MAX_COMM_OUT_BUFFER_SIZE];
 
 static bool print_received_messages = DEFAULT_PRINT_ENABLED;
+static CargoErrorBehavior_t cargo_error_behavior = DEFAULT_CARGO_ERROR_BEHAVIOR;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -341,11 +342,11 @@ void printNotifications(void)
   if (print_event_handle == NULL) return;
 
   uint32_t flags = osEventFlagsGet(print_event_handle);
-  if (flags & MESS_DROPPED_PACKET_PREAMBLE == MESS_DROPPED_PACKET_PREAMBLE) {
+  if (flags & MESS_DROPPED_PACKET_PREAMBLE) {
     COMM_TransmitData("Dropped a packet with an invalid preamble\r\n", CALC_LEN, menu_context.interface);
     osEventFlagsClear(print_event_handle, MESS_DROPPED_PACKET_PREAMBLE);
   }
-  if (flags & MESS_DROPPED_PACKET_CARGO == MESS_DROPPED_PACKET_CARGO) {
+  if (flags & MESS_DROPPED_PACKET_CARGO) {
     COMM_TransmitData("Dropped a packet with an invalid cargo\r\n", CALC_LEN, menu_context.interface);
     osEventFlagsClear(print_event_handle, MESS_DROPPED_PACKET_CARGO);
   }
@@ -357,8 +358,16 @@ void printReceivedMessage(Message_t* msg)
     return;
   }
 
+  if (cargo_error_behavior == CARGO_ERROR_DROP && msg->error_detected == true) {
+    return;
+  }
+
   sprintf((char*) out_buffer, "\r\nReceived a new message at %ds\r\n", (int) msg->timestamp / 1000);
   COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
+
+  if (cargo_error_behavior == CARGO_ERROR_NOTIFY && msg->error_detected == true) {
+    COMM_TransmitData("Message cargo contained errors\r\n", CALC_LEN, menu_context.interface);
+  }
 
   switch (msg->protocol) {
     case PROTOCOL_CUSTOM:
@@ -594,6 +603,13 @@ bool registerCommParams(void)
   uint32_t max_u32 = (uint32_t) MAX_PRINT_ENABLED;
   if (Param_Register(PARAM_PRINT_ENABLED, "printing received messages", PARAM_TYPE_UINT8,
                      &print_received_messages, sizeof(bool), &min_u32, &max_u32, NULL) == false) {
+    return false;
+  }
+
+  min_u32 = MIN_CARGO_ERROR_BEHAVIOR;
+  max_u32 = MAX_CARGO_ERROR_BEHAVIOR;
+  if (Param_Register(PARAM_CARGO_ERROR_BEHAVIOR, "cargo error behavior", PARAM_TYPE_UINT8,
+                     &cargo_error_behavior, sizeof(uint8_t), &min_u32, &max_u32, NULL) == false) {
     return false;
   }
 

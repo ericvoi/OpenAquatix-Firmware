@@ -58,6 +58,7 @@ bool Cargo_Add(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
  *
  * @param bit_msg Pointer to the bit message containing the encoded data
  * @param msg Pointer to message structure where decoded data will be stored
+ * @param cfg Configuration parameters
  *
  * @return true if message extraction succeeds, false on extraction failure
  *
