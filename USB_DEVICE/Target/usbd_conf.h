@@ -35,7 +35,7 @@
 #include "stm32h7xx_hal.h"
 
 /* USER CODE BEGIN INCLUDE */
-
+#define __STATIC_INLINE     static inline
 /* USER CODE END INCLUDE */
 
 /** @addtogroup USBD_OTG_DRIVER

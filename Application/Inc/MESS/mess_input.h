@@ -37,6 +37,14 @@ typedef enum {
   NUM_MSG_START_FCN
 } MsgStartFunctions_t;
 
+
+typedef enum {
+  PREAMBLE_ERROR_DROP,          // Drops the message silently if errors detected
+  PREAMBLE_ERROR_DECODE,        // Attempts to decode the cargo despite preamble errors
+  PREAMBLE_ERROR_NOTIFY,        // Drops the message and notifies the user
+  NUM_PREAMBLE_ERROR_BEHAVIORS
+} PreambleErrorBehavior_t;
+
 /* Exported constants --------------------------------------------------------*/
 
 
@@ -107,10 +115,11 @@ bool Input_ProcessBlocks(BitMessage_t* bit_msg, const DspConfig_t* cfg);
  * @param bit_msg Pointer to the bit message structure containing received bits
  * @param cfg Pointer to configuration data
  * @param msg Message to add extracted bits to
+ * @param proceed Whether to continue decoding message or not
  *
  * @return true if decoding succeeds or is not yet needed, false on decoding failure
  */
-bool Input_DecodeBits(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* msg);
+bool Input_DecodeBits(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* msg, bool* proceed);
 
 /**
  * @brief Resets the input module to initial state

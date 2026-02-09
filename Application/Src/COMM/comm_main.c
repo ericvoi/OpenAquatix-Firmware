@@ -67,6 +67,7 @@ static bool checkMenuNumberInput(uint8_t* buf, uint16_t len, uint16_t* number);
 static void updateInputEcho(uint8_t* msg_buffer, uint16_t len);
 static void resetInputEcho(void);
 
+static void printNotifications(void);
 static void printReceivedMessage(Message_t* msg);
 static void printCustomHeader(Message_t* msg);
 static void printCustomData(Message_t* msg);
@@ -159,6 +160,9 @@ void COMM_StartTask(void *argument)
     else {
       menu_context.interface = COMM_USB;
     }
+
+    printNotifications();
+
     switch (state) {
       case DATA_READY:
         if (msg_buf_len > 0) {
@@ -240,7 +244,7 @@ void COMM_TransmitData(const void *data, uint32_t data_len, CommInterface_t inte
       break;
     case COMM_BOTH:
       USB_TransmitData((uint8_t*) data, (uint16_t) data_len);
-//      DAU_TransmitData((uint8_t*) data, (uint16_t) data_len);
+      DAU_TransmitData((uint8_t*) data, (uint16_t) data_len);
       break;
     default:
       break;
@@ -330,6 +334,21 @@ void updateInputEcho(uint8_t* msg_buffer, uint16_t len)
 void resetInputEcho(void)
 {
   updateInputEcho(NULL, LEN_RESET);
+}
+
+void printNotifications(void)
+{
+  if (print_event_handle == NULL) return;
+
+  uint32_t flags = osEventFlagsGet(print_event_handle);
+  if (flags & MESS_DROPPED_PACKET_PREAMBLE == MESS_DROPPED_PACKET_PREAMBLE) {
+    COMM_TransmitData("Dropped a packet with an invalid preamble\r\n", CALC_LEN, menu_context.interface);
+    osEventFlagsClear(print_event_handle, MESS_DROPPED_PACKET_PREAMBLE);
+  }
+  if (flags & MESS_DROPPED_PACKET_CARGO == MESS_DROPPED_PACKET_CARGO) {
+    COMM_TransmitData("Dropped a packet with an invalid cargo\r\n", CALC_LEN, menu_context.interface);
+    osEventFlagsClear(print_event_handle, MESS_DROPPED_PACKET_CARGO);
+  }
 }
 
 void printReceivedMessage(Message_t* msg)
