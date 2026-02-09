@@ -50,7 +50,7 @@ static const MenuNode_t mainMenu = {
 
 bool COMM_RegisterMainMenu(void)
 {
-  bool ret = registerMenu(&mainMenu);
+  bool ret = MenuSystem_RegisterMenu(&mainMenu);
   return ret;
 }
 

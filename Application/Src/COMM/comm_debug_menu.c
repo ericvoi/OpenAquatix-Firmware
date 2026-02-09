@@ -270,13 +270,13 @@ static const MenuNode_t debugMenuDeepSleep = {
 
 bool COMM_RegisterDebugMenu(void)
 {
-  bool ret = registerMenu(&debugMenu) && registerMenu(&debugMenuGPIO) &&
-             registerMenu(&debugMenuSetLed) && registerMenu(&debugMenuPrint) &&
-             registerMenu(&debugMenuNoise) && registerMenu(&debugMenuTemp) &&
-             registerMenu(&debugMenuErr) && registerMenu(&debugMenuPwr) &&
-             registerMenu(&debugMenuDfu) && registerMenu(&debugMenuReset) &&
-             registerMenu(&debugMenuNoiseF) && registerMenu(&debugMenuNoiseLevel) &&
-             registerMenu(&debugMenuDeepSleep);
+  bool ret = MenuSystem_RegisterMenu(&debugMenu) && MenuSystem_RegisterMenu(&debugMenuGPIO) &&
+             MenuSystem_RegisterMenu(&debugMenuSetLed) && MenuSystem_RegisterMenu(&debugMenuPrint) &&
+             MenuSystem_RegisterMenu(&debugMenuNoise) && MenuSystem_RegisterMenu(&debugMenuTemp) &&
+             MenuSystem_RegisterMenu(&debugMenuErr) && MenuSystem_RegisterMenu(&debugMenuPwr) &&
+             MenuSystem_RegisterMenu(&debugMenuDfu) && MenuSystem_RegisterMenu(&debugMenuReset) &&
+             MenuSystem_RegisterMenu(&debugMenuNoiseF) && MenuSystem_RegisterMenu(&debugMenuNoiseLevel) &&
+             MenuSystem_RegisterMenu(&debugMenuDeepSleep);
   return ret;
 }
 

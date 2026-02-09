@@ -225,11 +225,11 @@ static const MenuNode_t txrxTogglePrint = {
 
 bool COMM_RegisterTxRxMenu()
 {
-  bool ret = registerMenu(&txrxMenu) && registerMenu(&txrxBitsTransducer) &&
-             registerMenu(&txrxStrTransducer) && registerMenu(&txrxIntTransducer) &&
-             registerMenu(&txrxFloatTransducer) && registerMenu(&txrxTogglePrint) &&
-             registerMenu(&txrxStrFeedback) && registerMenu(&txrxBitsFeedback) &&
-             registerMenu(&txrxIntFeedback) && registerMenu(&txrxFloatFeedback);
+  bool ret = MenuSystem_RegisterMenu(&txrxMenu) && MenuSystem_RegisterMenu(&txrxBitsTransducer) &&
+             MenuSystem_RegisterMenu(&txrxStrTransducer) && MenuSystem_RegisterMenu(&txrxIntTransducer) &&
+             MenuSystem_RegisterMenu(&txrxFloatTransducer) && MenuSystem_RegisterMenu(&txrxTogglePrint) &&
+             MenuSystem_RegisterMenu(&txrxStrFeedback) && MenuSystem_RegisterMenu(&txrxBitsFeedback) &&
+             MenuSystem_RegisterMenu(&txrxIntFeedback) && MenuSystem_RegisterMenu(&txrxFloatFeedback);
   return ret;
 }
 

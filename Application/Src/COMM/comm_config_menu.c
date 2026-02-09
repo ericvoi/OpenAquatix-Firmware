@@ -1232,43 +1232,43 @@ static const MenuNode_t demodCalConfigExport = {
 
 bool COMM_RegisterConfigurationMenu()
 {
-  bool ret = registerMenu(&configMenu) && registerMenu(&univConfigMenu) &&
-             registerMenu(&modConfigMenu) && registerMenu(&demodConfigMenu) &&
-             registerMenu(&dauConfigMenu) && registerMenu(&ledConfigMenu) && 
-             registerMenu(&univConfigErrMenu) && registerMenu(&demodConfigDecisionFcn) &&
-             registerMenu(&univConfigMod) && registerMenu(&univConfigFskMenu) && 
-             registerMenu(&univConfigFhbskMenu) && registerMenu(&univConfigBaud) && 
-             registerMenu(&univConfigFc) && registerMenu(&univConfigBitPeriod) && 
-             registerMenu(&univConfigExport) && registerMenu(&univConfigImport) && 
-             registerMenu(&setStationary) && registerMenu(&modConfigDacTransition) &&
-             registerMenu(&modConfigCalMenu) && registerMenu(&modConfigFeedbackMenu) && 
-             registerMenu(&modConfigMethod) && registerMenu(&univConfigInterleaver) &&
-             registerMenu(&demodConfigCalMenu) && registerMenu(&univFhbfskConfigHopper) &&
-             registerMenu(&dauConfigSleep) && registerMenu(&ledConfigBrightness) &&
-             registerMenu(&ledConfigToggle) && registerMenu(&modCalConfigLowFreq) &&
-             registerMenu(&modCalConfigUpperFreq) && registerMenu(&modCalConfigTvr) && 
-             registerMenu(&modCalConfigPerform) && registerMenu(&modCalConfigExport) &&
-             registerMenu(&modCalConfigTune) && registerMenu(&modCalConfigRecv) && 
-             registerMenu(&modCalConfigVmax) && registerMenu(&modFbConfigToggle) &&
-             registerMenu(&modFbConfigRatio) && registerMenu(&demodConfigSigShift) &&
-             registerMenu(&demodCalConfigRatio) && registerMenu(&demodCalConfigPerform) && 
-             registerMenu(&demodCalConfigLowFreq) && registerMenu(&demodCalConfigUpperFreq) && 
-             registerMenu(&demodCalConfigExport) && registerMenu(&univConfigSync) &&
-             registerMenu(&demodConfigStartFcn) && registerMenu(&univFskConfigF0) &&
-             registerMenu(&univFskConfigF1) && registerMenu(&univFhbfskConfigFreqSpacing) &&
-             registerMenu(&univFhbfskConfigDwell) && registerMenu(&univConfigBandwidth) &&
-             registerMenu(&univFhbfskConfigTones) && registerMenu(&setNewId) &&
-             registerMenu(&modConfigFixed) && registerMenu(&modConfigPowerMenu) &&
-             registerMenu(&modPwrConfigTarget) && registerMenu(&modPwrConfigR) &&
-             registerMenu(&modPwrConfigC0) && registerMenu(&modPwrConfigL0) &&
-             registerMenu(&modPwrConfigC1) && registerMenu(&demodConfigUseAgc) &&
-             registerMenu(&demodConfigFixedGain) && registerMenu(&univConfigEccPreamble) &&
-             registerMenu(&univConfigEccMessage) && registerMenu(&univErrConfigPreambleValidation) &&
-             registerMenu(&univErrConfigCargoValidation) && registerMenu(&univErrConfigPreambleBehavior) &&
-             registerMenu(&univErrConfigCargoBehavior) && registerMenu(&demodConfigWindowFcn) &&
-             registerMenu(&univConfigWakeupMenu) && registerMenu(&univWakeupConfigTone1) &&
-             registerMenu(&univWakeupConfigEn) && registerMenu(&univWakeupConfigTone2) &&
-             registerMenu(&univWakeupConfigTone3) && registerMenu(&changeMac);
+  bool ret = MenuSystem_RegisterMenu(&configMenu) && MenuSystem_RegisterMenu(&univConfigMenu) &&
+             MenuSystem_RegisterMenu(&modConfigMenu) && MenuSystem_RegisterMenu(&demodConfigMenu) &&
+             MenuSystem_RegisterMenu(&dauConfigMenu) && MenuSystem_RegisterMenu(&ledConfigMenu) && 
+             MenuSystem_RegisterMenu(&univConfigErrMenu) && MenuSystem_RegisterMenu(&demodConfigDecisionFcn) &&
+             MenuSystem_RegisterMenu(&univConfigMod) && MenuSystem_RegisterMenu(&univConfigFskMenu) && 
+             MenuSystem_RegisterMenu(&univConfigFhbskMenu) && MenuSystem_RegisterMenu(&univConfigBaud) && 
+             MenuSystem_RegisterMenu(&univConfigFc) && MenuSystem_RegisterMenu(&univConfigBitPeriod) && 
+             MenuSystem_RegisterMenu(&univConfigExport) && MenuSystem_RegisterMenu(&univConfigImport) && 
+             MenuSystem_RegisterMenu(&setStationary) && MenuSystem_RegisterMenu(&modConfigDacTransition) &&
+             MenuSystem_RegisterMenu(&modConfigCalMenu) && MenuSystem_RegisterMenu(&modConfigFeedbackMenu) && 
+             MenuSystem_RegisterMenu(&modConfigMethod) && MenuSystem_RegisterMenu(&univConfigInterleaver) &&
+             MenuSystem_RegisterMenu(&demodConfigCalMenu) && MenuSystem_RegisterMenu(&univFhbfskConfigHopper) &&
+             MenuSystem_RegisterMenu(&dauConfigSleep) && MenuSystem_RegisterMenu(&ledConfigBrightness) &&
+             MenuSystem_RegisterMenu(&ledConfigToggle) && MenuSystem_RegisterMenu(&modCalConfigLowFreq) &&
+             MenuSystem_RegisterMenu(&modCalConfigUpperFreq) && MenuSystem_RegisterMenu(&modCalConfigTvr) && 
+             MenuSystem_RegisterMenu(&modCalConfigPerform) && MenuSystem_RegisterMenu(&modCalConfigExport) &&
+             MenuSystem_RegisterMenu(&modCalConfigTune) && MenuSystem_RegisterMenu(&modCalConfigRecv) && 
+             MenuSystem_RegisterMenu(&modCalConfigVmax) && MenuSystem_RegisterMenu(&modFbConfigToggle) &&
+             MenuSystem_RegisterMenu(&modFbConfigRatio) && MenuSystem_RegisterMenu(&demodConfigSigShift) &&
+             MenuSystem_RegisterMenu(&demodCalConfigRatio) && MenuSystem_RegisterMenu(&demodCalConfigPerform) && 
+             MenuSystem_RegisterMenu(&demodCalConfigLowFreq) && MenuSystem_RegisterMenu(&demodCalConfigUpperFreq) && 
+             MenuSystem_RegisterMenu(&demodCalConfigExport) && MenuSystem_RegisterMenu(&univConfigSync) &&
+             MenuSystem_RegisterMenu(&demodConfigStartFcn) && MenuSystem_RegisterMenu(&univFskConfigF0) &&
+             MenuSystem_RegisterMenu(&univFskConfigF1) && MenuSystem_RegisterMenu(&univFhbfskConfigFreqSpacing) &&
+             MenuSystem_RegisterMenu(&univFhbfskConfigDwell) && MenuSystem_RegisterMenu(&univConfigBandwidth) &&
+             MenuSystem_RegisterMenu(&univFhbfskConfigTones) && MenuSystem_RegisterMenu(&setNewId) &&
+             MenuSystem_RegisterMenu(&modConfigFixed) && MenuSystem_RegisterMenu(&modConfigPowerMenu) &&
+             MenuSystem_RegisterMenu(&modPwrConfigTarget) && MenuSystem_RegisterMenu(&modPwrConfigR) &&
+             MenuSystem_RegisterMenu(&modPwrConfigC0) && MenuSystem_RegisterMenu(&modPwrConfigL0) &&
+             MenuSystem_RegisterMenu(&modPwrConfigC1) && MenuSystem_RegisterMenu(&demodConfigUseAgc) &&
+             MenuSystem_RegisterMenu(&demodConfigFixedGain) && MenuSystem_RegisterMenu(&univConfigEccPreamble) &&
+             MenuSystem_RegisterMenu(&univConfigEccMessage) && MenuSystem_RegisterMenu(&univErrConfigPreambleValidation) &&
+             MenuSystem_RegisterMenu(&univErrConfigCargoValidation) && MenuSystem_RegisterMenu(&univErrConfigPreambleBehavior) &&
+             MenuSystem_RegisterMenu(&univErrConfigCargoBehavior) && MenuSystem_RegisterMenu(&demodConfigWindowFcn) &&
+             MenuSystem_RegisterMenu(&univConfigWakeupMenu) && MenuSystem_RegisterMenu(&univWakeupConfigTone1) &&
+             MenuSystem_RegisterMenu(&univWakeupConfigEn) && MenuSystem_RegisterMenu(&univWakeupConfigTone2) &&
+             MenuSystem_RegisterMenu(&univWakeupConfigTone3) && MenuSystem_RegisterMenu(&changeMac);
 
   return ret;
 }

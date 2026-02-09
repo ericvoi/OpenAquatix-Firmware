@@ -8,6 +8,8 @@
  * SPDX-License-Identifier: MIT
  */
 
+ // TODO: separate into multiple files
+
 /* Private includes ----------------------------------------------------------*/
 
 #include "stm32h7xx_hal.h"
@@ -142,7 +144,7 @@ void COMM_StartTask(void *argument)
     Error_Routine(ERROR_COMM_INIT);
   }
 
-  menu_context.current_menu = getMenu(MENU_ID_MAIN);
+  menu_context.current_menu = MenuSystem_GetMenu(MENU_ID_MAIN);
   displaySubMenus();
   // Main task loop - processes messages and handles menu navigation
   for(;;) {
@@ -169,7 +171,7 @@ void COMM_StartTask(void *argument)
         if (msg_buf_len > 0) {
           if (msg_buffer[0] == '\e') {
             menu_context.current_menu->parameters->state = PARAM_STATE_0;
-            menu_context.current_menu = getMenu(menu_context.current_menu->parent_id);
+            menu_context.current_menu = MenuSystem_GetMenu(menu_context.current_menu->parent_id);
             displaySubMenus();
             break;
           }
@@ -179,7 +181,7 @@ void COMM_StartTask(void *argument)
           // change menu
           if (checkMenuNumberInput(msg_buffer, msg_buf_len, &menu_number) == true) {
             // Valid menu option
-            menu_context.current_menu = getMenu(menu_context.current_menu->children_ids[menu_number - 1]);
+            menu_context.current_menu = MenuSystem_GetMenu(menu_context.current_menu->children_ids[menu_number - 1]);
             menu_context.current_menu->parameters->state = PARAM_STATE_0;
             displaySubMenus();
           }
@@ -208,7 +210,7 @@ void COMM_StartTask(void *argument)
 
           if (menu_context.current_menu->parameters->state == PARAM_STATE_COMPLETE) {
             menu_context.current_menu->parameters->state = PARAM_STATE_0;
-            menu_context.current_menu = getMenu(menu_context.current_menu->parent_id);
+            menu_context.current_menu = MenuSystem_GetMenu(menu_context.current_menu->parent_id);
             displaySubMenus();
           }
         }
@@ -263,7 +265,7 @@ void displaySubMenus(void)
   for (int i = 0; i < menu_context.current_menu->num_children; i++) {
     uint16_t child_id = menu_context.current_menu->children_ids[i];
     // TODO: add error checking
-    MenuNode_t* child_menu = getMenu(child_id);
+    MenuNode_t* child_menu = MenuSystem_GetMenu(child_id);
     sprintf((char*) out_buffer, "%d: %s\r\n", i + 1, child_menu->description);
     COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
   }
