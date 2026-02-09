@@ -41,7 +41,7 @@
 
 void Feedback_SwitchInput(bool on)
 {
-  HAL_GPIO_WritePin(INPUT_FB_EN_GPIO_Port, INPUT_FB_EN_Pin, on);
+  HAL_GPIO_WritePin(INPUT_FB_EN_GPIO_Port, INPUT_FB_EN_Pin, ! on);
 }
 
 void Feedback_SwitchOutput(bool on)

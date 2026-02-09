@@ -66,10 +66,7 @@ void DAU_Init(void)
 void DAU_TransmitData(uint8_t* data, uint16_t len)
 {
   if (osMutexAcquire(dau_uart_mutexHandle, osWaitForever) == osOK) {
-    while (tx_busy == 1) {
-      // TODO: Replace busy-wait with proper timeout or notification mechanism
-      osDelay(1);
-    }
+    osDelay(5); // TODO: find out why interrupt for tx_busy not triggering
     if (len > DAU_TX_BUFFER_SIZE) {
       osMutexRelease(dau_uart_mutexHandle);
       return;
@@ -166,3 +163,4 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
     tx_busy = 0;
   }
 }
+
