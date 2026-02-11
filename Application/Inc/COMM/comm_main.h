@@ -29,6 +29,8 @@ extern "C" {
 
 #define CALC_LEN                  0 // A length of 0 makes the function call strlen
 
+#define WITHDRAW_CHAR             '\e' // Character that when entered prompts back navigation
+
 typedef enum {
   NEW_CONTENT,
   DATA_READY,

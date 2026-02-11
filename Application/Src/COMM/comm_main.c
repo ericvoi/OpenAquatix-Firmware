@@ -8,8 +8,6 @@
  * SPDX-License-Identifier: MIT
  */
 
- // TODO: separate into multiple files
-
 /* Private includes ----------------------------------------------------------*/
 
 #include "stm32h7xx_hal.h"
@@ -45,6 +43,9 @@ typedef struct {
 
 /* Private define ------------------------------------------------------------*/
 
+#define ECHO_USB
+// #define ECHO_UART
+
 #define MAX_MENU_NUMBER_LENGTH    2
 #define BUFFER_BACK_TRACK_AMOUNT  5
 #define LEN_RESET                 32451
@@ -57,12 +58,25 @@ typedef struct {
 /* Private variables ---------------------------------------------------------*/
 
 static MenuContext_t menu_context;
-uint8_t out_buffer[MAX_COMM_OUT_BUFFER_SIZE];
+static uint8_t out_buffer[MAX_COMM_OUT_BUFFER_SIZE];
+
+static uint8_t msg_buffer[MAX_COMM_IN_BUFFER_SIZE];
+static uint16_t msg_buf_len = 0;
+static uint8_t test_msg[] = "Welcome to the UAM HMI!\r\n";
 
 static bool print_received_messages = DEFAULT_PRINT_ENABLED;
 static CargoErrorBehavior_t cargo_error_behavior = DEFAULT_CARGO_ERROR_BEHAVIOR;
 
 /* Private function prototypes -----------------------------------------------*/
+
+static bool registerMenus(void);
+static RxState_t getHmiInput(CommInterface_t* interface);
+
+static void handleHmiWithdraw(void);
+static void handleHmiNavigation(void);
+static void handleHmiFunction(void);
+
+static void echoInput(void);
 
 static void displaySubMenus(void);
 static bool isNumber(uint8_t* buf, uint16_t len);
@@ -98,12 +112,7 @@ void COMM_StartTask(void *argument)
   (void)(argument);
   USB_Init();
   DAU_Init();
-  uint8_t msg_buffer[MAX_COMM_IN_BUFFER_SIZE];
-  uint16_t msg_buf_len = 0;
-  uint16_t menu_number = 0;
-  uint8_t test_msg[] = "Welcome to the UAM HMI!\r\n";
   menu_context.interface = COMM_BOTH;
-
 
   if (Param_RegisterTask(COMM_TASK, "COMM") == false) {
     Error_Routine(ERROR_COMM_INIT);
@@ -122,27 +131,8 @@ void COMM_StartTask(void *argument)
   osDelay(1000);
 
   COMM_TransmitData(test_msg, sizeof(test_msg) - 1, menu_context.interface);
-  if (COMM_RegisterMainMenu() == false) {
-    Error_Routine(ERROR_COMM_INIT);
-  }
-  if (COMM_RegisterConfigurationMenu() == false) {
-    Error_Routine(ERROR_COMM_INIT);
-  }
-  if (COMM_RegisterDebugMenu() == false) {
-    Error_Routine(ERROR_COMM_INIT);
-  }
-  if (COMM_RegisterHistoryMenu() == false) {
-    Error_Routine(ERROR_COMM_INIT);
-  }
-  if (COMM_RegisterTxRxMenu() == false) {
-    Error_Routine(ERROR_COMM_INIT);
-  }
-  if (COMM_RegisterEvalMenu() == false) {
-    Error_Routine(ERROR_COMM_INIT);
-  }
-  if (COMM_RegisterJanusMenu() == false) {
-    Error_Routine(ERROR_COMM_INIT);
-  }
+
+  if (registerMenus() == false) Error_Routine(ERROR_COMM_INIT);
 
   menu_context.current_menu = MenuSystem_GetMenu(MENU_ID_MAIN);
   displaySubMenus();
@@ -153,75 +143,22 @@ void COMM_StartTask(void *argument)
       printReceivedMessage(&rx_msg);
     }
 
-    RxState_t state = USB_GetMessage(msg_buffer, &msg_buf_len);
-    if (state == NO_CHANGE) {
-      state = DAU_GetMessage(msg_buffer, &msg_buf_len);
-      if (state != NO_CHANGE) {
-        menu_context.interface = COMM_UART;
-      }
-    }
-    else {
-      menu_context.interface = COMM_USB;
-    }
+    RxState_t state = getHmiInput(&menu_context.interface);
 
     printNotifications();
 
     switch (state) {
       case DATA_READY:
-        if (msg_buf_len > 0) {
-          if (msg_buffer[0] == '\e') {
-            menu_context.current_menu->parameters->state = PARAM_STATE_0;
-            menu_context.current_menu = MenuSystem_GetMenu(menu_context.current_menu->parent_id);
-            displaySubMenus();
-            break;
-          }
+        if (msg_buffer[0] == WITHDRAW_CHAR && msg_buf_len > 0) {
+          handleHmiWithdraw();
+          break;
         }
 
-        if (menu_context.current_menu->num_children != 0) {
-          // change menu
-          if (checkMenuNumberInput(msg_buffer, msg_buf_len, &menu_number) == true) {
-            // Valid menu option
-            menu_context.current_menu = MenuSystem_GetMenu(menu_context.current_menu->children_ids[menu_number - 1]);
-            menu_context.current_menu->parameters->state = PARAM_STATE_0;
-            displaySubMenus();
-          }
-          else {
-            COMM_TransmitData("\r\nInvalid option!\r\n", CALC_LEN, menu_context.interface);
-            displaySubMenus();
-          }
-        }
-
-        if (menu_context.current_menu->num_children == 0) {
-          // no children so handle function
-          // Prepare function argument
-          updateInputEcho(msg_buffer, msg_buf_len);
-          osDelay(1);
-          resetInputEcho();
-          FunctionContext_t context = {
-              .state = menu_context.current_menu->parameters,
-              .input_len = msg_buf_len,
-              .output_buffer = msg_buffer,
-              .comm_interface = menu_context.interface
-          };
-          strncpy(context.input, (char*) msg_buffer, MAX_COMM_IN_BUFFER_SIZE);
-
-          (*menu_context.current_menu->handler)(&context);
-          resetInputEcho();
-
-          if (menu_context.current_menu->parameters->state == PARAM_STATE_COMPLETE) {
-            menu_context.current_menu->parameters->state = PARAM_STATE_0;
-            menu_context.current_menu = MenuSystem_GetMenu(menu_context.current_menu->parent_id);
-            displaySubMenus();
-          }
-        }
+        handleHmiNavigation();
+        handleHmiFunction();
         break;
       case NEW_CONTENT:
-        if (menu_context.interface == COMM_USB) {
-          updateInputEcho(msg_buffer, msg_buf_len);
-        }
-        else if (menu_context.interface == COMM_UART) {
-          updateInputEcho(msg_buffer, msg_buf_len);
-        }
+        echoInput();
         break;
       case NO_CHANGE:
         break;
@@ -255,6 +192,97 @@ void COMM_TransmitData(const void *data, uint32_t data_len, CommInterface_t inte
 }
 
 /* Private function definitions ----------------------------------------------*/
+
+bool registerMenus(void)
+{
+  return COMM_RegisterMainMenu()  && COMM_RegisterConfigurationMenu() &&
+         COMM_RegisterDebugMenu() && COMM_RegisterHistoryMenu()       &&
+         COMM_RegisterTxRxMenu()  && COMM_RegisterEvalMenu()          &&
+         COMM_RegisterJanusMenu();
+}
+
+RxState_t getHmiInput(CommInterface_t* interface)
+{
+  // Check for HMI input on USB. If it exists, update state and set interface to USB
+  RxState_t state = USB_GetHmiInput(msg_buffer, &msg_buf_len);
+  if (state != NO_CHANGE) {
+    *interface = COMM_USB;
+    return state;
+  }
+
+  // Check for HMI input on UART. If it exists, update state and set interface to UART
+  state = DAU_GetHmiInput(msg_buffer, &msg_buf_len);
+  if (state != NO_CHANGE) {
+    *interface = COMM_UART;
+    return state;
+  }
+  return state; // NO_CHANGE
+}
+
+void handleHmiWithdraw(void)
+{
+  menu_context.current_menu->parameters->state = PARAM_STATE_0;
+  menu_context.current_menu = MenuSystem_GetMenu(menu_context.current_menu->parent_id);
+  displaySubMenus();
+}
+
+void handleHmiNavigation(void)
+{
+  // Cannot navigate without children
+  if (menu_context.current_menu->num_children == 0) return;
+
+  uint16_t menu_number;
+  if (checkMenuNumberInput(msg_buffer, msg_buf_len, &menu_number) == true) {
+    // Valid menu option
+    menu_context.current_menu = MenuSystem_GetMenu(menu_context.current_menu->children_ids[menu_number - 1]);
+    menu_context.current_menu->parameters->state = PARAM_STATE_0;
+  }
+  else {
+    COMM_TransmitData("\r\nInvalid option!\r\n", CALC_LEN, menu_context.interface);
+  }
+  displaySubMenus();
+}
+
+void handleHmiFunction(void)
+{
+  if (menu_context.current_menu->num_children != 0) return;
+
+  // no children so handle function
+  // Prepare function argument
+  updateInputEcho(msg_buffer, msg_buf_len);
+  osDelay(1);
+  resetInputEcho();
+  FunctionContext_t context = {
+      .state = menu_context.current_menu->parameters,
+      .input_len = msg_buf_len,
+      .output_buffer = msg_buffer,
+      .comm_interface = menu_context.interface
+  };
+  strncpy(context.input, (char*) msg_buffer, MAX_COMM_IN_BUFFER_SIZE);
+
+  (*menu_context.current_menu->handler)(&context);
+  resetInputEcho();
+
+  if (menu_context.current_menu->parameters->state == PARAM_STATE_COMPLETE) {
+    menu_context.current_menu->parameters->state = PARAM_STATE_0;
+    menu_context.current_menu = MenuSystem_GetMenu(menu_context.current_menu->parent_id);
+    displaySubMenus();
+  }
+}
+
+void echoInput(void)
+{
+  #ifdef ECHO_USB
+    if (menu_context.interface == COMM_USB) {
+      updateInputEcho(msg_buffer, msg_buf_len);
+    }
+  #endif
+  #ifdef ECHO_UART
+    if (menu_context.interface == COMM_UART) {
+      updateInputEcho(msg_buffer, msg_buf_len);
+    }
+  #endif
+}
 
 void displaySubMenus(void)
 {
