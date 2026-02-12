@@ -23,6 +23,7 @@ extern "C" {
 #include "mess_modulate.h"
 #include "mess_error_correction.h"
 #include "mess_demodulate.h"
+#include "comm_print.h"
 #include "mac_protocol.h"
 #include "dac_waveform.h"
 

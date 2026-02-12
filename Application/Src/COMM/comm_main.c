@@ -31,7 +31,6 @@
 #include "cfg_parameters.h"
 #include "cfg_defaults.h"
 
-#include <string.h>
 #include <ctype.h>
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,7 +47,6 @@ typedef struct {
 
 #define MAX_MENU_NUMBER_LENGTH    2
 #define BUFFER_BACK_TRACK_AMOUNT  5
-#define LEN_RESET                 32451
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -64,8 +62,7 @@ static uint8_t msg_buffer[MAX_COMM_IN_BUFFER_SIZE];
 static uint16_t msg_buf_len = 0;
 static uint8_t test_msg[] = "Welcome to the UAM HMI!\r\n";
 
-static bool print_received_messages = DEFAULT_PRINT_ENABLED;
-static CargoErrorBehavior_t cargo_error_behavior = DEFAULT_CARGO_ERROR_BEHAVIOR;
+static uint16_t last_echo_len = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -85,23 +82,6 @@ static void updateInputEcho(uint8_t* msg_buffer, uint16_t len);
 static void resetInputEcho(void);
 
 static void printNotifications(void);
-static void printReceivedMessage(Message_t* msg);
-static void printCustomHeader(Message_t* msg);
-static void printCustomData(Message_t* msg);
-static void printJanusHeader(Message_t* msg);
-static void printJanusData(Message_t* msg);
-static void printJanusHeaderParameter(PreambleValue_t parameter);
-
-static void printSenderId(Message_t* msg);
-static void printDestinationId(Message_t* msg);
-static void printCoding(Message_t* msg);
-static void printEncryption(Message_t* msg);
-
-static void printStringData(Message_t* msg);
-static void printBitsData(Message_t* msg);
-static void printInteger(Message_t* msg);
-static void printFloat(Message_t* msg);
-static void printEvalMessage(Message_t* msg);
 
 static bool registerCommParams(void);
 
@@ -140,7 +120,7 @@ void COMM_StartTask(void *argument)
   for(;;) {
     Message_t rx_msg;
     if (MESS_GetMessageFromRxQ(&rx_msg) == true) {
-      printReceivedMessage(&rx_msg);
+      Print_DisplayReceivedMessage(&rx_msg, out_buffer, menu_context.interface);
     }
 
     RxState_t state = getHmiInput(&menu_context.interface);
@@ -321,23 +301,15 @@ bool checkMenuNumberInput(uint8_t* buf, uint16_t len, uint16_t* number)
 
 void updateInputEcho(uint8_t* msg_buffer, uint16_t len)
 {
-  static uint16_t old_len = 0;
-
-  if (len == LEN_RESET) {
-    old_len = 0;
-
-    return;
-  }
-
-  int16_t len_difference = (int16_t) len - (int16_t) old_len;
+  int16_t len_difference = (int16_t) len - (int16_t) last_echo_len;
   uint16_t start_index;
   if (len_difference > BUFFER_BACK_TRACK_AMOUNT) {
-    start_index = old_len;
+    start_index = last_echo_len;
   }
   else {
     start_index = (len > BUFFER_BACK_TRACK_AMOUNT) ? (len - BUFFER_BACK_TRACK_AMOUNT) : 0;
   }
-  uint16_t back_amount = (uint16_t) MIN((int16_t) old_len,
+  uint16_t back_amount = (uint16_t) MIN((int16_t) last_echo_len,
       (int16_t) (BUFFER_BACK_TRACK_AMOUNT - MIN(len_difference, BUFFER_BACK_TRACK_AMOUNT)));
   uint16_t out_buffer_len = back_amount;
   if (back_amount > 0) {
@@ -348,23 +320,23 @@ void updateInputEcho(uint8_t* msg_buffer, uint16_t len)
     out_buffer[back_amount + i] = msg_buffer[start_index + i];
     out_buffer_len++;
   }
-  if (old_len > len) {
-    for (int i = 0; i < old_len - len; i++) {
+  if (last_echo_len > len) {
+    for (int i = 0; i < last_echo_len - len; i++) {
       out_buffer[out_buffer_len++] = ' ';
     }
-    for (int i = 0; i < old_len - len; i++) {
+    for (int i = 0; i < last_echo_len - len; i++) {
       out_buffer[out_buffer_len++] = '\b';
     }
   }
 
   COMM_TransmitData(out_buffer, MAX(out_buffer_len, len_difference), menu_context.interface);
 
-  old_len = len;
+  last_echo_len = len;
 }
 
 void resetInputEcho(void)
 {
-  updateInputEcho(NULL, LEN_RESET);
+  last_echo_len = 0;
 }
 
 void printNotifications(void)
@@ -382,266 +354,9 @@ void printNotifications(void)
   }
 }
 
-void printReceivedMessage(Message_t* msg)
-{
-  if (print_received_messages == false) {
-    return;
-  }
-
-  if (cargo_error_behavior == CARGO_ERROR_DROP && msg->error_detected == true) {
-    return;
-  }
-
-  sprintf((char*) out_buffer, "\r\nReceived a new message at %ds\r\n", (int) msg->timestamp / 1000);
-  COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
-
-  if (cargo_error_behavior == CARGO_ERROR_NOTIFY && msg->error_detected == true) {
-    COMM_TransmitData("Message cargo contained errors\r\n", CALC_LEN, menu_context.interface);
-  }
-
-  switch (msg->protocol) {
-    case PROTOCOL_CUSTOM:
-      printCustomHeader(msg);
-      printCustomData(msg);
-      break;
-    case PROTOCOL_JANUS:
-      printJanusHeader(msg);
-      printJanusData(msg);
-      break;
-    default:
-      COMM_TransmitData("Internal error when printing message\r\n", CALC_LEN, menu_context.interface);
-  }
-  COMM_TransmitData("\r\n\r\n", 4, menu_context.interface);
-}
-
-void printCustomHeader(Message_t* msg)
-{
-  sprintf((char*) out_buffer, "Errors Present: %s\r\n", msg->error_detected ? "Yes" : "No");
-  COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
-
-  sprintf((char*) out_buffer, "Sender id: %u\r\n", msg->preamble.modem_id.value);
-  COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
-
-  sprintf((char*) out_buffer, "Message Length (bits): %u\r\n", msg->length_bits);
-  COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
-
-  sprintf((char*) out_buffer, "Mobile sender: %s\r\n", msg->preamble.is_mobile.value ? "Yes" : "No");
-  COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
-
-  float most_recent_snr = Sync_MostRecentSnr();
-  sprintf((char*) out_buffer, "SNR: %.2f\r\n", most_recent_snr);
-  COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
-}
-
-void printCustomData(Message_t* msg)
-{
-  switch (msg->preamble.message_type.value) {
-    case STRING:
-      sprintf((char*) out_buffer, "String: ");
-      COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
-      printStringData(msg);
-      break;
-    case BITS:
-      sprintf((char*) out_buffer, "Bits: ");
-      COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
-      printBitsData(msg);
-      break;
-    case INTEGER:
-      sprintf((char*) out_buffer, "Integer: ");
-      COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
-      printInteger(msg);
-      break;
-    case FLOAT:
-      sprintf((char*) out_buffer, "Float: ");
-      COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
-      printFloat(msg);
-      break;
-    case EVAL:
-      printEvalMessage(msg);
-      return;
-    default:
-      COMM_TransmitData("Unknown data type: N/A", CALC_LEN, menu_context.interface);
-      break;
-  }
-}
-
-void printJanusHeader(Message_t* msg)
-{
-  COMM_TransmitData("Mobility flag: ", CALC_LEN, menu_context.interface);
-  printJanusHeaderParameter(msg->preamble.is_mobile);
-
-  COMM_TransmitData("Schedule flag: ", CALC_LEN, menu_context.interface);
-  printJanusHeaderParameter(msg->preamble.schedule_flag);
-
-  COMM_TransmitData("Tx/Rx flag: ", CALC_LEN, menu_context.interface);
-  printJanusHeaderParameter(msg->preamble.tx_rx_capable);
-
-  COMM_TransmitData("Forwarding capability: ", CALC_LEN, menu_context.interface);
-  printJanusHeaderParameter(msg->preamble.can_forward);
-
-  COMM_TransmitData("Class user i.d.: ", CALC_LEN, menu_context.interface);
-  printJanusHeaderParameter(msg->preamble.class_user_id);
-
-  COMM_TransmitData("Application type: ", CALC_LEN, menu_context.interface);
-  printJanusHeaderParameter(msg->preamble.application_type);
-
-  COMM_TransmitData("Message length (bits): ", CALC_LEN, menu_context.interface);
-  sprintf((char*) out_buffer, "%u\r\n", msg->length_bits);
-  COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
-
-  switch (msg->janus_data_type) {
-    case JANUS_011_01_SMS:
-      printSenderId(msg);
-      printDestinationId(msg);
-      printCoding(msg);
-      printEncryption(msg);
-      break;
-    default:
-      COMM_TransmitData("Unknown JANUS message!\r\n", CALC_LEN, menu_context.interface);
-  }
-}
-
-void printJanusData(Message_t* msg)
-{
-  switch (msg->janus_data_type) {
-    case JANUS_011_01_SMS:
-      COMM_TransmitData("SMS: ", CALC_LEN, menu_context.interface);
-      printStringData(msg);
-      break;
-    default:
-  }
-}
-
-void printJanusHeaderParameter(PreambleValue_t parameter)
-{
-  if (parameter.valid == true) {
-    sprintf((char*) out_buffer, "%u\r\n", parameter.value);
-    COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
-  }
-  else {
-    COMM_TransmitData("Parameter not set in preamble!\r\n", CALC_LEN, menu_context.interface);
-  }
-}
-
-void printSenderId(Message_t* msg)
-{
-  COMM_TransmitData("Sender i.d.: ", CALC_LEN, menu_context.interface);
-  printJanusHeaderParameter(msg->preamble.modem_id);
-}
-
-void printDestinationId(Message_t* msg)
-{
-  COMM_TransmitData("Destination i.d.: ", CALC_LEN, menu_context.interface);
-  printJanusHeaderParameter(msg->preamble.destination_id);
-}
-
-void printCoding(Message_t* msg)
-{
-  COMM_TransmitData("Coding: ", CALC_LEN, menu_context.interface);
-  printJanusHeaderParameter(msg->preamble.coding);
-}
-
-void printEncryption(Message_t* msg)
-{
-  COMM_TransmitData("Encryption: ", CALC_LEN, menu_context.interface);
-  printJanusHeaderParameter(msg->preamble.encryption);
-}
-
-void printStringData(Message_t* msg)
-{
-  uint16_t num_characters = msg->uncoded_data_len / 8;
-  if (num_characters > PACKET_DATA_MAX_LENGTH_BYTES) {
-    sprintf((char*) out_buffer, "Clipped %u : ", num_characters);
-    COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
-    num_characters = PACKET_DATA_MAX_LENGTH_BYTES;
-  }
-
-  // Printing ASCII values above 127 can cause terminal emulators to become
-  // confused and start outputting garbage
-  for (uint16_t i = 0; i < num_characters; i++) {
-    if (msg->data[i] > 127) {
-      msg->data[i] = ' ';
-    }
-  }
-
-  COMM_TransmitData(msg->data, num_characters, menu_context.interface);
-}
-
-void printBitsData(Message_t* msg)
-{
-  uint16_t length_bits = msg->length_bits;
-
-  if (length_bits > PACKET_DATA_MAX_LENGTH_BYTES * 8) {
-    sprintf((char*) out_buffer, "Clipped %u : ", length_bits);
-    COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
-    length_bits = PACKET_DATA_MAX_LENGTH_BYTES * 8;
-  }
-
-  uint16_t remainder_bits = length_bits % 8;
-  uint16_t byte_index = 0;
-
-  uint8_t byte = msg->data[byte_index] >> remainder_bits;
-  sprintf((char*) out_buffer, "%X ", byte);
-
-  while (length_bits != 0) {
-    byte = (msg->data[byte_index] << remainder_bits) | (msg->data[byte_index] >> (7 - remainder_bits));
-    sprintf((char*) out_buffer, "%X ", byte);
-    COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
-    length_bits -= 8;
-    byte_index++;
-  }
-}
-
-void printInteger(Message_t* msg)
-{
-  if (msg->length_bits != sizeof(unsigned int) * 8) {
-    sprintf((char*) out_buffer, "Forcing %u to %u: ", msg->length_bits, sizeof(unsigned int) * 8);
-    COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
-  }
-  sprintf((char*) out_buffer, "%u", *((unsigned int*) &msg->data[0]));
-  COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
-}
-
-void printFloat(Message_t* msg)
-{
-  float temp_float;
-  memcpy(&temp_float, &msg->data[0], sizeof(float));
-  sprintf((char*) out_buffer, "%f", temp_float);
-  COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
-}
-
-void printEvalMessage(Message_t* msg)
-{
-  EvalMessageInfo_t eval_info = msg->eval_info;
-  float uncoded_ber = 100.0f * ((float) eval_info.uncoded_errors) / ((float) eval_info.uncoded_bits);
-  float coded_ber = 100.0f * ((float) eval_info.coded_errors) / ((float) eval_info.coded_bits);
-
-  COMM_TransmitData("\r\nEvaluation Message:", CALC_LEN, menu_context.interface);
-
-  sprintf((char*) out_buffer, "\r\nUncoded BER: %hu/%hu, %.3f%%", 
-          eval_info.uncoded_errors, eval_info.uncoded_bits, uncoded_ber);
-  COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
-
-  sprintf((char*) out_buffer, "\r\nCoded BER: %hu/%hu, %.3f%%\r\n",
-          eval_info.coded_errors, eval_info.coded_bits, coded_ber);
-  COMM_TransmitData(out_buffer, CALC_LEN, menu_context.interface);
-}
-
 bool registerCommParams(void)
 {
-  uint32_t min_u32 = (uint32_t) MIN_PRINT_ENABLED;
-  uint32_t max_u32 = (uint32_t) MAX_PRINT_ENABLED;
-  if (Param_Register(PARAM_PRINT_ENABLED, "printing received messages", PARAM_TYPE_UINT8,
-                     &print_received_messages, sizeof(bool), &min_u32, &max_u32, NULL) == false) {
-    return false;
-  }
-
-  min_u32 = MIN_CARGO_ERROR_BEHAVIOR;
-  max_u32 = MAX_CARGO_ERROR_BEHAVIOR;
-  if (Param_Register(PARAM_CARGO_ERROR_BEHAVIOR, "cargo error behavior", PARAM_TYPE_UINT8,
-                     &cargo_error_behavior, sizeof(uint8_t), &min_u32, &max_u32, NULL) == false) {
-    return false;
-  }
+  if (Print_RegisterParams() == false) return false;
 
   return true;
 }

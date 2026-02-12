@@ -16,6 +16,7 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
+
 #include "stm32h7xx_hal.h"
 #include <stdbool.h>
 
@@ -42,13 +43,6 @@ typedef enum {
   COMM_UART,
   COMM_BOTH
 } CommInterface_t;
-
-typedef enum {
-  CARGO_ERROR_DROP,
-  CARGO_ERROR_PRINT,
-  CARGO_ERROR_NOTIFY,
-  NUM_CARGO_ERROR_BEHAVIORS
-} CargoErrorBehavior_t;
 
 typedef struct {
   uint8_t buffer[MAX_COMM_IN_BUFFER_SIZE];
