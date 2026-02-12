@@ -92,7 +92,7 @@ void COMMLoops_LoopUint32(FunctionContext_t* context, ParamIds_t param_id)
       case PARAM_STATE_1:
         uint32_t new_value;
         if (checkUint32(context->input, context->input_len, &new_value, min, max) == true) {
-          if (Param_SetUint32(param_id, &new_value) == true) {
+          if (Param_SetUint32(param_id, &new_value) == PARAM_SET_SUCCESS) {
             sprintf((char*) context->output_buffer, "\r\n%s successfully set "
                 "to new value of %lu\r\n", parameter_name, new_value);
             COMM_TransmitData(context->output_buffer, CALC_LEN, 
@@ -167,7 +167,7 @@ void COMMLoops_LoopUint16(FunctionContext_t* context, ParamIds_t param_id)
       case PARAM_STATE_1:
         uint16_t new_value;
         if (checkUint16(context->input, context->input_len, &new_value, min, max) == true) {
-          if (Param_SetUint16(param_id, &new_value) == true) {
+          if (Param_SetUint16(param_id, &new_value) == PARAM_SET_SUCCESS) {
             sprintf((char*) context->output_buffer, "\r\n%s successfully set "
                 "to new value of %u\r\n", parameter_name, new_value);
             COMM_TransmitData(context->output_buffer, CALC_LEN, 
@@ -242,7 +242,7 @@ void COMMLoops_LoopUint8(FunctionContext_t* context, ParamIds_t param_id)
       case PARAM_STATE_1:
         uint8_t new_value;
         if (checkUint8(context->input, context->input_len, &new_value, min, max) == true) {
-          if (Param_SetUint8(param_id, &new_value) == true) {
+          if (Param_SetUint8(param_id, &new_value) == PARAM_SET_SUCCESS) {
             sprintf((char*) context->output_buffer, "\r\n%s successfully set "
                 "to new value of %u\r\n", parameter_name, new_value);
             COMM_TransmitData(context->output_buffer, CALC_LEN, 
@@ -317,7 +317,7 @@ void COMMLoops_LoopFloat(FunctionContext_t* context, ParamIds_t param_id)
       case PARAM_STATE_1:
         float new_value;
         if (checkFloat(context->input, &new_value, min, max) == true) {
-          if (Param_SetFloat(param_id, &new_value) == true) {
+          if (Param_SetFloat(param_id, &new_value) == PARAM_SET_SUCCESS) {
             sprintf((char*) context->output_buffer, "\r\n%s successfully set to"
                 " new value of %.4f\r\n", parameter_name, new_value);
             COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
@@ -408,7 +408,7 @@ void COMMLoops_LoopEnum(FunctionContext_t* context, ParamIds_t param_id,
       case PARAM_STATE_1:
         uint8_t new_value;
         if (checkUint8(context->input, context->input_len, &new_value, min, max) == true) {
-          if (Param_SetUint8(param_id, &new_value) == true) {
+          if (Param_SetUint8(param_id, &new_value) == PARAM_SET_SUCCESS) {
             sprintf((char*) context->output_buffer, "\r\n%s successfully set "
                 "to new value of %u: %s\r\n", parameter_name, new_value, 
                 descriptors[new_value]);
@@ -477,7 +477,7 @@ void COMMLoops_LoopToggle(FunctionContext_t* context, ParamIds_t param_id)
         if (checkYesNo(*context->input, &confirmed) == true) {
           bool new_value = ! current_state;
           if (confirmed == true) {
-            if (Param_SetUint8(param_id, (uint8_t*) &new_value) == true) {
+            if (Param_SetUint8(param_id, (uint8_t*) &new_value) == PARAM_SET_SUCCESS) {
               sprintf((char*) context->output_buffer, "\r\nSuccessfully %s %s\r\n",
                  new_value ? "enabled" : "disabled", parameter_name);
               COMM_TransmitData(context->output_buffer, CALC_LEN, 

@@ -22,8 +22,6 @@
 #include "comm_menu_system.h"
 
 #include "mess_main.h"
-#include "mess_evaluate.h"
-#include "mess_sync.h"
 
 #include "sys_error.h"
 

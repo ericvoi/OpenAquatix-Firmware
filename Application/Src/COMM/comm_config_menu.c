@@ -1477,7 +1477,7 @@ void setBaudRate(void* argument)
         bool confirmed = false;
         if (checkYesNo(*context->input, &confirmed) == true) {
           if (confirmed == true) {
-            if (Param_SetFloat(param_id, &new_baud) == true) {
+            if (Param_SetFloat(param_id, &new_baud) == PARAM_SET_SUCCESS) {
               sprintf((char*) context->output_buffer, "\r\n%s successfully set"
               " to new value of %.2f\r\n", parameter_name, new_baud);
               COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
