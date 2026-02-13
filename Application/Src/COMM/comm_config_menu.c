@@ -1277,22 +1277,12 @@ bool COMM_RegisterConfigurationMenu()
 
 void setPreambleErrorDetection(FunctionContext_t* context)
 {
-  char* descriptors[] = {"None",
-                         "CRC-8",      "CRC-16",      "CRC-32", 
-                         "Checksum-8", "Checksum-16", "Checksum-32"};
-
-  COMMLoops_LoopEnum(context, PARAM_PREAMBLE_ERROR_DETECTION, descriptors, 
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_PREAMBLE_ERROR_DETECTION);
 }
 
 void setCargoErrorDetection(FunctionContext_t* context)
 {
-  char* descriptors[] = {"None",
-                         "CRC-8",      "CRC-16",      "CRC-32", 
-                         "Checksum-8", "Checksum-16", "Checksum-32"};
-
-  COMMLoops_LoopEnum(context, PARAM_CARGO_ERROR_DETECTION, descriptors, 
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_CARGO_ERROR_DETECTION);
 }
 
 void preambleErrorBehavior(FunctionContext_t* context)
@@ -1307,26 +1297,17 @@ void cargoErrorBehavior(FunctionContext_t* context)
 
 void setPreambleEcc(FunctionContext_t* context)
 {
-  char* descriptors[] = {"None", "1-bit Hamming Code", "1:2 Convolutional Code (JANUS)"};
-
-  COMMLoops_LoopEnum(context, PARAM_ECC_PREAMBLE, descriptors,
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_ECC_PREAMBLE);
 }
 
 void setMessageEcc(FunctionContext_t* context)
 {
-  char* descriptors[] = {"None", "1-bit Hamming Code", "1:2 Convolutional Code (JANUS)"};
-
-  COMMLoops_LoopEnum(context, PARAM_ECC_MESSAGE, descriptors,
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_ECC_MESSAGE);
 }
 
 void setModulationMethod(FunctionContext_t* context)
 {
-  char* descriptors[] = {"FSK", "FHBFSK"};
-  
-  COMMLoops_LoopEnum(context, PARAM_MOD_DEMOD_METHOD, descriptors, 
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_MOD_DEMOD_METHOD);
 }
 
 void setFskF0(FunctionContext_t* context)
@@ -1356,11 +1337,7 @@ void setFhbfskTones(FunctionContext_t* context)
 
 void setFhbfskHopper(FunctionContext_t* context)
 {
-  char *descriptors[] = {"Increment by 1", "Galois Field arithmetic (JANUS)", 
-                         "Prime selector"};
-
-  COMMLoops_LoopEnum(context, PARAM_FHBFSK_HOPPER, descriptors, 
-      sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_FHBFSK_HOPPER);
 }
 
 void toggleWakeupTones(FunctionContext_t* context)
@@ -1522,10 +1499,7 @@ void toggleInterleaver(FunctionContext_t* context)
 
 void setSynchronizer(FunctionContext_t* context) 
 {
-  char* descriptors[] = {"None", "JANUS 32-chips"};
-
-  COMMLoops_LoopEnum(context, PARAM_SYNC_METHOD, descriptors,
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_SYNC_METHOD);
 }
 
 void printConfigOptions(FunctionContext_t* context)
@@ -1547,10 +1521,7 @@ void setDacTransitionDuration(FunctionContext_t* context)
 
 void setModPowerControlMethod(FunctionContext_t* context)
 {
-  char* descriptors[] = {"Static DAC output", "Static Output Power"};
-
-  COMMLoops_LoopEnum(context, PARAM_MODULATION_OUTPUT_METHOD, descriptors, 
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_MODULATION_OUTPUT_METHOD);
 }
 
 void setModFixedOutput(FunctionContext_t* context)
@@ -1560,18 +1531,12 @@ void setModFixedOutput(FunctionContext_t* context)
 
 void setMessageStartFunction(FunctionContext_t* context)
 {
-  char* descriptors[] = {"Use amplitude threshold", "Use overlapping FFTs"};
-
-  COMMLoops_LoopEnum(context, PARAM_MSG_START_FCN, descriptors, 
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_MSG_START_FCN);
 }
 
 void setBitDecisionFunction(FunctionContext_t* context)
 {
-  char* descriptors[] = {"Use energy comparison", "Use historical comparison"};
-
-  COMMLoops_LoopEnum(context, PARAM_DEMODULATION_DECISION, descriptors, 
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_DEMODULATION_DECISION);
 }
 
 void setHistoricalComparisonThreshold(FunctionContext_t* context)
@@ -1586,18 +1551,12 @@ void toggleAgc(FunctionContext_t* context)
 
 void setFixedPgaGain(FunctionContext_t* context)
 {
-  char* descriptors[] = {"1", "2", "5", "10", "20", "50", "100", "200"};
-
-  COMMLoops_LoopEnum(context, PARAM_FIXED_PGA_GAIN, descriptors, 
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_FIXED_PGA_GAIN);
 }
 
 void setWindowFunction(FunctionContext_t* context)
 {
-  char* descriptors[] = {"Rectangular", "Hann", "Hamming"};
-
-  COMMLoops_LoopEnum(context, PARAM_WINDOW_FUNCTION, descriptors, 
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_WINDOW_FUNCTION);
 }
 
 // TODO: implement
@@ -1731,10 +1690,7 @@ void exportDemodCal(FunctionContext_t* context)
 
 void setMacProtocol(FunctionContext_t* context)
 {
-  char* descriptors[] = {"No MAC", "GA CSMA/CA with BEB (JANUS)"};
-
-  COMMLoops_LoopEnum(context, PARAM_MAC, descriptors, 
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_MAC);
 }
 
 void setID(FunctionContext_t* context)

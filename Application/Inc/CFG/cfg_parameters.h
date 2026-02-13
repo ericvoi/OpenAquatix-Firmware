@@ -98,7 +98,8 @@ typedef enum {
   PARAM_TYPE_INT16,
   PARAM_TYPE_UINT32,
   PARAM_TYPE_INT32,
-  PARAM_TYPE_FLOAT
+  PARAM_TYPE_FLOAT,
+  PARAM_TYPE_ENUM
 } ParamType_t;
 
 /* Exported constants --------------------------------------------------------*/
@@ -107,7 +108,14 @@ typedef enum {
 
 /* Exported macro ------------------------------------------------------------*/
 
+#define XENUM_ENUM(name, desc) name,
+#define XENUM_DESC(name, desc) desc,
 
+#define DECLARE_ENUM(xtable, num_name, type_name) \
+  typedef enum { xtable(XENUM_ENUM) num_name } type_name;
+
+#define DEFINE_DESC_TABLE(xtable, arr_name) \
+  static char* arr_name[] = { xtable(XENUM_DESC) };
 
 /* Exported functions prototypes ---------------------------------------------*/
 
@@ -153,6 +161,8 @@ bool Param_LoadInit(void);
  * @param value_size Size of the parameter value in bytes
  * @param min Pointer to minimum allowed value (must match parameter type)
  * @param max Pointer to maximum allowed value (must match parameter type)
+ * @param callback Pointer to function called when parameter updated
+ * @param descriptors Array of strings describing enum values
  *
  * @return true if registration successful, false if failed (NULL value_ptr,
  *         already registered parameter, mutex acquisition failure, or invalid type)
@@ -162,7 +172,7 @@ bool Param_LoadInit(void);
  */
 bool Param_Register(ParamIds_t id, const char* name, ParamType_t type,
                     void* value_ptr, size_t value_size, void* min, void* max,
-                    void (*callback)(void));
+                    void (*callback)(void), char** descriptors);
 
 /**
  * @brief Retrieves a parameter value by ID
@@ -265,6 +275,18 @@ bool Param_GetInt32(ParamIds_t id, int32_t* value);
  * @see Param_GetValue
  */
 bool Param_GetFloat(ParamIds_t id, float* value);
+
+/**
+ * @brief Retrieves an enums current value
+ *
+ * @param id The parameter identifier
+ * @param value Pointer to store the retrieved uint8_t value
+ *
+ * @return true if parameter was successfully retrieved, false otherwise
+ *
+ * @see Param_GetValue
+ */
+bool Param_GetEnum(ParamIds_t id, uint8_t* value);
 
 /**
  * @brief Retrieves the name of a parameter by its ID
@@ -401,6 +423,21 @@ bool Param_GetInt32Limits (ParamIds_t id, int32_t* min, int32_t* max);
 bool Param_GetFloatLimits (ParamIds_t id, float* min, float* max);
 
 /**
+ * @brief Retrieves the minimum and maximum limits for an enum as uint8_t
+ *
+ * Indirect passthrough to Param_GetLimits interpreting the underlying data as uint8_t.
+ *
+ * @param id The parameter identifier
+ * @param min Pointer to receive the minimum limit value as uint8_t
+ * @param max Pointer to receive the maximum limit value as uint8_t
+ *
+ * @return true if limits were successfully retrieved, false otherwise
+ *
+ * @note Assumes the parameter's internal representation can be safely reinterpreted as uint8_t
+ */
+bool Param_GetEnumLimits (ParamIds_t id, uint8_t* min, uint8_t* max);
+
+/**
  * @brief Sets a parameter value with type checking and range validation
  *
  * This function updates a parameter's value after validating it against the
@@ -521,6 +558,21 @@ bool Param_SetInt32(ParamIds_t id, int32_t* value);
 bool Param_SetFloat(ParamIds_t id, float* value);
 
 /**
+ * @brief Sets an enum parameter
+ *
+ * Type-specific wrapper for Param_SetValue().
+ *
+ * @param id Identifier of the parameter to set
+ * @param value Pointer to the float value
+ *
+ * @return true if parameter was successfully set, false otherwise
+ *
+ * @see Param_SetValue() for details on validation and error conditions
+ */
+bool Param_SetEnum(ParamIds_t id, uint8_t* value);
+
+
+/**
  * @brief Returns the parameter type for a parameter
  *
  * @param id Identifier for the parameter
@@ -532,6 +584,14 @@ bool Param_SetFloat(ParamIds_t id, float* value);
  * @note The parameter must be set
  */
 bool Param_GetParamType(ParamIds_t id, ParamType_t* param_type);
+
+/**
+ * @brief Returns array of strings corresponding to an enum
+ * 
+ * @param id identifier for the parameter
+ * @return enum descriptors, or NULL if not set
+ */
+char** Param_GetDescriptors(ParamIds_t id);
 
 /**
  * @brief Saves parameters to flash (non-volatile) memory

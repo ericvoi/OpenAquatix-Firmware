@@ -17,6 +17,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
+#include "cfg_parameters.h"
 #include <stdbool.h>
 
 /* Private includes ----------------------------------------------------------*/
@@ -24,6 +25,44 @@ extern "C" {
 
 
 /* Exported types ------------------------------------------------------------*/
+
+#define MOD_DEMOD_METHODS_TABLE(X) \
+  X(MOD_DEMOD_FSK, "FSK") \
+  X(MOD_DEMOD_FHBFSK, "FH-BFSK")
+
+#define ERROR_DETECTION_METHOD_TABLE(X) \
+  X(NO_ERROR_DETECTION, "No error detection") \
+  X(CRC_8, "CRC-8") \
+  X(CRC_16, "CRC-16") \
+  X(CRC_32, "CRC-32") \
+  X(CHECKSUM_8, "Checksum-8") \
+  X(CHECKSUM_16, "Checksum-16") \
+  X(CHECKSUM_32, "Checksum_32") 
+
+#define ERROR_CORRECTION_METHOD_TABLE(X) \
+  X(NO_ECC, "No error correction") \
+  X(HAMMING_CODE, "1-bit Hamming code") \
+  X(JANUS_CONVOLUTIONAL, "1:2 Convolutional Code (JANUS)")
+
+#define FHBFSK_HOPPER_TABLE(X) \
+  X(HOPPER_INCREMENT, "Increment by 1") \
+  X(HOPPER_GALOIS, "Galois Field arithmetic (JANUS)") \
+  X(HOPPER_PRIME, "Prime selector")
+
+#define SYNCHRONIZATION_METHOD_TABLE(X) \
+  X(NO_SYNC, "None") \
+  X(SYNC_PN_32_JANUS, "JANUS 32-chips")
+
+#define MESSAGING_PROTOCOL_TABLE(X) \
+  X(PROTOCOL_CUSTOM, "Custom protocol") \
+  X(PROTOCOL_JANUS, "JANUS protocol")
+
+DECLARE_ENUM(MOD_DEMOD_METHODS_TABLE, NUM_MOD_DEMOD_METHODS, ModDemodMethod_t)
+DECLARE_ENUM(ERROR_DETECTION_METHOD_TABLE, NUM_ERROR_DETECTION_METHODS, ErrorDetectionMethod_t)
+DECLARE_ENUM(ERROR_CORRECTION_METHOD_TABLE, NUM_ECC_METHODS, ErrorCorrectionMethod_t)
+DECLARE_ENUM(FHBFSK_HOPPER_TABLE, NUM_HOPPERS, FhbfskHopperMethod_t)
+DECLARE_ENUM(SYNCHRONIZATION_METHOD_TABLE, NUM_SYNC_METHODS, SynchronizationMethod_t)
+DECLARE_ENUM(MESSAGING_PROTOCOL_TABLE, NUM_PROTOCOLS, MessagingProtocol_t)
 
 // Preamble structs
 typedef struct {
@@ -47,56 +86,6 @@ typedef struct preamble_content {
   PreambleValue_t schedule_flag;
   // others as needed
 } PreambleContent_t;
-
-// Parameter enums
-typedef enum {
-  MOD_DEMOD_FSK,
-  MOD_DEMOD_FHBFSK,
-  // Place others as needed here
-  NUM_MOD_DEMOD_METHODS
-} ModDemodMethod_t;
-
-typedef enum {
-  NO_ERROR_DETECTION,
-  CRC_8,
-  CRC_16,
-  CRC_32,
-  CHECKSUM_8,
-  CHECKSUM_16,
-  CHECKSUM_32,
-  // Place others as needed here
-  NUM_ERROR_DETECTION_METHODS
-} ErrorDetectionMethod_t;
-
-typedef enum {
-  NO_ECC,
-  HAMMING_CODE,
-  JANUS_CONVOLUTIONAL,
-  // Place others as needed here
-  NUM_ECC_METHODS
-} ErrorCorrectionMethod_t;
-
-typedef enum {
-  HOPPER_INCREMENT,
-  HOPPER_GALOIS,
-  HOPPER_PRIME,
-  // Place others as needed here
-  NUM_HOPPERS
-} FhbfskHopperMethod_t;
-
-typedef enum {
-  NO_SYNC,
-  SYNC_PN_32_JANUS,
-  // Place others as needed here
-  NUM_SYNC_METHODS
-} SynchronizationMethod_t;
-
-typedef enum {
-  PROTOCOL_CUSTOM,
-  PROTOCOL_JANUS,
-  // Place others as needed here
-  NUM_PROTOCOLS
-} MessagingProtocol_t;
 
 // Struct for all configuration parameters that are relevant for feedback tests
 // Other configuration parameters belong to modules

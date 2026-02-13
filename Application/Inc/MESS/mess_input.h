@@ -21,6 +21,7 @@ extern "C" {
 #include "mess_packet.h"
 #include "mess_main.h"
 #include "mess_dsp_config.h"
+#include "cfg_parameters.h"
 
 #include <stdbool.h>
 
@@ -31,11 +32,11 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
-typedef enum {
-  MSG_START_AMPLITUDE,
-  MSG_START_FREQUENCY,
-  NUM_MSG_START_FCN
-} MsgStartFunctions_t;
+#define MESSAGE_START_FUNCTION_TABLE(X) \
+  X(MSG_START_AMPLITUDE, "Absolute amplitude threshold") \
+  X(MSG_START_FREQUENCY, "Frequency amplitude threshold")
+
+DECLARE_ENUM(MESSAGE_START_FUNCTION_TABLE, NUM_MSG_START_FCN, MsgStartFunctions_t)
 
 /* Exported constants --------------------------------------------------------*/
 

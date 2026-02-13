@@ -249,9 +249,7 @@ bool COMM_RegisterJanusMenu()
 
 void setMessagingProtocol(FunctionContext_t* context)
 {
-  char* descriptors[] = {"Custom", "JANUS"};
-
-  COMMLoops_LoopEnum(context, PARAM_PROTOCOL, descriptors, sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_PROTOCOL);
 }
 
 void send_011_01_Transducer(FunctionContext_t* context)
@@ -276,19 +274,12 @@ void toggleForwardCapability(FunctionContext_t* context)
 
 void setMessageCoding(FunctionContext_t* context)
 {
-  char* descriptors[] = {"8 bit ASCII", "7 bit ASCII", "6 bit ASCII (AIS)", "UTF-8"};
-
-  COMMLoops_LoopEnum(context, PARAM_CODING, descriptors, sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_CODING);
 }
 
 void setMessageEncryption(FunctionContext_t* context)
 {
-  char* descriptors[] = {"No encryption",                     "AES-GCM (not yet implemented)", 
-                         "user type 2 (not yet implemented)", "user type 3 (not yet implemented)",
-                         "user type 4 (not yet implemented)", "user type 5 (not yet implemented)",
-                         "user type 6 (not yet implemented)", "user type 7 (not yet implemented)"};
-
-  COMMLoops_LoopEnum(context, PARAM_ENCRYPTION, descriptors, sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_ENCRYPTION);
 }
 
 void setJanusDestinationId(FunctionContext_t* context)

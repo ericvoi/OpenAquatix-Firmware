@@ -573,8 +573,9 @@ bool registerCommParams(void)
 {
   uint32_t min_u32 = (uint32_t) MIN_PRINT_ENABLED;
   uint32_t max_u32 = (uint32_t) MAX_PRINT_ENABLED;
-  if (Param_Register(PARAM_PRINT_ENABLED, "printing received messages", PARAM_TYPE_UINT8,
-                     &print_received_messages, sizeof(bool), &min_u32, &max_u32, NULL) == false) {
+  if (Param_Register(PARAM_PRINT_ENABLED, "printing received messages", 
+                     PARAM_TYPE_UINT8, &print_received_messages, sizeof(bool), 
+                     &min_u32, &max_u32, NULL, NULL) == false) {
     return false;
   }
 

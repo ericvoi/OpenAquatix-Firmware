@@ -16,17 +16,8 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "mess_input.h"
-#include "mess_main.h"
-#include "mess_error_detection.h"
-#include "mess_demodulate.h"
-#include "mess_modulate.h"
-#include "mess_error_correction.h"
-#include "mess_demodulate.h"
-#include "mac_protocol.h"
-#include "dac_waveform.h"
 
-#include "pga113-driver.h"
+
 
 /* Private includes ----------------------------------------------------------*/
 

@@ -36,6 +36,7 @@ typedef struct {
     struct {float min; float max;} f;
   } limits;
   void (*callback)(void);
+  char** descriptors;
   bool is_modified;
 } Parameter_t;
 
@@ -84,8 +85,6 @@ static uint32_t num_erases;
 static uint32_t next_write_addr = FLASH_PARAM_ADDR;
 
 static bool flash_load_complete = false;
-
-// static uint32_t param_crc = 0; TODO
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -162,10 +161,13 @@ bool Param_LoadInit(void)
 // Note: min and max MUST be 32 bits for uint16, int16, int8 and uint8
 bool Param_Register(ParamIds_t id, const char* name, ParamType_t type,
                     void* value_ptr, size_t value_size, void* min, void* max,
-                    void (*callback)(void))
+                    void (*callback)(void), char** descriptors)
 {
-
   if (value_ptr == NULL) {
+    return false;
+  }
+
+  if ((min == NULL) || (max == NULL) || (name == NULL) || (value_ptr == NULL) || (descriptors == NULL)) {
     return false;
   }
 
@@ -182,6 +184,7 @@ bool Param_Register(ParamIds_t id, const char* name, ParamType_t type,
     param->value_ptr = value_ptr;
     param->value_size = value_size;
     param->callback = callback;
+    param->descriptors = descriptors;
     param->is_modified = false;
 
     switch (type) {
@@ -262,6 +265,11 @@ bool Param_GetFloat(ParamIds_t id, float* value)
   return Param_GetValue(id, value);
 }
 
+bool Param_GetEnum(ParamIds_t id, uint8_t* value)
+{
+  return Param_GetValue(id, value);
+}
+
 char* Param_GetName(ParamIds_t id)
 {
   char* param_name = NULL;
@@ -325,7 +333,7 @@ bool Param_GetUint16Limits(ParamIds_t id, uint16_t* min, uint16_t* max)
   return true;
 }
 
-bool Param_GetInt16Limits (ParamIds_t id, int16_t* min, int16_t* max)
+bool Param_GetInt16Limits(ParamIds_t id, int16_t* min, int16_t* max)
 {
   int32_t minimum, maximum;
   if (Param_GetLimits(id, &minimum, &maximum) == false) {
@@ -349,6 +357,11 @@ bool Param_GetInt32Limits (ParamIds_t id, int32_t* min, int32_t* max)
 bool Param_GetFloatLimits (ParamIds_t id, float* min, float* max)
 {
   return Param_GetLimits(id, min, max);
+}
+
+bool Param_GetEnumLimits(ParamIds_t id, uint8_t* min, uint8_t* max)
+{
+  return Param_GetUint8Limits(id, min, max);
 }
 
 bool Param_SetValue(ParamIds_t id, const void* value)
@@ -457,6 +470,11 @@ bool Param_SetFloat(ParamIds_t id, float* value)
   return Param_SetValue(id, value);
 }
 
+bool Param_SetEnum(ParamIds_t id, uint8_t* value)
+{
+  return Param_SetValue(id, value);
+}
+
 bool Param_GetParamType(ParamIds_t id, ParamType_t* param_type)
 {
   if (osMutexAcquire(param_mutex, osWaitForever) == osOK) {
@@ -467,6 +485,18 @@ bool Param_GetParamType(ParamIds_t id, ParamType_t* param_type)
     }
   }
   return false;
+}
+
+char** Param_GetDescriptors(ParamIds_t id)
+{
+  ParamType_t type;
+  if (Param_GetParamType(id, &type) == false) return NULL;
+  if (type != PARAM_TYPE_ENUM) return false;
+  
+  if (osMutexAcquire(param_mutex, osWaitForever) != osOK) return NULL;
+  char** descriptors = parameters[id].descriptors;
+  osMutexRelease(param_mutex);
+  return descriptors;
 }
 
 bool Param_SaveToFlash(void)

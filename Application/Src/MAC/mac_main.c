@@ -49,6 +49,8 @@ typedef struct {
 
 /* Private variables ---------------------------------------------------------*/
 
+DEFINE_DESC_TABLE(MAC_PROTOCOL_TABLE, mac_protocol_descriptions)
+
 osMessageQueueId_t regular_tx_queue = NULL;
 osMessageQueueId_t emergency_tx_queue = NULL;
 osMessageQueueId_t mac_rx_queue = NULL;
@@ -176,9 +178,9 @@ bool registerMacParams()
 {
   uint32_t min_u32 = MIN_MAC;
   uint32_t max_u32 = MAX_MAC;
-  if (Param_Register(PARAM_MAC, "MAC method", PARAM_TYPE_UINT8, 
+  if (Param_Register(PARAM_MAC, "MAC method", PARAM_TYPE_ENUM, 
                      &task_context.requested_protocol, sizeof(MacProtocol_t),
-                     &min_u32, &max_u32, NULL) == false) {
+                     &min_u32, &max_u32, NULL, mac_protocol_descriptions) == false) {
     return false;
   }
   return true;

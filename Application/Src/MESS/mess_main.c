@@ -29,6 +29,9 @@
 #include "mess_cargo.h"
 #include "mess_background_noise.h"
 #include "mess_sync.h"
+#include "mess_error_correction.h"
+#include "mess_demodulate.h"
+#include "mess_error_detection.h"
 
 #include "sys_error.h"
 
@@ -127,6 +130,16 @@ static Message_t tx_msg;
 static Message_t rx_msg;
 
 extern osMessageQueueId_t mac_rx_queue;
+
+DEFINE_DESC_TABLE(MOD_DEMOD_METHODS_TABLE, mod_demod_descriptors)
+DEFINE_DESC_TABLE(ERROR_DETECTION_METHOD_TABLE, error_detection_descriptors)
+DEFINE_DESC_TABLE(ERROR_CORRECTION_METHOD_TABLE, error_correction_descriptors)
+DEFINE_DESC_TABLE(FHBFSK_HOPPER_TABLE, fhbfsk_hopper_descriptors)
+DEFINE_DESC_TABLE(SYNCHRONIZATION_METHOD_TABLE, synchronization_descriptors)
+DEFINE_DESC_TABLE(MESSAGING_PROTOCOL_TABLE, messaging_protocol_descriptors)
+
+DEFINE_DESC_TABLE(CODING_INFO_TABLE, coding_descriptors)
+DEFINE_DESC_TABLE(ENCRYPTION_TABLE, encryption_descriptors)
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -568,7 +581,7 @@ bool registerMessMainParams()
   float max_f = MAX_BAUD_RATE;
   if (Param_Register(PARAM_BAUD, "baud rate", PARAM_TYPE_FLOAT,
                      &custom_config.baud_rate, sizeof(float),
-                     &min_f, &max_f, NULL) == false) {
+                     &min_f, &max_f, NULL, NULL) == false) {
     return false;
   }
 
@@ -576,20 +589,20 @@ bool registerMessMainParams()
   uint32_t max_u32 = MAX_FSK_FREQUENCY;
   if (Param_Register(PARAM_FSK_F0, "FSK 0 frequency", PARAM_TYPE_UINT32,
                      &custom_config.fsk_f0, sizeof(uint32_t),
-                     &min_u32, &max_u32, NULL) == false) {
+                     &min_u32, &max_u32, NULL, NULL) == false) {
     return false;
   }
   if (Param_Register(PARAM_FSK_F1, "FSK 1 frequency", PARAM_TYPE_UINT32,
                      &custom_config.fsk_f1, sizeof(uint32_t),
-                     &min_u32, &max_u32, NULL) == false) {
+                     &min_u32, &max_u32, NULL, NULL) == false) {
     return false;
   }
 
   min_u32 = MIN_MOD_DEMOD_METHOD;
   max_u32 = MAX_MOD_DEMOD_METHOD;
-  if (Param_Register(PARAM_MOD_DEMOD_METHOD, "mod/demod method", PARAM_TYPE_UINT8,
+  if (Param_Register(PARAM_MOD_DEMOD_METHOD, "mod/demod method", PARAM_TYPE_ENUM,
                      &custom_config.mod_demod_method, sizeof(uint8_t),
-                     &min_u32, &max_u32, NULL) == false) {
+                     &min_u32, &max_u32, NULL, mod_demod_descriptors) == false) {
     return false;
   }
 
@@ -597,7 +610,7 @@ bool registerMessMainParams()
   max_u32 = MAX_FC;
   if (Param_Register(PARAM_FC, "center frequency", PARAM_TYPE_UINT32,
                      &custom_config.fc, sizeof(uint32_t),
-                     &min_u32, &max_u32, NULL) == false) {
+                     &min_u32, &max_u32, NULL, NULL) == false) {
     return false;
   }
 
@@ -605,7 +618,7 @@ bool registerMessMainParams()
   max_u32 = MAX_FHBFSK_FREQ_SPACING;
   if (Param_Register(PARAM_FHBFSK_FREQ_SPACING, "frequency spacing", PARAM_TYPE_UINT8,
                      &custom_config.fhbfsk_freq_spacing, sizeof(uint8_t),
-                     &min_u32, &max_u32, NULL) == false) {
+                     &min_u32, &max_u32, NULL, NULL) == false) {
     return false;
   }
 
@@ -613,44 +626,50 @@ bool registerMessMainParams()
   max_u32 = MAX_FHBFSK_DWELL_TIME;
   if (Param_Register(PARAM_FHBFSK_DWELL_TIME, "dwell time", PARAM_TYPE_UINT8,
                      &custom_config.fhbfsk_dwell_time, sizeof(uint8_t),
-                     &min_u32, &max_u32, NULL) == false) {
+                     &min_u32, &max_u32, NULL, NULL) == false) {
     return false;
   }
 
   min_u32 = MIN_FHBFSK_NUM_TONES;
   max_u32 = MAX_FHBFSK_NUM_TONES;
-  if (Param_Register(PARAM_FHBFSK_NUM_TONES, "number of tones", PARAM_TYPE_UINT8,
-                     &custom_config.fhbfsk_num_tones, sizeof(uint8_t),
-                     &min_u32, &max_u32, NULL) == false) {
+  if (Param_Register(PARAM_FHBFSK_NUM_TONES, "number of tones", 
+                     PARAM_TYPE_UINT8, &custom_config.fhbfsk_num_tones, 
+                     sizeof(uint8_t), &min_u32, &max_u32, NULL, NULL) == false) {
     return false;
   }
 
   min_u32 = MIN_ERROR_DETECTION;
   max_u32 = MAX_ERROR_DETECTION;
-  if (Param_Register(PARAM_PREAMBLE_ERROR_DETECTION, "preamble error detection method", PARAM_TYPE_UINT8,
+  if (Param_Register(PARAM_PREAMBLE_ERROR_DETECTION, 
+                     "preamble error detection method", PARAM_TYPE_ENUM,
                      &custom_config.preamble_validation, sizeof(uint8_t),
-                     &min_u32, &max_u32, NULL) == false) {
+                     &min_u32, &max_u32, NULL, error_detection_descriptors
+                     ) == false) {
     return false;
   }
 
-  if (Param_Register(PARAM_CARGO_ERROR_DETECTION, "cargo error detection method", PARAM_TYPE_UINT8,
+  if (Param_Register(PARAM_CARGO_ERROR_DETECTION, 
+                     "cargo error detection method", PARAM_TYPE_ENUM,
                      &custom_config.cargo_validation, sizeof(uint8_t),
-                     &min_u32, &max_u32, NULL) == false) {
+                     &min_u32, &max_u32, NULL, error_detection_descriptors
+                     ) == false) {
     return false;
   }
 
   min_u32 = MIN_ECC_METHOD;
   max_u32 = MAX_ECC_METHOD;
-  if (Param_Register(PARAM_ECC_PREAMBLE, "preamble ECC", PARAM_TYPE_UINT8,
+  if (Param_Register(PARAM_ECC_PREAMBLE, "preamble ECC", PARAM_TYPE_ENUM,
                      &custom_config.preamble_ecc_method, sizeof(uint8_t),
-                     &min_u32, &max_u32, NULL) == false) {
+                     &min_u32, &max_u32, NULL, error_correction_descriptors
+                     ) == false) {
     return false;
   }
 
   // Using the same bounds as ^
-  if (Param_Register(PARAM_ECC_MESSAGE, "message ECC", PARAM_TYPE_UINT8,
+  if (Param_Register(PARAM_ECC_MESSAGE, "message ECC", PARAM_TYPE_ENUM,
                      &custom_config.cargo_ecc_method, sizeof(uint8_t),
-                     &min_u32, &max_u32, NULL) == false) {
+                     &min_u32, &max_u32, NULL, error_correction_descriptors
+                     ) == false) {
     return false;
   }
 
@@ -658,23 +677,25 @@ bool registerMessMainParams()
   max_u32 = MAX_INTERLEAVER_STATE;
   if (Param_Register(PARAM_USE_INTERLEAVER, "message interleaving", PARAM_TYPE_UINT8,
                      &custom_config.use_interleaver, sizeof(bool),
-                     &min_u32, &max_u32, NULL) == false) {
+                     &min_u32, &max_u32, NULL, NULL) == false) {
     return false;
   }
 
   min_u32 = MIN_FHBFSK_HOPPER;
   max_u32 = MAX_FHBFSK_HOPPER;
-  if (Param_Register(PARAM_FHBFSK_HOPPER, "hopper method", PARAM_TYPE_UINT8,
+  if (Param_Register(PARAM_FHBFSK_HOPPER, "hopper method", PARAM_TYPE_ENUM,
                      &custom_config.fhbfsk_hopper, sizeof(uint8_t), 
-                     &min_u32, &max_u32, NULL) == false) {
+                     &min_u32, &max_u32, NULL, fhbfsk_hopper_descriptors
+                     ) == false) {
     return false;
   }
 
   min_u32 = MIN_SYNC_METHOD;
   max_u32 = MAX_SYNC_METHOD;
-  if (Param_Register(PARAM_SYNC_METHOD, "synchronization method", PARAM_TYPE_UINT8,
+  if (Param_Register(PARAM_SYNC_METHOD, "synchronization method", PARAM_TYPE_ENUM,
                      &custom_config.sync_method, sizeof(uint8_t),
-                     &min_u32, &max_u32, NULL) == false) {
+                     &min_u32, &max_u32, NULL, synchronization_descriptors
+                     ) == false) {
     return false;
   }
 
@@ -682,7 +703,7 @@ bool registerMessMainParams()
   max_u32 = MAX_ID;
   if (Param_Register(PARAM_ID, "the modem identifier", PARAM_TYPE_UINT8,
                      &custom_id, sizeof(uint8_t), &min_u32, 
-                     &max_u32, NULL) == false) {
+                     &max_u32, NULL, NULL) == false) {
     return false;
   }
 
@@ -690,7 +711,7 @@ bool registerMessMainParams()
   max_u32 = MAX_STATIONARY_FLAG;
   if (Param_Register(PARAM_STATIONARY_FLAG, "stationary flag", PARAM_TYPE_UINT8,
                      &is_mobile, sizeof(uint8_t), &min_u32, 
-                     &max_u32, NULL) == false) {
+                     &max_u32, NULL, NULL) == false) {
     return false;
   }
 
@@ -698,7 +719,7 @@ bool registerMessMainParams()
   max_u32 = MAX_WAKEUP_TONES_STATE;
   if (Param_Register(PARAM_WAKEUP_TONES_STATE, "wakeup tones", PARAM_TYPE_UINT8,
                      &custom_config.wakeup_tones, sizeof(bool), &min_u32, 
-                     &max_u32, NULL) == false) {
+                     &max_u32, NULL, NULL) == false) {
     return false;
   }
 
@@ -706,17 +727,17 @@ bool registerMessMainParams()
   max_u32 = MAX_WAKEUP_TONE_FREQ;
   if (Param_Register(PARAM_WAKEUP_TONE1, "wakeup tone 1", PARAM_TYPE_UINT32,
                      &custom_config.wakeup_tone1, sizeof(uint32_t), &min_u32, 
-                     &max_u32, NULL) == false) {
+                     &max_u32, NULL, NULL) == false) {
     return false;
   }
   if (Param_Register(PARAM_WAKEUP_TONE2, "wakeup tone 2", PARAM_TYPE_UINT32,
                      &custom_config.wakeup_tone2, sizeof(uint32_t), &min_u32, 
-                     &max_u32, NULL) == false) {
+                     &max_u32, NULL, NULL) == false) {
     return false;
   }
   if (Param_Register(PARAM_WAKEUP_TONE3, "wakeup tone 3", PARAM_TYPE_UINT32,
                      &custom_config.wakeup_tone3, sizeof(uint32_t), &min_u32, 
-                     &max_u32, NULL) == false) {
+                     &max_u32, NULL, NULL) == false) {
     return false;
   }
 
@@ -724,15 +745,15 @@ bool registerMessMainParams()
   max_u32 = MAX_MESSAGING_PROTOCOL;
   if (Param_Register(PARAM_PROTOCOL, "the messaging protocol", PARAM_TYPE_UINT8,
                      &messaging_protocol, sizeof(uint8_t), &min_u32, 
-                     &max_u32, NULL) == false) {
+                     &max_u32, NULL, NULL) == false) {
     return false;
   }
 
   min_u32 = MIN_TX_RX_CAPABLE;
   max_u32 = MAX_TX_RX_CAPABLE;
-  if (Param_Register(PARAM_TX_RX_ABILITY, "Tx/Rx ability flag", PARAM_TYPE_UINT8,
+  if (Param_Register(PARAM_TX_RX_ABILITY, "Tx/Rx ability flag", PARAM_TYPE_ENUM,
                      &tx_rx_capable, sizeof(bool), &min_u32,
-                     &max_u32, NULL) == false) {
+                     &max_u32, NULL, messaging_protocol_descriptors) == false) {
     return false;
   }
 
@@ -740,7 +761,7 @@ bool registerMessMainParams()
   max_u32 = MAX_FORWARD_CAPABILITY;
   if (Param_Register(PARAM_FORWARD_CAPABILITY, "packet forward ability flag", 
                      PARAM_TYPE_UINT8, &forwarding_capability, sizeof(bool),
-                     &min_u32, &max_u32, NULL) == false) {
+                     &min_u32, &max_u32, NULL, NULL) == false) {
     return false;
   }
 
@@ -748,7 +769,7 @@ bool registerMessMainParams()
   max_u32 = MAX_JANUS_ID;
   if (Param_Register(PARAM_JANUS_ID, "JANUS ID", PARAM_TYPE_UINT8,
                      &janus_id, sizeof(uint8_t), &min_u32, &max_u32, 
-                     NULL) == false) {
+                     NULL, NULL) == false) {
     return false;
   }
 
@@ -756,23 +777,23 @@ bool registerMessMainParams()
   max_u32 = MAX_JANUS_DESTINATION;
   if (Param_Register(PARAM_JANUS_DESTINATION, "JANUS destination ID",
                      PARAM_TYPE_UINT8, &janus_destination_id, sizeof(uint8_t),
-                     &min_u32, &max_u32, NULL) == false) {
+                     &min_u32, &max_u32, NULL, NULL) == false) {
     return false;
   }
 
   min_u32 = MIN_CODING;
   max_u32 = MAX_CODING;
-  if (Param_Register(PARAM_CODING, "string coding", PARAM_TYPE_UINT8,
+  if (Param_Register(PARAM_CODING, "string coding", PARAM_TYPE_ENUM,
                      &coding, sizeof(uint8_t), &min_u32, &max_u32, 
-                     NULL) == false) {
+                     NULL, coding_descriptors) == false) {
     return false;
   }
 
   min_u32 = MIN_ENCRYPTION;
   max_u32 = MAX_ENCRYPTION;
-  if (Param_Register(PARAM_ENCRYPTION, "cargo encryption", PARAM_TYPE_UINT8,
+  if (Param_Register(PARAM_ENCRYPTION, "cargo encryption", PARAM_TYPE_ENUM,
                      &encryption, sizeof(uint8_t), &min_u32, &max_u32, 
-                     NULL) == false) {
+                     NULL, encryption_descriptors) == false) {
     return false;
   }
 
