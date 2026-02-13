@@ -22,9 +22,7 @@
 #include "usbd_cdc_if.h"
 
 /* USER CODE BEGIN INCLUDE */
-
 #include "usb_comm.h"
-
 /* USER CODE END INCLUDE */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -185,8 +183,8 @@ static int8_t CDC_DeInit_HS(void)
 static int8_t CDC_Control_HS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 {
   /* USER CODE BEGIN 10 */
-  (void)(pbuf);
-  (void)(length);
+  (void) (pbuf);
+  (void) (length);
   switch(cmd)
   {
   case CDC_SEND_ENCAPSULATED_COMMAND:

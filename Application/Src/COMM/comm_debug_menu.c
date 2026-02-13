@@ -410,7 +410,9 @@ void noiseSpectralAnalysis(FunctionContext_t* context)
 
 void printCurrentTemp(FunctionContext_t* context)
 {
-  float temp = Temperature_GetCurrent();
+  FunctionContext_t* context = (FunctionContext_t*) argument;
+  
+  float temp = Temperature_GetCurrentTj();
 
   sprintf((char*) context->output_buffer, "\r\nCurrent temperature: %.2f C\r\n",
           temp);

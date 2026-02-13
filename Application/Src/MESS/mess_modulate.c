@@ -149,7 +149,7 @@ bool Modulate_StartTransducerOutput(uint16_t num_steps,
   if (ADC_StartFeedback() == false) {
     return false;
   }
-  if (Waveform_StartWaveformOutput(DAC_CHANNEL_TRANSDUCER) == false) {
+  if (Waveform_StartWaveformOutput(DAC_CHANNEL_1) == false) {
     return false;
   }
   osDelay(150);
@@ -161,13 +161,12 @@ bool Modulate_StartFeedbackOutput(uint16_t num_steps,
                                   BitMessage_t* new_bit_msg)
 {
   HAL_TIM_Base_Stop(&htim6);
-  Waveform_StopWaveformOutput();
+  if (Waveform_StopWaveformOutput() == false) return false;
   osDelay(1);
   MessDacResource_RegisterMessageConfiguration(new_cfg, new_bit_msg);
-  Waveform_SetWaveformSequence(num_steps, true);
-  if (Waveform_StartWaveformOutput(DAC_CHANNEL_FEEDBACK) == false) {
-    return false;
-  }
+  if (Waveform_SetWaveformSequence(num_steps, true) == false) return false;
+  if (Waveform_StartWaveformOutput(DAC_CHANNEL_1) == false) return false;
+
   HAL_StatusTypeDef ret = HAL_TIM_Base_Start(&htim6);
   return ret == HAL_OK;
 }
