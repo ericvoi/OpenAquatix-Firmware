@@ -168,7 +168,7 @@ bool Param_LoadInit(void);
  *         already registered parameter, mutex acquisition failure, or invalid type)
  *
  * @note This function only stores references to the provided memory locations and does not allocate memory
- * @warning The value_ptr, min, and max pointers must remain valid for the lifetime of the parameter
+ * @warning The value_ptr pointer must remain valid for the lifetime of the parameter
  */
 bool Param_Register(ParamIds_t id, const char* name, ParamType_t type,
                     void* value_ptr, size_t value_size, void* min, void* max,
