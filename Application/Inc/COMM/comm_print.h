@@ -40,7 +40,20 @@ typedef enum {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
+/**
+ * @brief Displays the message in a Message_t struct
+ * 
+ * @param msg The message to write to the HMI
+ * @param out_buffer A temporary buffer used for writing outputs to HMI
+ * @param interface Whether to send the message on USB, UART, or both
+ */
 void Print_DisplayReceivedMessage(Message_t* msg, uint8_t* out_buffer, CommInterface_t interface);
+
+/**
+ * @brief Registers parameters used for printing messages
+ * 
+ * @return true if all parameters successfully registered, false otherwise
+ */
 bool Print_RegisterParams(void);
 
 #ifdef __cplusplus
