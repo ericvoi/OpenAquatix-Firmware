@@ -18,7 +18,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
 #include <stdbool.h>
-#include "INA219-driver.h"
+#include "ina219-driver.h"
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -39,10 +39,18 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-bool INA219_System_Init(void);
-void INA219_Timer_Callback(void);
-void INA219_ReadComplete_Callback(bool success);
-float Power_GetRecentAverage(uint8_t numsamples);
+bool Power_Init(void);
+void Power_Process(void);
+float Power_MinPower(void);
+float Power_MaxPower(void);
+float Power_AveragePower(void);
+float Power_RecentAveragePower(uint8_t numsamples);
+float Power_MinVoltage(void);
+float Power_MaxVoltage(void);
+float Power_AverageVoltage(void);
+float Power_MinCurrent(void);
+float Power_MaxCurrent(void);
+float Power_AverageCurrent(void);
 
 #ifdef __cplusplus
 }

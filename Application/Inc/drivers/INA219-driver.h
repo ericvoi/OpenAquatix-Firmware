@@ -1,5 +1,5 @@
 /*
- * INA219-driver.h
+ * ina219-driver.h
  *
  *  Created on: Jan 31, 2025
  *      Author: ericv
@@ -44,7 +44,7 @@ typedef struct {
 /* Exported functions prototypes ---------------------------------------------*/
 
 bool INA_Init(void);
-bool INA_RegisterBuffer(InaPowerValues_t* buf, uint16_t buf_len, uint16_t* buf_head);
+bool INA_RegisterBuffer(InaPowerValues_t* buf, uint16_t buf_len, volatile uint16_t* buf_head);
 bool INA_Read(void);
 void INA_TxComplete(void);
 void INA_RxComplete(void);

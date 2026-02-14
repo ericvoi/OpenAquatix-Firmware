@@ -19,6 +19,7 @@
 #include "sys_temperature.h"
 #include "sys_pressure.h"
 #include "sys_led.h"
+#include "sys_power.h"
 #include "sleep/sleep_manager.h"
 #include "cfg_main.h"
 #include "cfg_parameters.h"
@@ -70,33 +71,21 @@ void SYS_StartTask(void* argument)
 
   CFG_WaitLoadComplete();
 
-  if (LPS_Init(LPS_ODR_1) == false) {
-    Error_Routine(ERROR_SYS_INIT);
-  }
-
-  if (SensorTimer_Init() == false) {
-    Error_Routine(ERROR_SYS_INIT);
-  }
-
-  if (Pressure_Init() == false) {
-    Error_Routine(ERROR_SYS_INIT);
-  }
-
-  if (Temperature_Init() == false) {
-    Error_Routine(ERROR_SYS_INIT);
-  }
-
-  if (createSleepEvents() == false) {
-    Error_Routine(ERROR_SYS_INIT);
-  }
+  if (LPS_Init(LPS_ODR_1) == false) Error_Routine(ERROR_SYS_INIT);
+  if (SensorTimer_Init()  == false) Error_Routine(ERROR_SYS_INIT);
+  if (Pressure_Init()     == false) Error_Routine(ERROR_SYS_INIT);
+  if (Temperature_Init()  == false) Error_Routine(ERROR_SYS_INIT);
+  if (Power_Init()        == false) Error_Routine(ERROR_SYS_INIT);
+  if (createSleepEvents() == false) Error_Routine(ERROR_SYS_INIT);
 
   readHardwareId();
 
   for (;;) {
     LED_Update();
     Temperature_Process();
+    Power_Process();
     SleepManager_Enter();
-    osDelay(100);
+    osDelay(10);
   }
 }
 

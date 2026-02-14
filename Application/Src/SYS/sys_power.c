@@ -14,135 +14,164 @@
 #include "sys_power.h"
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 /* Private typedef -----------------------------------------------------------*/
 
-// Structure to hold each power reading and matching timestamp
-typedef struct { 
-  uint32_t timestamp; // Timestamp in milliseconds
-  float power; // Power reading in watts
-} PowerReading_t;
+
 
 /* Private define ------------------------------------------------------------*/
 
-#define power_buffer_size 64 // Size of the power buffer for averaging
+#define POWER_BUFFER_SIZE       64 // Size of the power buffer for averaging
+
+#define POWER_QUANTIZATION      1000
+#define CURRENT_QUANTIZATION    10000
+#define VOLTAGE_QUANTIZATION    1000
 
 /* Private macro -------------------------------------------------------------*/
 
-/* Private variables ---------------------------------------------------------*/
-static uint16_t raw_power; // Raw reading of a power register value from INA219.
-static PowerReading_t power_buffer[power_buffer_size]; // Buffer to hold power readings and timestamps
-static float INA219_POWER_LSB = 20 * INA219_CURRENT_LSB; // The Power LSB is 20 times the current LSB
 
-static volatile uint8_t buffer_index = 0;
-static volatile uint32_t ms_counter = 0;
-static volatile bool reading_in_progress = false;
+
+/* Private variables ---------------------------------------------------------*/
+
+static InaPowerValues_t power_buffer[POWER_BUFFER_SIZE]; // Buffer to hold power readings and timestamps
+
+static volatile uint16_t buffer_head = 0;
+static uint16_t buffer_tail = 0;
+
+static float min_power = 1e7;
+static float max_power = 0;
+static float min_current = 1e7;
+static float max_current = 0;
+static float min_voltage = 1e7;
+static float max_voltage = 0;
+
+/*
+ * Given a target average period of 6 months and 1ms sample intervals, this
+ * would result in 1.5E10 samples total. Max uint32_t is 4.3E9 and max uint64_t
+ * is 1.8E19. Therefore, sample count and accumulation variables must be
+ * uint64_t. With uint64_t the max quantized size is 1.2E9, so the 12-bit 
+ * resolution of the INA is decidedly the limiting factor 
+ */
+static uint64_t acc_sum_power = 0;   // 1 mW precision
+static uint64_t acc_sum_current = 0; // 100 uA precision
+static uint64_t acc_sum_voltage = 0; // 1 mV precision
+static uint64_t acc_count = 0;       // Number of values in average
 
 /* External variables --------------------------------------------------------*/
-extern I2C_HandleTypeDef hi2c1;
+
+
 
 /* Private function prototypes -----------------------------------------------*/
 
-static void StartPowerReading(void);
+
 
 /* Exported function definitions ---------------------------------------------*/
-bool INA219_System_Init(void)
+bool Power_Init(void)
 {
-    // Initialize INA219
-    HAL_StatusTypeDef status;
-    do {
-        status = INA219_Init();
-        if (status != HAL_OK) {
-            return false;
-        }
-    } while (status == HAL_BUSY); // Keep trying until successful
+  if (INA_Init() == false) return false;
 
-    // Clear the power buffer for fresh readings
-    memset(power_buffer, 0, sizeof(power_buffer));
-    buffer_index = 0;
-    ms_counter = 0;
+  // Clear the power buffer for fresh readings
+  memset(power_buffer, 0, sizeof(power_buffer));
+  buffer_head = 0;
 
-    return true;
+  if (INA_RegisterBuffer(power_buffer, POWER_BUFFER_SIZE, &buffer_head) == false) {
+    return false;
+  }
+
+  return true;
 }
 
-// Called from timer interrupt (sys_sensor_timer.c)
-void INA219_Timer_Callback(void)
+void Power_Process(void)
 {
-    ms_counter++;
+  while (buffer_tail != buffer_head) {
+    float power = power_buffer[buffer_tail].power;
+    float current = power_buffer[buffer_tail].current_A;
+    float voltage = power_buffer[buffer_tail].bus_voltage;
+    acc_sum_power   += (uint64_t) (power   * POWER_QUANTIZATION);
+    acc_sum_current += (uint64_t) (current * CURRENT_QUANTIZATION);
+    acc_sum_voltage += (uint64_t) (voltage * VOLTAGE_QUANTIZATION);
+    acc_count += 1;
 
-    // Start new reading of not in progress
-    if (!reading_in_progress) {
-        StartPowerReading();
-    }
-}
+    if (power > max_power) max_power = power;
+    if (power < min_power) min_power = power;
 
-// Callback for completed DMA transfer
-void INA219_ReadComplete_Callback(bool success)
-{
-    if (success) {
-        // Byte swap, because INA219 sends in big-endian format
-        raw_power = __REV16(power_buffer[buffer_index].power); 
-        power_buffer[buffer_index].power = raw_power * INA219_POWER_LSB; // Convert raw value to power in watts
-        power_buffer[buffer_index].timestamp = ms_counter; // Store the timestamp of the reading
-        
-        buffer_index = (buffer_index + 1) % power_buffer_size; // Circular buffer
-    }
-    reading_in_progress = false; // Reading is complete
-}
+    if (current > max_current) max_current = current;
+    if (current < min_current) min_current = current;
 
-// Calculates the recent average of power readings, up to the size of the buffer
-float Power_GetRecentAverage(uint8_t numsamples)
-{
-    if (numsamples == 0 || numsamples > power_buffer_size) {
-        return 0.0f; // Invalid sample size. Add error handling later
-    }
+    if (voltage > max_voltage) max_voltage = voltage;
+    if (voltage < min_voltage) min_voltage = voltage;
 
-    float sum = 0.0f;
-    uint8_t count = 0;
-    int16_t start_index;
-
-    // Find starting index, based on where the last reading was stored.
-    if (buffer_index >= numsamples) { // If the index is ahead of the amount of requested samples
-        start_index = buffer_index - numsamples; // Start from the last reading minus the number of samples
-    } else { // Else need to wrap back around the buffer
-        start_index = power_buffer_size - (numsamples - buffer_index);
-    }
-
-    // Sum recent samples
-    for (uint8_t i=0; i < numsamples; i++) {
-        uint8_t index = (start_index + i) % power_buffer_size;
-        // Only include non-zero readings to handle initialization period
-        if (power_buffer[index].power != 0.0f) {
-            sum += power_buffer[index].power;
-            count++;
-        }
-    }
-    // Return the average in watts as long as there is at least one valid reading. Otherwise, return 0.
-    return (count > 0) ? (sum / count) : 0.0f; 
-
-}
-
-/* Private function definitions ----------------------------------------------*/
-
-void StartPowerReading(void)
-{
-    // Start power reading
-    reading_in_progress = true;
-    if (HAL_I2C_Mem_Read_DMA(&hi2c1, 
-                             INA219_ADDRESS << 1,
-                             POWER_ADDRESS,
-                             I2C_MEMADD_SIZE_8BIT,
-                             (uint8_t*)&power_buffer[buffer_index].power,
-                             sizeof(uint16_t)) != HAL_OK) {
-        reading_in_progress = false;
-    } 
-}
-
-// This function is called when the DMA transfer is complete
-void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c)
-{
-  if (hi2c->Instance == hi2c1.Instance) {
-    INA219_ReadComplete_Callback(true);
+    buffer_tail = (buffer_tail + 1) % POWER_BUFFER_SIZE;
   }
 }
 
+float Power_MinPower(void)
+{
+  return min_power;
+}
+
+float Power_MaxPower(void)
+{
+  return max_power;
+}
+
+float Power_AveragePower(void)
+{
+  return ((float) (acc_sum_power / acc_count)) / ((float) POWER_QUANTIZATION);
+}
+
+// Calculates the recent average of power readings, up to the size of the buffer
+float Power_RecentAveragePower(uint8_t samples)
+{
+  if (samples == 0 || samples >= POWER_BUFFER_SIZE) {
+    return 0.0f; // Invalid sample size
+  }
+
+  float sum = 0.0f;
+  uint8_t count = 0;
+
+  uint16_t head = buffer_head; // Snapshot incase new sample is added
+  
+  for (uint16_t i = 1; i < samples - 1; i++) {
+    uint16_t index = ((uint16_t) (head - i)) % POWER_BUFFER_SIZE;
+    if (power_buffer[index].timestamp != 0) {
+      sum += power_buffer[index].power;
+      count++;
+    }
+  }
+  // Return the average in watts as long as there is at least one valid reading. Otherwise, return 0.
+  return (count > 0) ? (sum / count) : 0.0f; 
+}
+
+float Power_MinVoltage(void)
+{
+  return min_voltage;
+}
+
+float Power_MaxVoltage(void)
+{
+  return max_voltage;
+}
+
+float Power_AverageVoltage(void)
+{
+  return ((float) (acc_sum_voltage / acc_count)) / ((float) VOLTAGE_QUANTIZATION);
+}
+
+float Power_MinCurrent(void)
+{
+  return min_current;
+}
+
+float Power_MaxCurrent(void)
+{
+  return max_current;
+}
+
+float Power_AverageCurrent(void)
+{
+  return ((float) (acc_sum_current / acc_count)) / ((float) CURRENT_QUANTIZATION);
+}
+
+/* Private function definitions ----------------------------------------------*/

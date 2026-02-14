@@ -20,7 +20,8 @@
 typedef enum {
   INA_IDLE,
   INA_READING_SHUNT_VOLTAGE,
-  INA_READING_BUS_VOLTAGE
+  INA_READING_BUS_VOLTAGE,
+  INA_ERROR
 } InaState_t;
 
 // Configuration Bits for INA219:
@@ -91,13 +92,13 @@ typedef enum {
 typedef struct {
   InaPowerValues_t* buf;
   uint16_t buf_len;
-  uint16_t* buf_head;
+  volatile uint16_t* buf_head;
 } PowerBufferInfo_t;
 
 /* Private define ------------------------------------------------------------*/
 
 #define CONFIG_VOLTAGE_RANGE        INA_RANGE_32V
-#define CONFIG_GAIN                 INA_GAIN_8_320MV
+#define CONFIG_GAIN                 INA_GAIN_8_320MV // No precision gained by higher gain
 #define CONFIG_SHUNT_ADC            INA_SHUNT_ADC_12BIT
 #define CONFIG_BUS_ADC              INA_BUS_ADC_12BIT
 #define CONFIG_MODE                 INA_MODE_SHUNT_AND_BUS_VOLTAGE_CONTINUOUS
@@ -132,12 +133,14 @@ static float shunt_conversion_factor = (SHUNT_UV_PER_LSB / 1000000.0f) / SHUNT_R
 static uint16_t tx_data;
 static uint16_t rx_data;
 
+static bool ina_ready = false;
+
 extern I2C_HandleTypeDef hi2c1; // I2C handle for communication
 
 /* Private function prototypes -----------------------------------------------*/
 
 static bool memWrite(uint16_t address, uint16_t data);
-static void memRead(uint16_t address);
+static bool memRead(uint16_t address);
 
 static float convertRawShuntVoltage(uint16_t raw_reading);
 static float convertRawBusVoltage(uint16_t raw_reading);
@@ -157,10 +160,10 @@ bool INA_Init() // Set configuration register
   if (memWrite(CONFIGURATION_ADDRESS, config) == false) {
     return false;
   }
-  return true;
+  return ina_ready == true;
 }
 
-bool INA_RegisterBuffer(InaPowerValues_t* buf, uint16_t buf_len, uint16_t* buf_head)
+bool INA_RegisterBuffer(InaPowerValues_t* buf, uint16_t buf_len, volatile uint16_t* buf_head)
 {
   if (buf == NULL || buf_len == 0 || buf_head == NULL) return false;
 
@@ -173,17 +176,41 @@ bool INA_RegisterBuffer(InaPowerValues_t* buf, uint16_t buf_len, uint16_t* buf_h
 
 bool INA_Read(void)
 {
+  if ((power_buffer_info.buf_head == NULL) || (power_buffer_info.buf == NULL)) return false;
 
-}
-
-void INA_TxComplete(void)
-{
-
+  InaPowerValues_t* entry = &power_buffer_info.buf[*power_buffer_info.buf_head];
+  switch (ina_state) {
+    case INA_IDLE:
+      if (memRead(SHUNT_VOLTAGE_ADDRESS) == false) return false;
+      ina_state = INA_READING_SHUNT_VOLTAGE;
+      break;
+    case INA_READING_SHUNT_VOLTAGE:
+      entry->current_A = convertRawShuntVoltage(rx_data);
+      ina_state = INA_READING_BUS_VOLTAGE;
+      break;
+    case INA_READING_BUS_VOLTAGE:
+      entry->bus_voltage = convertRawBusVoltage(rx_data);
+      entry->power = entry->bus_voltage * entry->current_A;
+      entry->timestamp = HAL_GetTick();
+      *power_buffer_info.buf_head = (*power_buffer_info.buf_head + 1) % power_buffer_info.buf_len;
+      ina_state = INA_IDLE;
+      break;
+    case INA_ERROR:
+      return false;
+    default:
+      return false;
+  }
+  return true;
 }
 
 void INA_RxComplete(void)
 {
+  if (ina_state != INA_IDLE) INA_Read();
+}
 
+void INA_TxComplete(void)
+{
+  ina_ready = true;
 }
 
 /* Private function definitions ----------------------------------------------*/
@@ -191,16 +218,19 @@ void INA_RxComplete(void)
 bool memWrite(uint16_t address, uint16_t data)
 {
   tx_data = data;
-  if (HAL_I2C_Mem_Write_IT(&INA_I2C_BUS, INA219_ADDRESS << 1, address, I2C_MEMADD_SIZE_8BIT, &tx_data, 2) != HAL_OK) {
+  if (HAL_I2C_Mem_Write_IT(&INA_I2C_BUS, INA219_ADDRESS << 1, address, I2C_MEMADD_SIZE_16BIT, (uint8_t*) &tx_data, 2) != HAL_OK) {
     return false;
   }
   osDelay(1); // Small delay to ensure transaction goes through. Flags not used since only one register written to
   return true;
 }
 
-void memRead(uint16_t address)
+bool memRead(uint16_t address)
 {
-
+  if (HAL_I2C_Mem_Read_IT(&INA_I2C_BUS, INA219_ADDRESS << 1, address, I2C_MEMADD_SIZE_16BIT, (uint8_t*) &rx_data, 2) != HAL_OK) {
+    return false;
+  }
+  return true;
 }
 
 // Converts to current
@@ -212,16 +242,4 @@ float convertRawShuntVoltage(uint16_t raw_reading)
 float convertRawBusVoltage(uint16_t raw_reading)
 {
   return ((float) (raw_reading * BUS_MV_PER_LSB)) * 0.001f;
-}
-
-// DMA callback for transfer complete
-void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef *hi2c) 
-{
-
-}
-
-// DMA callback for transfer error
-void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c) 
-{
-
 }
