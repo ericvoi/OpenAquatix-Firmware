@@ -269,10 +269,14 @@ void MESS_StartTask(void* argument)
           Error_Routine(ERROR_MESS_PROCESSING);
           break;
         }
-        if (Input_DecodeBits(&input_bit_msg, cfg, &rx_msg) == false) {
+
+        bool proceed = true;
+        if (Input_DecodeBits(&input_bit_msg, cfg, &rx_msg, &proceed) == false) {
           Error_Routine(ERROR_MESS_PROCESSING);
           break;
         }
+        if (proceed == false) {switchState(LISTENING); break;};
+
         if (input_bit_msg.fully_received == true && input_bit_msg.added_to_queue == false) {
           // TODO: fix currently incorrect since cant know if transducer or feedback
           rx_msg.type = (tx_msg.type == MSG_TRANSMIT_TRANSDUCER) ?

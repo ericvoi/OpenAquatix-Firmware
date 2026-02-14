@@ -127,6 +127,7 @@ static uint16_t frequency_check_index_1;
 static MsgStartFunctions_t message_start_function = DEFAULT_MSG_START_FCN;
 static bool automatic_gain_control = DEFAULT_AGC_STATE;
 static PgaGain_t fixed_pga_gain = DEFAULT_FIXED_PGA_GAIN;
+static PreambleErrorBehavior_t preamble_error_behavior = DEFAULT_PREAMBLE_ERROR_BEHAVIOR;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -284,7 +285,7 @@ bool Input_ProcessBlocks(BitMessage_t* bit_msg, const DspConfig_t* cfg)
 
 // Goes through message to see if enough bits have been received to decode the
 // length and data type
-bool Input_DecodeBits(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* msg)
+bool Input_DecodeBits(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* msg, bool* proceed)
 {
   if (bit_msg == NULL) {
     return false;
@@ -309,6 +310,19 @@ bool Input_DecodeBits(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* 
 
       if (ErrorDetection_CheckDetection(bit_msg, &bit_msg->error_preamble, cfg, true) == false) {
         return false;
+      }
+
+      if (bit_msg->error_preamble == true) {
+        if (preamble_error_behavior == PREAMBLE_ERROR_DECODE) {
+          *proceed = true;
+        }
+        else {
+          *proceed = false;
+        }
+
+        if (preamble_error_behavior == PREAMBLE_ERROR_NOTIFY) {
+          osEventFlagsSet(print_event_handle, MESS_DROPPED_PACKET_PREAMBLE);
+        }
       }
 
       if (Preamble_Decode(bit_msg, msg, cfg) == false) {
@@ -498,6 +512,13 @@ bool Input_RegisterParams()
   max = MAX_FIXED_PGA_GAIN;
   if (Param_Register(PARAM_FIXED_PGA_GAIN, "the fixed PGA gain code", PARAM_TYPE_UINT8,
                      &fixed_pga_gain, sizeof(uint8_t), &min, &max, NULL) == false) {
+    return false;
+  }
+
+  min = MIN_PREAMBLE_ERROR_BEHAVIOR;
+  max = MAX_PREAMBLE_ERROR_BEHAVIOR;
+  if (Param_Register(PARAM_PREAMBLE_ERROR_BEHAVIOR, "preamble error behavior", PARAM_TYPE_UINT8,
+                     &preamble_error_behavior, sizeof(uint8_t), &min, &max, NULL) == false) {
     return false;
   }
 

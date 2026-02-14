@@ -236,12 +236,12 @@ static const MenuNode_t janusSender = {
 
 bool COMM_RegisterJanusMenu()
 {
-  bool ret = registerMenu(&janusMenu) && registerMenu(&messagingProtocol) &&
-             registerMenu(&janusParamMenu) && registerMenu(&janusSendMenu) &&
-             registerMenu(&janus_011_01_Feedback) && registerMenu(&janus_011_01_Transducer) &&
-             registerMenu(&janusTxRx) && registerMenu(&janusForward) &&
-             registerMenu(&janusCoding) && registerMenu (&janusEncryption) &&
-             registerMenu(&janusDest) && registerMenu(&janusSender);
+  bool ret = MenuSystem_RegisterMenu(&janusMenu) && MenuSystem_RegisterMenu(&messagingProtocol) &&
+             MenuSystem_RegisterMenu(&janusParamMenu) && MenuSystem_RegisterMenu(&janusSendMenu) &&
+             MenuSystem_RegisterMenu(&janus_011_01_Feedback) && MenuSystem_RegisterMenu(&janus_011_01_Transducer) &&
+             MenuSystem_RegisterMenu(&janusTxRx) && MenuSystem_RegisterMenu(&janusForward) &&
+             MenuSystem_RegisterMenu(&janusCoding) && MenuSystem_RegisterMenu (&janusEncryption) &&
+             MenuSystem_RegisterMenu(&janusDest) && MenuSystem_RegisterMenu(&janusSender);
   return ret;
 }
 

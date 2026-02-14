@@ -104,7 +104,7 @@ void DAU_ProcessRxData(uint8_t* data, uint32_t len);
  *         - NEW_CONTENT: Partial content available and copied
  *         - NO_CHANGE: No new content available
  */
-RxState_t DAU_GetMessage(uint8_t* buffer, uint16_t* len);
+RxState_t DAU_GetHmiInput(uint8_t* buffer, uint16_t* len);
 
 
 /* Private defines -----------------------------------------------------------*/

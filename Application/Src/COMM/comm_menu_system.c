@@ -37,7 +37,7 @@ static MenuNode_t* registered_menus[MENU_ID_COUNT] = {NULL};
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool registerMenu(const MenuNode_t* menu)
+bool MenuSystem_RegisterMenu(const MenuNode_t* menu)
 {
   if (menu->id < MENU_ID_COUNT) {
     if (registered_menus[menu->id] == NULL) {
@@ -49,7 +49,7 @@ bool registerMenu(const MenuNode_t* menu)
   return false;
 }
 
-MenuNode_t* getMenu(MenuID_t id)
+MenuNode_t* MenuSystem_GetMenu(MenuID_t id)
 {
   if (id < MENU_ID_COUNT) {
     return registered_menus[id];

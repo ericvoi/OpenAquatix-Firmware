@@ -80,8 +80,8 @@ void USB_ProcessRxData(uint8_t* data, uint32_t len)
 
   for (uint16_t i = 0; i < len; i++) {
     if (usb_buffer.index < sizeof(usb_buffer.buffer) - 1) {
-      if (data[i] == '\e') {
-        usb_buffer.buffer[0] = '\e';
+      if (data[i] == WITHDRAW_CHAR) {
+        usb_buffer.buffer[0] = WITHDRAW_CHAR;
         usb_buffer.buffer[1] = '\0';
         usb_buffer.index = 1;
         usb_buffer.data_ready = true;
@@ -127,9 +127,10 @@ void USB_ProcessRxData(uint8_t* data, uint32_t len)
   }
 }
 
-RxState_t USB_GetMessage(uint8_t* buffer, uint16_t* len)
+RxState_t USB_GetHmiInput(uint8_t* buffer, uint16_t* len)
 {
   if (usb_buffer.contents_changed == false) return NO_CHANGE;
+
   RxState_t state = (usb_buffer.data_ready == true) ? DATA_READY : NEW_CONTENT;
   *len = usb_buffer.index;
   memcpy(buffer, usb_buffer.buffer, usb_buffer.index + 1); // +1 for null terminator

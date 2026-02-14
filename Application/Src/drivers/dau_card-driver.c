@@ -107,8 +107,8 @@ void DAU_ProcessRxData(uint8_t* data, uint32_t len)
 
   for (uint16_t i = 0; i < len; i++) {
     if (dau_buffer.index < sizeof(dau_buffer.buffer) - 1) {
-      if (data[i] == '\e') {
-        dau_buffer.buffer[0] = '\e';
+      if (data[i] == WITHDRAW_CHAR) {
+        dau_buffer.buffer[0] = WITHDRAW_CHAR;
         dau_buffer.buffer[1] = '\0';
         dau_buffer.index = 1;
         dau_buffer.data_ready = true;
@@ -143,7 +143,7 @@ void DAU_ProcessRxData(uint8_t* data, uint32_t len)
   }
 }
 
-RxState_t DAU_GetMessage(uint8_t* buffer, uint16_t* len)
+RxState_t DAU_GetHmiInput(uint8_t* buffer, uint16_t* len)
 {
   if (dau_buffer.contents_changed == false) return NO_CHANGE;
   RxState_t state = (dau_buffer.data_ready == true) ? DATA_READY : NEW_CONTENT;

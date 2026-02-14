@@ -221,7 +221,7 @@ typedef struct {
  *
  * @note This function casts away const when storing the menu pointer
  */
-bool registerMenu(const MenuNode_t* menu);
+bool MenuSystem_RegisterMenu(const MenuNode_t* menu);
 
 /**
  * @brief Retrieves a menu from the system menu registry
@@ -230,7 +230,7 @@ bool registerMenu(const MenuNode_t* menu);
  *
  * @return Pointer to the requested menu if found, NULL otherwise
  */
-MenuNode_t* getMenu(MenuID_t id);
+MenuNode_t* MenuSystem_GetMenu(MenuID_t id);
 
 /* Private defines -----------------------------------------------------------*/
 
