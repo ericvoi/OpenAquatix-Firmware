@@ -41,38 +41,38 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-void setEvalMsgLen(void* argument);
-void sendEvalFeedback(void* argument);
-void sendEvalTransducer(void* argument);
-void startFeedbackTests(void* argument);
+void setEvalMsgLen(FunctionContext_t* context);
+void sendEvalFeedback(FunctionContext_t* context);
+void sendEvalTransducer(FunctionContext_t* context);
+void startFeedbackTests(FunctionContext_t* context);
 
 void sendEvalMessage(FunctionContext_t* context, Message_t* msg);
 
 /* Private variables ---------------------------------------------------------*/
 
-extern osMessageQueueId_t regularTxQueue;
+extern osMessageQueueId_t regular_tx_queue;
 
-static MenuID_t evalMenuChildren[] = {
+static MenuID_t eval_menu_children[] = {
   MENU_ID_EVAL_SETLEN,      MENU_ID_EVAL_FEEDBACK, 
   MENU_ID_EVAL_TRANSDUCER,  MENU_ID_EVAL_FEEDBACKTESTS
 };
 
-static const MenuNode_t evalMenu = {
+static const MenuNode_t eval_menu = {
   .id = MENU_ID_EVAL,
   .description = "Evaluation Menu",
   .handler = NULL,
   .parent_id = MENU_ID_MAIN,
-  .children_ids = evalMenuChildren,
-  .num_children = sizeof(evalMenuChildren) / sizeof(evalMenuChildren[0]),
+  .children_ids = eval_menu_children,
+  .num_children = sizeof(eval_menu_children) / sizeof(eval_menu_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
 
-static ParamContext_t evalSetMsgLenParam = {
+static ParamContext_t eval_set_msg_len_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_EVAL_SETLEN
 };
-static const MenuNode_t evalSetMsgLen = {
+static const MenuNode_t eval_set_msg_len = {
   .id = MENU_ID_EVAL_SETLEN,
   .description = "Set evaluation message length",
   .handler = setEvalMsgLen,
@@ -80,14 +80,14 @@ static const MenuNode_t evalSetMsgLen = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &evalSetMsgLenParam
+  .parameters = &eval_set_msg_len_param
 };
 
-static ParamContext_t evalFeedbackParam = {
+static ParamContext_t eval_feedback_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_EVAL_FEEDBACK
 };
-static const MenuNode_t evalFeedback = {
+static const MenuNode_t eval_feedback = {
   .id = MENU_ID_EVAL_FEEDBACK,
   .description = "Send evaluation message through feedback network",
   .handler = sendEvalFeedback,
@@ -95,14 +95,14 @@ static const MenuNode_t evalFeedback = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &evalFeedbackParam
+  .parameters = &eval_feedback_param
 };
 
-static ParamContext_t evalTransducerParam = {
+static ParamContext_t eval_transducer_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_EVAL_TRANSDUCER
 };
-static const MenuNode_t evalTransducer = {
+static const MenuNode_t eval_transducer = {
   .id = MENU_ID_EVAL_TRANSDUCER,
   .description = "Send evaluation message through transducer",
   .handler = sendEvalTransducer,
@@ -110,14 +110,14 @@ static const MenuNode_t evalTransducer = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &evalTransducerParam
+  .parameters = &eval_transducer_param
 };
 
-static ParamContext_t feedbackTestsParam = {
+static ParamContext_t feedback_tests_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_EVAL_FEEDBACKTESTS
 };
-static const MenuNode_t feedbackTests = {
+static const MenuNode_t feedback_tests = {
   .id = MENU_ID_EVAL_FEEDBACKTESTS,
   .description = "Perform feedback network tests",
   .handler = startFeedbackTests,
@@ -125,51 +125,43 @@ static const MenuNode_t feedbackTests = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &feedbackTestsParam
+  .parameters = &feedback_tests_param
 };
 
 /* Exported function definitions ---------------------------------------------*/
 
 bool COMM_RegisterEvalMenu(void)
 {
-  bool ret = MenuSystem_RegisterMenu(&evalMenu) && 
-             MenuSystem_RegisterMenu(&evalSetMsgLen) && MenuSystem_RegisterMenu(&evalFeedback) &&
-             MenuSystem_RegisterMenu(&evalTransducer) && MenuSystem_RegisterMenu(&feedbackTests);
+  bool ret = MenuSystem_RegisterMenu(&eval_menu) && 
+             MenuSystem_RegisterMenu(&eval_set_msg_len) && MenuSystem_RegisterMenu(&eval_feedback) &&
+             MenuSystem_RegisterMenu(&eval_transducer) && MenuSystem_RegisterMenu(&feedback_tests);
   return ret;
 }
 
 
 /* Private function definitions ----------------------------------------------*/
 
-void setEvalMsgLen(void* argument)
+void setEvalMsgLen(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint16(context, PARAM_EVAL_MESSAGE_LEN);
 }
 
-void sendEvalFeedback(void* argument)
+void sendEvalFeedback(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   Message_t msg;
   msg.type = MSG_TRANSMIT_FEEDBACK;
   sendEvalMessage(context, &msg);
 }
 
-void sendEvalTransducer(void* argument)
+void sendEvalTransducer(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   Message_t msg;
   msg.type = MSG_TRANSMIT_TRANSDUCER;
   sendEvalMessage(context, &msg);
 }
 
-void startFeedbackTests(void* argument) 
+void startFeedbackTests(FunctionContext_t* context) 
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   osEventFlagsSet(print_event_handle, MESS_FEEDBACK_TESTS);
 
   context->state->state = PARAM_STATE_COMPLETE;
@@ -196,7 +188,7 @@ void sendEvalMessage(FunctionContext_t* context, Message_t* msg)
   }
   msg->length_bits *= 8;
 
-  if (osMessageQueuePut(regularTxQueue, msg, 0, 0) == osOK) {
+  if (osMessageQueuePut(regular_tx_queue, msg, 0, 0) == osOK) {
     sprintf((char*) context->output_buffer, "\r\nSuccessfully added to feedback queue!\r\n\r\n");
   }
   else {

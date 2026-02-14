@@ -37,6 +37,8 @@
 static bool print_received_messages = DEFAULT_PRINT_ENABLED;
 static CargoErrorBehavior_t cargo_error_behavior = DEFAULT_CARGO_ERROR_BEHAVIOR;
 
+DEFINE_DESC_TABLE(CARGO_ERROR_BEHAVIOR_TABLE, cargo_error_behavior_descriptors)
+
 /* Private function prototypes -----------------------------------------------*/
 
 static void printCustomHeader(Message_t* msg, uint8_t* out_buffer, CommInterface_t interface);
@@ -94,15 +96,18 @@ bool Print_RegisterParams(void)
 {
   uint32_t min_u32 = (uint32_t) MIN_PRINT_ENABLED;
   uint32_t max_u32 = (uint32_t) MAX_PRINT_ENABLED;
-  if (Param_Register(PARAM_PRINT_ENABLED, "printing received messages", PARAM_TYPE_UINT8,
-                     &print_received_messages, sizeof(bool), &min_u32, &max_u32, NULL) == false) {
+  if (Param_Register(PARAM_PRINT_ENABLED, "printing received messages",
+                     PARAM_TYPE_UINT8, &print_received_messages, sizeof(bool), 
+                     &min_u32, &max_u32, NULL, NULL) == false) {
     return false;
   }
 
   min_u32 = MIN_CARGO_ERROR_BEHAVIOR;
   max_u32 = MAX_CARGO_ERROR_BEHAVIOR;
-  if (Param_Register(PARAM_CARGO_ERROR_BEHAVIOR, "cargo error behavior", PARAM_TYPE_UINT8,
-                     &cargo_error_behavior, sizeof(uint8_t), &min_u32, &max_u32, NULL) == false) {
+  if (Param_Register(PARAM_CARGO_ERROR_BEHAVIOR, "cargo error behavior", 
+                     PARAM_TYPE_ENUM, &cargo_error_behavior, sizeof(uint8_t), 
+                     &min_u32, &max_u32, NULL, 
+                     cargo_error_behavior_descriptors) == false) {
     return false;
   }
 

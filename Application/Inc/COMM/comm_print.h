@@ -19,16 +19,17 @@ extern "C" {
 
 #include "comm_main.h"
 #include "mess_main.h"
+#include "cfg_parameters.h"
 #include <stdbool.h>
 
 /* Exported types ------------------------------------------------------------*/
 
-typedef enum {
-  CARGO_ERROR_DROP,
-  CARGO_ERROR_PRINT,
-  CARGO_ERROR_NOTIFY,
-  NUM_CARGO_ERROR_BEHAVIORS
-} CargoErrorBehavior_t;
+#define CARGO_ERROR_BEHAVIOR_TABLE(X) \
+  X(CARGO_ERROR_DROP, "Drop packet") \
+  X(CARGO_ERROR_PRINT, "Print message anyways") \
+  X(CARGO_ERROR_NOTIFY, "Notify the user that a malformed packet was received")
+
+DECLARE_ENUM(CARGO_ERROR_BEHAVIOR_TABLE, NUM_CARGO_ERROR_BEHAVIORS, CargoErrorBehavior_t)
 
 /* Exported constants --------------------------------------------------------*/
 

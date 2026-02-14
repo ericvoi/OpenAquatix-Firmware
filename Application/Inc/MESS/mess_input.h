@@ -21,6 +21,7 @@ extern "C" {
 #include "mess_packet.h"
 #include "mess_main.h"
 #include "mess_dsp_config.h"
+#include "cfg_parameters.h"
 
 #include <stdbool.h>
 
@@ -31,19 +32,17 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
-typedef enum {
-  MSG_START_AMPLITUDE,
-  MSG_START_FREQUENCY,
-  NUM_MSG_START_FCN
-} MsgStartFunctions_t;
+#define MESSAGE_START_FUNCTION_TABLE(X) \
+  X(MSG_START_AMPLITUDE, "Absolute amplitude threshold") \
+  X(MSG_START_FREQUENCY, "Frequency amplitude threshold")
 
+#define PREAMBLE_ERROR_BEHAVIOR_TABLE(X) \
+  X(PREAMBLE_ERROR_DROP, "Drop packet silently") \
+  X(PREAMBLE_ERROR_DECODE, "Attempt to decode the cargo") \
+  X(PREAMBLE_ERROR_NOTIFY, "Drop the message and notify the user")
 
-typedef enum {
-  PREAMBLE_ERROR_DROP,          // Drops the message silently if errors detected
-  PREAMBLE_ERROR_DECODE,        // Attempts to decode the cargo despite preamble errors
-  PREAMBLE_ERROR_NOTIFY,        // Drops the message and notifies the user
-  NUM_PREAMBLE_ERROR_BEHAVIORS
-} PreambleErrorBehavior_t;
+DECLARE_ENUM(MESSAGE_START_FUNCTION_TABLE, NUM_MSG_START_FCN, MsgStartFunctions_t)
+DECLARE_ENUM(PREAMBLE_ERROR_BEHAVIOR_TABLE, NUM_PREAMBLE_ERROR_BEHAVIORS, PreambleErrorBehavior_t)
 
 /* Exported constants --------------------------------------------------------*/
 

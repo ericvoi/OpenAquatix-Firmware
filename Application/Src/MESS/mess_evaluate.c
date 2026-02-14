@@ -13,6 +13,7 @@
 #include "mess_evaluate.h"
 #include "mess_main.h"
 #include "mess_packet.h"
+#include "mess_error_correction.h"
 
 #include "cfg_parameters.h"
 #include "cfg_defaults.h"
@@ -114,7 +115,7 @@ bool Evaluate_RegisterParams()
   uint32_t max_u32 = MAX_EVAL_MESSAGE_LEN;
   if (Param_Register(PARAM_EVAL_MESSAGE_LEN, "evaluation message length", PARAM_TYPE_UINT16,
                      &eval_message_length, sizeof(uint16_t),
-                     &min_u32, &max_u32, NULL) == false) {
+                     &min_u32, &max_u32, NULL, NULL) == false) {
     return false;
   }
   return true;

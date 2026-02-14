@@ -16,6 +16,7 @@
 #include "mess_packet.h"
 #include "mess_main.h"
 #include "mess_modulate.h"
+#include "mess_error_detection.h"
 #include "mess_error_correction.h"
 #include "mess_interleaver.h"
 #include "mess_sync.h"
@@ -128,6 +129,10 @@ static MsgStartFunctions_t message_start_function = DEFAULT_MSG_START_FCN;
 static bool automatic_gain_control = DEFAULT_AGC_STATE;
 static PgaGain_t fixed_pga_gain = DEFAULT_FIXED_PGA_GAIN;
 static PreambleErrorBehavior_t preamble_error_behavior = DEFAULT_PREAMBLE_ERROR_BEHAVIOR;
+
+DEFINE_DESC_TABLE(MESSAGE_START_FUNCTION_TABLE, msg_start_function_descriptors)
+DEFINE_DESC_TABLE(PGA_GAIN_TABLE, pga_gain_descriptors)
+DEFINE_DESC_TABLE(PREAMBLE_ERROR_BEHAVIOR_TABLE, preamble_error_behavior_descriptors)
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -497,28 +502,35 @@ bool Input_RegisterParams()
 {
   uint32_t min = MIN_MSG_START_FCN;
   uint32_t max = MAX_MSG_START_FCN;
-  if (Param_Register(PARAM_MSG_START_FCN, "message start function", PARAM_TYPE_UINT8,
-                     &message_start_function, sizeof(uint8_t), &min, &max, NULL) == false) {
+  if (Param_Register(PARAM_MSG_START_FCN, "message start function", 
+                     PARAM_TYPE_ENUM, &message_start_function, sizeof(uint8_t), 
+                     &min, &max, NULL, msg_start_function_descriptors
+                     ) == false) {
     return false;
   }
 
   min = MIN_AGC_STATE;
   max = MAX_AGC_STATE;
-  if (Param_Register(PARAM_AGC_ENABLE, "automatic gain control", PARAM_TYPE_UINT8,
-                     &automatic_gain_control, sizeof(uint8_t), &min, &max, NULL) == false) {
+  if (Param_Register(PARAM_AGC_ENABLE, "automatic gain control", 
+                     PARAM_TYPE_UINT8, &automatic_gain_control, 
+                     sizeof(uint8_t), &min, &max, NULL, NULL
+                     ) == false) {
     return false;
   }
   min = MIN_FIXED_PGA_GAIN;
   max = MAX_FIXED_PGA_GAIN;
-  if (Param_Register(PARAM_FIXED_PGA_GAIN, "the fixed PGA gain code", PARAM_TYPE_UINT8,
-                     &fixed_pga_gain, sizeof(uint8_t), &min, &max, NULL) == false) {
+  if (Param_Register(PARAM_FIXED_PGA_GAIN, "the fixed PGA gain code", 
+                     PARAM_TYPE_ENUM, &fixed_pga_gain, sizeof(uint8_t), &min, 
+                     &max, NULL, pga_gain_descriptors) == false) {
     return false;
   }
 
   min = MIN_PREAMBLE_ERROR_BEHAVIOR;
   max = MAX_PREAMBLE_ERROR_BEHAVIOR;
-  if (Param_Register(PARAM_PREAMBLE_ERROR_BEHAVIOR, "preamble error behavior", PARAM_TYPE_UINT8,
-                     &preamble_error_behavior, sizeof(uint8_t), &min, &max, NULL) == false) {
+  if (Param_Register(PARAM_PREAMBLE_ERROR_BEHAVIOR, "preamble error behavior", 
+                     PARAM_TYPE_ENUM, &preamble_error_behavior, 
+                     sizeof(uint8_t), &min, &max, NULL, 
+                     preamble_error_behavior_descriptors) == false) {
     return false;
   }
 

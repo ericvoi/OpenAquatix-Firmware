@@ -45,15 +45,15 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-void transmitBitsOut(void* argument);
-void transmitBitsFb(void* argument);
-void transmitStringOut(void* argument);
-void transmitStringFb(void* argument);
-void transmitIntOut(void* argument);
-void transmitIntFb(void* argument);
-void transmitFloatOut(void* argument);
-void transmitFloatFb(void* argument);
-void togglePrint(void* argument);
+void transmitBitsOut(FunctionContext_t* context);
+void transmitBitsFb(FunctionContext_t* context);
+void transmitStringOut(FunctionContext_t* context);
+void transmitStringFb(FunctionContext_t* context);
+void transmitIntOut(FunctionContext_t* context);
+void transmitIntFb(FunctionContext_t* context);
+void transmitFloatOut(FunctionContext_t* context);
+void transmitFloatFb(FunctionContext_t* context);
+void togglePrint(FunctionContext_t* context);
 
 void transmitBits(FunctionContext_t* context, bool is_feedback);
 void transmitString(FunctionContext_t* context, bool is_feedback);
@@ -67,157 +67,157 @@ bool inCustomMode(FunctionContext_t* context);
 
 /* Private variables ---------------------------------------------------------*/
 
-extern osMessageQueueId_t regularTxQueue;
+extern osMessageQueueId_t regular_tx_queue;
 
-static MenuID_t txrxMenuChildren[] = {
+static MenuID_t txrx_menu_children[] = {
   MENU_ID_TXRX_BITSOUT,   MENU_ID_TXRX_BITSFB,    MENU_ID_TXRX_STROUT, 
   MENU_ID_TXRX_STRFB,     MENU_ID_TXRX_INTOUT,    MENU_ID_TXRX_INTFB,
   MENU_ID_TXRX_FLOATOUT,  MENU_ID_TXRX_FLOATFB ,  MENU_ID_TXRX_ENPNT
 };
-static const MenuNode_t txrxMenu = {
+static const MenuNode_t txrx_menu = {
   .id = MENU_ID_TXRX,
   .description = "Transmit and Receive Data Menu",
   .handler = NULL,
   .parent_id = MENU_ID_MAIN,
-  .children_ids = txrxMenuChildren,
-  .num_children = sizeof(txrxMenuChildren) / sizeof(txrxMenuChildren[0]),
+  .children_ids = txrx_menu_children,
+  .num_children = sizeof(txrx_menu_children) / sizeof(txrx_menu_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
 
-static ParamContext_t txrxBitsTransducerParam = {
+static ParamContext_t txrx_bits_transducer_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_TXRX_BITSOUT
 };
-static const MenuNode_t txrxBitsTransducer = {
+static const MenuNode_t txrx_bits_transducer = {
   .id = MENU_ID_TXRX_BITSOUT,
-  .description = "Bits Through Transducer",
+  .description = "Send bits through transducer",
   .handler = transmitBitsOut,
   .parent_id = MENU_ID_TXRX,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &txrxBitsTransducerParam
+  .parameters = &txrx_bits_transducer_param
 };
 
-static ParamContext_t txrxBitsFeedbackParam = {
+static ParamContext_t txrx_bits_feedback_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_TXRX_BITSFB
 };
-static const MenuNode_t txrxBitsFeedback = {
+static const MenuNode_t txrx_bits_feedback = {
   .id = MENU_ID_TXRX_BITSFB,
-  .description = "Bits Through Feedback",
+  .description = "Send bits through feedback",
   .handler = transmitBitsFb,
   .parent_id = MENU_ID_TXRX,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &txrxBitsFeedbackParam
+  .parameters = &txrx_bits_feedback_param
 };
 
-static ParamContext_t txrxStrTransducerParam = {
+static ParamContext_t txrx_str_transducer_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_TXRX_STROUT
 };
-static const MenuNode_t txrxStrTransducer = {
+static const MenuNode_t txrx_str_transducer = {
   .id = MENU_ID_TXRX_STROUT,
-  .description = "String Through Transducer",
+  .description = "Send string through transducer",
   .handler = transmitStringOut,
   .parent_id = MENU_ID_TXRX,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &txrxStrTransducerParam
+  .parameters = &txrx_str_transducer_param
 };
 
-static ParamContext_t txrxStrFeedbackParam = {
+static ParamContext_t txrx_str_feedback_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_TXRX_STRFB
 };
-static const MenuNode_t txrxStrFeedback = {
+static const MenuNode_t txrx_str_feedback = {
   .id = MENU_ID_TXRX_STRFB,
-  .description = "String Through Feedback",
+  .description = "Send string through feedback",
   .handler = transmitStringFb,
   .parent_id = MENU_ID_TXRX,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &txrxStrFeedbackParam
+  .parameters = &txrx_str_feedback_param
 };
 
-static ParamContext_t txrxIntTransducerParam = {
+static ParamContext_t txrx_int_transducer_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_TXRX_INTOUT
 };
-static const MenuNode_t txrxIntTransducer = {
+static const MenuNode_t txrx_int_transducer = {
   .id = MENU_ID_TXRX_INTOUT,
-  .description = "Integer Through Transducer",
+  .description = "Send integer through transducer",
   .handler = transmitIntOut,
   .parent_id = MENU_ID_TXRX,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &txrxIntTransducerParam
+  .parameters = &txrx_int_transducer_param
 };
 
-static ParamContext_t txrxIntFeedbackParam = {
+static ParamContext_t txrx_int_feedback_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_TXRX_INTFB
 };
-static const MenuNode_t txrxIntFeedback = {
+static const MenuNode_t txrx_int_feedback = {
   .id = MENU_ID_TXRX_INTFB,
-  .description = "Integer Through Feedback",
+  .description = "Send integer through feedback",
   .handler = transmitIntFb,
   .parent_id = MENU_ID_TXRX,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &txrxIntFeedbackParam
+  .parameters = &txrx_int_feedback_param
 };
 
-static ParamContext_t txrxFloatTransducerParam = {
+static ParamContext_t txrx_float_transducer_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_TXRX_FLOATOUT
 };
-static const MenuNode_t txrxFloatTransducer = {
+static const MenuNode_t txrx_float_transducer = {
   .id = MENU_ID_TXRX_FLOATOUT,
-  .description = "Float Through Transducer",
+  .description = "Send float through transducer",
   .handler = transmitFloatOut,
   .parent_id = MENU_ID_TXRX,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &txrxFloatTransducerParam
+  .parameters = &txrx_float_transducer_param
 };
 
-static ParamContext_t txrxFloatFeedbackParam = {
+static ParamContext_t txrx_float_feedback_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_TXRX_FLOATFB
 };
-static const MenuNode_t txrxFloatFeedback = {
+static const MenuNode_t txrx_float_feedback = {
   .id = MENU_ID_TXRX_FLOATFB,
-  .description = "Float Through Feedback",
+  .description = "Send float through feedback",
   .handler = transmitFloatFb,
   .parent_id = MENU_ID_TXRX,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &txrxFloatFeedbackParam
+  .parameters = &txrx_float_feedback_param
 };
 
-static ParamContext_t txrxTogglePrintParam = {
+static ParamContext_t txrx_toggle_print_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_TXRX_ENPNT
 };
-static const MenuNode_t txrxTogglePrint = {
+static const MenuNode_t txrx_toggle_print = {
   .id = MENU_ID_TXRX_ENPNT,
-  .description = "Enable/Disable Printing Of Received Messages",
+  .description = "Toggle printing of received messages",
   .handler = togglePrint,
   .parent_id = MENU_ID_TXRX,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &txrxTogglePrintParam
+  .parameters = &txrx_toggle_print_param
 };
 
 
@@ -225,75 +225,58 @@ static const MenuNode_t txrxTogglePrint = {
 
 bool COMM_RegisterTxRxMenu()
 {
-  bool ret = MenuSystem_RegisterMenu(&txrxMenu) && MenuSystem_RegisterMenu(&txrxBitsTransducer) &&
-             MenuSystem_RegisterMenu(&txrxStrTransducer) && MenuSystem_RegisterMenu(&txrxIntTransducer) &&
-             MenuSystem_RegisterMenu(&txrxFloatTransducer) && MenuSystem_RegisterMenu(&txrxTogglePrint) &&
-             MenuSystem_RegisterMenu(&txrxStrFeedback) && MenuSystem_RegisterMenu(&txrxBitsFeedback) &&
-             MenuSystem_RegisterMenu(&txrxIntFeedback) && MenuSystem_RegisterMenu(&txrxFloatFeedback);
+  bool ret = MenuSystem_RegisterMenu(&txrx_menu) && MenuSystem_RegisterMenu(&txrx_bits_transducer) &&
+             MenuSystem_RegisterMenu(&txrx_str_transducer) && MenuSystem_RegisterMenu(&txrx_int_transducer) &&
+             MenuSystem_RegisterMenu(&txrx_float_transducer) && MenuSystem_RegisterMenu(&txrx_toggle_print) &&
+             MenuSystem_RegisterMenu(&txrx_str_feedback) && MenuSystem_RegisterMenu(&txrx_bits_feedback) &&
+             MenuSystem_RegisterMenu(&txrx_int_feedback) && MenuSystem_RegisterMenu(&txrx_float_feedback);
   return ret;
 }
 
 /* Private function definitions ----------------------------------------------*/
 
-void transmitBitsOut(void* argument)
+void transmitBitsOut(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   transmitBits(context, false);
 }
  
-void transmitBitsFb(void* argument) {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
+void transmitBitsFb(FunctionContext_t* context) 
+{
   transmitBits(context, true);
 }
 
-void transmitStringOut(void* argument)
+void transmitStringOut(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   transmitString(context, false);
 }
 
-void transmitStringFb(void* argument)
+void transmitStringFb(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   transmitString(context, true);
 }
 
-void transmitIntOut(void* argument)
+void transmitIntOut(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   transmitInt(context, false);
 }
 
-void transmitIntFb(void* argument)
+void transmitIntFb(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   transmitInt(context, true);
 }
 
-void transmitFloatOut(void* argument)
+void transmitFloatOut(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   transmitFloat(context, false);
 }
 
-void transmitFloatFb(void* argument)
+void transmitFloatFb(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   transmitFloat(context, true);
 }
 
-void togglePrint(void* argument)
+void togglePrint(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopToggle(context, PARAM_PRINT_ENABLED);
 }
 
@@ -560,7 +543,7 @@ void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_fe
     return;
   }
   msg->preamble.modem_id.valid = true;
-  if (osMessageQueuePut(regularTxQueue, msg, 0, 0) == osOK) {
+  if (osMessageQueuePut(regular_tx_queue, msg, 0, 0) == osOK) {
     sprintf((char*) context->output_buffer, "\r\nSuccessfully added to"
         " %s queue!\r\n\r\n", is_feedback ? "feedback network" : "transducer");
     COMM_TransmitData(context->output_buffer, CALC_LEN, 

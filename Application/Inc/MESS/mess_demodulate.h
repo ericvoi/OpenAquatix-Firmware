@@ -18,6 +18,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
 #include "mess_dsp_config.h"
+#include "cfg_parameters.h"
 #include <stdbool.h>
 
 
@@ -41,19 +42,17 @@ typedef struct {
   float energy_f1;
 } DemodulationInfo_t;
 
-typedef enum {
-  AMPLITUDE_COMPARISON,
-  HISTORICAL_COMPARISON,
-  // Others as needed
-  NUM_DEMODULATION_DECISION
-} DemodulationDecision_t;
+#define DEMODULATION_DECISION_TABLE(X) \
+  X(AMPLITUDE_COMPARISON, "Compare amplitudes") \
+  X(HISTORICAL_COMPARISON, "Historical comparison")
 
-typedef enum {
-  WINDOW_RECTANGULAR,
-  WINDOW_HANN,
-  WINDOW_HAMMING,
-  NUM_WINDOW_FUNCTIONS
-} WindowFunction_t;
+#define WINDOW_FUNCTION_TABLE(X) \
+  X(WINDOW_RECTANGULAR, "Rectangular window") \
+  X(WINDOW_HANN, "Hann window") \
+  X(WINDOW_HAMMING, "Hamming window")
+
+DECLARE_ENUM(DEMODULATION_DECISION_TABLE, NUM_DEMODULATION_DECISION, DemodulationDecision_t)
+DECLARE_ENUM(WINDOW_FUNCTION_TABLE, NUM_WINDOW_FUNCTIONS, WindowFunction_t)
 
 /* Exported constants --------------------------------------------------------*/
 

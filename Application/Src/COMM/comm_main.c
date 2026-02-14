@@ -20,6 +20,7 @@
 #include "comm_menu_registration.h"
 #include "comm_main.h"
 #include "comm_menu_system.h"
+#include "comm_print.h"
 
 #include "mess_main.h"
 

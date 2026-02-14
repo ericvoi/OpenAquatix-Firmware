@@ -38,89 +38,89 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-void setPreambleErrorDetection(void* argument);
-void setCargoErrorDetection(void* argument);
-void preambleErrorBehavior(void* argument);
-void cargoErrorBehavior(void* argument);
-void setPreambleEcc(void* argument);
-void setMessageEcc(void* argument);
-void setModulationMethod(void* argument);
-void setFskF0(void* argument);
-void setFskF1(void* argument);
-void setFhbfskFreqSpacing(void* argument);
-void setFhbfskDwell(void* argument);
-void setFhbfskTones(void* argument);
-void setFhbfskHopper(void* argument);
-void toggleWakeupTones(void* argument);
-void setWakeupTone1(void* argument);
-void setWakeupTone2(void* argument);
-void setWakeupTone3(void* argument);
-void setBaudRate(void* argument);
-void setCenterFrequency(void* argument);
-void getBitPeriod(void* argument);
-void getBandwidth(void* argument);
-void toggleInterleaver(void* argument);
-void setSynchronizer(void* argument);
-void printConfigOptions(void* argument);
-void importConfigOptions(void* argument);
-void setDacTransitionDuration(void* argument);
-void setModPowerControlMethod(void* argument);
-void setModFixedOutput(void* argument);
-void setMessageStartFunction(void* argument);
-void setBitDecisionFunction(void* argument);
-void setHistoricalComparisonThreshold(void* argument);
-void toggleAgc(void* argument);
-void setFixedPgaGain(void* argument);
-void setWindowFunction(void* argument);
-void configureSleep(void* argument);
-void setLedBrightness(void* argument);
-void toggleLed(void* argument);
-void setModCalLowerFreq(void* argument);
-void setModCalUpperFreq(void* argument);
-void updateTvr(void* argument);
-void modCalibration(void* argument);
-void exportModCalibration(void* argument);
-void tuneMatchingNetwork(void* argument);
-void updateOcrr(void* argument);
-void updateVmax(void* argument);
-void toggleModFeedback(void* argument);
-void setModFeedbackRatio(void* argument);
-void setModOutputPower(void* argument);
-void setTransducerR(void* argument);
-void setTransducerC0(void* argument);
-void setTransducerL0(void* argument);
-void setTransducerC1(void* argument);
-void setDemodCalRatio(void* argument);
-void performDemodCal(void* argument);
-void setDemodCalLowerFreq(void* argument);
-void setDemodCalUpperFreq(void* argument);
-void exportDemodCal(void* argument);
-void setMacProtocol(void* argument);
-void setID(void* argument);
-void setStationaryFlag(void* argument);
+void setPreambleErrorDetection(FunctionContext_t* context);
+void setCargoErrorDetection(FunctionContext_t* context);
+void preambleErrorBehavior(FunctionContext_t* context);
+void cargoErrorBehavior(FunctionContext_t* context);
+void setPreambleEcc(FunctionContext_t* context);
+void setMessageEcc(FunctionContext_t* context);
+void setModulationMethod(FunctionContext_t* context);
+void setFskF0(FunctionContext_t* context);
+void setFskF1(FunctionContext_t* context);
+void setFhbfskFreqSpacing(FunctionContext_t* context);
+void setFhbfskDwell(FunctionContext_t* context);
+void setFhbfskTones(FunctionContext_t* context);
+void setFhbfskHopper(FunctionContext_t* context);
+void toggleWakeupTones(FunctionContext_t* context);
+void setWakeupTone1(FunctionContext_t* context);
+void setWakeupTone2(FunctionContext_t* context);
+void setWakeupTone3(FunctionContext_t* context);
+void setBaudRate(FunctionContext_t* context);
+void setCenterFrequency(FunctionContext_t* context);
+void getBitPeriod(FunctionContext_t* context);
+void getBandwidth(FunctionContext_t* context);
+void toggleInterleaver(FunctionContext_t* context);
+void setSynchronizer(FunctionContext_t* context);
+void printConfigOptions(FunctionContext_t* context);
+void importConfigOptions(FunctionContext_t* context);
+void setDacTransitionDuration(FunctionContext_t* context);
+void setModPowerControlMethod(FunctionContext_t* context);
+void setModFixedOutput(FunctionContext_t* context);
+void setMessageStartFunction(FunctionContext_t* context);
+void setBitDecisionFunction(FunctionContext_t* context);
+void setHistoricalComparisonThreshold(FunctionContext_t* context);
+void toggleAgc(FunctionContext_t* context);
+void setFixedPgaGain(FunctionContext_t* context);
+void setWindowFunction(FunctionContext_t* context);
+void configureSleep(FunctionContext_t* context);
+void setLedBrightness(FunctionContext_t* context);
+void toggleLed(FunctionContext_t* context);
+void setModCalLowerFreq(FunctionContext_t* context);
+void setModCalUpperFreq(FunctionContext_t* context);
+void updateTvr(FunctionContext_t* context);
+void modCalibration(FunctionContext_t* context);
+void exportModCalibration(FunctionContext_t* context);
+void tuneMatchingNetwork(FunctionContext_t* context);
+void updateOcrr(FunctionContext_t* context);
+void updateVmax(FunctionContext_t* context);
+void toggleModFeedback(FunctionContext_t* context);
+void setModFeedbackRatio(FunctionContext_t* context);
+void setModOutputPower(FunctionContext_t* context);
+void setTransducerR(FunctionContext_t* context);
+void setTransducerC0(FunctionContext_t* context);
+void setTransducerL0(FunctionContext_t* context);
+void setTransducerC1(FunctionContext_t* context);
+void setDemodCalRatio(FunctionContext_t* context);
+void performDemodCal(FunctionContext_t* context);
+void setDemodCalLowerFreq(FunctionContext_t* context);
+void setDemodCalUpperFreq(FunctionContext_t* context);
+void exportDemodCal(FunctionContext_t* context);
+void setMacProtocol(FunctionContext_t* context);
+void setID(FunctionContext_t* context);
+void setStationaryFlag(FunctionContext_t* context);
 
 /* Private variables ---------------------------------------------------------*/
 
 /* Main menu starting point --------------------------------------------------*/
 
-static MenuID_t configMenuChildren[] = {
+static MenuID_t config_menu_children[] = {
   MENU_ID_CFG_UNIV, MENU_ID_CFG_MOD,    MENU_ID_CFG_DEMOD,      MENU_ID_CFG_MAC,
   MENU_ID_CFG_DAU,  MENU_ID_CFG_LED,    MENU_ID_CFG_SETID,      MENU_ID_CFG_STATIONARY
 };
-static const MenuNode_t configMenu = {
+static const MenuNode_t config_menu = {
   .id = MENU_ID_CFG,
-  .description = "Configuration Parameters Menu",
+  .description = "Configuration Menu",
   .handler = NULL,
   .parent_id = MENU_ID_MAIN,
-  .children_ids = configMenuChildren,
-  .num_children = sizeof(configMenuChildren) / sizeof(configMenuChildren[0]),
+  .children_ids = config_menu_children,
+  .num_children = sizeof(config_menu_children) / sizeof(config_menu_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
 
 /* Sub menus -----------------------------------------------------------------*/
 
-static MenuID_t univConfigMenuChildren[] = {
+static MenuID_t univ_config_menu_children[] = {
   MENU_ID_CFG_UNIV_ERR,         MENU_ID_CFG_UNIV_ECCPREAMBLE, 
   MENU_ID_CFG_UNIV_ECCMESSAGE,  MENU_ID_CFG_UNIV_MOD,      
   MENU_ID_CFG_UNIV_FSK,         MENU_ID_CFG_UNIV_FHBFSK,  
@@ -130,400 +130,400 @@ static MenuID_t univConfigMenuChildren[] = {
   MENU_ID_CFG_UNIV_WAKEUP,      MENU_ID_CFG_UNIV_EXP,
   MENU_ID_CFG_UNIV_IMP
 };
-static const MenuNode_t univConfigMenu = {
+static const MenuNode_t univ_config_menu = {
   .id = MENU_ID_CFG_UNIV,
-  .description = "Universal Waveform Processing Parameters",
+  .description = "Universal Waveform Processing Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG,
-  .children_ids = univConfigMenuChildren,
-  .num_children = sizeof(univConfigMenuChildren) / sizeof(univConfigMenuChildren[0]),
+  .children_ids = univ_config_menu_children,
+  .num_children = sizeof(univ_config_menu_children) / sizeof(univ_config_menu_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
 
-static MenuID_t modConfigMenuChildren[] = {
+static MenuID_t mod_config_menu_children[] = {
   MENU_ID_CFG_MOD_TLEN,   MENU_ID_CFG_MOD_CAL, 
   MENU_ID_CFG_MOD_FB,     MENU_ID_CFG_MOD_METHOD,
   MENU_ID_CFG_MOD_FIXED,  MENU_ID_CFG_MOD_PWROPT
 };
-static const MenuNode_t modConfigMenu = {
+static const MenuNode_t mod_config_menu = {
   .id = MENU_ID_CFG_MOD,
-  .description = "Modulation Waveform Processing Parameters",
+  .description = "Modulation Waveform Processing Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG,
-  .children_ids = modConfigMenuChildren,
-  .num_children = sizeof(modConfigMenuChildren) / sizeof(modConfigMenuChildren[0]),
+  .children_ids = mod_config_menu_children,
+  .num_children = sizeof(mod_config_menu_children) / sizeof(mod_config_menu_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
 
-static MenuID_t demodConfigMenuChildren[] = {
+static MenuID_t demod_config_menu_children[] = {
   MENU_ID_CFG_DEMOD_CAL,       MENU_ID_CFG_DEMOD_START, 
   MENU_ID_CFG_DEMOD_DECISION,  MENU_ID_CFG_DEMOD_CMPTHRESH, 
   MENU_ID_CFG_DEMOD_AGCEN,     MENU_ID_CFG_DEMOD_GAIN,
   MENU_ID_CFG_DEMOD_WINDOWFCN
 };
-static const MenuNode_t demodConfigMenu = {
+static const MenuNode_t demod_config_menu = {
   .id = MENU_ID_CFG_DEMOD,
-  .description = "Demodulation Waveform Processing Parameters",
+  .description = "Demodulation Waveform Processing Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG,
-  .children_ids = demodConfigMenuChildren,
-  .num_children = sizeof(demodConfigMenuChildren) / sizeof(demodConfigMenuChildren[0]),
+  .children_ids = demod_config_menu_children,
+  .num_children = sizeof(demod_config_menu_children) / sizeof(demod_config_menu_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
 
-static ParamContext_t changeMacParams = {
+static ParamContext_t change_mac_params = {
   .param_id = MENU_ID_CFG_MAC,
   .state = PARAM_STATE_0
 };
-static const MenuNode_t changeMac = {
+static const MenuNode_t change_mac = {
   .id = MENU_ID_CFG_MAC,
-  .description = "Change MAC Protocol",
+  .description = "Set MAC protocol",
   .handler = setMacProtocol,
   .parent_id = MENU_ID_CFG,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &changeMacParams
+  .parameters = &change_mac_params
 };
 
-static MenuID_t dauConfigMenuChildren[] = {
+static MenuID_t dau_config_menu_children[] = {
   MENU_ID_CFG_DAU_SLEEP
 };
-static const MenuNode_t dauConfigMenu = {
+static const MenuNode_t dau_config_menu = {
   .id = MENU_ID_CFG_DAU,
-  .description = "Daughter Card Communication Parameters",
+  .description = "Daughter Card Communication Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG,
-  .children_ids = dauConfigMenuChildren,
-  .num_children = sizeof(dauConfigMenuChildren) / sizeof(dauConfigMenuChildren[0]),
+  .children_ids = dau_config_menu_children,
+  .num_children = sizeof(dau_config_menu_children) / sizeof(dau_config_menu_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
 
-static MenuID_t ledConfigMenuChildren[] = {
+static MenuID_t led_config_menu_children[] = {
   MENU_ID_CFG_LED_BRIGHTNESS, MENU_ID_CFG_LED_EN
 };
-static const MenuNode_t ledConfigMenu = {
+static const MenuNode_t led_config_menu = {
   .id = MENU_ID_CFG_LED,
-  .description = "LED Configuration Parameters",
+  .description = "LED Configuration Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG,
-  .children_ids = ledConfigMenuChildren,
-  .num_children = sizeof(ledConfigMenuChildren) / sizeof(ledConfigMenuChildren[0]),
+  .children_ids = led_config_menu_children,
+  .num_children = sizeof(led_config_menu_children) / sizeof(led_config_menu_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
 
-static ParamContext_t setNewIdParam = {
+static ParamContext_t set_new_id_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_SETID
 };
-static const MenuNode_t setNewId = {
+static const MenuNode_t set_new_id = {
   .id = MENU_ID_CFG_SETID,
-  .description = "Set Modem ID",
+  .description = "Set modem ID",
   .handler = setID,
   .parent_id = MENU_ID_CFG,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &setNewIdParam
+  .parameters = &set_new_id_param
 };
 
-static ParamContext_t setStationaryParam = {
+static ParamContext_t set_stationary_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_STATIONARY
 };
-static const MenuNode_t setStationary = {
+static const MenuNode_t set_stationary = {
   .id = MENU_ID_CFG_STATIONARY,
-  .description = "Toggle Stationary Flag",
+  .description = "Toggle stationary flag",
   .handler = setStationaryFlag,
   .parent_id = MENU_ID_CFG,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &setStationaryParam
+  .parameters = &set_stationary_param
 };
 
 /* Sub sub menus -------------------------------------------------------------*/
 
-static MenuID_t univConfigErrChildren[] = {
+static MenuID_t univ_config_err_children[] = {
   MENU_ID_CFG_UNIV_ERR_PREAMBLE, MENU_ID_CFG_UNIV_ERR_CARGO,
   MENU_ID_CFG_UNIV_ERR_PREERR,   MENU_ID_CFG_UNIV_ERR_CARGOERR
 };
-static const MenuNode_t univConfigErrMenu = {
+static const MenuNode_t univ_config_err_menu = {
   .id = MENU_ID_CFG_UNIV_ERR,
-  .description = "Error Detection Options",
+  .description = "Error Detection Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG_UNIV,
-  .children_ids = univConfigErrChildren,
-  .num_children = sizeof(univConfigErrChildren) / sizeof(univConfigErrChildren[0]),
+  .children_ids = univ_config_err_children,
+  .num_children = sizeof(univ_config_err_children) / sizeof(univ_config_err_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
 
-static ParamContext_t univConfigEccPreambleParam = {
+static ParamContext_t univ_config_ecc_preamble_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_ECCPREAMBLE
 };
-static const MenuNode_t univConfigEccPreamble = {
+static const MenuNode_t univ_config_ecc_preamble = {
   .id = MENU_ID_CFG_UNIV_ECCPREAMBLE,
-  .description = "Preamble ECC",
+  .description = "Set preamble ECC",
   .handler = setPreambleEcc,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univConfigEccPreambleParam
+  .parameters = &univ_config_ecc_preamble_param
 };
 
-static ParamContext_t univConfigEccMessageParam = {
+static ParamContext_t univ_config_ecc_message_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_ECCMESSAGE
 };
-static const MenuNode_t univConfigEccMessage = {
+static const MenuNode_t univ_config_ecc_message = {
   .id = MENU_ID_CFG_UNIV_ECCMESSAGE,
-  .description = "Message ECC",
+  .description = "Set message ECC",
   .handler = setMessageEcc,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univConfigEccMessageParam
+  .parameters = &univ_config_ecc_message_param
 };
 
-static ParamContext_t univConfigModParam = {
+static ParamContext_t univ_config_mod_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_MOD,
 };
-static const MenuNode_t univConfigMod = {
+static const MenuNode_t univ_config_mod = {
   .id = MENU_ID_CFG_UNIV_MOD,
-  .description = "Modulation Method",
+  .description = "Set modulation method",
   .handler = setModulationMethod,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univConfigModParam
+  .parameters = &univ_config_mod_param
 };
 
-static MenuID_t univConfigFskChildren[] = {
+static MenuID_t univ_config_fsk_children[] = {
   MENU_ID_CFG_UNIV_FSK_F0, MENU_ID_CFG_UNIV_FSK_F1
 };
-static const MenuNode_t univConfigFskMenu = {
+static const MenuNode_t univ_config_fsk_menu = {
   .id = MENU_ID_CFG_UNIV_FSK,
-  .description = "FSK Options",
+  .description = "FSK Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG_UNIV,
-  .children_ids = univConfigFskChildren,
-  .num_children = sizeof(univConfigFskChildren) / sizeof(univConfigFskChildren[0]),
+  .children_ids = univ_config_fsk_children,
+  .num_children = sizeof(univ_config_fsk_children) / sizeof(univ_config_fsk_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
 
-static MenuID_t univConfigFhbfskChildren[] = {
+static MenuID_t univ_config_fhbfsk_children[] = {
   MENU_ID_CFG_UNIV_FHBFSK_FSEP,  MENU_ID_CFG_UNIV_FHBFSK_DWELL,
   MENU_ID_CFG_UNIV_FHBFSK_TONES, MENU_ID_CFG_UNIV_FHBFSK_HOPP
 };
-static const MenuNode_t univConfigFhbskMenu = {
+static const MenuNode_t univ_config_fhbsk_menu = {
   .id = MENU_ID_CFG_UNIV_FHBFSK,
-  .description = "FHBFSK Options",
+  .description = "FHBFSK Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG_UNIV,
-  .children_ids = univConfigFhbfskChildren,
-  .num_children = sizeof(univConfigFhbfskChildren) / sizeof(univConfigFhbfskChildren[0]),
+  .children_ids = univ_config_fhbfsk_children,
+  .num_children = sizeof(univ_config_fhbfsk_children) / sizeof(univ_config_fhbfsk_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
 
-static ParamContext_t univConfigBaudParam = {
+static ParamContext_t univ_config_baud_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_BAUD
 };
-static const MenuNode_t univConfigBaud = {
+static const MenuNode_t univ_config_baud = {
   .id = MENU_ID_CFG_UNIV_BAUD,
-  .description = "Configure Baud Rate",
+  .description = "Set baud rate",
   .handler = setBaudRate,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univConfigBaudParam
+  .parameters = &univ_config_baud_param
 };
 
-static ParamContext_t univConfigFcParam = {
+static ParamContext_t univ_config_fc_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_FC
 };
-static const MenuNode_t univConfigFc = {
+static const MenuNode_t univ_config_fc = {
   .id = MENU_ID_CFG_UNIV_FC,
-  .description = "Set Center Frequency",
+  .description = "Set center frequency",
   .handler = setCenterFrequency,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univConfigFcParam
+  .parameters = &univ_config_fc_param
 };
 
-static ParamContext_t univConfigBitPeriodParam = {
+static ParamContext_t univ_config_bit_period_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_BP
 };
-static const MenuNode_t univConfigBitPeriod = {
+static const MenuNode_t univ_config_bit_period = {
   .id = MENU_ID_CFG_UNIV_BP,
-  .description = "Get Bit Period",
+  .description = "Get bit period",
   .handler = getBitPeriod,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univConfigBitPeriodParam
+  .parameters = &univ_config_bit_period_param
 };
 
-static ParamContext_t univConfigBandwidthParam = {
+static ParamContext_t univ_config_bandwidth_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_BANDWIDTH
 };
-static const MenuNode_t univConfigBandwidth = {
+static const MenuNode_t univ_config_bandwidth = {
   .id = MENU_ID_CFG_UNIV_BANDWIDTH,
-  .description = "Get Bandwidth",
+  .description = "Get bandwidth",
   .handler = getBandwidth,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univConfigBandwidthParam
+  .parameters = &univ_config_bandwidth_param
 };
 
-static ParamContext_t univConfigInterleaverParam = {
+static ParamContext_t univ_config_interleaver_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_INTERLEAVER
 };
-static const MenuNode_t univConfigInterleaver = {
+static const MenuNode_t univ_config_interleaver = {
   .id = MENU_ID_CFG_UNIV_INTERLEAVER,
-  .description = "Toggle Interleaver",
+  .description = "Toggle interleaver",
   .handler = toggleInterleaver,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univConfigInterleaverParam
+  .parameters = &univ_config_interleaver_param
 };
 
-static ParamContext_t univConfigSyncParam = {
+static ParamContext_t univ_config_sync_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_SYNC
 };
-static const MenuNode_t univConfigSync = {
+static const MenuNode_t univ_config_sync = {
   .id = MENU_ID_CFG_UNIV_SYNC,
-  .description = "Set Synchronization Method",
+  .description = "Set synchronization method",
   .handler = setSynchronizer,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univConfigSyncParam
+  .parameters = &univ_config_sync_param
 };
 
-static MenuID_t univConfigWakeupChildren[] = {
+static MenuID_t univ_config_wakeup_children[] = {
   MENU_ID_CFG_UNIV_WAKEUP_EN, MENU_ID_CFG_UNIV_WAKEUP_F1,
   MENU_ID_CFG_UNIV_WAKEUP_F2, MENU_ID_CFG_UNIV_WAKEUP_F3
 };
-static const MenuNode_t univConfigWakeupMenu = {
+static const MenuNode_t univ_config_wakeup_menu = {
   .id = MENU_ID_CFG_UNIV_WAKEUP,
-  .description = "Wakeup Options",
+  .description = "Wakeup Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG_UNIV,
-  .children_ids = univConfigWakeupChildren,
-  .num_children = sizeof(univConfigWakeupChildren) / sizeof(univConfigWakeupChildren[0]),
+  .children_ids = univ_config_wakeup_children,
+  .num_children = sizeof(univ_config_wakeup_children) / sizeof(univ_config_wakeup_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
 
-static ParamContext_t univConfigExportParam = {
+static ParamContext_t univ_config_export_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_EXP  
 };
-static const MenuNode_t univConfigExport = {
+static const MenuNode_t univ_config_export = {
   .id = MENU_ID_CFG_UNIV_EXP,
-  .description = "Export Configuration Options Used",
+  .description = "Export current configuration",
   .handler = printConfigOptions,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univConfigExportParam
+  .parameters = &univ_config_export_param
 };
 
-static ParamContext_t univConfigImportParam = {
+static ParamContext_t univ_config_import_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_IMP
 };
-static const MenuNode_t univConfigImport = {
+static const MenuNode_t univ_config_import = {
   .id = MENU_ID_CFG_UNIV_IMP,
-  .description = "Import Configuration options",
+  .description = "Import configuration",
   .handler = importConfigOptions,
   .parent_id = MENU_ID_CFG_UNIV,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univConfigImportParam
+  .parameters = &univ_config_import_param
 };
 
-static ParamContext_t modConfigDacTransitionParam = {
+static ParamContext_t mod_config_dac_transition_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_MOD_TLEN
 };
-static const MenuNode_t modConfigDacTransition = {
+static const MenuNode_t mod_config_dac_transition = {
   .id = MENU_ID_CFG_MOD_TLEN,
-  .description = "Set DAC Transition Duration",
+  .description = "Set DAC transition duration",
   .handler = setDacTransitionDuration,
   .parent_id = MENU_ID_CFG_MOD,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &modConfigDacTransitionParam
+  .parameters = &mod_config_dac_transition_param
 };
 
-static MenuID_t modConfigCalChildren[] = {
+static MenuID_t mod_config_cal_children[] = {
   MENU_ID_CFG_MOD_CAL_LOWFREQ,  MENU_ID_CFG_MOD_CAL_HIFREQ, 
   MENU_ID_CFG_MOD_CAL_TVR,      MENU_ID_CFG_MOD_CAL_RECV, 
   MENU_ID_CFG_MOD_CAL_PERFORM,  MENU_ID_CFG_MOD_CAL_EXP, 
   MENU_ID_CFG_MOD_CAL_TUNE,     MENU_ID_CFG_MOD_CAL_VMAX
 };
-static const MenuNode_t modConfigCalMenu = {
+static const MenuNode_t mod_config_cal_menu = {
   .id = MENU_ID_CFG_MOD_CAL,
-  .description = "Modulation Calibration Options",
+  .description = "Modulation Calibration Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG_MOD,
-  .children_ids = modConfigCalChildren,
-  .num_children = sizeof(modConfigCalChildren) / sizeof(modConfigCalChildren[0]),
+  .children_ids = mod_config_cal_children,
+  .num_children = sizeof(mod_config_cal_children) / sizeof(mod_config_cal_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
 
-static MenuID_t modConfigFeedbackChildren[] = {
+static MenuID_t mod_config_feedback_children[] = {
   MENU_ID_CFG_MOD_FB_EN, MENU_ID_CFG_MOD_FB_RATIO
 };
-static const MenuNode_t modConfigFeedbackMenu = {
+static const MenuNode_t mod_config_feedback_menu = {
   .id = MENU_ID_CFG_MOD_FB,
-  .description = "Modulation Feedback Options",
+  .description = "Modulation Feedback Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG_MOD,
-  .children_ids = modConfigFeedbackChildren,
-  .num_children = sizeof(modConfigFeedbackChildren) / sizeof(modConfigFeedbackChildren[0]),
+  .children_ids = mod_config_feedback_children,
+  .num_children = sizeof(mod_config_feedback_children) / sizeof(mod_config_feedback_children[0]),
   .access_level = 0,
   .parameters = NULL,
 };
 
-static ParamContext_t modConfigMethodParam = {
+static ParamContext_t mod_config_method_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_MOD_METHOD
 };
-static const MenuNode_t modConfigMethod = {
+static const MenuNode_t mod_config_method = {
   .id = MENU_ID_CFG_MOD_METHOD,
   .description = "Set method to control output strength",
   .handler = setModPowerControlMethod,
@@ -531,91 +531,91 @@ static const MenuNode_t modConfigMethod = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &modConfigMethodParam
+  .parameters = &mod_config_method_param
 };
 
-static ParamContext_t modConfigFixedParam = {
+static ParamContext_t mod_config_fixed_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_MOD_FIXED
 };
-static const MenuNode_t modConfigFixed = {
+static const MenuNode_t mod_config_fixed = {
   .id = MENU_ID_CFG_MOD_FIXED,
-  .description = "Fixed relative DAC output strength to use",
+  .description = "Set DAC scale (fixed output only)",
   .handler = setModFixedOutput,
   .parent_id = MENU_ID_CFG_MOD,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &modConfigFixedParam
+  .parameters = &mod_config_fixed_param
 };
 
-static MenuID_t modConfigPowerChildren[] = {
+static MenuID_t mod_config_power_children[] = {
   MENU_ID_CFG_MOD_PWROPT_PWR, MENU_ID_CFG_MOD_PWROPT_R, 
   MENU_ID_CFG_MOD_PWROPT_C0,  MENU_ID_CFG_MOD_PWROPT_L0,
   MENU_ID_CFG_MOD_PWROPT_C1
 };
-static const MenuNode_t modConfigPowerMenu = {
+static const MenuNode_t mod_config_power_menu = {
   .id = MENU_ID_CFG_MOD_PWROPT,
-  .description = "Fixed output power level options",
+  .description = "Fixed Output Power Level Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG_MOD,
-  .children_ids = modConfigPowerChildren,
-  .num_children = sizeof(modConfigPowerChildren) / sizeof(modConfigPowerChildren[0]),
+  .children_ids = mod_config_power_children,
+  .num_children = sizeof(mod_config_power_children) / sizeof(mod_config_power_children[0]),
   .access_level = 0,
   .parameters = NULL,
 };
 
-static MenuID_t demodConfigCalChildren[] = {
+static MenuID_t demod_config_cal_children[] = {
   MENU_ID_CFG_DEMOD_CAL_RATIO,     MENU_ID_CFG_DEMOD_CAL_PERFORM,
   MENU_ID_CFG_DEMOD_CAL_LOWFREQ,   MENU_ID_CFG_DEMOD_CAL_HIFREQ,
   MENU_ID_CFG_DEMOD_CAL_EXP
 };
-static const MenuNode_t demodConfigCalMenu = {
+static const MenuNode_t demod_config_cal_menu = {
   .id = MENU_ID_CFG_DEMOD_CAL,
-  .description = "Demodulation Cablibration Options",
+  .description = "Demodulation Cablibration Menu",
   .handler = NULL,
   .parent_id = MENU_ID_CFG_DEMOD,
-  .children_ids = demodConfigCalChildren,
-  .num_children = sizeof(demodConfigCalChildren) / sizeof(demodConfigCalChildren[0]),
+  .children_ids = demod_config_cal_children,
+  .num_children = sizeof(demod_config_cal_children) / sizeof(demod_config_cal_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
 
-static ParamContext_t demodConfigStartFcnParam = {
+static ParamContext_t demod_config_start_fcn_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_DEMOD_START
 };
-static const MenuNode_t demodConfigStartFcn = {
+static const MenuNode_t demod_config_start_fcn = {
   .id = MENU_ID_CFG_DEMOD_START,
-  .description = "Select the message start function to use",
+  .description = "Set message start function (no message synchronization sequence)",
   .handler = setMessageStartFunction,
   .parent_id = MENU_ID_CFG_DEMOD,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &demodConfigStartFcnParam
+  .parameters = &demod_config_start_fcn_param
 };
 
-static ParamContext_t demodConfigDecisionFcnParam = {
+static ParamContext_t demod_config_decision_fcn_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_DEMOD_DECISION
 };
-static const MenuNode_t demodConfigDecisionFcn = {
+static const MenuNode_t demod_config_decision_fcn = {
   .id = MENU_ID_CFG_DEMOD_DECISION,
-  .description = "Select the bit decision function to use",
+  .description = "Set bit decision function",
   .handler = setBitDecisionFunction,
   .parent_id = MENU_ID_CFG_DEMOD,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &demodConfigDecisionFcnParam
+  .parameters = &demod_config_decision_fcn_param
 };
 
-static ParamContext_t demodConfigSigShiftParam = {
+static ParamContext_t demod_config_sig_shift_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_DEMOD_CMPTHRESH
 };
-static const MenuNode_t demodConfigSigShift = {
+static const MenuNode_t demod_config_sig_shift = {
   .id = MENU_ID_CFG_DEMOD_CMPTHRESH,
   .description = "Set the historical comparison threshold",
   .handler = setHistoricalComparisonThreshold,
@@ -623,29 +623,29 @@ static const MenuNode_t demodConfigSigShift = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &demodConfigSigShiftParam
+  .parameters = &demod_config_sig_shift_param
 };
 
-static ParamContext_t demodConfigUseAgcParam = {
+static ParamContext_t demod_config_use_agc_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_DEMOD_AGCEN
 };
-static const MenuNode_t demodConfigUseAgc = {
+static const MenuNode_t demod_config_use_agc = {
   .id = MENU_ID_CFG_DEMOD_AGCEN,
-  .description = "Enable/disable automatic gain control (AGC)",
+  .description = "Toggle automatic gain control (AGC)",
   .handler = toggleAgc,
   .parent_id = MENU_ID_CFG_DEMOD,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &demodConfigUseAgcParam
+  .parameters = &demod_config_use_agc_param
 };
 
-static ParamContext_t demodConfigFixedGainParam = {
+static ParamContext_t demod_config_fixed_gain_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_DEMOD_GAIN
 };
-static const MenuNode_t demodConfigFixedGain = {
+static const MenuNode_t demod_config_fixed_gain = {
   .id = MENU_ID_CFG_DEMOD_GAIN,
   .description = "Set fixed PGA gain",
   .handler = setFixedPgaGain,
@@ -653,14 +653,14 @@ static const MenuNode_t demodConfigFixedGain = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &demodConfigFixedGainParam
+  .parameters = &demod_config_fixed_gain_param
 };
 
-static ParamContext_t demodConfigWindowFcnParam = {
+static ParamContext_t demod_config_window_fcn_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_DEMOD_WINDOWFCN
 };
-static const MenuNode_t demodConfigWindowFcn = {
+static const MenuNode_t demod_config_window_fcn = {
   .id = MENU_ID_CFG_DEMOD_WINDOWFCN,
   .description = "Set windowing function",
   .handler = setWindowFunction,
@@ -668,44 +668,44 @@ static const MenuNode_t demodConfigWindowFcn = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &demodConfigWindowFcnParam
+  .parameters = &demod_config_window_fcn_param
 };
 
-static ParamContext_t dauConfigSleepParam = {
+static ParamContext_t dau_config_sleep_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_DAU_SLEEP
 };
-static const MenuNode_t dauConfigSleep = {
+static const MenuNode_t dau_config_sleep = {
   .id = MENU_ID_CFG_DAU_SLEEP,
-  .description = "Enable or Disable Sleep Modes",
+  .description = "Toggle sleep modes",
   .handler = configureSleep,
   .parent_id = MENU_ID_CFG_DAU,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &dauConfigSleepParam
+  .parameters = &dau_config_sleep_param
 };
 
-static ParamContext_t ledConfigBrightnessParam = {
+static ParamContext_t led_config_brightness_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_LED_BRIGHTNESS
 };
-static const MenuNode_t ledConfigBrightness = {
+static const MenuNode_t led_config_brightness = {
   .id = MENU_ID_CFG_LED_BRIGHTNESS,
-  .description = "Set LED Brightness",
+  .description = "Set LED brightness",
   .handler = setLedBrightness,
   .parent_id = MENU_ID_CFG_LED,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &ledConfigBrightnessParam
+  .parameters = &led_config_brightness_param
 };
 
-static ParamContext_t ledConfigToggleParam = {
+static ParamContext_t led_config_toggle_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_LED_EN
 };
-static const MenuNode_t ledConfigToggle = {
+static const MenuNode_t led_config_toggle = {
   .id = MENU_ID_CFG_LED_EN,
   .description = "Toggle LED",
   .handler = toggleLed,
@@ -713,166 +713,166 @@ static const MenuNode_t ledConfigToggle = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &ledConfigToggleParam
+  .parameters = &led_config_toggle_param
 };
 
 /* Sub sub sub menus ---------------------------------------------------------*/
 
-static ParamContext_t univErrConfigPreambleValidationParam = {
+static ParamContext_t univ_err_config_preamble_validation_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_ERR_PREAMBLE
 };
-static const MenuNode_t univErrConfigPreambleValidation = {
+static const MenuNode_t univ_err_config_preamble_validation = {
   .id = MENU_ID_CFG_UNIV_ERR_PREAMBLE,
-  .description = "Preamble error detection method",
+  .description = "Set preamble error detection method",
   .handler = setPreambleErrorDetection,
   .parent_id = MENU_ID_CFG_UNIV_ERR,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univErrConfigPreambleValidationParam
+  .parameters = &univ_err_config_preamble_validation_param
 };
 
-static ParamContext_t univErrConfigCargoValidationParam = {
+static ParamContext_t univ_err_config_cargo_validation_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_ERR_CARGO
 };
-static const MenuNode_t univErrConfigCargoValidation = {
+static const MenuNode_t univ_err_config_cargo_validation = {
   .id = MENU_ID_CFG_UNIV_ERR_CARGO,
-  .description = "Cargo error detection method",
+  .description = "Set cargo error detection method",
   .handler = setCargoErrorDetection,
   .parent_id = MENU_ID_CFG_UNIV_ERR,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univErrConfigCargoValidationParam
+  .parameters = &univ_err_config_cargo_validation_param
 };
 
-static ParamContext_t univErrConfigPreambleBehaviorParam = {
+static ParamContext_t univ_err_config_preamble_behavior_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_ERR_PREERR
 };
-static const MenuNode_t univErrConfigPreambleBehavior = {
+static const MenuNode_t univ_err_config_preamble_behavior = {
   .id = MENU_ID_CFG_UNIV_ERR_PREERR,
-  .description = "Preamble error behavior",
+  .description = "Set preamble error behavior",
   .handler = preambleErrorBehavior,
   .parent_id = MENU_ID_CFG_UNIV_ERR,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univErrConfigPreambleBehaviorParam
+  .parameters = &univ_err_config_preamble_behavior_param
 };
 
-static ParamContext_t univErrConfigCargoBehaviorParam = {
+static ParamContext_t univ_err_config_cargo_behavior_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_ERR_CARGOERR
 };
-static const MenuNode_t univErrConfigCargoBehavior = {
+static const MenuNode_t univ_err_config_cargo_behavior = {
   .id = MENU_ID_CFG_UNIV_ERR_CARGOERR,
-  .description = "Cargo error behavior",
+  .description = "Set cargo error behavior",
   .handler = cargoErrorBehavior,
   .parent_id = MENU_ID_CFG_UNIV_ERR,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univErrConfigCargoBehaviorParam
+  .parameters = &univ_err_config_cargo_behavior_param
 };
 
-static ParamContext_t univFskConfigF0Param = {
+static ParamContext_t univ_fsk_config_f0_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_FSK_F0
 };
-static const MenuNode_t univFskConfigF0 = {
+static const MenuNode_t univ_fsk_config_f0 = {
   .id = MENU_ID_CFG_UNIV_FSK_F0,
-  .description = "Set FSK Frequency '0'",
+  .description = "Set FSK frequency '0'",
   .handler = setFskF0,
   .parent_id = MENU_ID_CFG_UNIV_FSK,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univFskConfigF0Param
+  .parameters = &univ_fsk_config_f0_param
 };
 
-static ParamContext_t univFskConfigF1Param = {
+static ParamContext_t univ_fsk_config_f1_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_FSK_F1
 };
-static const MenuNode_t univFskConfigF1 = {
+static const MenuNode_t univ_fsk_config_f1 = {
   .id = MENU_ID_CFG_UNIV_FSK_F1,
-  .description = "Set FSK Frequency '1'",
+  .description = "Set FSK frequency '1'",
   .handler = setFskF1,
   .parent_id = MENU_ID_CFG_UNIV_FSK,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univFskConfigF1Param
+  .parameters = &univ_fsk_config_f1_param
 };
 
-static ParamContext_t univFhbfskConfigFreqSpacingParam = {
+static ParamContext_t univ_fhbfsk_config_freq_spacing_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_FHBFSK_FSEP
 };
-static const MenuNode_t univFhbfskConfigFreqSpacing = {
+static const MenuNode_t univ_fhbfsk_config_freq_spacing = {
   .id = MENU_ID_CFG_UNIV_FHBFSK_FSEP,
-  .description = "Set Frequency Spacing",
+  .description = "Set frequency spacing",
   .handler = setFhbfskFreqSpacing,
   .parent_id = MENU_ID_CFG_UNIV_FHBFSK,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univFhbfskConfigFreqSpacingParam
+  .parameters = &univ_fhbfsk_config_freq_spacing_param
 };
 
-static ParamContext_t univFhbfskConfigDwellParam = {
+static ParamContext_t univ_fhbfsk_config_dwell_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_FHBFSK_DWELL
 };
-static const MenuNode_t univFhbfskConfigDwell = {
+static const MenuNode_t univ_fhbfsk_config_dwell = {
   .id = MENU_ID_CFG_UNIV_FHBFSK_DWELL,
-  .description = "Set Number of Bit Dwell Periods",
+  .description = "Set number of bit dwell periods",
   .handler = setFhbfskDwell,
   .parent_id = MENU_ID_CFG_UNIV_FHBFSK,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univFhbfskConfigDwellParam
+  .parameters = &univ_fhbfsk_config_dwell_param
 };
 
-static ParamContext_t univFhbfskConfigTonesParam = {
+static ParamContext_t univ_fhbfsk_config_tones_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_FHBFSK_TONES
 };
-static const MenuNode_t univFhbfskConfigTones = {
+static const MenuNode_t univ_fhbfsk_config_tones = {
   .id = MENU_ID_CFG_UNIV_FHBFSK_TONES,
-  .description = "Set Number of Tones",
+  .description = "Set number of tones",
   .handler = setFhbfskTones,
   .parent_id = MENU_ID_CFG_UNIV_FHBFSK,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univFhbfskConfigTonesParam
+  .parameters = &univ_fhbfsk_config_tones_param
 };
 
-static ParamContext_t univFhbfskConfigHopperParam = {
+static ParamContext_t univ_fhbfsk_config_hopper_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_FHBFSK_HOPP
 };
-static const MenuNode_t univFhbfskConfigHopper = {
+static const MenuNode_t univ_fhbfsk_config_hopper = {
   .id = MENU_ID_CFG_UNIV_FHBFSK_HOPP,
-  .description = "Set Frequency Hopper",
+  .description = "Set frequency hopper",
   .handler = setFhbfskHopper,
   .parent_id = MENU_ID_CFG_UNIV_FHBFSK,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univFhbfskConfigHopperParam
+  .parameters = &univ_fhbfsk_config_hopper_param
 };
 
-static ParamContext_t univWakeupConfigEnParam = {
+static ParamContext_t univ_wakeup_config_en_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_WAKEUP_EN
 };
-static const MenuNode_t univWakeupConfigEn = {
+static const MenuNode_t univ_wakeup_config_en = {
   .id = MENU_ID_CFG_UNIV_WAKEUP_EN,
   .description = "Toggle sending wakeup tones",
   .handler = toggleWakeupTones,
@@ -880,89 +880,89 @@ static const MenuNode_t univWakeupConfigEn = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univWakeupConfigEnParam
+  .parameters = &univ_wakeup_config_en_param
 };
 
-static ParamContext_t univWakeupConfigTone1Param = {
+static ParamContext_t univ_wakeup_config_tone1_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_WAKEUP_F1
 };
-static const MenuNode_t univWakeupConfigTone1 = {
+static const MenuNode_t univ_wakeup_config_tone1 = {
   .id = MENU_ID_CFG_UNIV_WAKEUP_F1,
-  .description = "First wakeup tone frequency",
+  .description = "Set wakeup tone frequency 1",
   .handler = setWakeupTone1,
   .parent_id = MENU_ID_CFG_UNIV_WAKEUP,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univWakeupConfigTone1Param
+  .parameters = &univ_wakeup_config_tone1_param
 };
 
-static ParamContext_t univWakeupConfigTone2Param = {
+static ParamContext_t univ_wakeup_config_tone2_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_WAKEUP_F2
 };
-static const MenuNode_t univWakeupConfigTone2 = {
+static const MenuNode_t univ_wakeup_config_tone2 = {
   .id = MENU_ID_CFG_UNIV_WAKEUP_F2,
-  .description = "Second wakeup tone frequency",
+  .description = "Set wakeup tone frequency 2",
   .handler = setWakeupTone2,
   .parent_id = MENU_ID_CFG_UNIV_WAKEUP,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univWakeupConfigTone2Param
+  .parameters = &univ_wakeup_config_tone2_param
 };
 
-static ParamContext_t univWakeupConfigTone3Param = {
+static ParamContext_t univ_wakeup_config_tone3_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_WAKEUP_F3
 };
-static const MenuNode_t univWakeupConfigTone3 = {
+static const MenuNode_t univ_wakeup_config_tone3 = {
   .id = MENU_ID_CFG_UNIV_WAKEUP_F3,
-  .description = "Third wakeup tone frequency",
+  .description = "Set wakeup tone frequency 3",
   .handler = setWakeupTone3,
   .parent_id = MENU_ID_CFG_UNIV_WAKEUP,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &univWakeupConfigTone3Param
+  .parameters = &univ_wakeup_config_tone3_param
 };
 
-static ParamContext_t modCalConfigLowFreqParam = {
+static ParamContext_t mod_cal_config_low_freq_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_MOD_CAL_LOWFREQ
 };
-static const MenuNode_t modCalConfigLowFreq = {
+static const MenuNode_t mod_cal_config_low_freq = {
   .id = MENU_ID_CFG_MOD_CAL_LOWFREQ,
-  .description = "Lower Frequency for Calibration",
+  .description = "Set calibration lower frequency",
   .handler = setModCalLowerFreq,
   .parent_id = MENU_ID_CFG_MOD_CAL,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &modCalConfigLowFreqParam
+  .parameters = &mod_cal_config_low_freq_param
 };
 
-static ParamContext_t modCalConfigUpperFreqParam = {
+static ParamContext_t mod_cal_config_upper_freq_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_MOD_CAL_HIFREQ
 };
-static const MenuNode_t modCalConfigUpperFreq = {
+static const MenuNode_t mod_cal_config_upper_freq = {
   .id = MENU_ID_CFG_MOD_CAL_HIFREQ,
-  .description = "Upper Frequency for Calibration",
+  .description = "Set calibration upper frequency",
   .handler = setModCalUpperFreq,
   .parent_id = MENU_ID_CFG_MOD_CAL,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &modCalConfigUpperFreqParam
+  .parameters = &mod_cal_config_upper_freq_param
 };
 
-static ParamContext_t modCalConfigTvrParam = {
+static ParamContext_t mod_cal_config_tvr_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_MOD_CAL_TVR
 };
-static const MenuNode_t modCalConfigTvr = {
+static const MenuNode_t mod_cal_config_tvr = {
   .id = MENU_ID_CFG_MOD_CAL_TVR,
   .description = "Import TVR",
   .handler = updateTvr,
@@ -970,59 +970,59 @@ static const MenuNode_t modCalConfigTvr = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &modCalConfigTvrParam
+  .parameters = &mod_cal_config_tvr_param
 };
 
-static ParamContext_t modCalConfigPerformParam = {
+static ParamContext_t mod_cal_config_perform_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_MOD_CAL_PERFORM
 };
-static const MenuNode_t modCalConfigPerform = {
+static const MenuNode_t mod_cal_config_perform = {
   .id = MENU_ID_CFG_MOD_CAL_PERFORM,
-  .description = "Perform Calibration",
+  .description = "Perform calibration",
   .handler = modCalibration,
   .parent_id = MENU_ID_CFG_MOD_CAL,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &modCalConfigPerformParam
+  .parameters = &mod_cal_config_perform_param
 };
 
-static ParamContext_t modCalConfigExportParam = {
+static ParamContext_t mod_cal_config_export_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_MOD_CAL_EXP
 };
-static const MenuNode_t modCalConfigExport = {
+static const MenuNode_t mod_cal_config_export = {
   .id = MENU_ID_CFG_MOD_CAL_EXP,
-  .description = "Export Calibration",
+  .description = "Export calibration",
   .handler = exportModCalibration,
   .parent_id = MENU_ID_CFG_MOD_CAL,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &modCalConfigExportParam
+  .parameters = &mod_cal_config_export_param
 };
 
-static ParamContext_t modCalConfigTuneParam = {
+static ParamContext_t mod_cal_config_tune_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_MOD_CAL_TUNE
 };
-static const MenuNode_t modCalConfigTune = {
+static const MenuNode_t mod_cal_config_tune = {
   .id = MENU_ID_CFG_MOD_CAL_TUNE,
-  .description = "Tune Matching Network",
+  .description = "Tune matching network",
   .handler = tuneMatchingNetwork,
   .parent_id = MENU_ID_CFG_MOD_CAL,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &modCalConfigTuneParam
+  .parameters = &mod_cal_config_tune_param
 };
 
-static ParamContext_t modCalConfigRecvParam = {
+static ParamContext_t mod_cal_config_recv_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_MOD_CAL_RECV
 };
-static const MenuNode_t modCalConfigRecv = {
+static const MenuNode_t mod_cal_config_recv = {
   .id = MENU_ID_CFG_MOD_CAL_RECV,
   .description = "Import OCRR",
   .handler = updateOcrr,
@@ -1030,393 +1030,338 @@ static const MenuNode_t modCalConfigRecv = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &modCalConfigRecvParam
+  .parameters = &mod_cal_config_recv_param
 };
 
-static ParamContext_t modCalConfigVmaxParam = {
+static ParamContext_t mod_cal_config_vmax_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_MOD_CAL_VMAX
 };
-static const MenuNode_t modCalConfigVmax = {
+static const MenuNode_t mod_cal_config_vmax = {
   .id = MENU_ID_CFG_MOD_CAL_VMAX,
-  .description = "Set Maximum Output Voltage",
+  .description = "Set maximum output voltage",
   .handler = updateVmax,
   .parent_id = MENU_ID_CFG_MOD_CAL,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &modCalConfigVmaxParam
+  .parameters = &mod_cal_config_vmax_param
 };
 
-static ParamContext_t modFbConfigToggleParam = {
+static ParamContext_t mod_fb_config_toggle_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_MOD_FB_EN
 };
-static const MenuNode_t modFbConfigToggle = {
+static const MenuNode_t mod_fb_config_toggle = {
   .id = MENU_ID_CFG_MOD_FB_EN,
-  .description = "Toggle Feedback Network",
+  .description = "Toggle feedback network",
   .handler = toggleModFeedback,
   .parent_id = MENU_ID_CFG_MOD_FB,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &modFbConfigToggleParam
+  .parameters = &mod_fb_config_toggle_param
 };
 
-static ParamContext_t modFbConfigRatioParam = {
+static ParamContext_t mod_fb_config_ratio_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_MOD_FB_RATIO
 };
-static const MenuNode_t modFbConfigRatio = {
+static const MenuNode_t mod_fb_config_ratio = {
   .id = MENU_ID_CFG_MOD_FB_RATIO,
-  .description = "Set Feedback Division Ratio",
+  .description = "Set feedback division ratio",
   .handler = setModFeedbackRatio,
   .parent_id = MENU_ID_CFG_MOD_FB,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &modFbConfigRatioParam
+  .parameters = &mod_fb_config_ratio_param
 };
 
-static ParamContext_t modPwrConfigTargetParam = {
+static ParamContext_t mod_pwr_config_target_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_MOD_PWROPT_PWR
 };
-static const MenuNode_t modPwrConfigTarget = {
+static const MenuNode_t mod_pwr_config_target = {
   .id = MENU_ID_CFG_MOD_PWROPT_PWR,
-  .description = "Target output power (W)",
+  .description = "Set target output power (W)",
   .handler = setModOutputPower,
   .parent_id = MENU_ID_CFG_MOD_PWROPT,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &modPwrConfigTargetParam
+  .parameters = &mod_pwr_config_target_param
 };
 
-static ParamContext_t modPwrConfigRParam = {
+static ParamContext_t mod_pwr_config_r_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_MOD_PWROPT_R
 };
-static const MenuNode_t modPwrConfigR = {
+static const MenuNode_t mod_pwr_config_r = {
   .id = MENU_ID_CFG_MOD_PWROPT_R,
-  .description = "Series resistance of the motional branch (R) [ohms]",
+  .description = "Set motional branch series resistance (R) [ohms]",
   .handler = setTransducerR,
   .parent_id = MENU_ID_CFG_MOD_PWROPT,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &modPwrConfigRParam
+  .parameters = &mod_pwr_config_r_param
 };
 
-static ParamContext_t modPwrConfigC0Param = {
+static ParamContext_t mod_pwr_config_c0_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_MOD_PWROPT_C0
 };
-static const MenuNode_t modPwrConfigC0 = {
+static const MenuNode_t mod_pwr_config_c0 = {
   .id = MENU_ID_CFG_MOD_PWROPT_C0,
-  .description = "Series capacitance of the motional branch (C0) [nF]",
+  .description = "Set motional branch series capacitance (C0) [nF]",
   .handler = setTransducerC0,
   .parent_id = MENU_ID_CFG_MOD_PWROPT,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &modPwrConfigC0Param
+  .parameters = &mod_pwr_config_c0_param
 };
 
-static ParamContext_t modPwrConfigL0Param = {
+static ParamContext_t mod_pwr_config_l0_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_MOD_PWROPT_L0
 };
-static const MenuNode_t modPwrConfigL0 = {
+static const MenuNode_t mod_pwr_config_l0 = {
   .id = MENU_ID_CFG_MOD_PWROPT_L0,
-  .description = "Series inductance of the motional branch (L0) [mH]",
+  .description = "Set motional branch series inductance [mH]",
   .handler = setTransducerL0,
   .parent_id = MENU_ID_CFG_MOD_PWROPT,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &modPwrConfigL0Param
+  .parameters = &mod_pwr_config_l0_param
 };
 
-static ParamContext_t modPwrConfigC1Param = {
+static ParamContext_t mod_pwr_config_c1_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_MOD_PWROPT_C1
 };
-static const MenuNode_t modPwrConfigC1 = {
+static const MenuNode_t mod_pwr_config_c1 = {
   .id = MENU_ID_CFG_MOD_PWROPT_C1,
-  .description = "Parallel capacitance with the motional branch (C1) [nF]",
+  .description = "Set capacitance parallel to the motional branch (C1) [nF]",
   .handler = setTransducerC1,
   .parent_id = MENU_ID_CFG_MOD_PWROPT,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &modPwrConfigC1Param
+  .parameters = &mod_pwr_config_c1_param
 };
 
-static ParamContext_t demodCalConfigRatioParam = {
+static ParamContext_t demod_cal_config_ratio_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_DEMOD_CAL_RATIO
 };
-static const MenuNode_t demodCalConfigRatio = {
+static const MenuNode_t demod_cal_config_ratio = {
   .id = MENU_ID_CFG_DEMOD_CAL_RATIO,
-  .description = "Set Feedback Network Voltage Division Ratio",
+  .description = "Set feedback network voltage division ratio",
   .handler = setDemodCalRatio,
   .parent_id = MENU_ID_CFG_DEMOD_CAL,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &demodCalConfigRatioParam
+  .parameters = &demod_cal_config_ratio_param
 };
 
-static ParamContext_t demodCalConfigPerformParam = {
+static ParamContext_t demod_cal_config_perform_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_DEMOD_CAL_PERFORM
 };
-static const MenuNode_t demodCalConfigPerform = {
+static const MenuNode_t demod_cal_config_perform = {
   .id = MENU_ID_CFG_DEMOD_CAL_PERFORM,
-  .description = "Perform Calibration",
+  .description = "Perform calibration",
   .handler = performDemodCal,
   .parent_id = MENU_ID_CFG_DEMOD_CAL,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &demodCalConfigPerformParam
+  .parameters = &demod_cal_config_perform_param
 };
 
-static ParamContext_t demodCalConfigLowFreqParam = {
+static ParamContext_t demod_cal_config_low_freq_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_DEMOD_CAL_LOWFREQ
 };
-static const MenuNode_t demodCalConfigLowFreq = {
+static const MenuNode_t demod_cal_config_low_freq = {
   .id = MENU_ID_CFG_DEMOD_CAL_LOWFREQ,
-  .description = "Lower frequency used for demodulation calibration",
+  .description = "Set demodulation calibration lower frequency",
   .handler = setDemodCalLowerFreq,
   .parent_id = MENU_ID_CFG_DEMOD_CAL,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &demodCalConfigLowFreqParam
+  .parameters = &demod_cal_config_low_freq_param
 };
 
-static ParamContext_t demodCalConfigUpperFreqParam = {
+static ParamContext_t demod_cal_config_upper_freq_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_DEMOD_CAL_HIFREQ,
 };
-static const MenuNode_t demodCalConfigUpperFreq = {
+static const MenuNode_t demod_cal_config_upper_freq = {
   .id = MENU_ID_CFG_DEMOD_CAL_HIFREQ,
-  .description = "Upper frequency used for demodulation calibration",
+  .description = "Set demodulation calibration upper frequency",
   .handler = setDemodCalUpperFreq,
   .parent_id = MENU_ID_CFG_DEMOD_CAL,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &demodCalConfigUpperFreqParam
+  .parameters = &demod_cal_config_upper_freq_param
 };
 
-static ParamContext_t demodCalConfigExportParam = {
+static ParamContext_t demod_cal_config_export_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_DEMOD_CAL_EXP
 };
-static const MenuNode_t demodCalConfigExport = {
+static const MenuNode_t demod_cal_config_export = {
   .id = MENU_ID_CFG_DEMOD_CAL_EXP,
-  .description = "Export Calibration Results",
+  .description = "Export calibration results",
   .handler = exportDemodCal,
   .parent_id = MENU_ID_CFG_DEMOD_CAL,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &demodCalConfigExportParam
+  .parameters = &demod_cal_config_export_param
 };
 
 /* Exported function definitions ---------------------------------------------*/
 
 bool COMM_RegisterConfigurationMenu()
 {
-  bool ret = MenuSystem_RegisterMenu(&configMenu) && MenuSystem_RegisterMenu(&univConfigMenu) &&
-             MenuSystem_RegisterMenu(&modConfigMenu) && MenuSystem_RegisterMenu(&demodConfigMenu) &&
-             MenuSystem_RegisterMenu(&dauConfigMenu) && MenuSystem_RegisterMenu(&ledConfigMenu) && 
-             MenuSystem_RegisterMenu(&univConfigErrMenu) && MenuSystem_RegisterMenu(&demodConfigDecisionFcn) &&
-             MenuSystem_RegisterMenu(&univConfigMod) && MenuSystem_RegisterMenu(&univConfigFskMenu) && 
-             MenuSystem_RegisterMenu(&univConfigFhbskMenu) && MenuSystem_RegisterMenu(&univConfigBaud) && 
-             MenuSystem_RegisterMenu(&univConfigFc) && MenuSystem_RegisterMenu(&univConfigBitPeriod) && 
-             MenuSystem_RegisterMenu(&univConfigExport) && MenuSystem_RegisterMenu(&univConfigImport) && 
-             MenuSystem_RegisterMenu(&setStationary) && MenuSystem_RegisterMenu(&modConfigDacTransition) &&
-             MenuSystem_RegisterMenu(&modConfigCalMenu) && MenuSystem_RegisterMenu(&modConfigFeedbackMenu) && 
-             MenuSystem_RegisterMenu(&modConfigMethod) && MenuSystem_RegisterMenu(&univConfigInterleaver) &&
-             MenuSystem_RegisterMenu(&demodConfigCalMenu) && MenuSystem_RegisterMenu(&univFhbfskConfigHopper) &&
-             MenuSystem_RegisterMenu(&dauConfigSleep) && MenuSystem_RegisterMenu(&ledConfigBrightness) &&
-             MenuSystem_RegisterMenu(&ledConfigToggle) && MenuSystem_RegisterMenu(&modCalConfigLowFreq) &&
-             MenuSystem_RegisterMenu(&modCalConfigUpperFreq) && MenuSystem_RegisterMenu(&modCalConfigTvr) && 
-             MenuSystem_RegisterMenu(&modCalConfigPerform) && MenuSystem_RegisterMenu(&modCalConfigExport) &&
-             MenuSystem_RegisterMenu(&modCalConfigTune) && MenuSystem_RegisterMenu(&modCalConfigRecv) && 
-             MenuSystem_RegisterMenu(&modCalConfigVmax) && MenuSystem_RegisterMenu(&modFbConfigToggle) &&
-             MenuSystem_RegisterMenu(&modFbConfigRatio) && MenuSystem_RegisterMenu(&demodConfigSigShift) &&
-             MenuSystem_RegisterMenu(&demodCalConfigRatio) && MenuSystem_RegisterMenu(&demodCalConfigPerform) && 
-             MenuSystem_RegisterMenu(&demodCalConfigLowFreq) && MenuSystem_RegisterMenu(&demodCalConfigUpperFreq) && 
-             MenuSystem_RegisterMenu(&demodCalConfigExport) && MenuSystem_RegisterMenu(&univConfigSync) &&
-             MenuSystem_RegisterMenu(&demodConfigStartFcn) && MenuSystem_RegisterMenu(&univFskConfigF0) &&
-             MenuSystem_RegisterMenu(&univFskConfigF1) && MenuSystem_RegisterMenu(&univFhbfskConfigFreqSpacing) &&
-             MenuSystem_RegisterMenu(&univFhbfskConfigDwell) && MenuSystem_RegisterMenu(&univConfigBandwidth) &&
-             MenuSystem_RegisterMenu(&univFhbfskConfigTones) && MenuSystem_RegisterMenu(&setNewId) &&
-             MenuSystem_RegisterMenu(&modConfigFixed) && MenuSystem_RegisterMenu(&modConfigPowerMenu) &&
-             MenuSystem_RegisterMenu(&modPwrConfigTarget) && MenuSystem_RegisterMenu(&modPwrConfigR) &&
-             MenuSystem_RegisterMenu(&modPwrConfigC0) && MenuSystem_RegisterMenu(&modPwrConfigL0) &&
-             MenuSystem_RegisterMenu(&modPwrConfigC1) && MenuSystem_RegisterMenu(&demodConfigUseAgc) &&
-             MenuSystem_RegisterMenu(&demodConfigFixedGain) && MenuSystem_RegisterMenu(&univConfigEccPreamble) &&
-             MenuSystem_RegisterMenu(&univConfigEccMessage) && MenuSystem_RegisterMenu(&univErrConfigPreambleValidation) &&
-             MenuSystem_RegisterMenu(&univErrConfigCargoValidation) && MenuSystem_RegisterMenu(&univErrConfigPreambleBehavior) &&
-             MenuSystem_RegisterMenu(&univErrConfigCargoBehavior) && MenuSystem_RegisterMenu(&demodConfigWindowFcn) &&
-             MenuSystem_RegisterMenu(&univConfigWakeupMenu) && MenuSystem_RegisterMenu(&univWakeupConfigTone1) &&
-             MenuSystem_RegisterMenu(&univWakeupConfigEn) && MenuSystem_RegisterMenu(&univWakeupConfigTone2) &&
-             MenuSystem_RegisterMenu(&univWakeupConfigTone3) && MenuSystem_RegisterMenu(&changeMac);
+  bool ret = MenuSystem_RegisterMenu(&config_menu) && MenuSystem_RegisterMenu(&univ_config_menu) &&
+             MenuSystem_RegisterMenu(&mod_config_menu) && MenuSystem_RegisterMenu(&demod_config_menu) &&
+             MenuSystem_RegisterMenu(&dau_config_menu) && MenuSystem_RegisterMenu(&led_config_menu) && 
+             MenuSystem_RegisterMenu(&univ_config_err_menu) && MenuSystem_RegisterMenu(&demod_config_decision_fcn) &&
+             MenuSystem_RegisterMenu(&univ_config_mod) && MenuSystem_RegisterMenu(&univ_config_fsk_menu) && 
+             MenuSystem_RegisterMenu(&univ_config_fhbsk_menu) && MenuSystem_RegisterMenu(&univ_config_baud) && 
+             MenuSystem_RegisterMenu(&univ_config_fc) && MenuSystem_RegisterMenu(&univ_config_bit_period) && 
+             MenuSystem_RegisterMenu(&univ_config_export) && MenuSystem_RegisterMenu(&univ_config_import) && 
+             MenuSystem_RegisterMenu(&set_stationary) && MenuSystem_RegisterMenu(&mod_config_dac_transition) &&
+             MenuSystem_RegisterMenu(&mod_config_cal_menu) && MenuSystem_RegisterMenu(&mod_config_feedback_menu) && 
+             MenuSystem_RegisterMenu(&mod_config_method) && MenuSystem_RegisterMenu(&univ_config_interleaver) &&
+             MenuSystem_RegisterMenu(&demod_config_cal_menu) && MenuSystem_RegisterMenu(&univ_fhbfsk_config_hopper) &&
+             MenuSystem_RegisterMenu(&dau_config_sleep) && MenuSystem_RegisterMenu(&led_config_brightness) &&
+             MenuSystem_RegisterMenu(&led_config_toggle) && MenuSystem_RegisterMenu(&mod_cal_config_low_freq) &&
+             MenuSystem_RegisterMenu(&mod_cal_config_upper_freq) && MenuSystem_RegisterMenu(&mod_cal_config_tvr) && 
+             MenuSystem_RegisterMenu(&mod_cal_config_perform) && MenuSystem_RegisterMenu(&mod_cal_config_export) &&
+             MenuSystem_RegisterMenu(&mod_cal_config_tune) && MenuSystem_RegisterMenu(&mod_cal_config_recv) && 
+             MenuSystem_RegisterMenu(&mod_cal_config_vmax) && MenuSystem_RegisterMenu(&mod_fb_config_toggle) &&
+             MenuSystem_RegisterMenu(&mod_fb_config_ratio) && MenuSystem_RegisterMenu(&demod_config_sig_shift) &&
+             MenuSystem_RegisterMenu(&demod_cal_config_ratio) && MenuSystem_RegisterMenu(&demod_cal_config_perform) && 
+             MenuSystem_RegisterMenu(&demod_cal_config_low_freq) && MenuSystem_RegisterMenu(&demod_cal_config_upper_freq) && 
+             MenuSystem_RegisterMenu(&demod_cal_config_export) && MenuSystem_RegisterMenu(&univ_config_sync) &&
+             MenuSystem_RegisterMenu(&demod_config_start_fcn) && MenuSystem_RegisterMenu(&univ_fsk_config_f0) &&
+             MenuSystem_RegisterMenu(&univ_fsk_config_f1) && MenuSystem_RegisterMenu(&univ_fhbfsk_config_freq_spacing) &&
+             MenuSystem_RegisterMenu(&univ_fhbfsk_config_dwell) && MenuSystem_RegisterMenu(&univ_config_bandwidth) &&
+             MenuSystem_RegisterMenu(&univ_fhbfsk_config_tones) && MenuSystem_RegisterMenu(&set_new_id) &&
+             MenuSystem_RegisterMenu(&mod_config_fixed) && MenuSystem_RegisterMenu(&mod_config_power_menu) &&
+             MenuSystem_RegisterMenu(&mod_pwr_config_target) && MenuSystem_RegisterMenu(&mod_pwr_config_r) &&
+             MenuSystem_RegisterMenu(&mod_pwr_config_c0) && MenuSystem_RegisterMenu(&mod_pwr_config_l0) &&
+             MenuSystem_RegisterMenu(&mod_pwr_config_c1) && MenuSystem_RegisterMenu(&demod_config_use_agc) &&
+             MenuSystem_RegisterMenu(&demod_config_fixed_gain) && MenuSystem_RegisterMenu(&univ_config_ecc_preamble) &&
+             MenuSystem_RegisterMenu(&univ_config_ecc_message) && MenuSystem_RegisterMenu(&univ_err_config_preamble_validation) &&
+             MenuSystem_RegisterMenu(&univ_err_config_cargo_validation) && MenuSystem_RegisterMenu(&univ_err_config_preamble_behavior) &&
+             MenuSystem_RegisterMenu(&univ_err_config_cargo_behavior) && MenuSystem_RegisterMenu(&demod_config_window_fcn) &&
+             MenuSystem_RegisterMenu(&univ_config_wakeup_menu) && MenuSystem_RegisterMenu(&univ_wakeup_config_tone1) &&
+             MenuSystem_RegisterMenu(&univ_wakeup_config_en) && MenuSystem_RegisterMenu(&univ_wakeup_config_tone2) &&
+             MenuSystem_RegisterMenu(&univ_wakeup_config_tone3) && MenuSystem_RegisterMenu(&change_mac);
 
   return ret;
 }
 
 /* Private function definitions ----------------------------------------------*/
 
-void setPreambleErrorDetection(void* argument)
+void setPreambleErrorDetection(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  char* descriptors[] = {"None",
-                         "CRC-8",      "CRC-16",      "CRC-32", 
-                         "Checksum-8", "Checksum-16", "Checksum-32"};
-
-  COMMLoops_LoopEnum(context, PARAM_PREAMBLE_ERROR_DETECTION, descriptors, 
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_PREAMBLE_ERROR_DETECTION);
 }
 
-void setCargoErrorDetection(void* argument)
+void setCargoErrorDetection(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  char* descriptors[] = {"None",
-                         "CRC-8",      "CRC-16",      "CRC-32", 
-                         "Checksum-8", "Checksum-16", "Checksum-32"};
-
-  COMMLoops_LoopEnum(context, PARAM_CARGO_ERROR_DETECTION, descriptors, 
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_CARGO_ERROR_DETECTION);
 }
 
-void preambleErrorBehavior(void* argument)
+void preambleErrorBehavior(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
-void cargoErrorBehavior(void* argument)
+void cargoErrorBehavior(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
-void setPreambleEcc(void* argument)
+void setPreambleEcc(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  char* descriptors[] = {"None", "1-bit Hamming Code", "1:2 Convolutional Code (JANUS)"};
-
-  COMMLoops_LoopEnum(context, PARAM_ECC_PREAMBLE, descriptors,
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_ECC_PREAMBLE);
 }
 
-void setMessageEcc(void* argument)
+void setMessageEcc(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  char* descriptors[] = {"None", "1-bit Hamming Code", "1:2 Convolutional Code (JANUS)"};
-
-  COMMLoops_LoopEnum(context, PARAM_ECC_MESSAGE, descriptors,
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_ECC_MESSAGE);
 }
 
-void setModulationMethod(void* argument)
+void setModulationMethod(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
-  char* descriptors[] = {"FSK", "FHBFSK"};
-  
-  COMMLoops_LoopEnum(context, PARAM_MOD_DEMOD_METHOD, descriptors, 
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_MOD_DEMOD_METHOD);
 }
 
-void setFskF0(void* argument)
+void setFskF0(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint32(context, PARAM_FSK_F0);
 }
 
-void setFskF1(void* argument)
+void setFskF1(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint32(context, PARAM_FSK_F1);
 }
 
-void setFhbfskFreqSpacing(void* argument)
+void setFhbfskFreqSpacing(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint8(context, PARAM_FHBFSK_FREQ_SPACING);
 }
 
-void setFhbfskDwell(void* argument)
+void setFhbfskDwell(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint8(context, PARAM_FHBFSK_DWELL_TIME);
 }
 
-void setFhbfskTones(void* argument)
+void setFhbfskTones(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint8(context, PARAM_FHBFSK_NUM_TONES);
 }
 
-void setFhbfskHopper(void* argument)
+void setFhbfskHopper(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
-  char *descriptors[] = {"Increment by 1", "Galois Field arithmetic (JANUS)", 
-                         "Prime selector"};
-
-  COMMLoops_LoopEnum(context, PARAM_FHBFSK_HOPPER, descriptors, 
-      sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_FHBFSK_HOPPER);
 }
 
-void toggleWakeupTones(void* argument)
+void toggleWakeupTones(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopToggle(context, PARAM_WAKEUP_TONES_STATE);
 }
 
-void setWakeupTone1(void* argument)
+void setWakeupTone1(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint32(context, PARAM_WAKEUP_TONE1);
 }
 
-void setWakeupTone2(void* argument)
+void setWakeupTone2(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint32(context, PARAM_WAKEUP_TONE2);
 }
 
-void setWakeupTone3(void* argument)
+void setWakeupTone3(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint32(context, PARAM_WAKEUP_TONE3);
 }
 
-void setBaudRate(void* argument)
+void setBaudRate(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   ParamIds_t param_id = PARAM_BAUD;
 
   ParamState_t old_state = context->state->state;
@@ -1504,17 +1449,13 @@ void setBaudRate(void* argument)
   } while (old_state > context->state->state);
 }
 
-void setCenterFrequency(void* argument)
+void setCenterFrequency(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint32(context, PARAM_FC);
 }
 
-void getBitPeriod(void* argument)
+void getBitPeriod(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   float bit_period_ms;
 
   if (MESS_GetBitPeriod(&bit_period_ms) == false) {
@@ -1529,10 +1470,8 @@ void getBitPeriod(void* argument)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void getBandwidth(void* argument)
+void getBandwidth(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   uint32_t bandwidth, lower_freq, upper_freq;
 
   if (MESS_GetBandwidth(&bandwidth, &lower_freq, &upper_freq) == false) {
@@ -1553,165 +1492,107 @@ void getBandwidth(void* argument)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void toggleInterleaver(void* argument)
+void toggleInterleaver(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopToggle(context, PARAM_USE_INTERLEAVER);
 }
 
-void setSynchronizer(void* argument) 
+void setSynchronizer(FunctionContext_t* context) 
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
-  char* descriptors[] = {"None", "JANUS 32-chips"};
-
-  COMMLoops_LoopEnum(context, PARAM_SYNC_METHOD, descriptors,
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_SYNC_METHOD);
 }
 
-void printConfigOptions(void* argument)
+void printConfigOptions(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   if (ImportExport_ExportConfiguration(context) == false) {
     COMM_TransmitData("\r\nInternal Error!\r\n", CALC_LEN, context->comm_interface);
   }
 }
 
-void importConfigOptions(void* argument)
+void importConfigOptions(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   ImportExport_ImportConfiguration(context);
 }
 
-void setDacTransitionDuration(void* argument)
+void setDacTransitionDuration(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint16(context, PARAM_DAC_TRANSITION_LEN);
 }
 
-void setModPowerControlMethod(void* argument)
+void setModPowerControlMethod(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
-  char* descriptors[] = {"Static DAC output", "Static Output Power"};
-
-  COMMLoops_LoopEnum(context, PARAM_MODULATION_OUTPUT_METHOD, descriptors, 
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_MODULATION_OUTPUT_METHOD);
 }
 
-void setModFixedOutput(void* argument)
+void setModFixedOutput(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_LoopFloat(context, PARAM_OUTPUT_AMPLITUDE);
 }
 
-void setMessageStartFunction(void* argument)
+void setMessageStartFunction(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
-  char* descriptors[] = {"Use amplitude threshold", "Use overlapping FFTs"};
-
-  COMMLoops_LoopEnum(context, PARAM_MSG_START_FCN, descriptors, 
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_MSG_START_FCN);
 }
 
-void setBitDecisionFunction(void* argument)
+void setBitDecisionFunction(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
-  char* descriptors[] = {"Use energy comparison", "Use historical comparison"};
-
-  COMMLoops_LoopEnum(context, PARAM_DEMODULATION_DECISION, descriptors, 
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_DEMODULATION_DECISION);
 }
 
-void setHistoricalComparisonThreshold(void* argument)
+void setHistoricalComparisonThreshold(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopFloat(context, PARAM_HISTORICAL_COMPARISON_THRESHOLD);
 }
 
-void toggleAgc(void* argument)
+void toggleAgc(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopToggle(context, PARAM_AGC_ENABLE);
 }
 
-void setFixedPgaGain(void* argument)
+void setFixedPgaGain(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
-  char* descriptors[] = {"1", "2", "5", "10", "20", "50", "100", "200"};
-
-  COMMLoops_LoopEnum(context, PARAM_FIXED_PGA_GAIN, descriptors, 
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_FIXED_PGA_GAIN);
 }
 
-void setWindowFunction(void* argument)
+void setWindowFunction(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
-  char* descriptors[] = {"Rectangular", "Hann", "Hamming"};
-
-  COMMLoops_LoopEnum(context, PARAM_WINDOW_FUNCTION, descriptors, 
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_WINDOW_FUNCTION);
 }
 
 // TODO: implement
-void configureSleep(void* argument)
+void configureSleep(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
-void setLedBrightness(void* argument)
+void setLedBrightness(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_LoopUint16(context, PARAM_LED_BRIGHTNESS);
 }
 
-void toggleLed(void* argument)
+void toggleLed(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_LoopToggle(context, PARAM_LED_ENABLE);
 }
 
-void setModCalLowerFreq(void* argument)
+void setModCalLowerFreq(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint32(context, PARAM_MOD_CAL_LOWER_FREQ);
 }
 
-void setModCalUpperFreq(void* argument)
+void setModCalUpperFreq(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint32(context, PARAM_MOD_CAL_UPPER_FREQ);
 }
 
 // TODO: implement
-void updateTvr(void* argument)
+void updateTvr(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
-void modCalibration(void* argument)
+void modCalibration(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   if (print_event_handle == NULL) return;
 
   osEventFlagsSet(print_event_handle, MESS_FREQ_RESP);
@@ -1720,145 +1601,104 @@ void modCalibration(void* argument)
 }
 
 // TODO: implement
-void exportModCalibration(void* argument)
+void exportModCalibration(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
 // TODO: implement
-void tuneMatchingNetwork(void* argument)
+void tuneMatchingNetwork(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
 // TODO: implement
-void updateOcrr(void* argument)
+void updateOcrr(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
-void updateVmax(void* argument)
+void updateVmax(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_LoopFloat(context, PARAM_MAX_TRANSDUCER_VOLTAGE);
 }
 
 // TODO: implement
-void toggleModFeedback(void* argument)
+void toggleModFeedback(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
 // TODO: implement
-void setModFeedbackRatio(void* argument)
+void setModFeedbackRatio(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
-void setModOutputPower(void* argument)
+void setModOutputPower(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_LoopFloat(context, PARAM_MODULATION_TARGET_POWER);
 }
 
-void setTransducerR(void* argument)
+void setTransducerR(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_LoopFloat(context, PARAM_R);
 }
 
-void setTransducerC0(void* argument)
+void setTransducerC0(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_LoopFloat(context, PARAM_C0);
 }
 
-void setTransducerL0(void* argument)
+void setTransducerL0(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_LoopFloat(context, PARAM_L0);
 }
 
-void setTransducerC1(void* argument)
+void setTransducerC1(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_LoopFloat(context, PARAM_C1);
 }
 
 // TODO: implement
-void setDemodCalRatio(void* argument)
+void setDemodCalRatio(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
 // TODO: implement
-void performDemodCal(void* argument)
+void performDemodCal(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
-void setDemodCalLowerFreq(void* argument)
+void setDemodCalLowerFreq(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_LoopUint32(context, PARAM_DEMOD_CAL_LOWER_FREQ);
 }
 
-void setDemodCalUpperFreq(void* argument)
+void setDemodCalUpperFreq(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_LoopUint32(context, PARAM_DEMOD_CAL_UPPER_FREQ);
 }
 
 // TODO: implement
-void exportDemodCal(void* argument)
+void exportDemodCal(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
-void setMacProtocol(void* argument)
+void setMacProtocol(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
-  char* descriptors[] = {"No MAC", "GA CSMA/CA with BEB (JANUS)"};
-
-  COMMLoops_LoopEnum(context, PARAM_MAC, descriptors, 
-    sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_MAC);
 }
 
-void setID(void* argument)
+void setID(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint8(context, PARAM_ID);
 }
 
-void setStationaryFlag(void* argument)
+void setStationaryFlag(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopToggle(context, PARAM_STATIONARY_FLAG);
 }

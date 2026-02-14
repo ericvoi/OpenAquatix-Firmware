@@ -70,6 +70,25 @@ extern "C" {
 // The data max length does not have ECC applied and is sanitized for a user
 #define PACKET_DATA_MAX_LENGTH_BYTES      (PACKET_DATA_MAX_LENGTH_BITS / 8)
 
+#define CODING_INFO_TABLE(X) \
+  X(CODING_ASCII8, "8-bit ASCII") \
+  X(CODING_ASCII7, "7-bit ASCII") \
+  X(CODING_ASCII6, "6-bit ASCII (AIS)") \
+  X(CODING_UTF8, "UTF-8")
+
+#define ENCRYPTION_TABLE(X) \
+  X(ENCRYPTION_NONE, "No encryption") \
+  X(ENCRYPTION_AES_GCM, "AES GCM encyrption (not yet implemented)") \
+  X(ENCRYPTION_USER2, "User type 2 (not yet implemented)") \
+  X(ENCRYPTION_USER3, "User type 3 (not yet implemented)") \
+  X(ENCRYPTION_USER4, "User type 4 (not yet implemented)") \
+  X(ENCRYPTION_USER5, "User type 5 (not yet implemented)") \
+  X(ENCRYPTION_USER6, "User type 6 (not yet implemented)") \
+  X(ENCRYPTION_USER7, "User type 7 (not yet implemented)") \
+
+DECLARE_ENUM(CODING_INFO_TABLE, NUM_CODING_METHODS, CodingInfo_t)
+DECLARE_ENUM(ENCRYPTION_TABLE, NUM_ENCRYPTION_METHODS, EncryptionInfo_t)
+
 typedef enum {
   MSG_RECEIVED_TRANSDUCER,     // Received message from the transducer
   MSG_TRANSMIT_TRANSDUCER,     // Message needs to be transmitted via transducer
@@ -87,26 +106,6 @@ typedef enum {
   UNKNOWN,
   EVAL
 } CustomMessageData_t;
-
-typedef enum {
-  CODING_ASCII8,
-  CODING_ASCII7,
-  CODING_ASCII6,
-  CODING_UTF8,
-  NUM_CODING_METHODS
-} CodingInfo_t;
-
-typedef enum {
-  ENCRYPTION_NONE,
-  ENCRYPTION_AES_GCM,
-  ENCRYPTION_USER2,
-  ENCRYPTION_USER3,
-  ENCRYPTION_USER4,
-  ENCRYPTION_USER5,
-  ENCRYPTION_USER6,
-  ENCRYPTION_USER7,
-  NUM_ENCRYPTION_METHODS
-} EncryptionInfo_t;
 
 typedef enum {
   JANUS_011_01_SMS,

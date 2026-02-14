@@ -27,13 +27,11 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
-typedef enum {
-  MAC_PROTOCOL_NONE,
-  MAC_PROTOCOL_CSMA_CA_BEB,
-  NUM_MAC_PROTOCOL,
+#define MAC_PROTOCOL_TABLE(X) \
+  X(MAC_PROTOCOL_NONE, "No MAC") \
+  X(MAC_PROTOCOL_CSMA_CA_BEB, "GA CSMA/CA with BEB (JANUS)") \
 
-  MAC_PROTOCOL_UNKNOWN
-} MacProtocol_t;
+DECLARE_ENUM(MAC_PROTOCOL_TABLE, NUM_MAC_PROTOCOL, MacProtocol_t)
 
 typedef struct {
   MacProtocol_t protocol;
@@ -58,6 +56,7 @@ typedef struct {
 /* Exported constants --------------------------------------------------------*/
 
 #define MAXIMUM_RESERVATION_TIME_MS                 (632640) // Maximum reservation time in ms as specified by JANUS
+#define MAC_PROTOCOL_UNKNOWN                        (NUM_MAC_PROTOCOL + 1)
 
 /* Exported macro ------------------------------------------------------------*/
 
