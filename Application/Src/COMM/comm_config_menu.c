@@ -1232,43 +1232,43 @@ static const MenuNode_t demod_cal_config_export = {
 
 bool COMM_RegisterConfigurationMenu()
 {
-  bool ret = registerMenu(&config_menu) && registerMenu(&univ_config_menu) &&
-             registerMenu(&mod_config_menu) && registerMenu(&demod_config_menu) &&
-             registerMenu(&dau_config_menu) && registerMenu(&led_config_menu) && 
-             registerMenu(&univ_config_err_menu) && registerMenu(&demod_config_decision_fcn) &&
-             registerMenu(&univ_config_mod) && registerMenu(&univ_config_fsk_menu) && 
-             registerMenu(&univ_config_fhbsk_menu) && registerMenu(&univ_config_baud) && 
-             registerMenu(&univ_config_fc) && registerMenu(&univ_config_bit_period) && 
-             registerMenu(&univ_config_export) && registerMenu(&univ_config_import) && 
-             registerMenu(&set_stationary) && registerMenu(&mod_config_dac_transition) &&
-             registerMenu(&mod_config_cal_menu) && registerMenu(&mod_config_feedback_menu) && 
-             registerMenu(&mod_config_method) && registerMenu(&univ_config_interleaver) &&
-             registerMenu(&demod_config_cal_menu) && registerMenu(&univ_fhbfsk_config_hopper) &&
-             registerMenu(&dau_config_sleep) && registerMenu(&led_config_brightness) &&
-             registerMenu(&led_config_toggle) && registerMenu(&mod_cal_config_low_freq) &&
-             registerMenu(&mod_cal_config_upper_freq) && registerMenu(&mod_cal_config_tvr) && 
-             registerMenu(&mod_cal_config_perform) && registerMenu(&mod_cal_config_export) &&
-             registerMenu(&mod_cal_config_tune) && registerMenu(&mod_cal_config_recv) && 
-             registerMenu(&mod_cal_config_vmax) && registerMenu(&mod_fb_config_toggle) &&
-             registerMenu(&mod_fb_config_ratio) && registerMenu(&demod_config_sig_shift) &&
-             registerMenu(&demod_cal_config_ratio) && registerMenu(&demod_cal_config_perform) && 
-             registerMenu(&demod_cal_config_low_freq) && registerMenu(&demod_cal_config_upper_freq) && 
-             registerMenu(&demod_cal_config_export) && registerMenu(&univ_config_sync) &&
-             registerMenu(&demod_config_start_fcn) && registerMenu(&univ_fsk_config_f0) &&
-             registerMenu(&univ_fsk_config_f1) && registerMenu(&univ_fhbfsk_config_freq_spacing) &&
-             registerMenu(&univ_fhbfsk_config_dwell) && registerMenu(&univ_config_bandwidth) &&
-             registerMenu(&univ_fhbfsk_config_tones) && registerMenu(&set_new_id) &&
-             registerMenu(&mod_config_fixed) && registerMenu(&mod_config_power_menu) &&
-             registerMenu(&mod_pwr_config_target) && registerMenu(&mod_pwr_config_r) &&
-             registerMenu(&mod_pwr_config_c0) && registerMenu(&mod_pwr_config_l0) &&
-             registerMenu(&mod_pwr_config_c1) && registerMenu(&demod_config_use_agc) &&
-             registerMenu(&demod_config_fixed_gain) && registerMenu(&univ_config_ecc_preamble) &&
-             registerMenu(&univ_config_ecc_message) && registerMenu(&univ_err_config_preamble_validation) &&
-             registerMenu(&univ_err_config_cargo_validation) && registerMenu(&univ_err_config_preamble_behavior) &&
-             registerMenu(&univ_err_config_cargo_behavior) && registerMenu(&demod_config_window_fcn) &&
-             registerMenu(&univ_config_wakeup_menu) && registerMenu(&univ_wakeup_config_tone1) &&
-             registerMenu(&univ_wakeup_config_en) && registerMenu(&univ_wakeup_config_tone2) &&
-             registerMenu(&univ_wakeup_config_tone3) && registerMenu(&change_mac);
+  bool ret = MenuSystem_RegisterMenu(&config_menu) && MenuSystem_RegisterMenu(&univ_config_menu) &&
+             MenuSystem_RegisterMenu(&mod_config_menu) && MenuSystem_RegisterMenu(&demod_config_menu) &&
+             MenuSystem_RegisterMenu(&dau_config_menu) && MenuSystem_RegisterMenu(&led_config_menu) && 
+             MenuSystem_RegisterMenu(&univ_config_err_menu) && MenuSystem_RegisterMenu(&demod_config_decision_fcn) &&
+             MenuSystem_RegisterMenu(&univ_config_mod) && MenuSystem_RegisterMenu(&univ_config_fsk_menu) && 
+             MenuSystem_RegisterMenu(&univ_config_fhbsk_menu) && MenuSystem_RegisterMenu(&univ_config_baud) && 
+             MenuSystem_RegisterMenu(&univ_config_fc) && MenuSystem_RegisterMenu(&univ_config_bit_period) && 
+             MenuSystem_RegisterMenu(&univ_config_export) && MenuSystem_RegisterMenu(&univ_config_import) && 
+             MenuSystem_RegisterMenu(&set_stationary) && MenuSystem_RegisterMenu(&mod_config_dac_transition) &&
+             MenuSystem_RegisterMenu(&mod_config_cal_menu) && MenuSystem_RegisterMenu(&mod_config_feedback_menu) && 
+             MenuSystem_RegisterMenu(&mod_config_method) && MenuSystem_RegisterMenu(&univ_config_interleaver) &&
+             MenuSystem_RegisterMenu(&demod_config_cal_menu) && MenuSystem_RegisterMenu(&univ_fhbfsk_config_hopper) &&
+             MenuSystem_RegisterMenu(&dau_config_sleep) && MenuSystem_RegisterMenu(&led_config_brightness) &&
+             MenuSystem_RegisterMenu(&led_config_toggle) && MenuSystem_RegisterMenu(&mod_cal_config_low_freq) &&
+             MenuSystem_RegisterMenu(&mod_cal_config_upper_freq) && MenuSystem_RegisterMenu(&mod_cal_config_tvr) && 
+             MenuSystem_RegisterMenu(&mod_cal_config_perform) && MenuSystem_RegisterMenu(&mod_cal_config_export) &&
+             MenuSystem_RegisterMenu(&mod_cal_config_tune) && MenuSystem_RegisterMenu(&mod_cal_config_recv) && 
+             MenuSystem_RegisterMenu(&mod_cal_config_vmax) && MenuSystem_RegisterMenu(&mod_fb_config_toggle) &&
+             MenuSystem_RegisterMenu(&mod_fb_config_ratio) && MenuSystem_RegisterMenu(&demod_config_sig_shift) &&
+             MenuSystem_RegisterMenu(&demod_cal_config_ratio) && MenuSystem_RegisterMenu(&demod_cal_config_perform) && 
+             MenuSystem_RegisterMenu(&demod_cal_config_low_freq) && MenuSystem_RegisterMenu(&demod_cal_config_upper_freq) && 
+             MenuSystem_RegisterMenu(&demod_cal_config_export) && MenuSystem_RegisterMenu(&univ_config_sync) &&
+             MenuSystem_RegisterMenu(&demod_config_start_fcn) && MenuSystem_RegisterMenu(&univ_fsk_config_f0) &&
+             MenuSystem_RegisterMenu(&univ_fsk_config_f1) && MenuSystem_RegisterMenu(&univ_fhbfsk_config_freq_spacing) &&
+             MenuSystem_RegisterMenu(&univ_fhbfsk_config_dwell) && MenuSystem_RegisterMenu(&univ_config_bandwidth) &&
+             MenuSystem_RegisterMenu(&univ_fhbfsk_config_tones) && MenuSystem_RegisterMenu(&set_new_id) &&
+             MenuSystem_RegisterMenu(&mod_config_fixed) && MenuSystem_RegisterMenu(&mod_config_power_menu) &&
+             MenuSystem_RegisterMenu(&mod_pwr_config_target) && MenuSystem_RegisterMenu(&mod_pwr_config_r) &&
+             MenuSystem_RegisterMenu(&mod_pwr_config_c0) && MenuSystem_RegisterMenu(&mod_pwr_config_l0) &&
+             MenuSystem_RegisterMenu(&mod_pwr_config_c1) && MenuSystem_RegisterMenu(&demod_config_use_agc) &&
+             MenuSystem_RegisterMenu(&demod_config_fixed_gain) && MenuSystem_RegisterMenu(&univ_config_ecc_preamble) &&
+             MenuSystem_RegisterMenu(&univ_config_ecc_message) && MenuSystem_RegisterMenu(&univ_err_config_preamble_validation) &&
+             MenuSystem_RegisterMenu(&univ_err_config_cargo_validation) && MenuSystem_RegisterMenu(&univ_err_config_preamble_behavior) &&
+             MenuSystem_RegisterMenu(&univ_err_config_cargo_behavior) && MenuSystem_RegisterMenu(&demod_config_window_fcn) &&
+             MenuSystem_RegisterMenu(&univ_config_wakeup_menu) && MenuSystem_RegisterMenu(&univ_wakeup_config_tone1) &&
+             MenuSystem_RegisterMenu(&univ_wakeup_config_en) && MenuSystem_RegisterMenu(&univ_wakeup_config_tone2) &&
+             MenuSystem_RegisterMenu(&univ_wakeup_config_tone3) && MenuSystem_RegisterMenu(&change_mac);
 
   return ret;
 }
@@ -1422,7 +1422,7 @@ void setBaudRate(FunctionContext_t* context)
         bool confirmed = false;
         if (checkYesNo(*context->input, &confirmed) == true) {
           if (confirmed == true) {
-            if (Param_SetFloat(param_id, &new_baud) == true) {
+            if (Param_SetFloat(param_id, &new_baud) == PARAM_SET_SUCCESS) {
               sprintf((char*) context->output_buffer, "\r\n%s successfully set"
               " to new value of %.2f\r\n", parameter_name, new_baud);
               COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);

@@ -143,7 +143,8 @@ bool Param_LoadInit(void)
       if (entry->version != 1) {
         return false;
       }
-      if (Param_SetValue(entry->param_id, (void*) &entry->value) == false) {
+      ParamSetResult_t result = Param_SetValue(entry->param_id, (void*) &entry->value);
+      if ((result == PARAM_SET_ERROR_ID) || (result == PARAM_SET_ERROR_OTHER)) {
         return false;
       }
     }
@@ -163,57 +164,54 @@ bool Param_Register(ParamIds_t id, const char* name, ParamType_t type,
                     void* value_ptr, size_t value_size, void* min, void* max,
                     void (*callback)(void), char** descriptors)
 {
-  if (value_ptr == NULL) {
+  if ((min == NULL) || (max == NULL) || (name == NULL) || (value_ptr == NULL)) {
     return false;
   }
 
-  if ((min == NULL) || (max == NULL) || (name == NULL) || (value_ptr == NULL) || (descriptors == NULL)) {
+  if ((descriptors == NULL) && (type == PARAM_TYPE_ENUM)) return false;
+
+  if (osMutexAcquire(param_mutex, osWaitForever) != osOK)
     return false;
-  }
 
-  if (osMutexAcquire(param_mutex, osWaitForever) == osOK) {
-    Parameter_t* param = &parameters[id];
-    // check if already initialized
-    if (param->value_ptr != NULL) {
-      osMutexRelease(param_mutex);
-      return false;
-    }
-    param->id = id;
-    strncpy(param->name, name, sizeof(param->name) - 1);
-    param->type = type;
-    param->value_ptr = value_ptr;
-    param->value_size = value_size;
-    param->callback = callback;
-    param->descriptors = descriptors;
-    param->is_modified = false;
-
-    switch (type) {
-      case PARAM_TYPE_UINT8:
-      case PARAM_TYPE_UINT16:
-      case PARAM_TYPE_UINT32:
-        param->limits.u32.min = *(uint32_t*) min;
-        param->limits.u32.max = *(uint32_t*) max;
-        break;
-      case PARAM_TYPE_INT8:
-      case PARAM_TYPE_INT16:
-      case PARAM_TYPE_INT32:
-        param->limits.i32.min = *(int32_t*) min;
-        param->limits.i32.max = *(int32_t*) max;
-        break;
-      case PARAM_TYPE_FLOAT:
-        param->limits.f.min = *(float*) min;
-        param->limits.f.max = *(float*) max;
-        break;
-      default:
-        return false;
-    }
-
+  Parameter_t* param = &parameters[id];
+  // check if already initialized
+  if (param->value_ptr != NULL) {
     osMutexRelease(param_mutex);
-    return true;
-  }
-  else {
     return false;
   }
+  param->id = id;
+  strncpy(param->name, name, sizeof(param->name) - 1);
+  param->type = type;
+  param->value_ptr = value_ptr;
+  param->value_size = value_size;
+  param->callback = callback;
+  param->descriptors = descriptors;
+  param->is_modified = false;
+
+  switch (type) {
+    case PARAM_TYPE_ENUM:
+    case PARAM_TYPE_UINT8:
+    case PARAM_TYPE_UINT16:
+    case PARAM_TYPE_UINT32:
+      param->limits.u32.min = *(uint32_t*) min;
+      param->limits.u32.max = *(uint32_t*) max;
+      break;
+    case PARAM_TYPE_INT8:
+    case PARAM_TYPE_INT16:
+    case PARAM_TYPE_INT32:
+      param->limits.i32.min = *(int32_t*) min;
+      param->limits.i32.max = *(int32_t*) max;
+      break;
+    case PARAM_TYPE_FLOAT:
+      param->limits.f.min = *(float*) min;
+      param->limits.f.max = *(float*) max;
+      break;
+    default:
+      return false;
+  }
+
+  osMutexRelease(param_mutex);
+  return true;
 }
 
 bool Param_GetValue(ParamIds_t id, void* value)
@@ -364,108 +362,108 @@ bool Param_GetEnumLimits(ParamIds_t id, uint8_t* min, uint8_t* max)
   return Param_GetUint8Limits(id, min, max);
 }
 
-bool Param_SetValue(ParamIds_t id, const void* value)
+ParamSetResult_t Param_SetValue(ParamIds_t id, const void* value)
 {
-  bool success = false;
-
-  if (osMutexAcquire(param_mutex, osWaitForever) == osOK) {
-    Parameter_t* param = findParamById(id);
-    if (isParamInitialized(id) == true) {
-      bool valid = false;
-      switch (param->type) {
-        case PARAM_TYPE_UINT8:
-        case PARAM_TYPE_UINT16:
-        case PARAM_TYPE_UINT32: {
-          uint32_t val = 0;
-          if (param->type == PARAM_TYPE_UINT8) {
-            val = (uint32_t) (*(uint8_t*) value);
-          }
-          else if (param->type == PARAM_TYPE_UINT16) {
-            val = (uint32_t) (*(uint16_t*) value);
-          }
-          else {
-            val = *(uint32_t*) value;
-          }
-          valid = (val >= param->limits.u32.min &&
-                   val <= param->limits.u32.max);
-          break;
-        }
-        case PARAM_TYPE_INT8:
-        case PARAM_TYPE_INT16:
-        case PARAM_TYPE_INT32: {
-          int32_t val = 0;
-          if (param->type == PARAM_TYPE_INT8) {
-            val = (int32_t) (*(uint8_t*) value);
-          }
-          else if (param->type == PARAM_TYPE_INT16) {
-            val = (int32_t) (*(uint16_t*) value);
-          }
-          else {
-            val = *(int32_t*) value;
-          }
-          valid = (val >= param->limits.i32.min &&
-                   val <= param->limits.i32.max);
-          break;
-        }
-        case PARAM_TYPE_FLOAT: {
-          float val = *(float*) value;
-          valid = (val >= param->limits.f.min &&
-                   val <= param->limits.f.max);
-          break;
-        }
-        default:
-          break;
-      }
-
-      if (valid) {
-        if (memcmp(param->value_ptr, value, param->value_size) != 0) {
-          memcpy(param->value_ptr, value, param->value_size);
-          param->is_modified = true;
-          if ((param->callback != NULL) && (flash_load_complete == true)) {
-            (*param->callback)();
-          }
-          CFG_SetFlashSaveFlag();
-          CFG_IncrementVersionNumber();
-        }
-        success = true;
-      }
-    }
-    osMutexRelease(param_mutex);
+  if (osMutexAcquire(param_mutex, osWaitForever) != osOK) {
+    return PARAM_SET_ERROR_OTHER;
   }
-  return success;
+  Parameter_t* param = findParamById(id);
+  if (isParamInitialized(id) != true || param == NULL) {
+    osMutexRelease(param_mutex);
+    return PARAM_SET_ERROR_ID;
+  }
+  bool valid = false;
+  switch (param->type) {
+    case PARAM_TYPE_UINT8:
+    case PARAM_TYPE_UINT16:
+    case PARAM_TYPE_UINT32: {
+      uint32_t val = 0;
+      if (param->type == PARAM_TYPE_UINT8) {
+        val = (uint32_t) (*(uint8_t*) value);
+      }
+      else if (param->type == PARAM_TYPE_UINT16) {
+        val = (uint32_t) (*(uint16_t*) value);
+      }
+      else {
+        val = *(uint32_t*) value;
+      }
+      valid = (val >= param->limits.u32.min &&
+                val <= param->limits.u32.max);
+      break;
+    }
+    case PARAM_TYPE_INT8:
+    case PARAM_TYPE_INT16:
+    case PARAM_TYPE_INT32: {
+      int32_t val = 0;
+      if (param->type == PARAM_TYPE_INT8) {
+        val = (int32_t) (*(uint8_t*) value);
+      }
+      else if (param->type == PARAM_TYPE_INT16) {
+        val = (int32_t) (*(uint16_t*) value);
+      }
+      else {
+        val = *(int32_t*) value;
+      }
+      valid = (val >= param->limits.i32.min &&
+                val <= param->limits.i32.max);
+      break;
+    }
+    case PARAM_TYPE_FLOAT: {
+      float val = *(float*) value;
+      valid = (val >= param->limits.f.min &&
+                val <= param->limits.f.max);
+      break;
+    }
+    default:
+      break;
+  }
+
+  if (valid) {
+    if (memcmp(param->value_ptr, value, param->value_size) != 0) {
+      memcpy(param->value_ptr, value, param->value_size);
+      param->is_modified = true;
+      if ((param->callback != NULL) && (flash_load_complete == true)) {
+        (*param->callback)();
+      }
+      CFG_SetFlashSaveFlag();
+      CFG_IncrementVersionNumber();
+    }
+  }
+  osMutexRelease(param_mutex);
+  return (valid) ? (PARAM_SET_SUCCESS) : (PARAM_SET_ERROR_RANGE);
 }
 
-bool Param_SetUint8(ParamIds_t id, uint8_t* value)
+ParamSetResult_t Param_SetUint8(ParamIds_t id, uint8_t* value)
 {
   return Param_SetValue(id, value);
 }
 
-bool Param_SetInt8(ParamIds_t id, int8_t* value)
+ParamSetResult_t Param_SetInt8(ParamIds_t id, int8_t* value)
 {
   return Param_SetValue(id, value);
 }
 
-bool Param_SetUint16(ParamIds_t id, uint16_t* value)
+ParamSetResult_t Param_SetUint16(ParamIds_t id, uint16_t* value)
 {
   return Param_SetValue(id, value);
 }
 
-bool Param_SetInt16(ParamIds_t id, int16_t* value)
+ParamSetResult_t Param_SetInt16(ParamIds_t id, int16_t* value)
 {
   return Param_SetValue(id, value);
 }
 
-bool Param_SetUint32(ParamIds_t id, uint32_t* value)
+ParamSetResult_t Param_SetUint32(ParamIds_t id, uint32_t* value)
 {
   return Param_SetValue(id, value);
 }
 
-bool Param_SetInt32(ParamIds_t id, int32_t* value)
+ParamSetResult_t Param_SetInt32(ParamIds_t id, int32_t* value)
 {
   return Param_SetValue(id, value);
 }
 
-bool Param_SetFloat(ParamIds_t id, float* value)
+ParamSetResult_t Param_SetFloat(ParamIds_t id, float* value)
 {
   return Param_SetValue(id, value);
 }
@@ -502,24 +500,23 @@ char** Param_GetDescriptors(ParamIds_t id)
 bool Param_SaveToFlash(void)
 {
   for (uint16_t i = 0; i < NUM_PARAM; i++) {
-    if (parameters[i].is_modified == true) {
-      // save the parameter
-      if (writeParameterToFlash(i) == false) {
+    if (parameters[i].is_modified != true) continue;
+    // save the parameter
+    if (writeParameterToFlash(i) == false) {
+      return false;
+    }
+    if (next_write_addr >= FLASH_PARAM_ADDR_END) {
+      // clear flash, update num erases, add parameters back to flash
+      if (Param_FlashReset() == false) {
         return false;
       }
-      if (next_write_addr >= FLASH_PARAM_ADDR_END) {
-        // clear flash, update num erases, add parameters back to flash
-        if (Param_FlashReset() == false) {
-          return false;
-        }
-        if (updateNumErases() == false) {
-          return false;
-        }
+      if (updateNumErases() == false) {
+        return false;
+      }
 
-        for (uint16_t i = 0; i < NUM_PARAM; i++) {
-          if (writeParameterToFlash(i) == false) {
-            return false;
-          }
+      for (uint16_t i = 0; i < NUM_PARAM; i++) {
+        if (writeParameterToFlash(i) == false) {
+          return false;
         }
       }
     }
@@ -612,6 +609,7 @@ bool Param_FlashReset()
 
 Parameter_t* findParamById(ParamIds_t id)
 {
+  if (id >= NUM_PARAM) return NULL;
   return &parameters[id];
 }
 

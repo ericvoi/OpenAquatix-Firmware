@@ -244,13 +244,13 @@ static const MenuNode_t avg_temp_hist = {
 
 bool COMM_RegisterHistoryMenu()
 {
-  bool ret = registerMenu(&hist_menu) && registerMenu(&pwr_hist_menu) &&
-             registerMenu(&temp_hist_menu) && registerMenu(&received_hist) &&
-             registerMenu(&sent_hist) && registerMenu(&err_hist) &&
-             registerMenu(&peak_pwr_hist) && registerMenu(&boot_pwr_hist) &&
-             registerMenu(&avg_pwr_hist) && registerMenu(&curr_pwr_hist) &&
-             registerMenu(&curr_temp_hist) && registerMenu(&peak_temp_hist) &&
-             registerMenu(&avg_temp_hist);
+  bool ret = MenuSystem_RegisterMenu(&hist_menu) && MenuSystem_RegisterMenu(&pwr_hist_menu) &&
+             MenuSystem_RegisterMenu(&temp_hist_menu) && MenuSystem_RegisterMenu(&received_hist) &&
+             MenuSystem_RegisterMenu(&sent_hist) && MenuSystem_RegisterMenu(&err_hist) &&
+             MenuSystem_RegisterMenu(&peak_pwr_hist) && MenuSystem_RegisterMenu(&boot_pwr_hist) &&
+             MenuSystem_RegisterMenu(&avg_pwr_hist) && MenuSystem_RegisterMenu(&curr_pwr_hist) &&
+             MenuSystem_RegisterMenu(&curr_temp_hist) && MenuSystem_RegisterMenu(&peak_temp_hist) &&
+             MenuSystem_RegisterMenu(&avg_temp_hist);
   return ret;
 }
 

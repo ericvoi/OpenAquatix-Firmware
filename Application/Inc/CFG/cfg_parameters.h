@@ -27,6 +27,13 @@ extern "C" {
 /* Exported types ------------------------------------------------------------*/
 
 typedef enum {
+  PARAM_SET_SUCCESS,
+  PARAM_SET_ERROR_RANGE,
+  PARAM_SET_ERROR_ID,
+  PARAM_SET_ERROR_OTHER
+} ParamSetResult_t;
+
+typedef enum {
   PARAM_BAUD,
   PARAM_OUTPUT_AMPLITUDE,
   PARAM_MSG_START_FCN,
@@ -87,6 +94,8 @@ typedef enum {
   PARAM_ENCRYPTION,
   PARAM_MAC,
   PARAM_APPLY_TUKEY,
+  PARAM_PREAMBLE_ERROR_BEHAVIOR,
+  PARAM_CARGO_ERROR_BEHAVIOR,
   // Add new parameters just above here and nowhere else
   NUM_PARAM
 } ParamIds_t;
@@ -447,17 +456,16 @@ bool Param_GetEnumLimits (ParamIds_t id, uint8_t* min, uint8_t* max);
  * @param id Identifier of the parameter to set
  * @param value Pointer to the new value (type must match the parameter's type)
  *
- * @return true if parameter was successfully set, false if:
- *         - mutex could not be acquired
- *         - parameter was not found
- *         - parameter was not initialized
- *         - value was outside the parameter's limits
+ * @return PARAM_SET_SUCCESS if parameter successfully set
+ *         PARAM_SET_ERROR_RANGE if not within bounds of parameter
+ *         PARAM_SET_ERROR_ID if parameter ID reference does not exist or uninitialized
+ *         PARAM_SET_ERROR_OTHER if could not acquire mutex
  *
  * @note Only updates the parameter if the new value differs from the current value
  * @note Marks the parameter as modified when changed, but does not immediately save to non-volatile storage
  * @warning The caller must ensure the value pointer points to data of the correct type
  */
-bool Param_SetValue(ParamIds_t id, const void* value);
+ParamSetResult_t Param_SetValue(ParamIds_t id, const void* value);
 
 /**
  * @brief Sets an 8-bit unsigned integer parameter
@@ -467,11 +475,14 @@ bool Param_SetValue(ParamIds_t id, const void* value);
  * @param id Identifier of the parameter to set
  * @param value Pointer to the uint8_t value
  *
- * @return true if parameter was successfully set, false otherwise
+ * @return PARAM_SET_SUCCESS if parameter successfully set
+ *         PARAM_SET_ERROR_RANGE if not within bounds of parameter
+ *         PARAM_SET_ERROR_ID if parameter ID reference does not exist or uninitialized
+ *         PARAM_SET_ERROR_OTHER if could not acquire mutex
  *
  * @see Param_SetValue() for details on validation and error conditions
  */
-bool Param_SetUint8(ParamIds_t id, uint8_t* value);
+ParamSetResult_t Param_SetUint8(ParamIds_t id, uint8_t* value);
 
 /**
  * @brief Sets an 8-bit signed integer parameter
@@ -481,11 +492,14 @@ bool Param_SetUint8(ParamIds_t id, uint8_t* value);
  * @param id Identifier of the parameter to set
  * @param value Pointer to the int8_t value
  *
- * @return true if parameter was successfully set, false otherwise
+ * @return PARAM_SET_SUCCESS if parameter successfully set
+ *         PARAM_SET_ERROR_RANGE if not within bounds of parameter
+ *         PARAM_SET_ERROR_ID if parameter ID reference does not exist or uninitialized
+ *         PARAM_SET_ERROR_OTHER if could not acquire mutex
  *
  * @see Param_SetValue() for details on validation and error conditions
  */
-bool Param_SetInt8(ParamIds_t id, int8_t* value);
+ParamSetResult_t Param_SetInt8(ParamIds_t id, int8_t* value);
 
 /**
  * @brief Sets a 16-bit unsigned integer parameter
@@ -495,11 +509,14 @@ bool Param_SetInt8(ParamIds_t id, int8_t* value);
  * @param id Identifier of the parameter to set
  * @param value Pointer to the uint16_t value
  *
- * @return true if parameter was successfully set, false otherwise
+ * @return PARAM_SET_SUCCESS if parameter successfully set
+ *         PARAM_SET_ERROR_RANGE if not within bounds of parameter
+ *         PARAM_SET_ERROR_ID if parameter ID reference does not exist or uninitialized
+ *         PARAM_SET_ERROR_OTHER if could not acquire mutex
  *
  * @see Param_SetValue() for details on validation and error conditions
  */
-bool Param_SetUint16(ParamIds_t id, uint16_t* value);
+ParamSetResult_t Param_SetUint16(ParamIds_t id, uint16_t* value);
 
 /**
  * @brief Sets a 16-bit signed integer parameter
@@ -509,11 +526,14 @@ bool Param_SetUint16(ParamIds_t id, uint16_t* value);
  * @param id Identifier of the parameter to set
  * @param value Pointer to the int16_t value
  *
- * @return true if parameter was successfully set, false otherwise
+ * @return PARAM_SET_SUCCESS if parameter successfully set
+ *         PARAM_SET_ERROR_RANGE if not within bounds of parameter
+ *         PARAM_SET_ERROR_ID if parameter ID reference does not exist or uninitialized
+ *         PARAM_SET_ERROR_OTHER if could not acquire mutex
  *
  * @see Param_SetValue() for details on validation and error conditions
  */
-bool Param_SetInt16(ParamIds_t id, int16_t* value);
+ParamSetResult_t Param_SetInt16(ParamIds_t id, int16_t* value);
 
 /**
  * @brief Sets a 32-bit unsigned integer parameter
@@ -523,11 +543,14 @@ bool Param_SetInt16(ParamIds_t id, int16_t* value);
  * @param id Identifier of the parameter to set
  * @param value Pointer to the uint32_t value
  *
- * @return true if parameter was successfully set, false otherwise
+ * @return PARAM_SET_SUCCESS if parameter successfully set
+ *         PARAM_SET_ERROR_RANGE if not within bounds of parameter
+ *         PARAM_SET_ERROR_ID if parameter ID reference does not exist or uninitialized
+ *         PARAM_SET_ERROR_OTHER if could not acquire mutex
  *
  * @see Param_SetValue() for details on validation and error conditions
  */
-bool Param_SetUint32(ParamIds_t id, uint32_t* value);
+ParamSetResult_t Param_SetUint32(ParamIds_t id, uint32_t* value);
 
 /**
  * @brief Sets a 32-bit signed integer parameter
@@ -537,11 +560,14 @@ bool Param_SetUint32(ParamIds_t id, uint32_t* value);
  * @param id Identifier of the parameter to set
  * @param value Pointer to the int32_t value
  *
- * @return true if parameter was successfully set, false otherwise
+ * @return PARAM_SET_SUCCESS if parameter successfully set
+ *         PARAM_SET_ERROR_RANGE if not within bounds of parameter
+ *         PARAM_SET_ERROR_ID if parameter ID reference does not exist or uninitialized
+ *         PARAM_SET_ERROR_OTHER if could not acquire mutex
  *
  * @see Param_SetValue() for details on validation and error conditions
  */
-bool Param_SetInt32(ParamIds_t id, int32_t* value);
+ParamSetResult_t Param_SetInt32(ParamIds_t id, int32_t* value);
 
 /**
  * @brief Sets a floating point parameter
@@ -551,11 +577,14 @@ bool Param_SetInt32(ParamIds_t id, int32_t* value);
  * @param id Identifier of the parameter to set
  * @param value Pointer to the float value
  *
- * @return true if parameter was successfully set, false otherwise
+ * @return PARAM_SET_SUCCESS if parameter successfully set
+ *         PARAM_SET_ERROR_RANGE if not within bounds of parameter
+ *         PARAM_SET_ERROR_ID if parameter ID reference does not exist or uninitialized
+ *         PARAM_SET_ERROR_OTHER if could not acquire mutex
  *
  * @see Param_SetValue() for details on validation and error conditions
  */
-bool Param_SetFloat(ParamIds_t id, float* value);
+ParamSetResult_t Param_SetFloat(ParamIds_t id, float* value);
 
 /**
  * @brief Sets an enum parameter

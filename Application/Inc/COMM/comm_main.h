@@ -16,6 +16,7 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
+
 #include "stm32h7xx_hal.h"
 #include <stdbool.h>
 
@@ -28,6 +29,8 @@ extern "C" {
 #define MAX_COMM_OUT_BUFFER_SIZE  512
 
 #define CALC_LEN                  0 // A length of 0 makes the function call strlen
+
+#define WITHDRAW_CHAR             '\e' // Character that when entered prompts back navigation
 
 typedef enum {
   NEW_CONTENT,

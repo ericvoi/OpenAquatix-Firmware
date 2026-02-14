@@ -132,9 +132,9 @@ static const MenuNode_t feedback_tests = {
 
 bool COMM_RegisterEvalMenu(void)
 {
-  bool ret = registerMenu(&eval_menu) && 
-             registerMenu(&eval_set_msg_len) && registerMenu(&eval_feedback) &&
-             registerMenu(&eval_transducer) && registerMenu(&feedback_tests);
+  bool ret = MenuSystem_RegisterMenu(&eval_menu) && 
+             MenuSystem_RegisterMenu(&eval_set_msg_len) && MenuSystem_RegisterMenu(&eval_feedback) &&
+             MenuSystem_RegisterMenu(&eval_transducer) && MenuSystem_RegisterMenu(&feedback_tests);
   return ret;
 }
 

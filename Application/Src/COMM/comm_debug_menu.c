@@ -270,13 +270,13 @@ static const MenuNode_t debug_menu_deep_sleep = {
 
 bool COMM_RegisterDebugMenu(void)
 {
-  bool ret = registerMenu(&debug_menu) && registerMenu(&debug_menu_gpio) &&
-             registerMenu(&debug_menu_set_led) && registerMenu(&debug_menu_print) &&
-             registerMenu(&debug_menu_noise) && registerMenu(&debug_menu_temp) &&
-             registerMenu(&debug_menu_err) && registerMenu(&debug_menu_pwr) &&
-             registerMenu(&debug_menu_dfu) && registerMenu(&debug_menu_reset) &&
-             registerMenu(&debug_menu_noise_f) && registerMenu(&debug_menu_noise_level) &&
-             registerMenu(&debug_menu_deep_sleep);
+  bool ret = MenuSystem_RegisterMenu(&debug_menu) && MenuSystem_RegisterMenu(&debug_menu_gpio) &&
+             MenuSystem_RegisterMenu(&debug_menu_set_led) && MenuSystem_RegisterMenu(&debug_menu_print) &&
+             MenuSystem_RegisterMenu(&debug_menu_noise) && MenuSystem_RegisterMenu(&debug_menu_temp) &&
+             MenuSystem_RegisterMenu(&debug_menu_err) && MenuSystem_RegisterMenu(&debug_menu_pwr) &&
+             MenuSystem_RegisterMenu(&debug_menu_dfu) && MenuSystem_RegisterMenu(&debug_menu_reset) &&
+             MenuSystem_RegisterMenu(&debug_menu_noise_f) && MenuSystem_RegisterMenu(&debug_menu_noise_level) &&
+             MenuSystem_RegisterMenu(&debug_menu_deep_sleep);
   return ret;
 }
 
