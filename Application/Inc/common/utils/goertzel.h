@@ -103,6 +103,14 @@ void goertzel_SlidingInit(SlidingGoertzelInfo_t* goertzel_info, uint32_t f, uint
  */
 void goertzel_SlidingPerform(SlidingGoertzelInfo_t* goertzel_info, uint16_t start_index, uint16_t samples, uint16_t buf_len);
 
+/**
+ * @brief Resets a sliding goertzel filter by redoing it from scratch to
+ * counter numerical instability
+ * 
+ * @param goertzel_info Goertzel filter to reset
+ * @param start_index Start index in the ADC buffer
+ * @param buf_len Length of the entire ADC buffer (must be a power of 2)
+ */
 void goertzel_SlidingReset(SlidingGoertzelInfo_t* goertzel_info, uint16_t start_index, uint16_t buf_len);
 
 /* Private defines -----------------------------------------------------------*/
