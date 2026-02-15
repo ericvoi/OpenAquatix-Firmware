@@ -53,73 +53,94 @@ void Power_Process(void);
 /**
  * @brief Min power since boot
  * 
- * @return float Min power since boot
+ * @return float Min power since boot (W)
  */
 float Power_MinPower(void);
 
 /**
  * @brief Max power since boot
  * 
- * @return float Max power since boot
+ * @return float Max power since boot (W)
  */
 float Power_MaxPower(void);
 
 /**
  * @brief Average power since boot
  * 
- * @return float Average power since boot
+ * @return float Average power since boot (W)
  */
 float Power_AveragePower(void);
+
+/**
+ * @brief Latest power reading
+ * 
+ * @return float Latest power reading (W)
+ */
+float Power_LatestPower(void);
 
 /**
  * @brief Averages a small window of power readings for calibration
  * 
  * @param numsamples The number of samples in the average
- * @return float Recent power average
+ * @return float Recent power average (W)
  */
 float Power_RecentAveragePower(uint8_t numsamples);
 
 /**
  * @brief Min voltage since boot
  * 
- * @return float Min voltage since boot
+ * @return float Min voltage since boot (V)
  */
 float Power_MinVoltage(void);
 
 /**
  * @brief Max voltage since boot
  * 
- * @return float Max voltage since boot
+ * @return float Max voltage since boot (V)
  */
 float Power_MaxVoltage(void);
 
 /**
  * @brief Average voltage since boot
  * 
- * @return float Average voltage since boot
+ * @return float Average voltage since boot (V)
  */
 float Power_AverageVoltage(void);
 
 /**
+ * @brief Latest voltage reading
+ * 
+ * @return float Latest voltage reading (V)
+ */
+float Power_LatestVoltage(void);
+
+/**
  * @brief Min current since boot
  * 
- * @return float Min current since boot
+ * @return float Min current since boot (A)
  */
 float Power_MinCurrent(void);
 
 /**
  * @brief Max current since boot
  * 
- * @return float Max current since boot
+ * @return float Max current since boot (A)
  */
 float Power_MaxCurrent(void);
 
 /**
  * @brief Average current since boot
  * 
- * @return float Average current since boot
+ * @return float Average current since boot (A)
  */
 float Power_AverageCurrent(void);
+
+/**
+ * @brief Latest current reading
+ * 
+ * @return float Latest current reading (A)
+ */
+float Power_LatestCurrent(void);
 
 #ifdef __cplusplus
 }

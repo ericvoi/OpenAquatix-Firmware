@@ -216,7 +216,7 @@ bool decodeJanusCargoBits(Message_t* msg, BitMessage_t* bit_msg, const DspConfig
   }
   uint16_t num_bits = num_bytes * 8;
   // Malformed packet
-  if (num_bits <= cargo_validation_bits) {
+  if (num_bits >= cargo_validation_bits) {
     bit_msg->data_len_bits = num_bits - cargo_validation_bits;
   }
   else {

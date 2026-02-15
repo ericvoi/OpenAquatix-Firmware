@@ -186,7 +186,7 @@ bool INA_StartRead(void)
 
 void INA_RxComplete(void)
 {
-  if (ina_state != INA_IDLE) INA_StartRead();
+  if (ina_state != INA_IDLE) readIna();
 }
 
 void INA_TxComplete(void)

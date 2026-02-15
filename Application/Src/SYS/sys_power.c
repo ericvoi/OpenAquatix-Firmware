@@ -144,6 +144,12 @@ float Power_RecentAveragePower(uint8_t samples)
   return (count > 0) ? (sum / count) : 0.0f; 
 }
 
+float Power_LatestPower(void)
+{
+  uint16_t index = ((uint16_t) (buffer_head - 1)) % POWER_BUFFER_SIZE;
+  return power_buffer[index].power;
+}
+
 float Power_MinVoltage(void)
 {
   return min_voltage;
@@ -159,6 +165,12 @@ float Power_AverageVoltage(void)
   return ((float) (acc_sum_voltage / acc_count)) / ((float) VOLTAGE_QUANTIZATION);
 }
 
+float Power_LatestVoltage(void)
+{
+  uint16_t index = ((uint16_t) (buffer_head - 1)) % POWER_BUFFER_SIZE;
+  return power_buffer[index].bus_voltage;
+}
+
 float Power_MinCurrent(void)
 {
   return min_current;
@@ -172,6 +184,12 @@ float Power_MaxCurrent(void)
 float Power_AverageCurrent(void)
 {
   return ((float) (acc_sum_current / acc_count)) / ((float) CURRENT_QUANTIZATION);
+}
+
+float Power_LatestCurrent(void)
+{
+  uint16_t index = ((uint16_t) (buffer_head - 1)) % POWER_BUFFER_SIZE;
+  return power_buffer[index].current_A;
 }
 
 /* Private function definitions ----------------------------------------------*/
