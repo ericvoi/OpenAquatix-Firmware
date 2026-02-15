@@ -63,7 +63,7 @@ void SensorTimer_Tick()
     Temperature_TriggerTjConversion();
   }
   if ((sensor_ticks % TICKS_FOR_INA219) == 0) {
-    INA_Read();
+    INA_StartRead();
   }
 }
 

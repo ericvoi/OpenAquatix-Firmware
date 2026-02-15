@@ -214,8 +214,15 @@ bool decodeJanusCargoBits(Message_t* msg, BitMessage_t* bit_msg, const DspConfig
   if (ErrorDetection_CheckLength(&cargo_validation_bits, cfg->cargo_validation) == false) {
     return false;
   }
-  bit_msg->data_len_bits = num_bytes * 8 - cargo_validation_bits;
-  bit_msg->cargo.raw_len = num_bytes * 8;
+  uint16_t num_bits = num_bytes * 8;
+  // Malformed packet
+  if (num_bits <= cargo_validation_bits) {
+    bit_msg->data_len_bits = num_bits - cargo_validation_bits;
+  }
+  else {
+    bit_msg->data_len_bits = 0;
+  }
+  bit_msg->cargo.raw_len = num_bits;
   bit_msg->cargo.ecc_len = ErrorCorrection_CodedLength(bit_msg->cargo.raw_len, cfg->cargo_ecc_method);
   return true;
 }

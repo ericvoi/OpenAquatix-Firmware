@@ -48,33 +48,33 @@ typedef enum {
 
 // Bus ADC Resolution and Averaging (Bits 10-7): 12 bit, 1 sample is default
 typedef enum {
-  INA_SHUNT_ADC_9BIT =        0x0000, // 9-bit, 1 sample
-  INA_SHUNT_ADC_10BIT =       0x0200, // 10-bit, 1 sample
-  INA_SHUNT_ADC_11BIT =       0x0400, // 11-bit, 1 sample
-  INA_SHUNT_ADC_12BIT =       0x0600, // 12-bit, 1 sample (DEFAULT)
-  INA_SHUNT_ADC_12BIT_2S =    0x0800, // 12-bit, 2 samples when averaging results
-  INA_SHUNT_ADC_12BIT_4S =    0x0A00, // 12-bit, 4 samples when averaging results
-  INA_SHUNT_ADC_12BIT_8S =    0x0C00, // 12-bit, 8 samples when averaging results
-  INA_SHUNT_ADC_12BIT_16S =   0x0E00, // 12-bit, 16 samples when averaging results
-  INA_SHUNT_ADC_12BIT_32S =   0x1000, // 12-bit, 32 samples when averaging results
-  INA_SHUNT_ADC_12BIT_64S =   0x1200, // 12-bit, 64 samples when averaging results
-  INA_SHUNT_ADC_12BIT_128S =  0x1400, // 12-bit, 128 samples when averaging results
-} InaShuntAdc_t;
+  INA_BUS_ADC_9BIT =        0x0000, // 9-bit, 1 sample
+  INA_BUS_ADC_10BIT =       0x0080, // 10-bit, 1 sample
+  INA_BUS_ADC_11BIT =       0x0100, // 11-bit, 1 sample
+  INA_BUS_ADC_12BIT =       0x0180, // 12-bit, 1 sample (DEFAULT)
+  INA_BUS_ADC_12BIT_2S =    0x0480, // 12-bit, 2 samples when averaging results
+  INA_BUS_ADC_12BIT_4S =    0x0500, // 12-bit, 4 samples when averaging results
+  INA_BUS_ADC_12BIT_8S =    0x0580, // 12-bit, 8 samples when averaging results
+  INA_BUS_ADC_12BIT_16S =   0x0600, // 12-bit, 16 samples when averaging results
+  INA_BUS_ADC_12BIT_32S =   0x0680, // 12-bit, 32 samples when averaging results
+  INA_BUS_ADC_12BIT_64S =   0x0700, // 12-bit, 64 samples when averaging results
+  INA_BUS_ADC_12BIT_128S =  0x0780, // 12-bit, 128 samples when averaging results
+} InaBusAdc_t;
 
 // Shunt ADC Resolution and Averaging (Bits 6-3): 12 bit, 1 sample is default
 typedef enum {
-  INA_BUS_ADC_9BIT =        0x0000,
-  INA_BUS_ADC_10BIT =       0x0008,
-  INA_BUS_ADC_11BIT =       0x0010,
-  INA_BUS_ADC_12BIT =       0x0018, // (DEFAULT)
-  INA_BUS_ADC_12BIT_2S =    0x0020, // 12-bit, 2 samples when averaging results
-  INA_BUS_ADC_12BIT_4S =    0x0028, // 12-bit, 4 samples when averaging results
-  INA_BUS_ADC_12BIT_8S =    0x0030, // 12-bit, 8 samples when averaging results
-  INA_BUS_ADC_12BIT_16S =   0x0038, // 12-bit, 16 samples when averaging results
-  INA_BUS_ADC_12BIT_32S =   0x0040, // 12-bit, 32 samples when averaging results
-  INA_BUS_ADC_12BIT_64S =   0x0048, // 12-bit, 64 samples when averaging results
-  INA_BUS_ADC_12BIT_128S =  0x0050, // 12-bit, 128 samples when averaging results
-} InaBusAdc_t;
+  INA_SHUNT_ADC_9BIT =        0x0000,
+  INA_SHUNT_ADC_10BIT =       0x0008,
+  INA_SHUNT_ADC_11BIT =       0x0010,
+  INA_SHUNT_ADC_12BIT =       0x0018, // (DEFAULT)
+  INA_SHUNT_ADC_12BIT_2S =    0x0048, // 12-bit, 2 samples when averaging results
+  INA_SHUNT_ADC_12BIT_4S =    0x0050, // 12-bit, 4 samples when averaging results
+  INA_SHUNT_ADC_12BIT_8S =    0x0058, // 12-bit, 8 samples when averaging results
+  INA_SHUNT_ADC_12BIT_16S =   0x0060, // 12-bit, 16 samples when averaging results
+  INA_SHUNT_ADC_12BIT_32S =   0x0068, // 12-bit, 32 samples when averaging results
+  INA_SHUNT_ADC_12BIT_64S =   0x0070, // 12-bit, 64 samples when averaging results
+  INA_SHUNT_ADC_12BIT_128S =  0x0078, // 12-bit, 128 samples when averaging results
+} InaShuntAdc_t;
 
 
 // Operating modes (Bits 2-0): Shunt and bus voltage continuous is default
@@ -127,13 +127,12 @@ typedef struct {
 static InaState_t ina_state = INA_IDLE;
 static PowerBufferInfo_t power_buffer_info = {NULL, 0, NULL};
 
-// Current and power calibration value, bits [15:1] are used. See equation 1 in INA219 Datasheet
 static float shunt_conversion_factor = (SHUNT_UV_PER_LSB / 1000000.0f) / SHUNT_RESISTOR_VALUE; 
 
-static uint16_t tx_data;
-static uint16_t rx_data;
+static volatile uint16_t tx_data;
+static volatile uint16_t rx_data;
 
-static bool ina_ready = false;
+static volatile bool ina_ready = false;
 
 extern I2C_HandleTypeDef hi2c1; // I2C handle for communication
 
@@ -141,6 +140,8 @@ extern I2C_HandleTypeDef hi2c1; // I2C handle for communication
 
 static bool memWrite(uint16_t address, uint16_t data);
 static bool memRead(uint16_t address);
+
+static bool readIna(void);
 
 static float convertRawShuntVoltage(uint16_t raw_reading);
 static float convertRawBusVoltage(uint16_t raw_reading);
@@ -174,10 +175,47 @@ bool INA_RegisterBuffer(InaPowerValues_t* buf, uint16_t buf_len, volatile uint16
   return true;
 }
 
-bool INA_Read(void)
+bool INA_StartRead(void)
 {
   if ((power_buffer_info.buf_head == NULL) || (power_buffer_info.buf == NULL)) return false;
 
+  if (ina_state != INA_IDLE) return false;
+
+  return readIna();
+}
+
+void INA_RxComplete(void)
+{
+  if (ina_state != INA_IDLE) INA_StartRead();
+}
+
+void INA_TxComplete(void)
+{
+  ina_ready = true;
+}
+
+/* Private function definitions ----------------------------------------------*/
+
+bool memWrite(uint16_t address, uint16_t data)
+{
+  tx_data = __REV16(data);
+  if (HAL_I2C_Mem_Write_IT(&INA_I2C_BUS, INA219_ADDRESS << 1, address, I2C_MEMADD_SIZE_8BIT, (uint8_t*) &tx_data, 2) != HAL_OK) {
+    return false;
+  }
+  osDelay(1); // Small delay to ensure transaction goes through. Flags not used since only one register written to
+  return true;
+}
+
+bool memRead(uint16_t address)
+{
+  if (HAL_I2C_Mem_Read_IT(&INA_I2C_BUS, INA219_ADDRESS << 1, address, I2C_MEMADD_SIZE_8BIT, (uint8_t*) &rx_data, 2) != HAL_OK) {
+    return false;
+  }
+  return true;
+}
+
+bool readIna(void)
+{
   InaPowerValues_t* entry = &power_buffer_info.buf[*power_buffer_info.buf_head];
   switch (ina_state) {
     case INA_IDLE:
@@ -185,11 +223,12 @@ bool INA_Read(void)
       ina_state = INA_READING_SHUNT_VOLTAGE;
       break;
     case INA_READING_SHUNT_VOLTAGE:
-      entry->current_A = convertRawShuntVoltage(rx_data);
+      entry->current_A = convertRawShuntVoltage(__REV16(rx_data));
+      if (memRead(BUS_VOLTAGE_ADDRESS) == false) return false;
       ina_state = INA_READING_BUS_VOLTAGE;
       break;
     case INA_READING_BUS_VOLTAGE:
-      entry->bus_voltage = convertRawBusVoltage(rx_data);
+      entry->bus_voltage = convertRawBusVoltage(__REV16(rx_data));
       entry->power = entry->bus_voltage * entry->current_A;
       entry->timestamp = HAL_GetTick();
       *power_buffer_info.buf_head = (*power_buffer_info.buf_head + 1) % power_buffer_info.buf_len;
@@ -203,36 +242,6 @@ bool INA_Read(void)
   return true;
 }
 
-void INA_RxComplete(void)
-{
-  if (ina_state != INA_IDLE) INA_Read();
-}
-
-void INA_TxComplete(void)
-{
-  ina_ready = true;
-}
-
-/* Private function definitions ----------------------------------------------*/
-
-bool memWrite(uint16_t address, uint16_t data)
-{
-  tx_data = data;
-  if (HAL_I2C_Mem_Write_IT(&INA_I2C_BUS, INA219_ADDRESS << 1, address, I2C_MEMADD_SIZE_16BIT, (uint8_t*) &tx_data, 2) != HAL_OK) {
-    return false;
-  }
-  osDelay(1); // Small delay to ensure transaction goes through. Flags not used since only one register written to
-  return true;
-}
-
-bool memRead(uint16_t address)
-{
-  if (HAL_I2C_Mem_Read_IT(&INA_I2C_BUS, INA219_ADDRESS << 1, address, I2C_MEMADD_SIZE_16BIT, (uint8_t*) &rx_data, 2) != HAL_OK) {
-    return false;
-  }
-  return true;
-}
-
 // Converts to current
 float convertRawShuntVoltage(uint16_t raw_reading)
 {
@@ -241,5 +250,5 @@ float convertRawShuntVoltage(uint16_t raw_reading)
 
 float convertRawBusVoltage(uint16_t raw_reading)
 {
-  return ((float) (raw_reading * BUS_MV_PER_LSB)) * 0.001f;
+  return ((float) ((raw_reading >> 3) * BUS_MV_PER_LSB)) * 0.001f;
 }
