@@ -10,6 +10,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 
+#include "mess_modulate.h"
 #include "dac_waveform.h"
 #include "mess_adc.h"
 #include "cmsis_os.h"
@@ -118,6 +119,8 @@ static const uint16_t num_primes = sizeof(primes) / sizeof(primes[0]);
 
 static bool apply_tukey = DEFAULT_APPLY_TUKEY;
 
+DEFINE_DESC_TABLE(OUTPUT_STRENGTH_METHOD_TABLE, output_strength_method_descriptors)
+
 /* Private function prototypes -----------------------------------------------*/
 
 uint32_t getFhbfskSequenceNumber(uint32_t normalized_bit_index, const DspConfig_t* cfg);
@@ -149,7 +152,7 @@ bool Modulate_StartTransducerOutput(uint16_t num_steps,
   if (ADC_StartFeedback() == false) {
     return false;
   }
-  if (Waveform_StartWaveformOutput(DAC_CHANNEL_TRANSDUCER) == false) {
+  if (Waveform_StartWaveformOutput(DAC_CHANNEL_1) == false) {
     return false;
   }
   osDelay(150);
@@ -161,13 +164,12 @@ bool Modulate_StartFeedbackOutput(uint16_t num_steps,
                                   BitMessage_t* new_bit_msg)
 {
   HAL_TIM_Base_Stop(&htim6);
-  Waveform_StopWaveformOutput();
+  if (Waveform_StopWaveformOutput() == false) return false;
   osDelay(1);
   MessDacResource_RegisterMessageConfiguration(new_cfg, new_bit_msg);
-  Waveform_SetWaveformSequence(num_steps, true);
-  if (Waveform_StartWaveformOutput(DAC_CHANNEL_FEEDBACK) == false) {
-    return false;
-  }
+  if (Waveform_SetWaveformSequence(num_steps, true) == false) return false;
+  if (Waveform_StartWaveformOutput(DAC_CHANNEL_1) == false) return false;
+
   HAL_StatusTypeDef ret = HAL_TIM_Base_Start(&htim6);
   return ret == HAL_OK;
 }
@@ -244,63 +246,64 @@ bool Modulate_RegisterParams()
   float min_f = MIN_OUTPUT_AMPLITUDE;
   float max_f = MAX_OUTPUT_AMPLITUDE;
   if (Param_Register(PARAM_OUTPUT_AMPLITUDE, "output amplitude", PARAM_TYPE_FLOAT,
-                     &output_amplitude, sizeof(float), &min_f, &max_f, NULL) == false) {
+                     &output_amplitude, sizeof(float), &min_f, &max_f, NULL, NULL) == false) {
     return false;
   }
 
   uint32_t min_u32 = MIN_MOD_OUTPUT_METHOD;
   uint32_t max_u32 = MAX_MOD_OUTPUT_METHOD;
-  if (Param_Register(PARAM_MODULATION_OUTPUT_METHOD, "output strength method", PARAM_TYPE_UINT8,
-                     &output_strength_method, sizeof(uint8_t), &min_u32, &max_u32, NULL) == false) {
+  if (Param_Register(PARAM_MODULATION_OUTPUT_METHOD, "output strength method", PARAM_TYPE_ENUM,
+                     &output_strength_method, sizeof(uint8_t), &min_u32, &max_u32, NULL,
+                     output_strength_method_descriptors) == false) {
     return false;
   }
 
   min_f = MIN_MOD_TARGET_POWER;
   max_f = MAX_MOD_TARGET_POWER;
   if (Param_Register(PARAM_MODULATION_TARGET_POWER, "target output power", PARAM_TYPE_FLOAT,
-                     &target_power_w, sizeof(float), &min_f, &max_f, NULL) == false) {
+                     &target_power_w, sizeof(float), &min_f, &max_f, NULL, NULL) == false) {
     return false;
   }
 
   min_f = MIN_R;
   max_f = MAX_R;
   if (Param_Register(PARAM_R, "motional head R [ohm]", PARAM_TYPE_FLOAT,
-                     &motional_head_r_ohm, sizeof(float), &min_f, &max_f, NULL) == false) {
+                     &motional_head_r_ohm, sizeof(float), &min_f, &max_f, NULL, NULL) == false) {
     return false;
   }
 
   min_f = MIN_C0;
   max_f = MAX_C0;
   if (Param_Register(PARAM_C0, "motional head C0 [nF]", PARAM_TYPE_FLOAT,
-                     &motional_head_c0_nf, sizeof(float), &min_f, &max_f, NULL) == false) {
+                     &motional_head_c0_nf, sizeof(float), &min_f, &max_f, NULL, NULL) == false) {
     return false;
   }
 
   min_f = MIN_L0;
   max_f = MAX_L0;
   if (Param_Register(PARAM_L0, "motional head L0 [mH]", PARAM_TYPE_FLOAT,
-                     &motional_head_l0_mh, sizeof(float), &min_f, &max_f, NULL) == false) {
+                     &motional_head_l0_mh, sizeof(float), &min_f, &max_f, NULL, NULL) == false) {
     return false;
   }
 
   min_f = MIN_C1;
   max_f = MAX_C1;
   if (Param_Register(PARAM_C1, "parallel cap c1 [nF]", PARAM_TYPE_FLOAT,
-                     &parallel_c1_nf, sizeof(float), &min_f, &max_f, NULL) == false) {
+                     &parallel_c1_nf, sizeof(float), &min_f, &max_f, NULL, NULL) == false) {
     return false;
   }
 
   min_f = MIN_MAX_TRANSDUCER_V;
   max_f = MAX_MAX_TRANSDUCER_V;
   if (Param_Register(PARAM_MAX_TRANSDUCER_VOLTAGE, "Maximum transducer voltage", PARAM_TYPE_FLOAT,
-                     &max_transducer_voltage, sizeof(float), &min_f, &max_f, NULL) == false) {
+                     &max_transducer_voltage, sizeof(float), &min_f, &max_f, NULL, NULL) == false) {
     return false;
   }
 
   min_u32 = MIN_APPLY_TUKEY;
   max_u32 = MAX_APPLY_TUKEY;
   if (Param_Register(PARAM_APPLY_TUKEY, "Tukey window application", PARAM_TYPE_UINT8,
-                     &apply_tukey, sizeof(bool), &min_u32, &max_u32, NULL) == false) {
+                     &apply_tukey, sizeof(bool), &min_u32, &max_u32, NULL, NULL) == false) {
     return false;
   }
 

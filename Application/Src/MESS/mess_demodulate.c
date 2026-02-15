@@ -59,6 +59,9 @@ static float significant_shift_threshold = DEFAULT_HIST_CMP_THRESH;
 static WindowFunction_t window_function = DEFAULT_WINDOW_FUNCTION;
 float window[WINDOW_FUNCTION_SIZE];
 
+DEFINE_DESC_TABLE(DEMODULATION_DECISION_TABLE, demodulation_decision_descriptors)
+DEFINE_DESC_TABLE(WINDOW_FUNCTION_TABLE, window_function_descriptors)
+
 /* Private function prototypes -----------------------------------------------*/
 
 static void GoertzelInfoCopy(GoertzelInfo_t* goertzel_info, DemodulationInfo_t* data);
@@ -201,36 +204,44 @@ bool Demodulate_RegisterParams()
 {
   uint32_t min_u32 = MIN_DEMOD_DECISION;
   uint32_t max_u32 = MAX_DEMOD_DECISION;
-  if (Param_Register(PARAM_DEMODULATION_DECISION, "the demodulation method", PARAM_TYPE_UINT8,
-                     &decision_method, sizeof(uint8_t), &min_u32, &max_u32, NULL) == false) {
+  if (Param_Register(PARAM_DEMODULATION_DECISION, "the demodulation method", 
+                     PARAM_TYPE_ENUM, &decision_method, sizeof(uint8_t), 
+                     &min_u32, &max_u32, NULL, 
+                     demodulation_decision_descriptors) == false) {
     return false;
   }
 
   min_u32 = MIN_DEMOD_CAL_LOWER_F;
   max_u32 = MAX_DEMOD_CAL_LOWER_F;
-  if (Param_Register(PARAM_DEMOD_CAL_LOWER_FREQ, "demod cal lower frequency", PARAM_TYPE_UINT32,
-                     &lower_calibration_frequency, sizeof(uint32_t), &min_u32, &max_u32, NULL) == false) {
+  if (Param_Register(PARAM_DEMOD_CAL_LOWER_FREQ, "demod cal lower frequency", 
+                     PARAM_TYPE_UINT32, &lower_calibration_frequency, 
+                     sizeof(uint32_t), &min_u32, &max_u32, NULL, NULL) == false) {
     return false;
   }
 
   min_u32 = MIN_DEMOD_CAL_LOWER_F;
   max_u32 = MAX_DEMOD_CAL_LOWER_F;
-  if (Param_Register(PARAM_DEMOD_CAL_UPPER_FREQ, "demod cal upper frequency", PARAM_TYPE_UINT32,
-                     &upper_calibration_frequency, sizeof(uint32_t), &min_u32, &max_u32, NULL) == false) {
+  if (Param_Register(PARAM_DEMOD_CAL_UPPER_FREQ, "demod cal upper frequency", 
+                     PARAM_TYPE_UINT32, &upper_calibration_frequency, 
+                     sizeof(uint32_t), &min_u32, &max_u32, NULL, NULL) == false) {
     return false;
   }
 
   float min_f = MIN_HIST_CMP_THRESH;
   float max_f = MAX_HIST_CMP_THRESH;
-  if (Param_Register(PARAM_HISTORICAL_COMPARISON_THRESHOLD, "significant shift threshold", PARAM_TYPE_FLOAT,
-                     &significant_shift_threshold, sizeof(float), &min_f, &max_f, NULL) == false) {
+  if (Param_Register(PARAM_HISTORICAL_COMPARISON_THRESHOLD, 
+                     "significant shift threshold", PARAM_TYPE_FLOAT,
+                     &significant_shift_threshold, sizeof(float), &min_f, 
+                     &max_f, NULL, NULL) == false) {
     return false;
   }
 
   min_u32 = MIN_WINDOW_FUNCTION;
   max_u32 = MAX_WINDOW_FUNCTION;
-  if (Param_Register(PARAM_WINDOW_FUNCTION, "windowing function", PARAM_TYPE_UINT8,
-                     &window_function, sizeof(uint8_t), &min_u32, &max_u32, updateWindow) == false) {
+  if (Param_Register(PARAM_WINDOW_FUNCTION, "windowing function", 
+                     PARAM_TYPE_ENUM, &window_function, sizeof(uint8_t), 
+                     &min_u32, &max_u32, updateWindow, 
+                     window_function_descriptors) == false) {
     return false;
   }
 

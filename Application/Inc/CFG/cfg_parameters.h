@@ -27,6 +27,13 @@ extern "C" {
 /* Exported types ------------------------------------------------------------*/
 
 typedef enum {
+  PARAM_SET_SUCCESS,
+  PARAM_SET_ERROR_RANGE,
+  PARAM_SET_ERROR_ID,
+  PARAM_SET_ERROR_OTHER
+} ParamSetResult_t;
+
+typedef enum {
   PARAM_BAUD,
   PARAM_OUTPUT_AMPLITUDE,
   PARAM_MSG_START_FCN,
@@ -87,6 +94,8 @@ typedef enum {
   PARAM_ENCRYPTION,
   PARAM_MAC,
   PARAM_APPLY_TUKEY,
+  PARAM_PREAMBLE_ERROR_BEHAVIOR,
+  PARAM_CARGO_ERROR_BEHAVIOR,
   // Add new parameters just above here and nowhere else
   NUM_PARAM
 } ParamIds_t;
@@ -98,7 +107,8 @@ typedef enum {
   PARAM_TYPE_INT16,
   PARAM_TYPE_UINT32,
   PARAM_TYPE_INT32,
-  PARAM_TYPE_FLOAT
+  PARAM_TYPE_FLOAT,
+  PARAM_TYPE_ENUM
 } ParamType_t;
 
 /* Exported constants --------------------------------------------------------*/
@@ -107,7 +117,14 @@ typedef enum {
 
 /* Exported macro ------------------------------------------------------------*/
 
+#define XENUM_ENUM(name, desc) name,
+#define XENUM_DESC(name, desc) desc,
 
+#define DECLARE_ENUM(xtable, num_name, type_name) \
+  typedef enum { xtable(XENUM_ENUM) num_name } type_name;
+
+#define DEFINE_DESC_TABLE(xtable, arr_name) \
+  static char* arr_name[] = { xtable(XENUM_DESC) };
 
 /* Exported functions prototypes ---------------------------------------------*/
 
@@ -153,16 +170,18 @@ bool Param_LoadInit(void);
  * @param value_size Size of the parameter value in bytes
  * @param min Pointer to minimum allowed value (must match parameter type)
  * @param max Pointer to maximum allowed value (must match parameter type)
+ * @param callback Pointer to function called when parameter updated
+ * @param descriptors Array of strings describing enum values
  *
  * @return true if registration successful, false if failed (NULL value_ptr,
  *         already registered parameter, mutex acquisition failure, or invalid type)
  *
  * @note This function only stores references to the provided memory locations and does not allocate memory
- * @warning The value_ptr, min, and max pointers must remain valid for the lifetime of the parameter
+ * @warning The value_ptr pointer must remain valid for the lifetime of the parameter
  */
 bool Param_Register(ParamIds_t id, const char* name, ParamType_t type,
                     void* value_ptr, size_t value_size, void* min, void* max,
-                    void (*callback)(void));
+                    void (*callback)(void), char** descriptors);
 
 /**
  * @brief Retrieves a parameter value by ID
@@ -265,6 +284,18 @@ bool Param_GetInt32(ParamIds_t id, int32_t* value);
  * @see Param_GetValue
  */
 bool Param_GetFloat(ParamIds_t id, float* value);
+
+/**
+ * @brief Retrieves an enums current value
+ *
+ * @param id The parameter identifier
+ * @param value Pointer to store the retrieved uint8_t value
+ *
+ * @return true if parameter was successfully retrieved, false otherwise
+ *
+ * @see Param_GetValue
+ */
+bool Param_GetEnum(ParamIds_t id, uint8_t* value);
 
 /**
  * @brief Retrieves the name of a parameter by its ID
@@ -401,6 +432,21 @@ bool Param_GetInt32Limits (ParamIds_t id, int32_t* min, int32_t* max);
 bool Param_GetFloatLimits (ParamIds_t id, float* min, float* max);
 
 /**
+ * @brief Retrieves the minimum and maximum limits for an enum as uint8_t
+ *
+ * Indirect passthrough to Param_GetLimits interpreting the underlying data as uint8_t.
+ *
+ * @param id The parameter identifier
+ * @param min Pointer to receive the minimum limit value as uint8_t
+ * @param max Pointer to receive the maximum limit value as uint8_t
+ *
+ * @return true if limits were successfully retrieved, false otherwise
+ *
+ * @note Assumes the parameter's internal representation can be safely reinterpreted as uint8_t
+ */
+bool Param_GetEnumLimits (ParamIds_t id, uint8_t* min, uint8_t* max);
+
+/**
  * @brief Sets a parameter value with type checking and range validation
  *
  * This function updates a parameter's value after validating it against the
@@ -410,17 +456,16 @@ bool Param_GetFloatLimits (ParamIds_t id, float* min, float* max);
  * @param id Identifier of the parameter to set
  * @param value Pointer to the new value (type must match the parameter's type)
  *
- * @return true if parameter was successfully set, false if:
- *         - mutex could not be acquired
- *         - parameter was not found
- *         - parameter was not initialized
- *         - value was outside the parameter's limits
+ * @return PARAM_SET_SUCCESS if parameter successfully set
+ *         PARAM_SET_ERROR_RANGE if not within bounds of parameter
+ *         PARAM_SET_ERROR_ID if parameter ID reference does not exist or uninitialized
+ *         PARAM_SET_ERROR_OTHER if could not acquire mutex
  *
  * @note Only updates the parameter if the new value differs from the current value
  * @note Marks the parameter as modified when changed, but does not immediately save to non-volatile storage
  * @warning The caller must ensure the value pointer points to data of the correct type
  */
-bool Param_SetValue(ParamIds_t id, const void* value);
+ParamSetResult_t Param_SetValue(ParamIds_t id, const void* value);
 
 /**
  * @brief Sets an 8-bit unsigned integer parameter
@@ -430,11 +475,14 @@ bool Param_SetValue(ParamIds_t id, const void* value);
  * @param id Identifier of the parameter to set
  * @param value Pointer to the uint8_t value
  *
- * @return true if parameter was successfully set, false otherwise
+ * @return PARAM_SET_SUCCESS if parameter successfully set
+ *         PARAM_SET_ERROR_RANGE if not within bounds of parameter
+ *         PARAM_SET_ERROR_ID if parameter ID reference does not exist or uninitialized
+ *         PARAM_SET_ERROR_OTHER if could not acquire mutex
  *
  * @see Param_SetValue() for details on validation and error conditions
  */
-bool Param_SetUint8(ParamIds_t id, uint8_t* value);
+ParamSetResult_t Param_SetUint8(ParamIds_t id, uint8_t* value);
 
 /**
  * @brief Sets an 8-bit signed integer parameter
@@ -444,11 +492,14 @@ bool Param_SetUint8(ParamIds_t id, uint8_t* value);
  * @param id Identifier of the parameter to set
  * @param value Pointer to the int8_t value
  *
- * @return true if parameter was successfully set, false otherwise
+ * @return PARAM_SET_SUCCESS if parameter successfully set
+ *         PARAM_SET_ERROR_RANGE if not within bounds of parameter
+ *         PARAM_SET_ERROR_ID if parameter ID reference does not exist or uninitialized
+ *         PARAM_SET_ERROR_OTHER if could not acquire mutex
  *
  * @see Param_SetValue() for details on validation and error conditions
  */
-bool Param_SetInt8(ParamIds_t id, int8_t* value);
+ParamSetResult_t Param_SetInt8(ParamIds_t id, int8_t* value);
 
 /**
  * @brief Sets a 16-bit unsigned integer parameter
@@ -458,11 +509,14 @@ bool Param_SetInt8(ParamIds_t id, int8_t* value);
  * @param id Identifier of the parameter to set
  * @param value Pointer to the uint16_t value
  *
- * @return true if parameter was successfully set, false otherwise
+ * @return PARAM_SET_SUCCESS if parameter successfully set
+ *         PARAM_SET_ERROR_RANGE if not within bounds of parameter
+ *         PARAM_SET_ERROR_ID if parameter ID reference does not exist or uninitialized
+ *         PARAM_SET_ERROR_OTHER if could not acquire mutex
  *
  * @see Param_SetValue() for details on validation and error conditions
  */
-bool Param_SetUint16(ParamIds_t id, uint16_t* value);
+ParamSetResult_t Param_SetUint16(ParamIds_t id, uint16_t* value);
 
 /**
  * @brief Sets a 16-bit signed integer parameter
@@ -472,11 +526,14 @@ bool Param_SetUint16(ParamIds_t id, uint16_t* value);
  * @param id Identifier of the parameter to set
  * @param value Pointer to the int16_t value
  *
- * @return true if parameter was successfully set, false otherwise
+ * @return PARAM_SET_SUCCESS if parameter successfully set
+ *         PARAM_SET_ERROR_RANGE if not within bounds of parameter
+ *         PARAM_SET_ERROR_ID if parameter ID reference does not exist or uninitialized
+ *         PARAM_SET_ERROR_OTHER if could not acquire mutex
  *
  * @see Param_SetValue() for details on validation and error conditions
  */
-bool Param_SetInt16(ParamIds_t id, int16_t* value);
+ParamSetResult_t Param_SetInt16(ParamIds_t id, int16_t* value);
 
 /**
  * @brief Sets a 32-bit unsigned integer parameter
@@ -486,11 +543,14 @@ bool Param_SetInt16(ParamIds_t id, int16_t* value);
  * @param id Identifier of the parameter to set
  * @param value Pointer to the uint32_t value
  *
- * @return true if parameter was successfully set, false otherwise
+ * @return PARAM_SET_SUCCESS if parameter successfully set
+ *         PARAM_SET_ERROR_RANGE if not within bounds of parameter
+ *         PARAM_SET_ERROR_ID if parameter ID reference does not exist or uninitialized
+ *         PARAM_SET_ERROR_OTHER if could not acquire mutex
  *
  * @see Param_SetValue() for details on validation and error conditions
  */
-bool Param_SetUint32(ParamIds_t id, uint32_t* value);
+ParamSetResult_t Param_SetUint32(ParamIds_t id, uint32_t* value);
 
 /**
  * @brief Sets a 32-bit signed integer parameter
@@ -500,14 +560,34 @@ bool Param_SetUint32(ParamIds_t id, uint32_t* value);
  * @param id Identifier of the parameter to set
  * @param value Pointer to the int32_t value
  *
- * @return true if parameter was successfully set, false otherwise
+ * @return PARAM_SET_SUCCESS if parameter successfully set
+ *         PARAM_SET_ERROR_RANGE if not within bounds of parameter
+ *         PARAM_SET_ERROR_ID if parameter ID reference does not exist or uninitialized
+ *         PARAM_SET_ERROR_OTHER if could not acquire mutex
  *
  * @see Param_SetValue() for details on validation and error conditions
  */
-bool Param_SetInt32(ParamIds_t id, int32_t* value);
+ParamSetResult_t Param_SetInt32(ParamIds_t id, int32_t* value);
 
 /**
  * @brief Sets a floating point parameter
+ *
+ * Type-specific wrapper for Param_SetValue().
+ *
+ * @param id Identifier of the parameter to set
+ * @param value Pointer to the float value
+ *
+ * @return PARAM_SET_SUCCESS if parameter successfully set
+ *         PARAM_SET_ERROR_RANGE if not within bounds of parameter
+ *         PARAM_SET_ERROR_ID if parameter ID reference does not exist or uninitialized
+ *         PARAM_SET_ERROR_OTHER if could not acquire mutex
+ *
+ * @see Param_SetValue() for details on validation and error conditions
+ */
+ParamSetResult_t Param_SetFloat(ParamIds_t id, float* value);
+
+/**
+ * @brief Sets an enum parameter
  *
  * Type-specific wrapper for Param_SetValue().
  *
@@ -518,7 +598,8 @@ bool Param_SetInt32(ParamIds_t id, int32_t* value);
  *
  * @see Param_SetValue() for details on validation and error conditions
  */
-bool Param_SetFloat(ParamIds_t id, float* value);
+bool Param_SetEnum(ParamIds_t id, uint8_t* value);
+
 
 /**
  * @brief Returns the parameter type for a parameter
@@ -532,6 +613,14 @@ bool Param_SetFloat(ParamIds_t id, float* value);
  * @note The parameter must be set
  */
 bool Param_GetParamType(ParamIds_t id, ParamType_t* param_type);
+
+/**
+ * @brief Returns array of strings corresponding to an enum
+ * 
+ * @param id identifier for the parameter
+ * @return enum descriptors, or NULL if not set
+ */
+char** Param_GetDescriptors(ParamIds_t id);
 
 /**
  * @brief Saves parameters to flash (non-volatile) memory

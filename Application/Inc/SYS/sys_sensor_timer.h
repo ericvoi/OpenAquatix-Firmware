@@ -35,6 +35,8 @@ extern "C" {
 #define SENSOR_TIMER_TICK_RATE_HZ       1000
 // Trigger a temeprature sensor reading every 200ms
 #define TEMPERATURE_SENSOR_PERIOD_MS    200
+// Power reading every 1ms
+#define INA_PERIOD_MS                   1
 
 extern TIM_HandleTypeDef SENSOR_TIMER_SOURCE;
 

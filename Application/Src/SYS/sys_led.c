@@ -19,6 +19,7 @@
 #include "cfg_parameters.h"
 
 #include "ws2812b-driver.h"
+#include "power_leds.h"
 #include "cmsis_os.h"
 #include <stdbool.h>
 
@@ -62,6 +63,8 @@ static uint8_t manual_g;
 static uint8_t manual_b;
 static uint32_t manual_override_start_time;
 
+static const uint8_t power_led_state = 0x0F;
+
 /* Private function prototypes -----------------------------------------------*/
 
 
@@ -70,6 +73,8 @@ static uint32_t manual_override_start_time;
 
 bool LED_Update()
 {
+  PWRLED_Update(power_led_state); // TODO: change to be updatable
+
   uint8_t brightness = led_enable ? led_brightness : 0;
   if (manual_override == true) {
     uint32_t current_ticks = osKernelGetTickCount();
@@ -132,14 +137,14 @@ bool LED_RegisterParams()
   uint32_t min = MIN_LED_BRIGHTNESS;
   uint32_t max = MAX_LED_BRIGHTNESS;
   if (Param_Register(PARAM_LED_BRIGHTNESS, "RGB LED brightness", PARAM_TYPE_UINT8,
-                     &led_brightness, sizeof(uint8_t), &min, &max, NULL) == false) {
+                     &led_brightness, sizeof(uint8_t), &min, &max, NULL, NULL) == false) {
     return false;
   }
 
   min = MIN_LED_STATE;
   max = MAX_LED_STATE;
   if (Param_Register(PARAM_LED_ENABLE, "the onboard RGB LED", PARAM_TYPE_UINT8,
-                     &led_enable, sizeof(bool), &min, &max, NULL) == false) {
+                     &led_enable, sizeof(bool), &min, &max, NULL, NULL) == false) {
     return false;
   }
 

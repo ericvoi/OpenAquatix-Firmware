@@ -106,13 +106,10 @@ void COMMLoops_LoopFloat(FunctionContext_t* context, ParamIds_t param_id);
  *
  * @param context Communication context containing state machine and I/O buffers
  * @param param_id Identifier of the parameter to modify
- * @param descriptors Array of string descriptions for each enumeration value
- * @param num_descriptors Number of descriptions in the array
  *
  * @note Must be called repeatedly until state becomes PARAM_STATE_COMPLETE
- * @warning The num_descriptors must equal max+1 (parameter range size)
  */
-void COMMLoops_LoopEnum(FunctionContext_t* context, ParamIds_t param_id, char** descriptors, uint16_t num_descriptors);
+void COMMLoops_LoopEnum(FunctionContext_t* context, ParamIds_t param_id);
 
 /**
  * @brief Processes a boolean parameter toggle through an interactive state machine

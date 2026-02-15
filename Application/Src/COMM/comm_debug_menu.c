@@ -20,6 +20,7 @@
 #include "sys_temperature.h"
 #include "sys_led.h"
 #include "sys_main.h"
+#include "sys_power.h"
 
 #include "check_inputs.h"
 
@@ -51,45 +52,45 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-void getGpioStatus(void* argument);
-void setLedColourHandler(void* argument);
-void printWaveformHandler(void* argument);
-void dumpAdcData(void* argument);
-void noiseSpectralAnalysis(void* argument);
-void printCurrentTemp(void* argument);
-void printCurrentErrors(void* argument);
-void printCurrentPowerConsumption(void* argument);
-void printBackgroundNoise(void* argument);
-void enterDfuMode(void* argument);
-void resetSavedValues(void* argument);
-void deepSleep(void* argument);
+void getGpioStatus(FunctionContext_t* context);
+void setLedColourHandler(FunctionContext_t* context);
+void printWaveformHandler(FunctionContext_t* context);
+void dumpAdcData(FunctionContext_t* context);
+void noiseSpectralAnalysis(FunctionContext_t* context);
+void printCurrentTemp(FunctionContext_t* context);
+void printCurrentErrors(FunctionContext_t* context);
+void printCurrentPowerConsumption(FunctionContext_t* context);
+void printBackgroundNoise(FunctionContext_t* context);
+void enterDfuMode(FunctionContext_t* context);
+void resetSavedValues(FunctionContext_t* context);
+void deepSleep(FunctionContext_t* context);
 
 /* Private variables ---------------------------------------------------------*/
 
 extern osEventFlagsId_t sleep_events;
 
-static MenuID_t debugMenuChildren[] = {MENU_ID_DBG_GPIO, MENU_ID_DBG_SETLED,
+static MenuID_t debug_menu_children[] = {MENU_ID_DBG_GPIO, MENU_ID_DBG_SETLED,
                                        MENU_ID_DBG_PRINT, MENU_ID_DBG_BGDUMP,
                                        MENU_ID_DBG_BGFREQ, MENU_ID_DBG_TEMP, 
                                        MENU_ID_DBG_ERR, MENU_ID_DBG_PWR, 
                                        MENU_ID_DBG_NOISE, MENU_ID_DBG_DFU, 
                                        MENU_ID_DBG_RESETCONFIG, MENU_ID_DBG_DEEPSLEEP};
-static const MenuNode_t debugMenu = {
+static const MenuNode_t debug_menu = {
   .id = MENU_ID_DBG,
   .description = "Debug Menu",
   .handler = NULL,
   .parent_id = MENU_ID_MAIN,
-  .children_ids = debugMenuChildren,
-  .num_children = sizeof(debugMenuChildren) / sizeof(debugMenuChildren[0]),
+  .children_ids = debug_menu_children,
+  .num_children = sizeof(debug_menu_children) / sizeof(debug_menu_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
 
-static ParamContext_t debugMenuGPIOParam = {
+static ParamContext_t debug_menu_gpio_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_DBG_GPIO
 };
-static const MenuNode_t debugMenuGPIO = {
+static const MenuNode_t debug_menu_gpio = {
   .id = MENU_ID_DBG_GPIO,
   .description = "Get current state of all GPIO inputs and outputs",
   .handler = getGpioStatus,
@@ -97,14 +98,14 @@ static const MenuNode_t debugMenuGPIO = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &debugMenuGPIOParam
+  .parameters = &debug_menu_gpio_param
 };
 
-static ParamContext_t debugMenuSetLedParam = {
+static ParamContext_t debug_menu_set_led_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_DBG_SETLED
 };
-static const MenuNode_t debugMenuSetLed = {
+static const MenuNode_t debug_menu_set_led = {
   .id = MENU_ID_DBG_SETLED,
   .description = "Set colour of the LED",
   .handler = setLedColourHandler,
@@ -112,14 +113,14 @@ static const MenuNode_t debugMenuSetLed = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &debugMenuSetLedParam
+  .parameters = &debug_menu_set_led_param
 };
 
-static ParamContext_t debugMenuPrintParam = {
+static ParamContext_t debug_menu_print_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_DBG_PRINT
 };
-static const MenuNode_t debugMenuPrint = {
+static const MenuNode_t debug_menu_print = {
   .id = MENU_ID_DBG_PRINT,
   .description = "Print out next received waveform",
   .handler = printWaveformHandler,
@@ -127,44 +128,44 @@ static const MenuNode_t debugMenuPrint = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &debugMenuPrintParam
+  .parameters = &debug_menu_print_param
 };
 
-static ParamContext_t debugMenuNoiseParam = {
+static ParamContext_t debug_menu_noise_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_DBG_BGDUMP
 };
-static const MenuNode_t debugMenuNoise = {
+static const MenuNode_t debug_menu_noise = {
   .id = MENU_ID_DBG_BGDUMP,
-  .description = "1000 sample ADC dump",
+  .description = "Get 1000 ADC samples",
   .handler = dumpAdcData,
   .parent_id = MENU_ID_DBG,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &debugMenuNoiseParam
+  .parameters = &debug_menu_noise_param
 };
 
-static ParamContext_t debugMenuNoiseFParam = {
+static ParamContext_t debug_menu_noise_f_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_DBG_BGFREQ
 };
-static const MenuNode_t debugMenuNoiseF = {
+static const MenuNode_t debug_menu_noise_f = {
   .id = MENU_ID_DBG_BGFREQ,
-  .description = "Frequency content of background noise",
+  .description = "Get frequency content of background noise (FFT)",
   .handler = noiseSpectralAnalysis,
   .parent_id = MENU_ID_DBG,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &debugMenuNoiseFParam
+  .parameters = &debug_menu_noise_f_param
 };
 
-static ParamContext_t debugMenuTempParam = {
+static ParamContext_t debug_menu_temp_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_DBG_TEMP
 };
-static const MenuNode_t debugMenuTemp = {
+static const MenuNode_t debug_menu_temp = {
   .id = MENU_ID_DBG_TEMP,
   .description = "Get current junction temperature",
   .handler = printCurrentTemp,
@@ -172,14 +173,14 @@ static const MenuNode_t debugMenuTemp = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &debugMenuTempParam
+  .parameters = &debug_menu_temp_param
 };
 
-static ParamContext_t debugMenuErrParam = {
+static ParamContext_t debug_menu_err_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_DBG_ERR
 };
-static const MenuNode_t debugMenuErr = {
+static const MenuNode_t debug_menu_err = {
   .id = MENU_ID_DBG_ERR,
   .description = "Get current errors",
   .handler = printCurrentErrors,
@@ -187,14 +188,14 @@ static const MenuNode_t debugMenuErr = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &debugMenuErrParam
+  .parameters = &debug_menu_err_param
 };
 
-static ParamContext_t debugMenuPwrParam = {
+static ParamContext_t debug_menu_pwr_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_DBG_PWR
 };
-static const MenuNode_t debugMenuPwr = {
+static const MenuNode_t debug_menu_pwr = {
   .id = MENU_ID_DBG_PWR,
   .description = "Get current power consumption",
   .handler = printCurrentPowerConsumption,
@@ -202,29 +203,29 @@ static const MenuNode_t debugMenuPwr = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &debugMenuPwrParam
+  .parameters = &debug_menu_pwr_param
 };
 
-static ParamContext_t debugMenuNoiseLevelParam = {
+static ParamContext_t debug_menu_noise_level_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_DBG_NOISE
 };
-static const MenuNode_t debugMenuNoiseLevel = {
+static const MenuNode_t debug_menu_noise_level = {
   .id = MENU_ID_DBG_NOISE,
-  .description = "Scaleless background noise level",
+  .description = "Get scaleless background noise level",
   .handler = printBackgroundNoise,
   .parent_id = MENU_ID_DBG,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &debugMenuNoiseLevelParam
+  .parameters = &debug_menu_noise_level_param
 };
 
-static ParamContext_t debugMenuDfuParam = {
+static ParamContext_t debug_menu_dfu_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_DBG_DFU
 };
-static const MenuNode_t debugMenuDfu = {
+static const MenuNode_t debug_menu_dfu = {
   .id = MENU_ID_DBG_DFU,
   .description = "Enter DFU mode to flash new firmware over USB",
   .handler = enterDfuMode,
@@ -232,14 +233,14 @@ static const MenuNode_t debugMenuDfu = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &debugMenuDfuParam
+  .parameters = &debug_menu_dfu_param
 };
 
-static ParamContext_t debugMenuResetParam = {
+static ParamContext_t debug_menu_reset_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_DBG_RESETCONFIG
 };
-static const MenuNode_t debugMenuReset = {
+static const MenuNode_t debug_menu_reset = {
   .id = MENU_ID_DBG_RESETCONFIG,
   .description = "Reset saved configuration",
   .handler = resetSavedValues,
@@ -247,14 +248,14 @@ static const MenuNode_t debugMenuReset = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &debugMenuResetParam
+  .parameters = &debug_menu_reset_param
 };
 
-static ParamContext_t debugMenuDeepSleepParam = {
+static ParamContext_t debug_menu_deep_sleep_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_DBG_DEEPSLEEP
 };
-static const MenuNode_t debugMenuDeepSleep = {
+static const MenuNode_t debug_menu_deep_sleep = {
   .id = MENU_ID_DBG_DEEPSLEEP,
   .description = "Enter deep sleep mode",
   .handler = deepSleep,
@@ -262,7 +263,7 @@ static const MenuNode_t debugMenuDeepSleep = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &debugMenuDeepSleepParam
+  .parameters = &debug_menu_deep_sleep_param
 };
 
 
@@ -270,30 +271,26 @@ static const MenuNode_t debugMenuDeepSleep = {
 
 bool COMM_RegisterDebugMenu(void)
 {
-  bool ret = registerMenu(&debugMenu) && registerMenu(&debugMenuGPIO) &&
-             registerMenu(&debugMenuSetLed) && registerMenu(&debugMenuPrint) &&
-             registerMenu(&debugMenuNoise) && registerMenu(&debugMenuTemp) &&
-             registerMenu(&debugMenuErr) && registerMenu(&debugMenuPwr) &&
-             registerMenu(&debugMenuDfu) && registerMenu(&debugMenuReset) &&
-             registerMenu(&debugMenuNoiseF) && registerMenu(&debugMenuNoiseLevel) &&
-             registerMenu(&debugMenuDeepSleep);
+  bool ret = MenuSystem_RegisterMenu(&debug_menu) && MenuSystem_RegisterMenu(&debug_menu_gpio) &&
+             MenuSystem_RegisterMenu(&debug_menu_set_led) && MenuSystem_RegisterMenu(&debug_menu_print) &&
+             MenuSystem_RegisterMenu(&debug_menu_noise) && MenuSystem_RegisterMenu(&debug_menu_temp) &&
+             MenuSystem_RegisterMenu(&debug_menu_err) && MenuSystem_RegisterMenu(&debug_menu_pwr) &&
+             MenuSystem_RegisterMenu(&debug_menu_dfu) && MenuSystem_RegisterMenu(&debug_menu_reset) &&
+             MenuSystem_RegisterMenu(&debug_menu_noise_f) && MenuSystem_RegisterMenu(&debug_menu_noise_level) &&
+             MenuSystem_RegisterMenu(&debug_menu_deep_sleep);
   return ret;
 }
 
 /* Private function definitions ----------------------------------------------*/
 
 // TODO: implement
-void getGpioStatus(void* argument)
+void getGpioStatus(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
-void setLedColourHandler(void* argument)
+void setLedColourHandler(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   static uint8_t red = 0;
   static uint8_t green = 0;
   static uint8_t blue = 0;
@@ -357,10 +354,8 @@ void setLedColourHandler(void* argument)
   } while (old_state > context->state->state); // Continues looping if the state has regressed
 }
 
-void printWaveformHandler(void* argument)
+void printWaveformHandler(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   if (print_event_handle == NULL) {
     return;
   }
@@ -373,10 +368,8 @@ void printWaveformHandler(void* argument)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void dumpAdcData(void* argument)
+void dumpAdcData(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   if (print_event_handle == NULL) {
     return;
   }
@@ -396,10 +389,8 @@ void dumpAdcData(void* argument)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void noiseSpectralAnalysis(void* argument)
+void noiseSpectralAnalysis(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   if (print_event_handle == NULL) {
     return;
   }
@@ -418,11 +409,9 @@ void noiseSpectralAnalysis(void* argument)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void printCurrentTemp(void* argument)
+void printCurrentTemp(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
-  float temp = Temperature_GetCurrent();
+  float temp = Temperature_GetCurrentTj();
 
   sprintf((char*) context->output_buffer, "\r\nCurrent temperature: %.2f C\r\n",
           temp);
@@ -431,25 +420,24 @@ void printCurrentTemp(void* argument)
 }
 
 // TODO: implement
-void printCurrentErrors(void* argument)
+void printCurrentErrors(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
   COMMLoops_NotImplemented(context);
 }
 
 // TODO: implement
-void printCurrentPowerConsumption(void* argument)
+void printCurrentPowerConsumption(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  
-  COMMLoops_NotImplemented(context);
+  float power = Power_LatestPower();
+
+  sprintf((char*) context->output_buffer, "\r\nLatest power reading: %.3f W\r\n",
+          power);
+  COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
+  context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void printBackgroundNoise(void* argument)
+void printBackgroundNoise(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   if (BackgroundNoise_Ready() == false) {
     COMM_TransmitData("\r\nBackground noise not available yet\r\n", CALC_LEN, context->comm_interface);
     context->state->state = PARAM_STATE_COMPLETE;
@@ -463,10 +451,8 @@ void printBackgroundNoise(void* argument)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void resetSavedValues(void* argument)
+void resetSavedValues(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   ParamState_t old_state = context->state->state;
 
   do {
@@ -506,10 +492,9 @@ void resetSavedValues(void* argument)
 }
 
 // TODO: add confirmation similar to above
-void enterDfuMode(void* argument)
+void enterDfuMode(FunctionContext_t* context)
 {
-  (void)(argument);
-
+  (void)(context);
   // write magic number to magic address. See startup code for corresponding check
   *((uint32_t*) 0x38000000) = 0xABCDABCD;
 
@@ -519,10 +504,8 @@ void enterDfuMode(void* argument)
 }
 
 // TODO: add confirmation
-void deepSleep(void* argument)
+void deepSleep(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   osEventFlagsSet(sleep_events, SLEEP_REQUEST_DEEP);
 
   context->state->state = PARAM_STATE_COMPLETE;

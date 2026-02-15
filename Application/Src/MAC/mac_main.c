@@ -49,9 +49,11 @@ typedef struct {
 
 /* Private variables ---------------------------------------------------------*/
 
-osMessageQueueId_t regularTxQueue = NULL;
-osMessageQueueId_t emergencyTxQueue = NULL;
-osMessageQueueId_t macRxQueue = NULL;
+DEFINE_DESC_TABLE(MAC_PROTOCOL_TABLE, mac_protocol_descriptions)
+
+osMessageQueueId_t regular_tx_queue = NULL;
+osMessageQueueId_t emergency_tx_queue = NULL;
+osMessageQueueId_t mac_rx_queue = NULL;
 
 static MacTaskContext_t task_context = {
   .state = MAC_STATE_IDLE,
@@ -115,7 +117,7 @@ void MAC_StartTask(void* argument)
       }
     }
 
-    if (osMessageQueueGetCount(regularTxQueue) != 0) {
+    if (osMessageQueueGetCount(regular_tx_queue) != 0) {
       if (task_context.interface->handleTxRequest != NULL) {
         task_context.state = task_context.interface->handleTxRequest(&task_context.protocol_data.csma_ca_beb_data);
         switch (task_context.state) {
@@ -128,7 +130,7 @@ void MAC_StartTask(void* argument)
           case MAC_STATE_SUCCESS: {
             // add to mess queue
             Message_t message;
-            if (osMessageQueueGet(regularTxQueue, &message, NULL, 0) != osOK) {
+            if (osMessageQueueGet(regular_tx_queue, &message, NULL, 0) != osOK) {
               Error_Routine(ERROR_MAC_PROCESSING);
               break;
             }
@@ -143,18 +145,18 @@ void MAC_StartTask(void* argument)
       }
     }
 
-    if (osMessageQueueGetCount(emergencyTxQueue) != 0) {
+    if (osMessageQueueGetCount(emergency_tx_queue) != 0) {
       if (task_context.interface->handleEmergencyTx != NULL) {
         Message_t message_to_send;
-        osMessageQueueGet(emergencyTxQueue, &message_to_send, NULL, 0);
+        osMessageQueueGet(emergency_tx_queue, &message_to_send, NULL, 0);
         task_context.state = task_context.interface->handleEmergencyTx(&task_context.protocol_data.csma_ca_beb_data, &message_to_send);
       }
     }
 
-    if (osMessageQueueGetCount(macRxQueue) != 0) {
+    if (osMessageQueueGetCount(mac_rx_queue) != 0) {
       // TODO: add to comm rx queue
       Message_t received_message;
-      osMessageQueueGet(macRxQueue, &received_message, NULL, 0);
+      osMessageQueueGet(mac_rx_queue, &received_message, NULL, 0);
       if (task_context.interface->processRxMessage != NULL) {
         task_context.state = task_context.interface->processRxMessage(&task_context.protocol_data.csma_ca_beb_data, &received_message);
       }
@@ -176,9 +178,9 @@ bool registerMacParams()
 {
   uint32_t min_u32 = MIN_MAC;
   uint32_t max_u32 = MAX_MAC;
-  if (Param_Register(PARAM_MAC, "MAC method", PARAM_TYPE_UINT8, 
+  if (Param_Register(PARAM_MAC, "MAC method", PARAM_TYPE_ENUM, 
                      &task_context.requested_protocol, sizeof(MacProtocol_t),
-                     &min_u32, &max_u32, NULL) == false) {
+                     &min_u32, &max_u32, NULL, mac_protocol_descriptions) == false) {
     return false;
   }
   return true;
@@ -186,13 +188,13 @@ bool registerMacParams()
 
 bool createTxQueues()
 {
-  if (regularTxQueue != NULL || emergencyTxQueue != NULL) {
+  if (regular_tx_queue != NULL || emergency_tx_queue != NULL) {
     return false;
   }
-  regularTxQueue = osMessageQueueNew(REGULAR_TX_QUEUE_SIZE, sizeof(Message_t), NULL);
-  emergencyTxQueue = osMessageQueueNew(EMERGENCY_TX_QUEUE_SIZE, sizeof(Message_t), NULL);
+  regular_tx_queue = osMessageQueueNew(REGULAR_TX_QUEUE_SIZE, sizeof(Message_t), NULL);
+  emergency_tx_queue = osMessageQueueNew(EMERGENCY_TX_QUEUE_SIZE, sizeof(Message_t), NULL);
 
-  if (regularTxQueue == NULL || emergencyTxQueue == NULL) {
+  if (regular_tx_queue == NULL || emergency_tx_queue == NULL) {
     return false;
   }
   return true;
@@ -200,12 +202,12 @@ bool createTxQueues()
 
 bool createRxQueues()
 {
-  if (macRxQueue != NULL) {
+  if (mac_rx_queue != NULL) {
     return false;
   }
-  macRxQueue = osMessageQueueNew(RX_QUEUE_SIZE, sizeof(Message_t), NULL);
+  mac_rx_queue = osMessageQueueNew(RX_QUEUE_SIZE, sizeof(Message_t), NULL);
 
-  return macRxQueue != NULL;
+  return mac_rx_queue != NULL;
 }
 
 bool switchMacProtocol()

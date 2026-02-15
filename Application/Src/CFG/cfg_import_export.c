@@ -261,7 +261,7 @@ bool ImportExport_ImportConfiguration(FunctionContext_t* context)
             return false;
         }
 
-        if (set_result == false) {
+        if (set_result != PARAM_SET_SUCCESS) {
           sprintf((char*) context->output_buffer, "\r\nFailed to set parameter with ID %u\r\n", id);
           COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
           context->state->state = PARAM_STATE_COMPLETE;

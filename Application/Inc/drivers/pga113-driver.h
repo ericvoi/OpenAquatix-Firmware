@@ -17,6 +17,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 
+#include "cfg_parameters.h"
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -26,18 +27,17 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
-typedef enum {
-  PGA_GAIN_1,
-  PGA_GAIN_2,
-  PGA_GAIN_5,
-  PGA_GAIN_10,
-  PGA_GAIN_20,
-  PGA_GAIN_50,
-  PGA_GAIN_100,
-  PGA_GAIN_200,
+#define PGA_GAIN_TABLE(X) \
+  X(PGA_GAIN_1, "1") \
+  X(PGA_GAIN_2, "2") \
+  X(PGA_GAIN_5, "5") \
+  X(PGA_GAIN_10, "10") \
+  X(PGA_GAIN_20, "20") \
+  X(PGA_GAIN_50, "50") \
+  X(PGA_GAIN_100, "100") \
+  X(PGA_GAIN_200, "200")
 
-  PGA_NUM_CODES
-} PgaGain_t;
+DECLARE_ENUM(PGA_GAIN_TABLE, PGA_NUM_CODES, PgaGain_t)
 
 /* Exported constants --------------------------------------------------------*/
 

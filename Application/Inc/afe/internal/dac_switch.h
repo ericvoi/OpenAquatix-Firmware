@@ -1,22 +1,22 @@
 /*
- * INA219-driver.h
+ * dac_switch.h
  *
- *  Created on: Jan 31, 2025
+ *  Created on: Dec 30, 2025
  *      Author: ericv
- * 
+ *
  * Copyright (c) 2025 OpenAquatix Contributors
  * SPDX-License-Identifier: MIT
  */
 
-#ifndef __INA219_DRIVER_H_
-#define __INA219_DRIVER_H_
+#ifndef AFE_INTERNAL_DAC_SWITCH_H_
+#define AFE_INTERNAL_DAC_SWITCH_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32h7xx_hal.h"
+
 
 
 /* Private includes ----------------------------------------------------------*/
@@ -25,7 +25,10 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
-
+typedef enum {
+  DAC_DIRECTION_TRANSDUCER,
+  DAC_DIRECTION_FEEDBACK
+} DacDirection_t;
 
 /* Exported constants --------------------------------------------------------*/
 
@@ -37,7 +40,19 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
+/**
+ * @brief Changes the direction of the analog switch. Finished in < 30 ns
+ * 
+ * @param direction Whether DAC channel should point towards transducer or feedback
+ */
+void DACSwitch_Change(DacDirection_t direction);
 
+/**
+ * @brief Current direction of the DAC switch
+ * 
+ * @return DacDirection_t Enum defining whether DAC connected to feedback or power amplifier/transducer
+ */
+DacDirection_t DACSwitch_Current(void);
 
 /* Private defines -----------------------------------------------------------*/
 
@@ -45,4 +60,4 @@ extern "C" {
 }
 #endif
 
-#endif /* __INA219_DRIVER_H_ */
+#endif /* AFE_INTERNAL_DAC_SWITCH_H_ */

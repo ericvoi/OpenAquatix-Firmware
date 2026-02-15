@@ -28,12 +28,11 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
-typedef enum {
-  MOD_OUTPUT_STATIC_DAC,
-  MOD_OUTPUT_STATIC_PWR,
-  // Others as needed...
-  NUM_MOD_OUTPUT_LEVEL_CONTROL
-} OutputStrengthMethod_t;
+#define OUTPUT_STRENGTH_METHOD_TABLE(X) \
+  X(MOD_OUTPUT_STATIC_DAC, "Static DAC output") \
+  X(MOD_OUTPUT_STATIC_PWR, "Static output power")
+
+DECLARE_ENUM(OUTPUT_STRENGTH_METHOD_TABLE, NUM_MOD_OUTPUT_LEVEL_CONTROL, OutputStrengthMethod_t)
 
 /* Exported constants --------------------------------------------------------*/
 
