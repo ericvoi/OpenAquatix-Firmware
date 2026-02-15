@@ -34,15 +34,15 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-void setMessagingProtocol(void* argument);
-void send_011_01_Transducer(void* argument);
-void send_011_01_Feedback(void* argument);
-void toggleTxRxFlag(void* argument);
-void toggleForwardCapability(void* argument);
-void setMessageCoding(void* argument);
-void setMessageEncryption(void* argument);
-void setJanusDestinationId(void* argument);
-void setJanusId(void* argument);
+void setMessagingProtocol(FunctionContext_t* context);
+void send_011_01_Transducer(FunctionContext_t* context);
+void send_011_01_Feedback(FunctionContext_t* context);
+void toggleTxRxFlag(FunctionContext_t* context);
+void toggleForwardCapability(FunctionContext_t* context);
+void setMessageCoding(FunctionContext_t* context);
+void setMessageEncryption(FunctionContext_t* context);
+void setJanusDestinationId(FunctionContext_t* context);
+void setJanusId(FunctionContext_t* context);
 
 static void transmit_011_01(FunctionContext_t* context, bool is_feedback);
 static void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_feedback);
@@ -50,27 +50,27 @@ static bool inJanusMode(FunctionContext_t* context);
 
 /* Private variables ---------------------------------------------------------*/
 
-extern osMessageQueueId_t regularTxQueue;
+extern osMessageQueueId_t regular_tx_queue;
 
-static MenuID_t janusMenuChildren[] = {
+static MenuID_t janus_menu_children[] = {
   MENU_ID_JANUS_PROTOCOL, MENU_ID_JANUS_SEND, MENU_ID_JANUS_PARAM
 };
-static const MenuNode_t janusMenu = {
+static const MenuNode_t janus_menu = {
   .id = MENU_ID_JANUS,
   .description = "JANUS Menu",
   .handler = NULL,
   .parent_id = MENU_ID_MAIN,
-  .children_ids = janusMenuChildren,
-  .num_children = sizeof(janusMenuChildren) / sizeof(janusMenuChildren[0]),
+  .children_ids = janus_menu_children,
+  .num_children = sizeof(janus_menu_children) / sizeof(janus_menu_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
 
-static ParamContext_t messagingProtocolParam = {
+static ParamContext_t messaging_protocol_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_JANUS_PROTOCOL
 };
-static const MenuNode_t messagingProtocol = {
+static const MenuNode_t messaging_protocol = {
   .id = MENU_ID_JANUS_PROTOCOL,
   .description = "Set messaging protocol",
   .handler = setMessagingProtocol,
@@ -78,45 +78,45 @@ static const MenuNode_t messagingProtocol = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &messagingProtocolParam
+  .parameters = &messaging_protocol_param
 };
 
 
-static MenuID_t janusSendMenuChildren[] = {
+static MenuID_t janus_send_menu_children[] = {
   MENU_ID_JANUS_SEND_011_01_OUT, MENU_ID_JANUS_SEND_011_01_FB
 };
-static const MenuNode_t janusSendMenu = {
+static const MenuNode_t janus_send_menu = {
   .id = MENU_ID_JANUS_SEND,
   .description = "Send JANUS message",
   .handler = NULL,
   .parent_id = MENU_ID_JANUS,
-  .children_ids = janusSendMenuChildren,
-  .num_children = sizeof(janusSendMenuChildren) / sizeof(janusSendMenuChildren[0]),
+  .children_ids = janus_send_menu_children,
+  .num_children = sizeof(janus_send_menu_children) / sizeof(janus_send_menu_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
 
-static MenuID_t janusParamMenuChildren[] = {
+static MenuID_t janus_param_menu_children[] = {
   MENU_ID_JANUS_PARAM_TXRX, MENU_ID_JANUS_PARAM_FORWARD, 
   MENU_ID_JANUS_PARAM_CODING, MENU_ID_JANUS_PARAM_ENC,
   MENU_ID_JANUS_PARAM_DEST, MENU_ID_JANUS_PARAM_SENDER
 };
-static const MenuNode_t janusParamMenu = {
+static const MenuNode_t janus_param_menu = {
   .id = MENU_ID_JANUS_PARAM,
-  .description = "Modify JANUS parameters",
+  .description = "JANUS Configuration Menu",
   .handler = NULL,
   .parent_id = MENU_ID_JANUS,
-  .children_ids = janusParamMenuChildren,
-  .num_children = sizeof(janusParamMenuChildren) / sizeof(janusParamMenuChildren[0]),
+  .children_ids = janus_param_menu_children,
+  .num_children = sizeof(janus_param_menu_children) / sizeof(janus_param_menu_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
 
-static ParamContext_t janus_011_01_TransducerParam = {
+static ParamContext_t janus_011_01_transducer_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_JANUS_SEND_011_01_OUT
 };
-static const MenuNode_t janus_011_01_Transducer = {
+static const MenuNode_t janus_011_01_transducer = {
   .id = MENU_ID_JANUS_SEND_011_01_OUT,
   .description = "Send JANUS 011 01 (SMS) through transducer",
   .handler = send_011_01_Transducer,
@@ -124,14 +124,14 @@ static const MenuNode_t janus_011_01_Transducer = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &janus_011_01_TransducerParam
+  .parameters = &janus_011_01_transducer_param
 };
 
-static ParamContext_t janus_011_01_FeedbackParam = {
+static ParamContext_t janus_011_01_feedback_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_JANUS_SEND_011_01_FB
 };
-static const MenuNode_t janus_011_01_Feedback = {
+static const MenuNode_t janus_011_01_feedback = {
   .id = MENU_ID_JANUS_SEND_011_01_FB,
   .description = "Send JANUS 011 01 (SMS) through feedback network",
   .handler = send_011_01_Feedback,
@@ -139,14 +139,14 @@ static const MenuNode_t janus_011_01_Feedback = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &janus_011_01_FeedbackParam
+  .parameters = &janus_011_01_feedback_param
 };
 
-static ParamContext_t janusTxRxParam = {
+static ParamContext_t janus_tx_rx_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_JANUS_PARAM_TXRX
 };
-static const MenuNode_t janusTxRx = {
+static const MenuNode_t janus_tx_rx = {
   .id = MENU_ID_JANUS_PARAM_TXRX,
   .description = "Toggle Tx/Rx capability",
   .handler = toggleTxRxFlag,
@@ -154,14 +154,14 @@ static const MenuNode_t janusTxRx = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &janusTxRxParam
+  .parameters = &janus_tx_rx_param
 };
 
-static ParamContext_t janusForwardParam = {
+static ParamContext_t janus_forward_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_JANUS_PARAM_FORWARD
 };
-static const MenuNode_t janusForward = {
+static const MenuNode_t janus_forward = {
   .id = MENU_ID_JANUS_PARAM_FORWARD,
   .description = "Toggle forwarding capability",
   .handler = toggleForwardCapability,
@@ -169,152 +169,126 @@ static const MenuNode_t janusForward = {
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &janusForwardParam
+  .parameters = &janus_forward_param
 };
 
-static ParamContext_t janusCodingParam = {
+static ParamContext_t janus_coding_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_JANUS_PARAM_CODING
 };
-static const MenuNode_t janusCoding = {
+static const MenuNode_t janus_coding = {
   .id = MENU_ID_JANUS_PARAM_CODING,
-  .description = "Modify data coding",
+  .description = "Set data coding",
   .handler = setMessageCoding,
   .parent_id = MENU_ID_JANUS_PARAM,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &janusCodingParam
+  .parameters = &janus_coding_param
 };
 
-static ParamContext_t janusEncryptionParam = {
+static ParamContext_t janus_encryption_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_JANUS_PARAM_ENC
 };
-static const MenuNode_t janusEncryption = {
+static const MenuNode_t janus_encryption = {
   .id = MENU_ID_JANUS_PARAM_ENC,
-  .description = "Modify data encryption",
+  .description = "Set data encryption",
   .handler = setMessageEncryption,
   .parent_id = MENU_ID_JANUS_PARAM,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &janusEncryptionParam
+  .parameters = &janus_encryption_param
 };
 
-static ParamContext_t janusDestParam = {
+static ParamContext_t janus_dest_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_JANUS_PARAM_DEST
 };
-static const MenuNode_t janusDest = {
+static const MenuNode_t janus_dest = {
   .id = MENU_ID_JANUS_PARAM_DEST,
-  .description = "Destination's JANUS ID",
+  .description = "Set destination JANUS ID",
   .handler = setJanusDestinationId,
   .parent_id = MENU_ID_JANUS_PARAM,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &janusDestParam
+  .parameters = &janus_dest_param
 };
 
-static ParamContext_t janusSenderParam = {
+static ParamContext_t janus_sender_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_JANUS_PARAM_SENDER
 };
-static const MenuNode_t janusSender = {
+static const MenuNode_t janus_sender = {
   .id = MENU_ID_JANUS_PARAM_SENDER,
-  .description = "Modem's JANUS ID",
+  .description = "Set modem JANUS ID",
   .handler = setJanusId,
   .parent_id = MENU_ID_JANUS_PARAM,
   .children_ids = NULL,
   .num_children = 0,
   .access_level = 0,
-  .parameters = &janusSenderParam
+  .parameters = &janus_sender_param
 };
 
 /* Exported function definitions ---------------------------------------------*/
 
 bool COMM_RegisterJanusMenu()
 {
-  bool ret = registerMenu(&janusMenu) && registerMenu(&messagingProtocol) &&
-             registerMenu(&janusParamMenu) && registerMenu(&janusSendMenu) &&
-             registerMenu(&janus_011_01_Feedback) && registerMenu(&janus_011_01_Transducer) &&
-             registerMenu(&janusTxRx) && registerMenu(&janusForward) &&
-             registerMenu(&janusCoding) && registerMenu (&janusEncryption) &&
-             registerMenu(&janusDest) && registerMenu(&janusSender);
+  bool ret = MenuSystem_RegisterMenu(&janus_menu) && MenuSystem_RegisterMenu(&messaging_protocol) &&
+             MenuSystem_RegisterMenu(&janus_param_menu) && MenuSystem_RegisterMenu(&janus_send_menu) &&
+             MenuSystem_RegisterMenu(&janus_011_01_feedback) && MenuSystem_RegisterMenu(&janus_011_01_transducer) &&
+             MenuSystem_RegisterMenu(&janus_tx_rx) && MenuSystem_RegisterMenu(&janus_forward) &&
+             MenuSystem_RegisterMenu(&janus_coding) && MenuSystem_RegisterMenu (&janus_encryption) &&
+             MenuSystem_RegisterMenu(&janus_dest) && MenuSystem_RegisterMenu(&janus_sender);
   return ret;
 }
 
 /* Private function definitions ----------------------------------------------*/
 
-void setMessagingProtocol(void* argument)
+void setMessagingProtocol(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-  char* descriptors[] = {"Custom", "JANUS"};
-
-  COMMLoops_LoopEnum(context, PARAM_PROTOCOL, descriptors, sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_PROTOCOL);
 }
 
-void send_011_01_Transducer(void* argument)
+void send_011_01_Transducer(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   transmit_011_01(context, false);
 }
 
-void send_011_01_Feedback(void* argument)
+void send_011_01_Feedback(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   transmit_011_01(context, true);
 }
 
-void toggleTxRxFlag(void* argument)
+void toggleTxRxFlag(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopToggle(context, PARAM_TX_RX_ABILITY);
 }
 
-void toggleForwardCapability(void* argument)
+void toggleForwardCapability(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopToggle(context, PARAM_FORWARD_CAPABILITY);
 }
 
-void setMessageCoding(void* argument)
+void setMessageCoding(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
-  char* descriptors[] = {"8 bit ASCII", "7 bit ASCII", "6 bit ASCII (AIS)", "UTF-8"};
-
-  COMMLoops_LoopEnum(context, PARAM_CODING, descriptors, sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_CODING);
 }
 
-void setMessageEncryption(void* argument)
+void setMessageEncryption(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
-  char* descriptors[] = {"No encryption",                     "AES-GCM (not yet implemented)", 
-                         "user type 2 (not yet implemented)", "user type 3 (not yet implemented)",
-                         "user type 4 (not yet implemented)", "user type 5 (not yet implemented)",
-                         "user type 6 (not yet implemented)", "user type 7 (not yet implemented)"};
-
-  COMMLoops_LoopEnum(context, PARAM_ENCRYPTION, descriptors, sizeof(descriptors) / sizeof(descriptors[0]));
+  COMMLoops_LoopEnum(context, PARAM_ENCRYPTION);
 }
 
-void setJanusDestinationId(void* argument)
+void setJanusDestinationId(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint8(context, PARAM_JANUS_DESTINATION);
 }
 
-void setJanusId(void* argument)
+void setJanusId(FunctionContext_t* context)
 {
-  FunctionContext_t* context = (FunctionContext_t*) argument;
-
   COMMLoops_LoopUint8(context, PARAM_JANUS_ID);
 }
 
@@ -375,7 +349,7 @@ void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_fe
   if (inJanusMode(context) == false) return;
 
   memset(&msg->preamble, 0, sizeof(PreambleContent_t));
-  if (osMessageQueuePut(regularTxQueue, msg, 0, 0) == true) {
+  if (osMessageQueuePut(regular_tx_queue, msg, 0, 0) == true) {
     sprintf((char*) context->output_buffer, "\r\nSuccessfully added to"
         " %s queue!\r\n\r\n", is_feedback ? "feedback network" : "transducer");
     COMM_TransmitData(context->output_buffer, CALC_LEN, 

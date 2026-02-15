@@ -21,6 +21,7 @@ extern "C" {
 #include "mess_packet.h"
 #include "mess_main.h"
 #include "mess_dsp_config.h"
+#include "cfg_parameters.h"
 
 #include <stdbool.h>
 
@@ -31,11 +32,17 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
-typedef enum {
-  MSG_START_AMPLITUDE,
-  MSG_START_FREQUENCY,
-  NUM_MSG_START_FCN
-} MsgStartFunctions_t;
+#define MESSAGE_START_FUNCTION_TABLE(X) \
+  X(MSG_START_AMPLITUDE, "Absolute amplitude threshold") \
+  X(MSG_START_FREQUENCY, "Frequency amplitude threshold")
+
+#define PREAMBLE_ERROR_BEHAVIOR_TABLE(X) \
+  X(PREAMBLE_ERROR_DROP, "Drop packet silently") \
+  X(PREAMBLE_ERROR_DECODE, "Attempt to decode the cargo") \
+  X(PREAMBLE_ERROR_NOTIFY, "Drop the message and notify the user")
+
+DECLARE_ENUM(MESSAGE_START_FUNCTION_TABLE, NUM_MSG_START_FCN, MsgStartFunctions_t)
+DECLARE_ENUM(PREAMBLE_ERROR_BEHAVIOR_TABLE, NUM_PREAMBLE_ERROR_BEHAVIORS, PreambleErrorBehavior_t)
 
 /* Exported constants --------------------------------------------------------*/
 
@@ -107,10 +114,11 @@ bool Input_ProcessBlocks(BitMessage_t* bit_msg, const DspConfig_t* cfg);
  * @param bit_msg Pointer to the bit message structure containing received bits
  * @param cfg Pointer to configuration data
  * @param msg Message to add extracted bits to
+ * @param proceed Whether to continue decoding message or not
  *
  * @return true if decoding succeeds or is not yet needed, false on decoding failure
  */
-bool Input_DecodeBits(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* msg);
+bool Input_DecodeBits(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* msg, bool* proceed);
 
 /**
  * @brief Resets the input module to initial state

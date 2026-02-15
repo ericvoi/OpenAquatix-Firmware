@@ -177,18 +177,6 @@ typedef struct {
   uint16_t param_id;
 } ParamContext_t;
 
-typedef struct MenuNode {
-  uint16_t id;
-  uint64_t alt_id;
-  const char* description;
-  void (*handler)(void* param);
-  MenuID_t parent_id;
-  MenuID_t* children_ids;
-  uint8_t num_children;
-  uint8_t access_level;
-  ParamContext_t* parameters;
-} MenuNode_t;
-
 typedef struct {
   ParamContext_t* state;
   char input[MAX_COMM_IN_BUFFER_SIZE];
@@ -196,6 +184,17 @@ typedef struct {
   uint8_t* output_buffer;
   CommInterface_t comm_interface;
 } FunctionContext_t;
+
+typedef struct MenuNode {
+  uint16_t id;
+  const char* description;
+  void (*handler)(FunctionContext_t* context);
+  MenuID_t parent_id;
+  MenuID_t* children_ids;
+  uint8_t num_children;
+  uint8_t access_level;
+  ParamContext_t* parameters;
+} MenuNode_t;
 
 
 /* Exported constants --------------------------------------------------------*/
@@ -221,7 +220,7 @@ typedef struct {
  *
  * @note This function casts away const when storing the menu pointer
  */
-bool registerMenu(const MenuNode_t* menu);
+bool MenuSystem_RegisterMenu(const MenuNode_t* menu);
 
 /**
  * @brief Retrieves a menu from the system menu registry
@@ -230,7 +229,7 @@ bool registerMenu(const MenuNode_t* menu);
  *
  * @return Pointer to the requested menu if found, NULL otherwise
  */
-MenuNode_t* getMenu(MenuID_t id);
+MenuNode_t* MenuSystem_GetMenu(MenuID_t id);
 
 /* Private defines -----------------------------------------------------------*/
 
