@@ -114,8 +114,8 @@ static arm_rfft_fast_instance_f32 fft_handle64;
 arm_rfft_fast_instance_f32 fft_handle128;
 
 static FrequencyThresholds_t frequency_thresholds[] = {
-    {.raw_amplitude_threshold = 80, .length_us = 2500},
-    {.raw_amplitude_threshold = 120, .length_us = 1500}
+    {.raw_amplitude_threshold = 80 << 4, .length_us = 2500},
+    {.raw_amplitude_threshold = 120 << 4, .length_us = 1500}
 };
 
 static uint16_t unique_frequency_conditions = sizeof(frequency_thresholds) / sizeof(frequency_thresholds[0]);

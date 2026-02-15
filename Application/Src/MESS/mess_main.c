@@ -493,6 +493,7 @@ void switchState(ProcessingState_t newState)
       task_state = DRIVING_TRANSDUCER;
       break;
     case LISTENING:
+      Sync_Reset();
       cfg = &custom_config;
       CFG_IncrementVersionNumber();
       Waveform_StopWaveformOutput();

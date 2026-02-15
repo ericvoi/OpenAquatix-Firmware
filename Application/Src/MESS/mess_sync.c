@@ -137,8 +137,10 @@ SyncState_t Sync_Synchronize(const DspConfig_t* cfg)
 {
   updateParameters(cfg);
   switch (cfg->sync_method) {
-    case NO_SYNC:
-      return Input_DetectMessageStart(cfg);
+    case NO_SYNC: {
+      bool ret = Input_DetectMessageStart(cfg);
+      return (ret == true) ? (SYNC_SUCCESS) : (SYNC_OK);
+    }
     case SYNC_PN_32_JANUS:
       return janusPnSynchronize(cfg);
     default:
@@ -278,7 +280,7 @@ bool updateSlidingGoertzel(uint16_t new_samples)
   // Loops through and updates each sliding goertzel filter and updates candidate accordingly
   for (uint16_t i = 0; i < NUM_SYNC_FREQUENCIES; i++) {
     goertzel_SlidingPerform(&sliding_goertzel[i], ADC_InputGetTail(), new_samples, PROCESSING_BUFFER_SIZE);
-     float next_bin_e = (i == NUM_SYNC_FREQUENCIES - 1) ? (background_noise) : (MAX(sliding_goertzel[i + 1].e_f, background_noise));
+    float next_bin_e = (i == NUM_SYNC_FREQUENCIES - 1) ? (background_noise) : (MAX(sliding_goertzel[i + 1].e_f, background_noise));
     float in_band_energy = MAX(sliding_goertzel[i].e_f - next_bin_e, 0.0f);
     float snr = (in_band_energy) / background_noise;
     float scaled_snr = snr / NUM_SYNC_FREQUENCIES;

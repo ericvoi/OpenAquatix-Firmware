@@ -374,11 +374,12 @@ ParamSetResult_t Param_SetValue(ParamIds_t id, const void* value)
   }
   bool valid = false;
   switch (param->type) {
+    case PARAM_TYPE_ENUM:
     case PARAM_TYPE_UINT8:
     case PARAM_TYPE_UINT16:
     case PARAM_TYPE_UINT32: {
       uint32_t val = 0;
-      if (param->type == PARAM_TYPE_UINT8) {
+      if ((param->type == PARAM_TYPE_UINT8) || (param->type == PARAM_TYPE_ENUM)) {
         val = (uint32_t) (*(uint8_t*) value);
       }
       else if (param->type == PARAM_TYPE_UINT16) {
