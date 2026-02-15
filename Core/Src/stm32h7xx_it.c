@@ -33,6 +33,7 @@
 #include "sys_sensor_timer.h"
 #include "ws2812b-driver.h"
 #include "lps22hh-driver.h"
+#include "ina219-driver.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -531,4 +532,17 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     LPS_IntDrdy();
   }
 }
+
+void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef* hi2c)
+{
+  (void)(hi2c);
+  INA_RxComplete();
+}
+
+void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef* hi2c)
+{
+  (void)(hi2c);
+  INA_TxComplete();
+}
+
 /* USER CODE END 1 */

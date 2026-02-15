@@ -14,6 +14,7 @@
 #include "comm_menu_system.h"
 #include "comm_function_loops.h"
 #include "sys_temperature.h"
+#include "sys_power.h"
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -274,28 +275,46 @@ void printErrorLog(FunctionContext_t* context)
   COMMLoops_NotImplemented(context);
 }
 
-// TODO: implement
 void printPeakPwr(FunctionContext_t* context)
 {
-  COMMLoops_NotImplemented(context);
+  float power = Power_MaxPower();
+
+  sprintf((char*) context->output_buffer, "\r\nMax power reading: %.3f W\r\n",
+          power);
+  COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
+  context->state->state = PARAM_STATE_COMPLETE;
 }
 
-// TODO: implement
 void printPwrSinceBoot(FunctionContext_t* context)
 {
-  COMMLoops_NotImplemented(context);
+  float power = Power_LatestPower();
+  float energy = power * (HAL_AbsoluteTimestamp() / 1000.0f);
+
+  sprintf((char*) context->output_buffer, "\r\nAverage power reading: %.3f W\r\n"
+          "Energy since boot: %.0f J\r\n",
+          power, energy);
+  COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
+  context->state->state = PARAM_STATE_COMPLETE;
 }
 
-// TODO: implement
 void printAvgPwr(FunctionContext_t* context)
 {
-  COMMLoops_NotImplemented(context);
+  float power = Power_AveragePower();
+
+  sprintf((char*) context->output_buffer, "\r\nAverage power reading: %.3f W\r\n",
+          power);
+  COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
+  context->state->state = PARAM_STATE_COMPLETE;
 }
 
-// TODO: implement
 void printCurrPwr(FunctionContext_t* context)
 {
-  COMMLoops_NotImplemented(context);
+  float power = Power_LatestPower();
+
+  sprintf((char*) context->output_buffer, "\r\nLatest power reading: %.3f W\r\n",
+          power);
+  COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
+  context->state->state = PARAM_STATE_COMPLETE;
 }
 
 void printCurrTemp(FunctionContext_t* context)

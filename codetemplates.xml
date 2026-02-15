@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><templates><template autoinsert="false" context="org.eclipse.cdt.core.cHeader.contenttype_context" deleted="false" description="" enabled="true" name="header_template">${filecomment}
+#ifndef ${include_guard_symbol}
+#define ${include_guard_symbol}
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Includes ------------------------------------------------------------------*/
+#include "stm32h7xx_hal.h"
+
+
+/* Private includes ----------------------------------------------------------*/
+
+
+
+/* Exported types ------------------------------------------------------------*/
+
+
+
+/* Exported constants --------------------------------------------------------*/
+
+
+
+/* Exported macro ------------------------------------------------------------*/
+
+
+
+/* Exported functions prototypes ---------------------------------------------*/
+
+
+
+/* Private defines -----------------------------------------------------------*/
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* ${include_guard_symbol} */</template><template autoinsert="false" context="org.eclipse.cdt.ui.text.codetemplates.filecomment_context" deleted="false" description="Comment for created C/C++ files" enabled="true" id="org.eclipse.cdt.ui.text.codetemplates.filecomment" name="filecomment">/*
+ * ${file_name}
+ *
+ *  Created on: ${date}
+ *      Author: ${user}
+ *
+ * Copyright (c) 2025 OpenAquatix Contributors
+ * SPDX-License-Identifier: MIT
+ */
+</template><template autoinsert="false" context="org.eclipse.cdt.core.cSource.contenttype_context" deleted="false" description="" enabled="true" name="source_template">${filecomment}
+/* Private includes ----------------------------------------------------------*/
+
+
+
+/* Private typedef -----------------------------------------------------------*/
+
+
+
+/* Private define ------------------------------------------------------------*/
+
+
+
+/* Private macro -------------------------------------------------------------*/
+
+
+
+/* Private variables ---------------------------------------------------------*/
+
+
+
+/* Private function prototypes -----------------------------------------------*/
+
+
+
+/* Exported function definitions ---------------------------------------------*/
+
+
+
+/* Private function definitions ----------------------------------------------*/</template></templates>

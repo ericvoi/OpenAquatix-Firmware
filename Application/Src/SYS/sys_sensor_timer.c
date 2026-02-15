@@ -14,6 +14,7 @@
 
 #include "sys_sensor_timer.h"
 #include "sys_temperature.h"
+#include "sys_power.h"
 
 #include <stdbool.h>
 
@@ -26,6 +27,10 @@
 #define TICKS_FOR_TEMPERATURE ((TEMPERATURE_SENSOR_PERIOD_MS * \
                                 SENSOR_TIMER_TICK_RATE_HZ) / \
                                 1000)
+
+#define TICKS_FOR_INA219 ((INA_PERIOD_MS * \
+                           SENSOR_TIMER_TICK_RATE_HZ) / \
+                           1000)
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -56,6 +61,9 @@ void SensorTimer_Tick()
 
   if ((sensor_ticks % TICKS_FOR_TEMPERATURE) == 0) {
     Temperature_TriggerTjConversion();
+  }
+  if ((sensor_ticks % TICKS_FOR_INA219) == 0) {
+    INA_StartRead();
   }
 }
 

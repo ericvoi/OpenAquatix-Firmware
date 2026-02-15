@@ -20,6 +20,7 @@
 #include "sys_temperature.h"
 #include "sys_led.h"
 #include "sys_main.h"
+#include "sys_power.h"
 
 #include "check_inputs.h"
 
@@ -427,7 +428,12 @@ void printCurrentErrors(FunctionContext_t* context)
 // TODO: implement
 void printCurrentPowerConsumption(FunctionContext_t* context)
 {
-  COMMLoops_NotImplemented(context);
+  float power = Power_LatestPower();
+
+  sprintf((char*) context->output_buffer, "\r\nLatest power reading: %.3f W\r\n",
+          power);
+  COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
+  context->state->state = PARAM_STATE_COMPLETE;
 }
 
 void printBackgroundNoise(FunctionContext_t* context)
