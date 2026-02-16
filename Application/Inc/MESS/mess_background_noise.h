@@ -42,7 +42,7 @@ extern "C" {
 /**
  * @brief Initializes events and queues in background noise module
  * 
- * @return true if successful, false otherwise
+ * @return true if successfully made os structures, false otherwise
  */
 bool BackgroundNoise_Init();
 
@@ -54,6 +54,8 @@ void BackgroundNoise_Reset();
 
 /**
  * @brief Calculates the background noise in band on the most recent data
+ * 
+ * @return true if successfully updated/processed background noise, false otherwise
  */
 bool BackgroundNoise_Calculate(const DspConfig_t* cfg);
 

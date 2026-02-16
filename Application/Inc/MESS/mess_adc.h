@@ -31,7 +31,8 @@ extern "C" {
 /* Exported constants --------------------------------------------------------*/
 
 #define ADC_BUFFER_SIZE           1024 
-#define PROCESSING_BUFFER_SIZE    (1 << 14) // 16384
+#define PROCESSING_BUFFER_POWER   (14)
+#define PROCESSING_BUFFER_SIZE    (1 << PROCESSING_BUFFER_POWER) // 16384
 #define PROCESSING_BUFFER_MASK    (PROCESSING_BUFFER_SIZE - 1)
 
 #define ADC_SAMPLING_RATE         120000  // 120 kHz

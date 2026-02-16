@@ -287,7 +287,7 @@ void printPeakPwr(FunctionContext_t* context)
 
 void printPwrSinceBoot(FunctionContext_t* context)
 {
-  float power = Power_LatestPower();
+  float power = Power_AveragePower();
   float energy = power * (HAL_AbsoluteTimestamp() / 1000.0f);
 
   sprintf((char*) context->output_buffer, "\r\nAverage power reading: %.3f W\r\n"

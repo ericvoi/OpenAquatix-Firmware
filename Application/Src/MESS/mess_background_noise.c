@@ -28,22 +28,25 @@
 typedef struct {
   float accumulated_energy;
   uint16_t counts;
-} EnergyHistory_t;
+} EnergyAccumulator_t;
+
+typedef enum {
+  BG_NOISE_BOOT,
+  BG_NOISE_RUNNING
+} BackgroundNoiseState_t;
 
 /* Private define ------------------------------------------------------------*/
 
-#define NOISE_BUFFER_SIZE       128
-#define MS_PER_ENTRY            100
-#define COUNTS_PER_ENTRY        (ADC_SAMPLING_RATE * MS_PER_ENTRY / 1000 / NOISE_BUFFER_SIZE)
-#define NOISE_HISTORY_SIZE      (1 << 4) // 16
+#define NOISE_BUFFER_SIZE           128
+#define MS_PER_ENTRY                100
+#define COUNTS_PER_ENTRY            (ADC_SAMPLING_RATE * MS_PER_ENTRY / 1000 / NOISE_BUFFER_SIZE)
+#define NOISE_HISTORY_SIZE          (1 << 6) // 64 or 6.4s
 
-#define NUM_NOISE_IN_AVERAGE    (1 << 3) // 8
+#define NOISE_ESTIMATION_PERCENTILE 25      // The noise value percentile to use
+#define NOISE_ESTIMATION_BIAS       (1.05f) // Acounts for bias in using 25th percentile
+#define NOISE_ESTIMATION_MIN_COUNT  10      // First noise estimation after 1s
+#define NOISE_ESTIMATION_REJECTION  (5.0f)  // If a block is greater than a valid noise * this, it is rejected
 
-#define WINDOW_INCREMENT        4
-
-#define NOISE_OUTLIER_THRESHOLD (1.1f)
-
-#define RESET_NOISE_VALUE       (0.0f)
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -53,11 +56,12 @@ typedef struct {
 
 extern arm_rfft_fast_instance_f32 fft_handle128;
 
-static bool energy_ready = false;
+static EnergyAccumulator_t current_block;
+static float noise_history[NOISE_HISTORY_SIZE];
 
-static EnergyHistory_t energy_history[NOISE_HISTORY_SIZE];
+static BackgroundNoiseState_t estimator_state = BG_NOISE_BOOT;
 
-static volatile float in_band_noise = RESET_NOISE_VALUE;
+static volatile float in_band_noise = 0;
 static uint16_t noise_buffer_tail = 0;
 static uint16_t noise_history_index = 0;
 static uint16_t accumulated_noise_entries = 0;
@@ -77,8 +81,9 @@ osMessageQueueId_t channel_report_queue = NULL;
 /* Private function prototypes -----------------------------------------------*/
 
 static void updateBackgroundNoise();
-static void averageNoise();
 static bool updateFrequencyIndices(const DspConfig_t* cfg);
+
+static float computePercentile(const float* buf, uint16_t count);
 
 static bool fskFrequencyIndices(const DspConfig_t* cfg);
 static bool fhbfskFrequencyIndices(const DspConfig_t* cfg);
@@ -103,16 +108,20 @@ bool BackgroundNoise_Init()
   if (channel_report_queue == NULL) {
     return false;
   }
+
+  BackgroundNoise_Reset();
   return true;
 }
 
 void BackgroundNoise_Reset()
 {
   noise_buffer_tail = 0;
-  accumulated_noise_entries = 0;
   noise_history_index = 0;
-  in_band_noise = RESET_NOISE_VALUE;
-  energy_ready = false;
+  in_band_noise = 0;
+  accumulated_noise_entries = 0;
+  current_block.accumulated_energy = 0.0f;
+  current_block.counts = 0;
+  estimator_state = BG_NOISE_BOOT;
 }
 
 bool BackgroundNoise_Calculate(const DspConfig_t* cfg)
@@ -144,10 +153,10 @@ bool BackgroundNoise_Calculate(const DspConfig_t* cfg)
       float mag = (real * real + imag * imag) / NOISE_BUFFER_SIZE;
       
       float increment = mag / ((float) num_noise_bins);
-      energy_history[noise_history_index].accumulated_energy += increment;
+      current_block.accumulated_energy += increment;
       channel_report.psd += increment;
     }
-    energy_history[noise_history_index].counts++;
+    current_block.counts++;
     updateBackgroundNoise();
     if (updateChannelReport() == false) {
       return false;
@@ -164,41 +173,40 @@ float BackgroundNoise_Get()
 
 bool BackgroundNoise_Ready()
 {
-  return energy_ready;
+  return estimator_state == BG_NOISE_RUNNING;
 }
 
 /* Private function definitions ----------------------------------------------*/
 
 void updateBackgroundNoise()
 {
-  if (energy_history[noise_history_index].counts >= COUNTS_PER_ENTRY) {
-    energy_history[noise_history_index].accumulated_energy /= energy_history[noise_history_index].counts;
-    // Check for very first noise entry or if in-line with previous values
-    if (in_band_noise == RESET_NOISE_VALUE || 
-      (energy_history[noise_history_index].accumulated_energy < (in_band_noise * (NOISE_OUTLIER_THRESHOLD)))) {
-      accumulated_noise_entries = MIN(accumulated_noise_entries + 1, NUM_NOISE_IN_AVERAGE);
-      noise_history_index = (noise_history_index + 1) % NOISE_HISTORY_SIZE;
-      averageNoise();
-    }
-    energy_history[noise_history_index].counts = 0;
-    energy_history[noise_history_index].accumulated_energy = 0.0f;
-  }
-}
+  if (current_block.counts < COUNTS_PER_ENTRY) return;
+  current_block.accumulated_energy /= current_block.counts;
+  accumulated_noise_entries = MIN(NOISE_HISTORY_SIZE, accumulated_noise_entries + 1);
 
-void averageNoise()
-{
-  if (accumulated_noise_entries == 0) {
-    return;
+  switch (estimator_state) {
+    case BG_NOISE_BOOT:
+      noise_history[noise_history_index] = current_block.accumulated_energy;
+      if (accumulated_noise_entries >= NOISE_ESTIMATION_MIN_COUNT) {
+        in_band_noise = computePercentile(noise_history, accumulated_noise_entries)
+                        * NOISE_ESTIMATION_BIAS;
+        estimator_state = BG_NOISE_RUNNING;
+      }
+      noise_history_index = (noise_history_index + 1) % NOISE_HISTORY_SIZE; 
+      break;
+    case BG_NOISE_RUNNING:
+      if (current_block.accumulated_energy > (in_band_noise * NOISE_ESTIMATION_REJECTION))
+        break;
+      noise_history[noise_history_index] = current_block.accumulated_energy;
+      in_band_noise = computePercentile(noise_history, accumulated_noise_entries)
+                      * NOISE_ESTIMATION_BIAS;
+      noise_history_index = (noise_history_index + 1) % NOISE_HISTORY_SIZE; 
+      break;
+    default:
+      break;
   }
-  float average = 0.0f;
-  for (uint16_t i = 0; i < accumulated_noise_entries; i++) {
-    uint16_t offset_index = (noise_history_index - 1 - i) & (NOISE_HISTORY_SIZE - 1);
-    float energy = energy_history[offset_index].accumulated_energy;
-    average += energy;
-  }
-  average /= ((float) accumulated_noise_entries);
-  in_band_noise = average;
-  energy_ready = accumulated_noise_entries == NUM_NOISE_IN_AVERAGE;
+  current_block.accumulated_energy = 0.0f;
+  current_block.counts = 0;
 }
 
 bool updateFrequencyIndices(const DspConfig_t* cfg)
@@ -220,6 +228,27 @@ bool updateFrequencyIndices(const DspConfig_t* cfg)
     default:
       return false;
   }
+}
+
+// Uses insertion sort then finds the appropriate percentile
+float computePercentile(const float* buf, uint16_t count)
+{
+  float tmp[NOISE_HISTORY_SIZE];
+  memcpy(tmp, buf, count * sizeof(float));
+
+  for (uint16_t i = 1; i < count; i++) {
+    float key = tmp[i];
+    int16_t j = (int16_t)i - 1;
+    while (j >= 0 && tmp[j] > key) {
+      tmp[j + 1] = tmp[j];
+      j--;
+    }
+    tmp[j + 1] = key;
+  }
+
+  uint16_t k = (uint16_t)((uint32_t)count * NOISE_ESTIMATION_PERCENTILE / 100u);
+  if (k >= count) k = count - 1;
+  return tmp[k];
 }
 
 bool fskFrequencyIndices(const DspConfig_t* cfg)

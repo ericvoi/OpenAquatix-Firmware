@@ -28,93 +28,85 @@
 /* Private typedef -----------------------------------------------------------*/
 
 typedef enum {
-  PN_STAGE_1,
-  PN_STAGE_2,
-  PN_STAGE_3,
-  PN_STAGE_4,
-  PN_STAGE_COMPLETE
-} JanusPnStage_t;
-
-#define FREQUENCIES_PER_STAGE   8
-typedef struct {
-  uint16_t rollover_index;
-  uint16_t buffer_index;
-  float energies[FREQUENCIES_PER_STAGE + 1]; // extra 1 to check the next frequency for bleeding
-  float snr_score;
-  float uncapped_snr_score;
-  uint8_t symbols_exceeding_threshold;
-} WindowedGoertzel_t;
+  TRACKER_IDLE,
+  TRACKER_SEARCHING
+} PnTrackerState_t;
 
 typedef struct {
-  uint16_t buffer_index;
-  uint16_t rollover_count;
-  float snr_score;
-  float uncapped_snr_score;
+  uint16_t start_buffer_index;
+
+  float capped_snr;
+  float uncapped_snr;
+  float ambient_snr;
   uint8_t symbols_exceeding_threshold;
-} Stage2Results_t;
+
+  uint8_t frequencies_added;
+} PnSynchronizationCandidate_t;
+
+typedef struct {
+  PnTrackerState_t state;
+
+  uint16_t num_candidates;
+  uint16_t best_index;
+  uint16_t candidates_after_best; 
+  float best_snr;
+} PnTracker_t;
 
 /* Private define ------------------------------------------------------------*/
 
-#define MIN_SYMBOLS_EXCEEDING_SNR 6
-#define SYNC_STAGE_1_STEP         30
-#define SYNC_STAGE_1_SUBDIVIDE    16
-#define SYNC_STAGE_234_SUBDIVIDE  16
-#define STAGE_RESULTS_LEN         512 // excessive for poc //((FREQUENCIES_PER_STAGE + 4) * SYNC_STAGE_1_SUBDIVIDE)
-#define COARSE_STEP_PRECISION     6
+#define NUM_SYNC_FREQUENCIES            32
+#define PN_SYNC_SUBDIVIDE               16 // The number of subdivisions to make of each chip duration during synchronization
+#define MIN_NUM_CANDIDATES              (NUM_SYNC_FREQUENCIES * PN_SYNC_SUBDIVIDE)
+#define NUM_PN_SYNC_CANDIDATES          (MIN_NUM_CANDIDATES * 4 / 3) // Extra 33% to prevent overrun
 
-#define TARGET_SNR                (8.0f)
+#define TARGET_SNR                      (8.0f)
+#define CAP_RATIO                       (2.0f) // Capped SNR statistics are truncated to CAP_RATIO * TARGET_SNR
+#define AMBIENT_RATIO                   (2.0f)
+#define MIN_SYMBOLS_ABOVE_THRESH        24
+#define REQUIRED_CANDIDATES_AFTER_BEST  8
 
 /* Private macro -------------------------------------------------------------*/
 
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
 
 /* Private variables ---------------------------------------------------------*/
 
 static const uint32_t janus_pn_32 = 0b10101110110001111100110100100000U;
-static uint32_t janus_frequencies[32];
-static uint16_t window_offsets[SYNC_STAGE_1_SUBDIVIDE];
+static uint32_t janus_frequencies[NUM_SYNC_FREQUENCIES];
+
+static PnSynchronizationCandidate_t pn_sync_candidates[NUM_PN_SYNC_CANDIDATES];
+
 static uint16_t samples_per_symbol;
-static JanusPnStage_t sync_stage = PN_STAGE_1;
-static WindowedGoertzel_t stage1_results[STAGE_RESULTS_LEN];
-static uint16_t stage_results_head = 0;
-static uint16_t stage_results_len = 0;
-static uint16_t window_offset_index = 0;
-static uint16_t processed_buffer_tail = 0;
-static uint16_t processed_buffer_len = 0;
+static uint16_t offset_index;
+static uint16_t candidate_index;
+static uint16_t window_offsets[PN_SYNC_SUBDIVIDE];
+static PnTracker_t candidate_tracker;
 
-static uint16_t stage1_rollover_index;
-static uint16_t stage1_buffer_index;
-
-static uint16_t stage2_offsets[SYNC_STAGE_1_SUBDIVIDE];
-static uint8_t stage2_fine_step = 0;
-static uint8_t stage2_frequency_index = 0;
-static Stage2Results_t stage2_results[SYNC_STAGE_234_SUBDIVIDE];
+static SlidingGoertzelInfo_t sliding_goertzel[NUM_SYNC_FREQUENCIES];
 
 static volatile bool sync_error = false;
 
+static float background_noise;
 static float most_recent_snr = 0.0f;
+
+static bool pending_reset = true;
 
 /* Private function prototypes -----------------------------------------------*/
 
 static void updateParameters(const DspConfig_t* cfg);
 static bool janusPnStep(bool* bit, uint16_t step);
 static void fillJanusFrequencies(const DspConfig_t* cfg);
+static SyncState_t janusPnSynchronize();
+static bool resetPnSynchronization();
 static void fillWindowOffsets(const DspConfig_t* cfg);
-static bool janusPnSynchronize();
-static void populateResultsStage1(uint16_t start_index, uint16_t end_index);
-static void scoreOffsets();
-static void findGlobalMax();
-static void stage1TailIncrement();
-static void fillStage2Results();
-static void waitSynchronizationComplete(uint16_t final_rollover_index, uint16_t final_buffer_index);
-static void populateGoertzelInfo(GoertzelInfo_t* goertzel_info);
-static bool evaluateStage2Results();
+static bool updateSlidingGoertzel(uint16_t new_samples);
+static SyncState_t evaluateSlidingPnWindows();
 
 /* Exported function definitions ---------------------------------------------*/
 
 bool Sync_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step)
 {
-  (void)(waveform_step); // Planned use for advanced synchronization techniques
   switch (cfg->sync_method) {
     case NO_SYNC:
       return false;
@@ -141,16 +133,18 @@ uint16_t Sync_NumSteps(const DspConfig_t* cfg)
   }
 }
 
-bool Sync_Synchronize(const DspConfig_t* cfg)
+SyncState_t Sync_Synchronize(const DspConfig_t* cfg)
 {
   updateParameters(cfg);
   switch (cfg->sync_method) {
-    case NO_SYNC:
-      return Input_DetectMessageStart(cfg);
+    case NO_SYNC: {
+      bool ret = Input_DetectMessageStart(cfg);
+      return (ret == true) ? (SYNC_SUCCESS) : (SYNC_OK);
+    }
     case SYNC_PN_32_JANUS:
       return janusPnSynchronize(cfg);
     default:
-      return false;
+      return SYNC_ERROR;
   }
 }
 
@@ -161,16 +155,7 @@ float Sync_MostRecentSnr()
 
 void Sync_Reset()
 {
-  memset(stage1_results, 0, sizeof(stage1_results));
-  memset(stage2_results, 0, sizeof(stage2_results));
-  stage_results_head = 0;
-  stage_results_len = 0;
-  window_offset_index = 0;
-  processed_buffer_tail = 0;
-  processed_buffer_len = 0;
-  stage2_fine_step = 0;
-  stage2_frequency_index = 0;
-  sync_stage = PN_STAGE_1;
+  pending_reset = true;
 }
 
 /* Private function definitions ----------------------------------------------*/
@@ -198,11 +183,71 @@ bool janusPnStep(bool* bit, uint16_t step)
 // TODO: change for FSK and consider implications of penalty function
 void fillJanusFrequencies(const DspConfig_t* cfg)
 {
-  for (uint16_t i = 0; i < 32; i++) {
+  for (uint16_t i = 0; i < NUM_SYNC_FREQUENCIES; i++) {
     bool bit;
     janusPnStep(&bit, i);
     janus_frequencies[i] = Modulate_GetFhbfskFrequency(bit, i, cfg);
   }
+}
+
+SyncState_t janusPnSynchronize()
+{
+  // update the buffer with the new samples. Add to candidate solutions
+  if (pending_reset == true) {
+    pending_reset = false;
+    resetPnSynchronization();
+  }
+
+  bool bg_noise_ready = BackgroundNoise_Ready();
+  background_noise = BackgroundNoise_Get();
+  if (bg_noise_ready == false || background_noise == 0) {
+    Sync_Reset();
+    return SYNC_OK;
+  }
+
+  uint16_t next_idx = (offset_index + 1) % PN_SYNC_SUBDIVIDE;
+  uint16_t required_samples;
+  if (next_idx == 0) {
+    // Wraparound: remaining samples in this symbol
+    required_samples = samples_per_symbol - window_offsets[offset_index];
+  } else {
+    required_samples = window_offsets[next_idx] - window_offsets[offset_index];
+  }
+
+  while (ADC_InputAvailableSamples() >= required_samples) {
+    if (updateSlidingGoertzel(required_samples) == false) {
+      return SYNC_ERROR;
+    }
+    uint16_t next_idx = (offset_index + 1) % PN_SYNC_SUBDIVIDE;
+    if (next_idx == 0) {
+      // Wraparound: remaining samples in this symbol
+      required_samples = samples_per_symbol - window_offsets[offset_index];
+    } else {
+      required_samples = window_offsets[next_idx] - window_offsets[offset_index];
+    }
+  }
+
+  return evaluateSlidingPnWindows();
+}
+
+bool resetPnSynchronization()
+{
+  offset_index = 0;
+  candidate_index = 0;
+  candidate_tracker.state = TRACKER_IDLE;
+  candidate_tracker.num_candidates = 0;
+  while (ADC_InputAvailableSamples() < samples_per_symbol) {
+    osDelay(1);
+  }
+
+  for (uint16_t i = 0; i < NUM_SYNC_FREQUENCIES; i++) {
+    goertzel_SlidingInit(&sliding_goertzel[i], janus_frequencies[i], samples_per_symbol);
+    goertzel_SlidingReset(&sliding_goertzel[i], ADC_InputGetTail(), PROCESSING_BUFFER_SIZE);
+  }
+
+  memset(&pn_sync_candidates, 0, sizeof(pn_sync_candidates));
+  ADC_InputTailAdvance(samples_per_symbol);
+  return true;
 }
 
 void fillWindowOffsets(const DspConfig_t* cfg)
@@ -213,322 +258,109 @@ void fillWindowOffsets(const DspConfig_t* cfg)
   // precision, there can be up to the subdivide/2 missing samples.
   static const uint8_t offsets_precision = 4;
   samples_per_symbol = (uint16_t) ((float) ADC_SAMPLING_RATE / cfg->baud_rate);
-  uint32_t offsets_increment = (samples_per_symbol << offsets_precision) / SYNC_STAGE_1_SUBDIVIDE;
-  for (uint8_t i = 0; i < SYNC_STAGE_1_SUBDIVIDE; i++) {
+  uint32_t offsets_increment = (samples_per_symbol << offsets_precision) / PN_SYNC_SUBDIVIDE;
+  for (uint8_t i = 0; i < PN_SYNC_SUBDIVIDE; i++) {
     window_offsets[i] = (i * offsets_increment) >> offsets_precision;
   }
-
-  // Stage 2 window goes from - 2 / stage1 subdivide : 2 / stage1 subdivide
-  // centered around the previous maximum correlation
-  uint16_t base_value = samples_per_symbol - ((offsets_increment * 2) >> offsets_precision);
-  offsets_increment = (offsets_increment * 4) / SYNC_STAGE_234_SUBDIVIDE;
-  for (uint8_t i = 0; i < SYNC_STAGE_234_SUBDIVIDE; i++) {
-    // skips the center index that was tested before
-    uint16_t index = (i > 7) ? (i + 1) : i;
-    stage2_offsets[i] = base_value + ((offsets_increment * index) >> offsets_precision);
-  }
 }
 
-/**
- * JANUS uses a 32-chip sequence to synchronize the sender and the receiver.
- * The frequencies used are fixed making the synchronization process easier.
- * The synchronization process is split into stages to make the process easier.
- * There are 4 stages in total with each stage looking at 8 bits in the
- * synchronization sequence. The first stage looking at bits 0-7 is the most
- * coarse of the stages and is used to detect when a message has started. The
- * following stages hone in on the start of the message and can also be used
- * to estimate doppler effects. (doppler estimation not implemented yet)
- */
-bool janusPnSynchronize()
+bool updateSlidingGoertzel(uint16_t new_samples)
 {
-  switch (sync_stage) {
-    case PN_STAGE_1:
-      populateResultsStage1(0, 8);
-      scoreOffsets();
-      findGlobalMax();
-      break;
-    case PN_STAGE_2:
-      fillStage2Results();
-      return evaluateStage2Results();
-    case PN_STAGE_3:
-    case PN_STAGE_4:
-    case PN_STAGE_COMPLETE:
-      break;
-    default:
-      return false;
-  }
-  return false;
-}
+  // Initializes each candidate
+  uint64_t absolute_starting_index = ADC_TailRolloverCount(false) << PROCESSING_BUFFER_POWER;
+  absolute_starting_index += ADC_InputGetTail() + new_samples;
+  absolute_starting_index -= samples_per_symbol;
+  pn_sync_candidates[candidate_index].start_buffer_index = absolute_starting_index & PROCESSING_BUFFER_MASK;
+  pn_sync_candidates[candidate_index].frequencies_added = 0;
+  pn_sync_candidates[candidate_index].capped_snr = 0;
+  pn_sync_candidates[candidate_index].uncapped_snr = 0;
+  pn_sync_candidates[candidate_index].symbols_exceeding_threshold = 0;
 
-void populateResultsStage1(uint16_t start_index, uint16_t end_index)
-{
-  GoertzelInfo_t goertzel_info;
-  populateGoertzelInfo(&goertzel_info);
-  uint32_t f[6];
-  goertzel_info.f = f;
-  float e_f[6];
-  goertzel_info.e_f = e_f;
-  while (ADC_InputAvailableSamples() > goertzel_info.data_len) {
-    goertzel_info.start_pos = ADC_InputGetTail();
-    uint16_t num_frequencies = end_index - start_index + 1;
-    while (num_frequencies >= 6) {
-      for (uint8_t i = 0; i < 6; i++) {
-        f[i] = janus_frequencies[end_index - num_frequencies + 1 + i];
-      }
-      goertzel_6(&goertzel_info);
-      for (uint8_t i = 0; i < 6; i++) {
-        stage1_results[stage_results_head].energies[end_index - num_frequencies + 1 + i] = goertzel_info.e_f[i];
-      }
-      num_frequencies -= 6;
-    }
 
-    while (num_frequencies >= 2) {
-      for (uint8_t i = 0; i < 2; i++) {
-        f[i] = janus_frequencies[end_index - num_frequencies + 1 + i];
-      }
-      goertzel_2(&goertzel_info);
-      for (uint8_t i = 0; i < 2; i++) {
-        stage1_results[stage_results_head].energies[end_index - num_frequencies + 1 + i] = goertzel_info.e_f[i];
-      }
-      num_frequencies -= 2;
-    }
-
-    while (num_frequencies >= 1) {
-      for (uint8_t i = 0; i < 1; i++) {
-        f[i] = janus_frequencies[end_index - num_frequencies + 1 + i];
-      }
-      goertzel_1(&goertzel_info);
-      for (uint8_t i = 0; i < 1; i++) {
-        stage1_results[stage_results_head].energies[end_index - num_frequencies + 1 + i] = goertzel_info.e_f[i];
-      }
-      num_frequencies -= 1;
-    }
-    stage1_results[stage_results_head].buffer_index = goertzel_info.start_pos;
-    stage1_results[stage_results_head].rollover_index = ADC_TailRolloverCount(false);
-    stage_results_head = (stage_results_head + 1) % STAGE_RESULTS_LEN;
-    stage_results_len++;
-    if (stage_results_len >= STAGE_RESULTS_LEN) {
-      sync_error = true;
-      return;
-    }
-    stage1TailIncrement();
-  }
-}
-
-void scoreOffsets()
-{
-  uint16_t results_per_stage = SYNC_STAGE_1_SUBDIVIDE * FREQUENCIES_PER_STAGE;
-
-  if (BackgroundNoise_Ready() == false) {
-    Sync_Reset();
-    return;
-  }
-
-  float background_noise = BackgroundNoise_Get();
-
-  while (stage_results_len > results_per_stage) {
-    uint16_t base_index = (stage_results_head - stage_results_len) & (STAGE_RESULTS_LEN - 1);
-    float snr = 0;
-    float uncapped_snr = 0;
-    stage1_results[base_index].symbols_exceeding_threshold = 0;
-    
-    for (uint16_t i = 0; i < FREQUENCIES_PER_STAGE; i++) {
-      uint16_t freq_index = (base_index + i * SYNC_STAGE_1_SUBDIVIDE) & (STAGE_RESULTS_LEN - 1);
-      float frequency_energy = stage1_results[freq_index].energies[i];
-      // penalty for including the next bin
-      frequency_energy -= stage1_results[freq_index].energies[i + 1];
-      float snr_score = frequency_energy / background_noise;
-      snr += MIN(snr_score, TARGET_SNR * 2);
-      uncapped_snr += snr_score;
-      if (snr_score >= TARGET_SNR) {
-        stage1_results[base_index].symbols_exceeding_threshold++;
-      }
-    }
-    
-    snr /= FREQUENCIES_PER_STAGE;
-    uncapped_snr /= FREQUENCIES_PER_STAGE;
-    stage1_results[base_index].snr_score = snr;
-    stage1_results[base_index].uncapped_snr_score = uncapped_snr;
-    stage_results_len--;
-    processed_buffer_len++;
-  }
-}
-
-void findGlobalMax()
-{
-  const uint16_t margin = 3;
-  uint16_t best_index = 0;
-  float best_snr = 0.0f;
-
-  if (processed_buffer_len < margin) {
-    return;
-  }
-
-  for (uint16_t i = 0; i < processed_buffer_len; i++) {
-    uint16_t results_index = (i + processed_buffer_tail) % STAGE_RESULTS_LEN;
-    float uncapped_snr = stage1_results[results_index].uncapped_snr_score;
-    float capped_snr = stage1_results[results_index].snr_score;
-    uint8_t num_exceeding = stage1_results[results_index].symbols_exceeding_threshold;
-    if ((uncapped_snr > best_snr) && (num_exceeding >= MIN_SYMBOLS_EXCEEDING_SNR) && (capped_snr >= TARGET_SNR)) {
-      best_snr = uncapped_snr;
-      best_index = results_index;
-    }
-  }
-
-  uint16_t results_searched = processed_buffer_len - margin;
-
-  if (best_snr < TARGET_SNR) {
-    processed_buffer_len -= results_searched;
-    processed_buffer_tail += results_searched;
-    processed_buffer_tail %= STAGE_RESULTS_LEN;
-    return;
-  }
-  uint16_t distance_from_end = (processed_buffer_tail + processed_buffer_len - best_index) % STAGE_RESULTS_LEN;
-  // Found a max but it is too close to the end.
-  if (distance_from_end <= margin) {
-    processed_buffer_len -= results_searched;
-    processed_buffer_tail += results_searched;
-    processed_buffer_tail %= STAGE_RESULTS_LEN;
-    return;
-  }
-
-  stage1_rollover_index = stage1_results[best_index].rollover_index;
-  stage1_buffer_index = stage1_results[best_index].buffer_index;
-  sync_stage = PN_STAGE_2;
-  uint16_t new_tail = ((uint32_t) stage1_buffer_index + (FREQUENCIES_PER_STAGE - 1) * samples_per_symbol) % PROCESSING_BUFFER_SIZE;
-  new_tail += stage2_offsets[0];
-  new_tail %= PROCESSING_BUFFER_SIZE;
-  uint16_t new_rollover = stage1_rollover_index + (stage1_buffer_index + stage2_offsets[0] + (FREQUENCIES_PER_STAGE - 1) * samples_per_symbol) / PROCESSING_BUFFER_SIZE;
-  waitSynchronizationComplete(new_rollover, new_tail);
-}
-
-void stage1TailIncrement()
-{
-  uint16_t increment_amount;
-  if (window_offset_index == (SYNC_STAGE_1_SUBDIVIDE - 1)) {
-    increment_amount = samples_per_symbol - window_offsets[window_offset_index];
-  }
-  else {
-    increment_amount = window_offsets[window_offset_index + 1] - window_offsets[window_offset_index];
-  }
-  ADC_InputTailAdvance(increment_amount);
-  window_offset_index = (window_offset_index + 1) % SYNC_STAGE_1_SUBDIVIDE;
-}
-
-void fillStage2Results()
-{
-  GoertzelInfo_t goertzel_info;
-  populateGoertzelInfo(&goertzel_info);
-
-  if (BackgroundNoise_Ready() == false) {
-    return;
-  }
-
-  float background_noise = BackgroundNoise_Get();
-
-  while (ADC_InputAvailableSamples() > samples_per_symbol) {
-    if (stage2_frequency_index == 0) {
-      stage2_results[stage2_fine_step].buffer_index = ADC_InputGetTail();
-      stage2_results[stage2_fine_step].rollover_count = ADC_TailRolloverCount(false);
-    }
-    goertzel_info.start_pos = ADC_InputGetTail();
-    uint32_t frequencies[2];
-    frequencies[0] = janus_frequencies[stage2_frequency_index + FREQUENCIES_PER_STAGE];
-    frequencies[1] = janus_frequencies[stage2_frequency_index + FREQUENCIES_PER_STAGE + 1];
-    goertzel_info.f = frequencies;
-    float e_f[2];
-    goertzel_info.e_f = e_f;
-    goertzel_2(&goertzel_info);
-    float frequency_energy = e_f[0];
-    // penalty for including the next bin
-    frequency_energy -= e_f[1];
-    float uncapped_snr = frequency_energy / background_noise;
-    float snr = MIN(uncapped_snr, TARGET_SNR * 2);
-    if (snr > TARGET_SNR) {
-      stage2_results[stage2_fine_step].symbols_exceeding_threshold++;
-    }
-    stage2_results[stage2_fine_step].snr_score += snr / FREQUENCIES_PER_STAGE;
-    stage2_results[stage2_fine_step].uncapped_snr_score += uncapped_snr / FREQUENCIES_PER_STAGE;
-    stage2_fine_step++;
-    // Check if done with stage 2
-    if ((stage2_fine_step == SYNC_STAGE_234_SUBDIVIDE) && 
-        (stage2_frequency_index == FREQUENCIES_PER_STAGE)) {
-      break;
-    }
-    if (stage2_fine_step == SYNC_STAGE_234_SUBDIVIDE) {
-      stage2_fine_step = 0;
-      stage2_frequency_index++;
-      ADC_InputTailAdvance(samples_per_symbol - (stage2_offsets[SYNC_STAGE_234_SUBDIVIDE - 1] - stage2_offsets[0]));
-    }
+  // Loops through and updates each sliding goertzel filter and updates candidate accordingly
+  for (uint16_t i = 0; i < NUM_SYNC_FREQUENCIES; i++) {
+    goertzel_SlidingPerform(&sliding_goertzel[i], ADC_InputGetTail(), new_samples, PROCESSING_BUFFER_SIZE);
+    float next_bin_e = (i == NUM_SYNC_FREQUENCIES - 1) ? (background_noise) : (MAX(sliding_goertzel[i + 1].e_f, background_noise));
+    float in_band_energy = MAX(sliding_goertzel[i].e_f - next_bin_e, 0.0f);
+    float snr = (in_band_energy) / background_noise;
+    float scaled_snr = snr / NUM_SYNC_FREQUENCIES;
+    float capped_scaled_snr = MIN(scaled_snr, TARGET_SNR * CAP_RATIO / NUM_SYNC_FREQUENCIES);
+    int16_t candidate_offset = candidate_index - i * PN_SYNC_SUBDIVIDE;
+    uint16_t sliding_index;
+    if (candidate_offset < 0) {
+      sliding_index = NUM_PN_SYNC_CANDIDATES + candidate_offset;
+    } 
     else {
-      ADC_InputTailAdvance(stage2_offsets[stage2_fine_step] - stage2_offsets[stage2_fine_step - 1]);
+      sliding_index = candidate_offset;
     }
-  }
-}
-
-void waitSynchronizationComplete(uint16_t final_rollover_index, uint16_t final_buffer_index)
-{
-  while (ADC_TailRolloverCount(false) < final_rollover_index) {
-    ADC_InputSetTail(ADC_InputGetHead());
-    osDelay(1);
-  }
-  ADC_InputSetTail(ADC_InputGetHead());
-  while (ADC_InputGetHead() < final_buffer_index && (ADC_TailRolloverCount(false) == final_rollover_index)) {
-    ADC_InputSetTail(ADC_InputGetHead());
-    osDelay(1);
-  }
-  ADC_InputSetTail(final_buffer_index);
-}
-
-static float rect_window[1] = {1.0f};
-void populateGoertzelInfo(GoertzelInfo_t* goertzel_info)
-{
-  goertzel_info->buf_len = PROCESSING_BUFFER_SIZE;
-  goertzel_info->data_len = samples_per_symbol;
-  // Force a rectangular window
-  goertzel_info->window = rect_window;
-  goertzel_info->energy_normalization = 1.0f;
-  goertzel_info->window_size = 0;
-}
-
-bool evaluateStage2Results()
-{
-  uint16_t best_index = 0;
-  float best_snr = 0.0f;
-
-  if (stage2_fine_step != SYNC_STAGE_234_SUBDIVIDE && stage2_frequency_index != FREQUENCIES_PER_STAGE) {
-    return false;
-  }
-
-  for (uint8_t i = 0; i < SYNC_STAGE_234_SUBDIVIDE; i++) {
-    float uncapped_snr = stage2_results[i].uncapped_snr_score;
-    float capped_snr = stage2_results[i].snr_score;
-    uint8_t num_exceeding = stage2_results[i].symbols_exceeding_threshold;
-    if ((uncapped_snr > best_snr) && (num_exceeding >= MIN_SYMBOLS_EXCEEDING_SNR) && (capped_snr >= TARGET_SNR)) {
-      best_snr = uncapped_snr;
-      best_index = i;
+    pn_sync_candidates[sliding_index].capped_snr += capped_scaled_snr;
+    pn_sync_candidates[sliding_index].uncapped_snr += scaled_snr;
+    pn_sync_candidates[sliding_index].symbols_exceeding_threshold += (snr > TARGET_SNR) ? 1 : 0;
+    pn_sync_candidates[sliding_index].frequencies_added++;
+    if (pn_sync_candidates[sliding_index].frequencies_added == NUM_SYNC_FREQUENCIES) {
+      float sum = 0;
+      for (uint16_t j = 0; j < NUM_SYNC_FREQUENCIES; j++) {
+        sum += sliding_goertzel[j].e_f;
+      }
+      float average_energy = sum / NUM_SYNC_FREQUENCIES;
+      pn_sync_candidates[sliding_index].ambient_snr = (average_energy - background_noise) / background_noise;
+    }
+    if (pn_sync_candidates[sliding_index].frequencies_added > NUM_SYNC_FREQUENCIES) {
+      return false;
     }
   }
 
-  // failed synchronization at the second stage
-  if (best_snr < TARGET_SNR) {
-    Sync_Reset();
-    return false;
-  }
-
-  uint32_t samples_to_wait = 24 * samples_per_symbol;
-
-  uint64_t current_samples = stage2_results[best_index].rollover_count * PROCESSING_BUFFER_SIZE;
-  current_samples += stage2_results[best_index].buffer_index;
-
-  Sync_Reset();
-
-  most_recent_snr = best_snr;
-
-  uint64_t target_samples = current_samples + samples_to_wait;
-  uint16_t final_rollover_count = target_samples / PROCESSING_BUFFER_SIZE;
-  uint16_t final_buffer_index = target_samples % PROCESSING_BUFFER_SIZE;
-
-  waitSynchronizationComplete(final_rollover_count, final_buffer_index);
+  offset_index = (offset_index + 1) % PN_SYNC_SUBDIVIDE;
+  candidate_index = (candidate_index + 1) % NUM_PN_SYNC_CANDIDATES;
+  candidate_tracker.num_candidates++;
+  ADC_InputTailAdvance(new_samples);
   return true;
 }
+
+SyncState_t evaluateSlidingPnWindows()
+{
+  while (candidate_tracker.num_candidates > MIN_NUM_CANDIDATES) {
+    int16_t s_idx = candidate_index - candidate_tracker.num_candidates;
+    uint16_t idx = (s_idx < 0) ? (NUM_PN_SYNC_CANDIDATES + s_idx) : ((uint16_t) s_idx);
+    PnSynchronizationCandidate_t* candidate = &pn_sync_candidates[idx];
+    if (candidate->frequencies_added != NUM_SYNC_FREQUENCIES)  {
+      return SYNC_ERROR;
+    }
+    bool exceeds_capped_snr = candidate->capped_snr > TARGET_SNR;
+    bool exceeds_symbol_count = candidate->symbols_exceeding_threshold > MIN_SYMBOLS_ABOVE_THRESH;
+    bool exceeds_target_snr = candidate->uncapped_snr > TARGET_SNR;
+    bool exceeds_ambient = candidate->uncapped_snr > (candidate->ambient_snr * AMBIENT_RATIO);
+    switch (candidate_tracker.state) {
+      case TRACKER_IDLE:
+        if (exceeds_target_snr && exceeds_symbol_count && exceeds_capped_snr && exceeds_ambient) {
+          candidate_tracker.state = TRACKER_SEARCHING;
+          candidate_tracker.best_index = idx;
+          candidate_tracker.best_snr = candidate->uncapped_snr;
+          candidate_tracker.candidates_after_best = 0;
+        }
+        break;
+
+      case TRACKER_SEARCHING:
+        if (candidate->uncapped_snr > candidate_tracker.best_snr && (candidate->symbols_exceeding_threshold > MIN_SYMBOLS_ABOVE_THRESH)) {
+          candidate_tracker.best_index = idx;
+          candidate_tracker.best_snr = candidate->uncapped_snr;
+          candidate_tracker.candidates_after_best = 0;
+        } else {
+          candidate_tracker.candidates_after_best++;
+          if (candidate_tracker.candidates_after_best >= REQUIRED_CANDIDATES_AFTER_BEST) {
+            uint32_t new_tail = (pn_sync_candidates[candidate_tracker.best_index].start_buffer_index + NUM_SYNC_FREQUENCIES * samples_per_symbol) % PROCESSING_BUFFER_SIZE;
+            most_recent_snr = candidate_tracker.best_snr;
+            ADC_InputSetTail(new_tail);
+            return SYNC_SUCCESS;
+          }
+        }
+        break;
+      default:
+        return SYNC_ERROR;
+    }
+
+    candidate_tracker.num_candidates--;
+  }
+  return SYNC_OK;
+}
+
