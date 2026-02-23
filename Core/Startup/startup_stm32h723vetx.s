@@ -97,7 +97,7 @@ Reset_Handler:
   str   r1, [r0]
 
   /* ---- Check magic number in backup SRAM ---- */
-  ldr   r0, =0x38800000
+  ldr   r0, =bkpsram
   ldr   r1, =0xABCDABCD          /* Magic value                 */
   ldr   r2, [r0, #0x00]          /* Read from backup SRAM       */
   mov   r3, #0
@@ -110,6 +110,8 @@ Reset_Handler:
   bl    ExitRun0Mode
 /* Call the clock system initialization function.*/
   bl    SystemInit
+/* Clear the backup SRAM if the rest condition is POR */
+  bl    Bkspram_Init
 
 /* Copy the data segment initializers from flash to SRAM */
   ldr   r0, =_sdata

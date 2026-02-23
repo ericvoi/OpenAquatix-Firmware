@@ -49,6 +49,7 @@ MEMORY
   RAM_D1  (xrw)    : ORIGIN = 0x24000000,   LENGTH = 320K
   RAM_D2  (xrw)    : ORIGIN = 0x30000000,   LENGTH = 32K  /* 16K Reserved for DMA buffers and protected by MPU */
   RAM_D3  (xrw)    : ORIGIN = 0x38000000,   LENGTH = 16K
+  BKPSRAM (rw)     : ORIGIN = 0x38800000,   LENGTH = 4k
 }
 
 /* Define output sections */
@@ -193,6 +194,13 @@ SECTIONS
     .align = ALIGN(4);
     _edma_buf = .;
   } >RAM_D2
+
+  .bkpsram (NOLOAD) :
+  {
+    _sbkpsram = .;
+    *(.bkpsram .bkpsram.*)
+    _eebkpsram = .;
+  } > BKPSRAM
 
   .ARM.attributes 0 : { *(.ARM.attributes) }
 }
