@@ -44,7 +44,7 @@
 
 /* Private define ------------------------------------------------------------*/
 
-
+#define MAGIC_RESET_NUMBER            0xABCDABCD
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -494,9 +494,24 @@ void resetSavedValues(FunctionContext_t* context)
 // TODO: add confirmation similar to above
 void enterDfuMode(FunctionContext_t* context)
 {
-  (void)(context);
+  __HAL_RCC_BKPRAM_CLK_ENABLE();
+
+  HAL_PWR_EnableBkUpAccess();
+
+  if (HAL_PWREx_EnableBkUpReg() != HAL_OK) {
+    COMM_TransmitData("Could not set backup flag. Aborted action\r\n", CALC_LEN, context->comm_interface);
+    context->state->state = PARAM_STATE_COMPLETE;
+    return;
+  }
   // write magic number to magic address. See startup code for corresponding check
-  *((uint32_t*) 0x38000000) = 0xABCDABCD;
+  *((uint32_t*) 0x38800000) = MAGIC_RESET_NUMBER;
+  volatile uint32_t check_value = *((uint32_t*) 0x38800000);
+
+  if (check_value != MAGIC_RESET_NUMBER) {
+    COMM_TransmitData("Error setting DFU flag. Aborting action\r\n", CALC_LEN, context->comm_interface);
+    context->state->state = PARAM_STATE_COMPLETE;
+    return;
+  }
 
   osDelay(10);
 
