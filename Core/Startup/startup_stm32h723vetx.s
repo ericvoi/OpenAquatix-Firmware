@@ -111,7 +111,7 @@ Reset_Handler:
 /* Call the clock system initialization function.*/
   bl    SystemInit
 /* Clear the backup SRAM if the rest condition is POR */
-  bl    Bkspram_Init
+  bl    Bkpsram_Init
 
 /* Copy the data segment initializers from flash to SRAM */
   ldr   r0, =_sdata

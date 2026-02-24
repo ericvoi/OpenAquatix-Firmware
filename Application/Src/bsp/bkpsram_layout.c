@@ -38,10 +38,14 @@ volatile BkpSramData_t bkpsram __attribute__((section(".bkpsram"), used));
 
 void Bkpsram_Init(void)
 {
+  // Check if reset source is POR. If so, reset junk values
   if (RCC->RSR & RCC_RSR_PORRSTF) {
     memset((void*)&bkpsram, 0, sizeof(bkpsram));
 
     RCC->RSR |= RCC_RSR_RMVF;
+  }
+  else {
+    bkpsram.reset_count++;
   }
 }
 

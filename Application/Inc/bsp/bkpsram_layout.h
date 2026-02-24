@@ -22,8 +22,9 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 
 typedef struct {
+  // WARNING: magic_number should never be moved!
   uint32_t magic_number; // Bootloader magic number
-  uint32_t reset_count; //  Resets since last POR
+  uint16_t reset_count; //  Resets since last POR
   ErrorEntry_t error_log[MAX_ENTRIES_IN_ERROR_LOG]; // Persistent error log
 } BkpSramData_t;
 
