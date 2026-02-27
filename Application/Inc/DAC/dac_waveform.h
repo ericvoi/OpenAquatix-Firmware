@@ -114,7 +114,7 @@ bool Waveform_IsRunning(void);
  *
  * Makes the DAC transition length accessible via the HMI.
  *
- * @return true if parameter registration succeeds, false otherwise
+ * @note Logs an error in the event of a failure
  */
 bool Waveform_RegisterParams(void);
 

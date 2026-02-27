@@ -73,9 +73,9 @@ bool Evaluate_UncodedBer(EvalMessageInfo_t* eval_info, BitMessage_t* bit_msg, co
 /**
  * @brief Registers the parameters used for the evaluation module
  * 
- * @return true if registered successfully, false otherwise
+ * @note Logs an error in the event of a failure
  */
-bool Evaluate_RegisterParams();
+void Evaluate_RegisterParams();
 
 /* Private defines -----------------------------------------------------------*/
 

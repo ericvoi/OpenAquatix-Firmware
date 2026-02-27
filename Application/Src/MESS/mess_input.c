@@ -26,6 +26,7 @@
 #include "cfg_main.h"
 #include "usb_comm.h"
 #include "pga113-driver.h"
+#include "error_manager.h"
 #include "cmsis_os.h"
 #include "arm_math.h"
 #include "arm_const_structs.h"
@@ -148,7 +149,7 @@ static uint32_t totalWaitSamples(const DspConfig_t* cfg);
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool Input_Init()
+void Input_Init()
 {
   bit_index = 0;
   for (uint8_t i = 0; i < MAX_ANALYSIS_BUFFER_SIZE; i++) {
@@ -176,15 +177,14 @@ bool Input_Init()
   fft_handle64.fftLenRFFT = MSG_START_FFT_SIZE;
   arm_status ret = arm_rfft_64_fast_init_f32(&fft_handle64);
   if (ret != ARM_MATH_SUCCESS) {
-    return false;
+    REGISTER_ERROR(ERROR_FFT_INITIALIZATION)
   }
 
   fft_handle128.fftLenRFFT = NOISE_FFT_BLOCK_SIZE;
   ret = arm_rfft_128_fast_init_f32(&fft_handle128);
   if (ret != ARM_MATH_SUCCESS) {
-    return false;
+    REGISTER_ERROR(ERROR_FFT_INITIALIZATION)
   }
-  return true;
 }
 
 bool Input_DetectMessageStart(const DspConfig_t* cfg)
@@ -486,19 +486,17 @@ void Input_NoiseFft()
   ADC_StartInput();
 }
 
-bool Input_UpdatePgaGain()
+void Input_UpdatePgaGain()
 {
   // TODO: add automatic gain control
-  if (automatic_gain_control == true) return false;
+  if (automatic_gain_control == true) REGISTER_ERROR(ERROR_AGC);
 
   if (Pga113_GetGain() != fixed_pga_gain) {
     Pga113_SetGain(fixed_pga_gain);
   }
-
-  return true;
 }
 
-bool Input_RegisterParams()
+void Input_RegisterParams()
 {
   uint32_t min = MIN_MSG_START_FCN;
   uint32_t max = MAX_MSG_START_FCN;
@@ -506,7 +504,7 @@ bool Input_RegisterParams()
                      PARAM_TYPE_ENUM, &message_start_function, sizeof(uint8_t), 
                      &min, &max, NULL, msg_start_function_descriptors
                      ) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION)
   }
 
   min = MIN_AGC_STATE;
@@ -515,14 +513,14 @@ bool Input_RegisterParams()
                      PARAM_TYPE_UINT8, &automatic_gain_control, 
                      sizeof(uint8_t), &min, &max, NULL, NULL
                      ) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION)
   }
   min = MIN_FIXED_PGA_GAIN;
   max = MAX_FIXED_PGA_GAIN;
   if (Param_Register(PARAM_FIXED_PGA_GAIN, "the fixed PGA gain code", 
                      PARAM_TYPE_ENUM, &fixed_pga_gain, sizeof(uint8_t), &min, 
                      &max, NULL, pga_gain_descriptors) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION)
   }
 
   min = MIN_PREAMBLE_ERROR_BEHAVIOR;
@@ -531,10 +529,8 @@ bool Input_RegisterParams()
                      PARAM_TYPE_ENUM, &preamble_error_behavior, 
                      sizeof(uint8_t), &min, &max, NULL, 
                      preamble_error_behavior_descriptors) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION)
   }
-
-  return true;
 }
 
 

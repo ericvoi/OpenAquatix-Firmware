@@ -50,6 +50,8 @@ typedef enum {
 
 typedef enum {
   SUBSYS_POWER,
+  SUBSYS_PGA,
+  SUBSYS_FBK_TESTS,
   NUM_SUBSYS,
   SUBSYS_NONE // Used for error manager when an error is not tied to a subsystem
 } SubSystemIds_t;

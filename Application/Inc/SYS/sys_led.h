@@ -60,7 +60,7 @@ void LED_ManualOverride(uint8_t r, uint8_t g, uint8_t b);
  *
  * Register LED brightness and LED enable parameters
  *
- * @return true if successful and false otherwise
+ * @note Logs an error in the event of a failure
  */
 bool LED_RegisterParams(void);
 

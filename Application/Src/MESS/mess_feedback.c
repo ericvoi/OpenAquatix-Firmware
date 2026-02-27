@@ -38,10 +38,9 @@
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool Feedback_Init()
+void Feedback_Init()
 {
   ADC_FeedbackClear();
-  return true;
 }
 
 void Feedback_DumpData()

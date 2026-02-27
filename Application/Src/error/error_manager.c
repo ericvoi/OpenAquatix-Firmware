@@ -12,6 +12,7 @@
 
 #include "error_manager.h"
 #include "error_log.h"
+#include "error_reset.h"
 #include "cfg_main.h"
 #include "cfg_parameters.h"
 #include "comm_main.h"
@@ -49,6 +50,7 @@ static uint8_t tasks_fully_registered = 0;
 /* Private function prototypes -----------------------------------------------*/
 
 static void taskDeathLoop(void);
+static void systemDeathLoop(void);
 static TaskInfo_t* getTaskInfo(void);
 static void performSystemReset(OpenAquatixErrors_t reason);
 
@@ -115,8 +117,14 @@ void Error_RegisterError(OpenAquatixErrors_t error_code, const char* file, uint1
     case ERROR_SEVERITY_RESET_SUBSYS:
       // TODO: reset subsystem
       break;
+    case ERROR_SEVERITY_DISABLE_SUBSYS:
+      // TODO: disable subsytem
+      break;
     case ERROR_SEVERITY_FULL_RESET:
       performSystemReset(error_code);
+      break;
+    case ERROR_SEVERITY_UNRECOVERABLE:
+      systemDeathLoop();
       break;
     default:
       break;
@@ -183,6 +191,19 @@ void taskDeathLoop(void)
   }
 }
 
+// Disable all other running tasks and enter death loop
+void systemDeathLoop(void)
+{
+  TaskInfo_t* task_info = getTaskInfo();
+  for (uint16_t i = 0; i < NUM_TASKS; i++) {
+    if (&registered_tasks[i] == task_info) continue; // Dont disable yourself
+
+    osThreadTerminate(registered_tasks[i].task_id);
+  }
+  // TODO: Disable all interrupts besides the WS ones
+  taskDeathLoop();
+}
+
 TaskInfo_t* getTaskInfo(void)
 {
   osThreadId thread_id = osThreadGetId();
@@ -207,5 +228,5 @@ void performSystemReset(OpenAquatixErrors_t reason)
   COMM_TransmitData(buf, CALC_LEN, COMM_BOTH);
   ErrorLog_PrintLog(COMM_BOTH);
   osDelay(50);
-  HAL_NVIC_SystemReset();
+  ErrorReset_WarmReset();
 }

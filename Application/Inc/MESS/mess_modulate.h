@@ -53,9 +53,9 @@ float Modulate_GetAmplitude(uint32_t freq_hz);
  * starting ADC feedback, enabling DAC waveform output, and starting
  * the timer. Includes necessary delays for peripheral stabilization.
  *
- * @return true if all peripherals started successfully, false otherwise
+ * @note can cause a blocking error
  */
-bool Modulate_StartTransducerOutput(uint16_t num_steps, 
+void Modulate_StartTransducerOutput(uint16_t num_steps, 
                                     const DspConfig_t* new_cfg, 
                                     BitMessage_t* new_bit_msg);
 
@@ -138,9 +138,9 @@ bool Modulate_DataStep(const DspConfig_t* cfg, BitMessage_t* bit_msg, WaveformSt
  * Registers output amplitude with appropriate min/max constraints to make
  * it available for configuration through the system's HMI.
  *
- * @return true if all parameters registered successfully, false otherwise
+ * @note Logs an error in the event of a failure
  */
-bool Modulate_RegisterParams();
+void Modulate_RegisterParams();
 
 /* Private defines -----------------------------------------------------------*/
 

@@ -42,9 +42,9 @@ extern "C" {
 /**
  * @brief Initializes events and queues in background noise module
  * 
- * @return true if successfully made os structures, false otherwise
+ * @note Can register a fatal error if initialization failed
  */
-bool BackgroundNoise_Init();
+void BackgroundNoise_Init();
 
 /**
  * @brief Restarts the background noise and invalidates the current background

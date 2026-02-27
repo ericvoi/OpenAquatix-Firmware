@@ -101,11 +101,9 @@ float Demodulate_PowerNormalization();
  * Registers the decision method parameter to allow it to be accessed and
  * modified through the HMI interface.
  *
- * @return true if registration was successful, false otherwise
- *
- * @see Param_Register
+ * @note Logs an error in the event of a failure
  */
-bool Demodulate_RegisterParams(void);
+void Demodulate_RegisterParams(void);
 
 /* Private defines -----------------------------------------------------------*/
 

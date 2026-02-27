@@ -137,9 +137,9 @@ bool Packet_Get8BitChunk(BitMessage_t* bit_msg, uint16_t* start_position, uint8_
  * @param bit_msg Pointer to the bit message structure
  * @param data The 8-bit value to add
  *
- * @return true if successful, false if packet would exceed maximum size
+ * @note Can generate abort and unrecoverable errors
  */
-bool Packet_Add8(BitMessage_t* bit_msg, uint8_t data);
+void Packet_Add8(BitMessage_t* bit_msg, uint8_t data);
 
 /**
  * @brief Adds a 16-bit value to a bit message
@@ -147,9 +147,9 @@ bool Packet_Add8(BitMessage_t* bit_msg, uint8_t data);
  * @param bit_msg Pointer to the bit message structure
  * @param data The 16-bit value to add
  *
- * @return true if successful, false if packet would exceed maximum size
+ * @note Can generate abort and unrecoverable errors
  */
-bool Packet_Add16(BitMessage_t* bit_msg, uint16_t data);
+void Packet_Add16(BitMessage_t* bit_msg, uint16_t data);
 
 /**
  * @brief Adds a 32-bit value to a bit message
@@ -157,9 +157,9 @@ bool Packet_Add16(BitMessage_t* bit_msg, uint16_t data);
  * @param bit_msg Pointer to the bit message structure
  * @param data The 32-bit value to add
  *
- * @return true if successful, false if packet would exceed maximum size
+ * @note Can generate abort and unrecoverable errors
  */
-bool Packet_Add32(BitMessage_t* bit_msg, uint32_t data);
+void Packet_Add32(BitMessage_t* bit_msg, uint32_t data);
 
 /**
  * @brief Extracts an 8-bit value from a bit message
@@ -193,27 +193,6 @@ bool Packet_Get16(BitMessage_t* bit_msg, uint16_t* start_position, uint16_t* dat
  * @return true if successful, false if requested bits exceed message bounds
  */
 bool Packet_Get32(BitMessage_t* bit_msg, uint16_t* start_position, uint32_t* data);
-
-/**
- * @brief Extracts a set number of bits from an offset in a bit message
- * 
- * @param bit_msg message to take the bits from
- * @param start_position starting bit position offset
- * @param num_bits Number of bits to extract (must be <= 16)
- * @param data Returned data at that location (will be updated)
- * @return true if successful, false otherwise
- */
-bool Packet_GetChunk(BitMessage_t* bit_msg, uint16_t start_position, uint8_t num_bits, uint16_t* data);
-
-/**
- * @brief Adds a chunk of data to a bit message
- * 
- * @param bit_msg Message to add the bits to
- * @param num_bits Number of bits to add
- * @param data Data to add
- * @return true if successful, false otherwise
- */
-bool Packet_AddChunk(BitMessage_t* bit_msg, uint8_t num_bits, uint16_t data);
 
 /**
  * @brief Flips bit at selected position
@@ -273,22 +252,18 @@ bool Packet_CargoBytes(uint8_t length_index, uint16_t* cargo_bytes);
  * @param start_index Bit index to start copy at
  * @param length Length in bits of the section to copy
  *
- * @return true if successful, false otherwise
+ * @note Can generate an abort error
  *
  * @note Does not copy other information from the struct besides data array
  */
-bool Packet_Copy(const BitMessage_t* src_msg, BitMessage_t* dest_msg, const uint16_t start_index, const uint16_t length);
+void Packet_Copy(const BitMessage_t* src_msg, BitMessage_t* dest_msg, const uint16_t start_index, const uint16_t length);
 
 /**
  * @brief Registers modem parameters with the parameter subsystem for HMI access
  *
- * Registers:
- * - The modem identifier
- * - The stationary flag (indicating if the modem is in a fixed position)
- *
- * @return true if all parameters were registered successfully
+ * @note Logs an error in the event of a failure
  */
-bool Packet_RegisterParams();
+void Packet_RegisterParams();
 
 /* Private defines -----------------------------------------------------------*/
 

@@ -19,6 +19,8 @@
 
 #include "cfg_main.h"
 
+#include "error_manager.h"
+
 #include "cmsis_os.h"
 
 #include <stdbool.h>
@@ -591,7 +593,7 @@ static void printStatistics(void);
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool FeedbackTests_Init()
+void FeedbackTests_Init()
 {
   total_tests = 0;
 
@@ -601,13 +603,11 @@ bool FeedbackTests_Init()
 
     // If there are no errors added then there is no point in having multiple repetitions
     if (errors_added == 0 && repetitions != 1) {
-      return false;
+      REGISTER_ERROR(ERROR_FEEDBACK_TEST_INITIALIZATION);
     }
 
     total_tests += repetitions;
   }
-
-  return true;
 }
 
 void FeedbackTests_Start()

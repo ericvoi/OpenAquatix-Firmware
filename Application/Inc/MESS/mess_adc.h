@@ -71,9 +71,9 @@ bool ADC_Init();
  * Resets the input buffer index, starts Timer 8, and initiates DMA-based
  * ADC conversions for the input channel.
  *
- * @return true if operation starts successfully, false otherwise
+ * @note If the process fails, the system is reset
  */
-bool ADC_StartInput();
+void ADC_StartInput();
 
 /**
  * @brief Starts ADC conversions on the feedback channel using DMA
@@ -81,11 +81,11 @@ bool ADC_StartInput();
  * Resets the feedback buffer index and initiates DMA-based ADC conversions
  * for the feedback channel. Requires a feedback buffer to be registered first.
  *
- * @return true if operation starts successfully, false if feedback buffer is NULL or DMA fails
+ * @note Can cause an abort error
  *
  * @pre Feedback buffer must be registered with ADC_RegisterFeedbackBuffer()
  */
-bool ADC_StartFeedback();
+void ADC_StartFeedback();
 
 /**
  * @brief Stops ADC conversions on the feedback channel

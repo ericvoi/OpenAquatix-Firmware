@@ -20,6 +20,7 @@
 #include "mess_dac_resources.h"
 #include "cfg_parameters.h"
 #include "cfg_defaults.h"
+#include "error_manager.h"
 #include "stm32h7xx_hal.h"
 #include <math.h>
 #include <string.h>
@@ -139,7 +140,7 @@ float Modulate_GetAmplitude(uint32_t freq_hz)
   return output_amplitude;
 }
 
-bool Modulate_StartTransducerOutput(uint16_t num_steps, 
+void Modulate_StartTransducerOutput(uint16_t num_steps, 
                                     const DspConfig_t* new_cfg, 
                                     BitMessage_t* new_bit_msg)
 {
@@ -149,9 +150,7 @@ bool Modulate_StartTransducerOutput(uint16_t num_steps,
   osDelay(1);
   MessDacResource_RegisterMessageConfiguration(new_cfg, new_bit_msg);
   Waveform_SetWaveformSequence(num_steps, true);
-  if (ADC_StartFeedback() == false) {
-    return false;
-  }
+  RETURN_IF_ERROR_PRESENT(ADC_StartFeedback())
   if (Waveform_StartWaveformOutput(DAC_CHANNEL_1) == false) {
     return false;
   }
@@ -241,13 +240,13 @@ bool Modulate_DataStep(const DspConfig_t* cfg, BitMessage_t* bit_msg, WaveformSt
   return true;
 }
 
-bool Modulate_RegisterParams()
+void Modulate_RegisterParams()
 {
   float min_f = MIN_OUTPUT_AMPLITUDE;
   float max_f = MAX_OUTPUT_AMPLITUDE;
   if (Param_Register(PARAM_OUTPUT_AMPLITUDE, "output amplitude", PARAM_TYPE_FLOAT,
                      &output_amplitude, sizeof(float), &min_f, &max_f, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION)
   }
 
   uint32_t min_u32 = MIN_MOD_OUTPUT_METHOD;
@@ -255,59 +254,57 @@ bool Modulate_RegisterParams()
   if (Param_Register(PARAM_MODULATION_OUTPUT_METHOD, "output strength method", PARAM_TYPE_ENUM,
                      &output_strength_method, sizeof(uint8_t), &min_u32, &max_u32, NULL,
                      output_strength_method_descriptors) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION)
   }
 
   min_f = MIN_MOD_TARGET_POWER;
   max_f = MAX_MOD_TARGET_POWER;
   if (Param_Register(PARAM_MODULATION_TARGET_POWER, "target output power", PARAM_TYPE_FLOAT,
                      &target_power_w, sizeof(float), &min_f, &max_f, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION)
   }
 
   min_f = MIN_R;
   max_f = MAX_R;
   if (Param_Register(PARAM_R, "motional head R [ohm]", PARAM_TYPE_FLOAT,
                      &motional_head_r_ohm, sizeof(float), &min_f, &max_f, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION)
   }
 
   min_f = MIN_C0;
   max_f = MAX_C0;
   if (Param_Register(PARAM_C0, "motional head C0 [nF]", PARAM_TYPE_FLOAT,
                      &motional_head_c0_nf, sizeof(float), &min_f, &max_f, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION)
   }
 
   min_f = MIN_L0;
   max_f = MAX_L0;
   if (Param_Register(PARAM_L0, "motional head L0 [mH]", PARAM_TYPE_FLOAT,
                      &motional_head_l0_mh, sizeof(float), &min_f, &max_f, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION)
   }
 
   min_f = MIN_C1;
   max_f = MAX_C1;
   if (Param_Register(PARAM_C1, "parallel cap c1 [nF]", PARAM_TYPE_FLOAT,
                      &parallel_c1_nf, sizeof(float), &min_f, &max_f, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION)
   }
 
   min_f = MIN_MAX_TRANSDUCER_V;
   max_f = MAX_MAX_TRANSDUCER_V;
   if (Param_Register(PARAM_MAX_TRANSDUCER_VOLTAGE, "Maximum transducer voltage", PARAM_TYPE_FLOAT,
                      &max_transducer_voltage, sizeof(float), &min_f, &max_f, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION)
   }
 
   min_u32 = MIN_APPLY_TUKEY;
   max_u32 = MAX_APPLY_TUKEY;
   if (Param_Register(PARAM_APPLY_TUKEY, "Tukey window application", PARAM_TYPE_UINT8,
                      &apply_tukey, sizeof(bool), &min_u32, &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION)
   }
-
-  return true;
 }
 
 

@@ -221,9 +221,7 @@ bool restartADCs()
     return false;
   }
   Input_Reset();
-  if (ADC_StartInput() == false) {
-    return false;
-  }
+  ADC_StartInput();
   // If receiving prior, then the sync state is fine, but not if transmitting prior
   // Reset not used if not needed since computationally expensive
   if (AFE_IsTransmitting()) {

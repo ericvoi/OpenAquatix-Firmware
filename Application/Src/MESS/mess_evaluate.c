@@ -18,6 +18,7 @@
 #include "cfg_parameters.h"
 #include "cfg_defaults.h"
 
+#include "error_manager.h"
 #include "prbs.h"
 
 #include <stdbool.h>
@@ -109,16 +110,15 @@ bool Evaluate_UncodedBer(EvalMessageInfo_t* eval_info, BitMessage_t* bit_msg, co
   return true;
 }
 
-bool Evaluate_RegisterParams()
+void Evaluate_RegisterParams()
 {
   uint32_t min_u32 = MIN_EVAL_MESSAGE_LEN;
   uint32_t max_u32 = MAX_EVAL_MESSAGE_LEN;
   if (Param_Register(PARAM_EVAL_MESSAGE_LEN, "evaluation message length", PARAM_TYPE_UINT16,
                      &eval_message_length, sizeof(uint16_t),
                      &min_u32, &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION)
   }
-  return true;
 }
 
 /* Private function definitions ----------------------------------------------*/

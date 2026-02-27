@@ -40,6 +40,8 @@
 #include "cfg_defaults.h"
 #include "cfg_callbacks.h"
 
+#include "error_manager.h"
+
 #include "afe.h"
 #include "dac_waveform.h"
 #include "pga113-driver.h"
@@ -144,9 +146,9 @@ DEFINE_DESC_TABLE(ENCRYPTION_TABLE, encryption_descriptors)
 /* Private function prototypes -----------------------------------------------*/
 
 static void switchState(ProcessingState_t newState);
-static bool handleFlags();
-static bool registerMessParams();
-static bool registerMessMainParams();
+static void handleFlags();
+static void registerMessParams();
+static void registerMessMainParams();
 static void getConfig();
 
 /* Exported function definitions ---------------------------------------------*/
@@ -157,18 +159,9 @@ void MESS_StartTask(void* argument)
   osEventFlagsClear(print_event_handle, 0xFFFFFFFF);
   MessDacResource_Init();
 
-  if (Param_RegisterTask(MESS_TASK, "MESS") == false) {
-    Error_Routine(ERROR_MESS_INIT);
-  }
-
-  if (registerMessParams() == false) {
-    Error_Routine(ERROR_MESS_INIT);
-  }
-
-  if (Param_TaskRegistrationComplete(MESS_TASK) == false) {
-    Error_Routine(ERROR_MESS_INIT);
-  }
-
+  Error_RegisterTask("MESS");
+  registerMessParams();
+  Error_ParameterRegistrationComplete();
   CFG_WaitLoadComplete();
 
 
@@ -203,14 +196,8 @@ void MESS_StartTask(void* argument)
         break;
       case LISTENING:
 
-        if (Input_UpdatePgaGain() == false) {
-          Error_Routine(ERROR_MESS_PROCESSING);
-          break;
-        }
-
-        if (handleFlags() == false) {
-          Error_Routine(ERROR_MESS_PROCESSING);
-        }
+        Input_UpdatePgaGain();
+        handleFlags();
 
         FeedbackTests_GetNext();
         getConfig();
@@ -511,16 +498,16 @@ void switchState(ProcessingState_t newState)
   }
 }
 
-bool handleFlags()
+void handleFlags()
 {
   uint32_t flags = osEventFlagsWait(print_event_handle, 0x7F, osFlagsWaitAny, 0);
 
   if (flags == osFlagsErrorResource) {
-    return true;
+    return;
   }
 
   if (flags & 0x80000000U) {
-    return false;
+    REGISTER_ERROR(ERROR_FLAGS_RUNNING)
   }
 
   if (flags & MESS_PRINT_REQUEST) {
@@ -547,54 +534,29 @@ bool handleFlags()
     Input_NoiseFft();
     osEventFlagsSet(print_event_handle, MESS_PRINT_COMPLETE);
   }
-  return true;
 }
 
-bool registerMessParams()
+void registerMessParams()
 {
   // register all parameters from all files
-  if (Modulate_RegisterParams() == false) {
-    return false;
-  }
-
-  if (registerMessMainParams() == false) {
-    return false;
-  }
-
-  if (Input_RegisterParams() == false) {
-    return false;
-  }
-
-  if (Packet_RegisterParams() == false) {
-    return false;
-  }
-
-  if (ErrorDetection_RegisterParams() == false) {
-    return false;
-  }
-
-  if (Demodulate_RegisterParams() == false) {
-    return false;
-  } 
-
-  if (Calibrate_RegisterParams() == false) {
-    return false;
-  }
-
-  if (Evaluate_RegisterParams() == false) {
-    return false;
-  }
-  return true;
+  Modulate_RegisterParams();
+  registerMessMainParams();
+  Input_RegisterParams();
+  Packet_RegisterParams();
+  ErrorDetection_RegisterParams();
+  Demodulate_RegisterParams();
+  Calibrate_RegisterParams();
+  Evaluate_RegisterParams();
 }
 
-bool registerMessMainParams()
+void registerMessMainParams()
 {
   float min_f = MIN_BAUD_RATE;
   float max_f = MAX_BAUD_RATE;
   if (Param_Register(PARAM_BAUD, "baud rate", PARAM_TYPE_FLOAT,
                      &custom_config.baud_rate, sizeof(float),
                      &min_f, &max_f, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   uint32_t min_u32 = MIN_FSK_FREQUENCY;
@@ -602,12 +564,12 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_FSK_F0, "FSK 0 frequency", PARAM_TYPE_UINT32,
                      &custom_config.fsk_f0, sizeof(uint32_t),
                      &min_u32, &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
   if (Param_Register(PARAM_FSK_F1, "FSK 1 frequency", PARAM_TYPE_UINT32,
                      &custom_config.fsk_f1, sizeof(uint32_t),
                      &min_u32, &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_MOD_DEMOD_METHOD;
@@ -623,7 +585,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_FC, "center frequency", PARAM_TYPE_UINT32,
                      &custom_config.fc, sizeof(uint32_t),
                      &min_u32, &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_FHBFSK_FREQ_SPACING;
@@ -631,7 +593,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_FHBFSK_FREQ_SPACING, "frequency spacing", PARAM_TYPE_UINT8,
                      &custom_config.fhbfsk_freq_spacing, sizeof(uint8_t),
                      &min_u32, &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_FHBFSK_DWELL_TIME;
@@ -639,7 +601,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_FHBFSK_DWELL_TIME, "dwell time", PARAM_TYPE_UINT8,
                      &custom_config.fhbfsk_dwell_time, sizeof(uint8_t),
                      &min_u32, &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_FHBFSK_NUM_TONES;
@@ -647,7 +609,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_FHBFSK_NUM_TONES, "number of tones", 
                      PARAM_TYPE_UINT8, &custom_config.fhbfsk_num_tones, 
                      sizeof(uint8_t), &min_u32, &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_ERROR_DETECTION;
@@ -657,7 +619,7 @@ bool registerMessMainParams()
                      &custom_config.preamble_validation, sizeof(uint8_t),
                      &min_u32, &max_u32, NULL, error_detection_descriptors
                      ) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   if (Param_Register(PARAM_CARGO_ERROR_DETECTION, 
@@ -674,7 +636,7 @@ bool registerMessMainParams()
                      &custom_config.preamble_ecc_method, sizeof(uint8_t),
                      &min_u32, &max_u32, NULL, error_correction_descriptors
                      ) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   // Using the same bounds as ^
@@ -682,7 +644,7 @@ bool registerMessMainParams()
                      &custom_config.cargo_ecc_method, sizeof(uint8_t),
                      &min_u32, &max_u32, NULL, error_correction_descriptors
                      ) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_INTERLEAVER_STATE;
@@ -699,7 +661,7 @@ bool registerMessMainParams()
                      &custom_config.fhbfsk_hopper, sizeof(uint8_t), 
                      &min_u32, &max_u32, NULL, fhbfsk_hopper_descriptors
                      ) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_SYNC_METHOD;
@@ -708,7 +670,7 @@ bool registerMessMainParams()
                      &custom_config.sync_method, sizeof(uint8_t),
                      &min_u32, &max_u32, NULL, synchronization_descriptors
                      ) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_ID;
@@ -716,7 +678,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_ID, "the modem identifier", PARAM_TYPE_UINT8,
                      &custom_id, sizeof(uint8_t), &min_u32, 
                      &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_STATIONARY_FLAG;
@@ -724,7 +686,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_STATIONARY_FLAG, "stationary flag", PARAM_TYPE_UINT8,
                      &is_mobile, sizeof(uint8_t), &min_u32, 
                      &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_WAKEUP_TONES_STATE;
@@ -732,7 +694,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_WAKEUP_TONES_STATE, "wakeup tones", PARAM_TYPE_UINT8,
                      &custom_config.wakeup_tones, sizeof(bool), &min_u32, 
                      &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_WAKEUP_TONE_FREQ;
@@ -740,17 +702,17 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_WAKEUP_TONE1, "wakeup tone 1", PARAM_TYPE_UINT32,
                      &custom_config.wakeup_tone1, sizeof(uint32_t), &min_u32, 
                      &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
   if (Param_Register(PARAM_WAKEUP_TONE2, "wakeup tone 2", PARAM_TYPE_UINT32,
                      &custom_config.wakeup_tone2, sizeof(uint32_t), &min_u32, 
                      &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
   if (Param_Register(PARAM_WAKEUP_TONE3, "wakeup tone 3", PARAM_TYPE_UINT32,
                      &custom_config.wakeup_tone3, sizeof(uint32_t), &min_u32, 
                      &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_MESSAGING_PROTOCOL;
@@ -758,7 +720,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_PROTOCOL, "the messaging protocol", PARAM_TYPE_UINT8,
                      &messaging_protocol, sizeof(uint8_t), &min_u32, 
                      &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_TX_RX_CAPABLE;
@@ -766,7 +728,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_TX_RX_ABILITY, "Tx/Rx ability flag", PARAM_TYPE_ENUM,
                      &tx_rx_capable, sizeof(bool), &min_u32,
                      &max_u32, NULL, messaging_protocol_descriptors) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_FORWARD_CAPABILITY;
@@ -774,7 +736,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_FORWARD_CAPABILITY, "packet forward ability flag", 
                      PARAM_TYPE_UINT8, &forwarding_capability, sizeof(bool),
                      &min_u32, &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_JANUS_ID;
@@ -782,7 +744,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_JANUS_ID, "JANUS ID", PARAM_TYPE_UINT8,
                      &janus_id, sizeof(uint8_t), &min_u32, &max_u32, 
                      NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_JANUS_DESTINATION;
@@ -790,7 +752,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_JANUS_DESTINATION, "JANUS destination ID",
                      PARAM_TYPE_UINT8, &janus_destination_id, sizeof(uint8_t),
                      &min_u32, &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_CODING;
@@ -798,7 +760,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_CODING, "string coding", PARAM_TYPE_ENUM,
                      &coding, sizeof(uint8_t), &min_u32, &max_u32, 
                      NULL, coding_descriptors) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_ENCRYPTION;
@@ -806,10 +768,8 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_ENCRYPTION, "cargo encryption", PARAM_TYPE_ENUM,
                      &encryption, sizeof(uint8_t), &min_u32, &max_u32, 
                      NULL, encryption_descriptors) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
-
-  return true;
 }
 
 void getConfig()

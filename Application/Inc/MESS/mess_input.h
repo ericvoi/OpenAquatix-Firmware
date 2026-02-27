@@ -64,7 +64,7 @@ DECLARE_ENUM(PREAMBLE_ERROR_BEHAVIOR_TABLE, NUM_PREAMBLE_ERROR_BEHAVIORS, Preamb
  *
  * @note Must be called before any other Input_* functions
  */
-bool Input_Init();
+void Input_Init();
 
 /**
  * @brief Detects the start of an acoustic message in the input stream
@@ -163,16 +163,16 @@ void Input_NoiseFft();
  * 
  * @return true always
  */
-bool Input_UpdatePgaGain();
+void Input_UpdatePgaGain();
 
 /**
  * @brief Registers module parameters with the parameter system
  *
  * Makes the message start function parameter accessible via the HMI interface.
  *
- * @return true if parameter registration succeeds, false otherwise
+ * @note Logs an error in the event of a failure
  */
-bool Input_RegisterParams();
+void Input_RegisterParams();
 
 /* Private defines -----------------------------------------------------------*/
 

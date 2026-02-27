@@ -51,10 +51,8 @@ DECLARE_ENUM(PGA_GAIN_TABLE, PGA_NUM_CODES, PgaGain_t)
 
 /**
  * @brief Initializes the PGA113 driver by setting flags
- * 
- * @return true always
  */
-bool Pga113_Init();
+void Pga113_Init();
 
 /**
  * @brief Sets the gain of the PGA113 and updates the device instantly if available
@@ -67,24 +65,24 @@ void Pga113_SetGain(PgaGain_t gain);
  * @brief Reads from the PGA113 and updates the rx buffer when received.
  * Used for debugging SPI connection
  * 
- * @return true if successfully set DMA in HAL, false otherwise 
+ * @note On failure, cause PGA subsystem to be reset
  */
-bool Pga113_Read();
+void Pga113_Read();
 
 /**
  * @brief Shuts down the PGA113. This makes the output undefined and not tied
  * to the input. Useful for deep sleep modes. Iq ~= 1.1mA
  * 
- * @return true if successfully sent shutdown command, false otherwise
+ * @note On failure, cause PGA subsystem to be reset
  */
-bool Pga113_Shutdown();
+void Pga113_Shutdown();
 
 /**
  * @brief Enables the PGA113 after being shutdown. Re enables output PGA signal
  * 
- * @return true if successfully sent command to disable shutdown, false otherwise
- */
-bool Pga113_Enable();
+ * @note On failure, cause PGA subsystem to be reset
+ */ 
+void Pga113_Enable();
 
 /**
  * @brief Gets the last gain of the PGA module.

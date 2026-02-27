@@ -1,24 +1,22 @@
 /*
- * mess_calibration.h
+ * error_reset.h
  *
- *  Created on: Feb 12, 2025
+ *  Created on: Feb 25, 2026
  *      Author: ericv
- * 
- * Copyright (c) 2025 OpenAquatix Contributors
+ *
+ * Copyright (c) 2026 OpenAquatix Contributors
  * SPDX-License-Identifier: MIT
  */
 
-#ifndef MESS_MESS_CALIBRATION_H_
-#define MESS_MESS_CALIBRATION_H_
+#ifndef ERROR_ERROR_RESET_H_
+#define ERROR_ERROR_RESET_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32h7xx_hal.h"
 
-#include <stdbool.h>
 
 
 /* Private includes ----------------------------------------------------------*/
@@ -40,11 +38,9 @@ extern "C" {
 /* Exported functions prototypes ---------------------------------------------*/
 
 /**
- * @brief Registers parameters for the calibration module
- * 
- * @note Logs an error in the event of a failure
+ * @brief Resets the device without clearing the log by setting a flag
  */
-void Calibrate_RegisterParams(void);
+void ErrorReset_WarmReset(void);
 
 /* Private defines -----------------------------------------------------------*/
 
@@ -52,4 +48,4 @@ void Calibrate_RegisterParams(void);
 }
 #endif
 
-#endif /* MESS_MESS_CALIBRATION_H_ */
+#endif /* ERROR_ERROR_RESET_H_ */

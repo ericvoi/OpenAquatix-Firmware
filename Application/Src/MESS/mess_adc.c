@@ -15,6 +15,7 @@
 #include "mess_feedback.h"
 #include "mess_background_noise.h"
 #include "sys_temperature.h"
+#include "error_manager.h"
 #include "stm32h7xx_hal.h"
 #include <string.h>
 #include "FreeRTOS.h"
@@ -89,21 +90,29 @@ bool ADC_Init()
   return ret1 == HAL_OK;
 }
 
-bool ADC_StartInput()
+void ADC_StartInput()
 {
   input_head_pos = 0;
   input_tail_pos = 0;
-  HAL_TIM_Base_Start(&htim8);
+
+  if (HAL_TIM_Base_Start(&htim8) != HAL_OK) 
+    REGISTER_ERROR(ERROR_INPUT_ADC_INITIALIZATION)
+
   HAL_StatusTypeDef ret = HAL_ADC_Start_DMA(&INPUT_ADC, (uint32_t*) adc_buffer, ADC_BUFFER_SIZE);
-  return ret == HAL_OK;
+  if (ret != HAL_OK) 
+    REGISTER_ERROR(ERROR_INPUT_ADC_INITIALIZATION)
 }
 
-bool ADC_StartFeedback()
+void ADC_StartFeedback()
 {
   feedback_head_pos = 0;
   feedback_tail_pos = 0;
+
   HAL_StatusTypeDef ret = HAL_ADC_Start_DMA(&FEEDBACK_ADC, (uint32_t*) adc_buffer, ADC_BUFFER_SIZE);
-  return ret == HAL_OK;
+  if (ret != HAL_OK) {
+    REGISTER_ERROR(ERROR_FEEDBACK_ADC_INITIALIZATION)
+    return;
+  }
 }
 
 bool ADC_StopFeedback()

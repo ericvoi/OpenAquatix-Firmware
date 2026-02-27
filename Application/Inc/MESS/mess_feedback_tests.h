@@ -48,7 +48,7 @@ extern "C" {
  * 
  * @note This must be called before using any FeedbackTests_... module
  */
-bool FeedbackTests_Init(void);
+void FeedbackTests_Init(void);
 
 /**
  * @brief Starts feedback tests

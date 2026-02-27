@@ -38,7 +38,7 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-bool Feedback_Init();
+void Feedback_Init();
 void Feedback_DumpData();
 
 /* Private defines -----------------------------------------------------------*/

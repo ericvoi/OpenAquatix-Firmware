@@ -1,7 +1,7 @@
 /*
- * bkpsram_layout.c
+ * error_reset.c
  *
- *  Created on: Feb 23, 2026
+ *  Created on: Feb 25, 2026
  *      Author: ericv
  *
  * Copyright (c) 2026 OpenAquatix Contributors
@@ -10,9 +10,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 
-#include "stm32h723xx.h"
+#include "stm32h7xx_hal.h"
 #include "bkpsram_layout.h"
-#include <string.h>
 
 /* Private typedef -----------------------------------------------------------*/
 
@@ -26,9 +25,9 @@
 
 
 
-/* Exported variables --------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
 
-volatile BkpSramData_t bkpsram __attribute__((section(".bkpsram"), used));
+
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -36,16 +35,11 @@ volatile BkpSramData_t bkpsram __attribute__((section(".bkpsram"), used));
 
 /* Exported function definitions ---------------------------------------------*/
 
-void Bkpsram_Init(void)
+void ErrorReset_WarmReset()
 {
-  RCC->RSR |= RCC_RSR_RMVF;
-
-  if (bkpsram.log_reset_flag == LOG_RESET_MAGIC_NUMBER) {
-    bkpsram.log_reset_flag = 0;
-    bkpsram.reset_count++;
-  } else {
-    memset((void*)&bkpsram, 0, sizeof(bkpsram));
-  }
+  bkpsram.log_reset_flag = LOG_RESET_MAGIC_NUMBER;
+  __DSB();
+  HAL_NVIC_SystemReset();
 }
 
 /* Private function definitions ----------------------------------------------*/

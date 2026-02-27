@@ -89,7 +89,9 @@ void ErrorLog_LogError(const char* file_name, const char* task_name,
 void ErrorLog_PrintLog(CommInterface_t interface)
 {
   ErrorEntry_t sorted_log[MAX_ENTRIES_IN_ERROR_LOG];
+  uint32_t state = osKernelLock();
   sortLogByTimestamp((ErrorEntry_t*) error_log, MAX_ENTRIES_IN_ERROR_LOG, sorted_log);
+  osKernelRestoreLock(state);
 
   uint16_t current_reset_count = bkpsram.reset_count;
   uint64_t current_timestamp = HAL_AbsoluteTimestamp();

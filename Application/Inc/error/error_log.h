@@ -30,11 +30,12 @@ extern "C" {
 typedef struct {
   const char* task_name;
   const char* file_name;
-  uint16_t line_number;
-  uint16_t occurrences;
-  uint16_t reset_count;
-  OpenAquatixErrors_t error_code;
+  uint32_t line_number;
+  uint32_t occurrences;
+  uint32_t reset_count;
+  uint32_t error_code;
   uint64_t timestamp;
+  // CRC?
 } ErrorEntry_t;
 
 /* Exported constants --------------------------------------------------------*/

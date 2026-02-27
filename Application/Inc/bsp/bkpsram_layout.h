@@ -23,8 +23,9 @@ extern "C" {
 
 typedef struct {
   // WARNING: magic_number should never be moved!
-  uint32_t magic_number; // Bootloader magic number
-  uint16_t reset_count; //  Resets since last POR
+  uint32_t magic_number;    // Bootloader magic number
+  uint32_t reset_count;     // Resets since last POR
+  uint32_t log_reset_flag;  // Flag indicating if the log should be reset
   ErrorEntry_t error_log[MAX_ENTRIES_IN_ERROR_LOG]; // Persistent error log
 } BkpSramData_t;
 
@@ -34,7 +35,7 @@ typedef struct {
 
 /* Exported constants --------------------------------------------------------*/
 
-
+#define LOG_RESET_MAGIC_NUMBER            0x12983476
 
 /* Exported macro ------------------------------------------------------------*/
 

@@ -18,6 +18,7 @@
 #include "mac_channel_reports.h"
 #include "cfg_main.h"
 #include "arm_math.h"
+#include "error_manager.h"
 #include "cmsis_os.h"
 #include <math.h>
 #include <stdint.h>
@@ -96,21 +97,20 @@ static bool updateChannelReportTotalCount(const DspConfig_t* cfg);
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool BackgroundNoise_Init()
+void BackgroundNoise_Init()
 {
   channel_report_flag = osEventFlagsNew(NULL);
   if (channel_report_flag == NULL) {
-    return false;
+    REGISTER_ERROR(ERROR_FLAGS_INITIALIZATION)
   }
   osEventFlagsClear(channel_report_flag, 0xFFFFFFFF);
 
   channel_report_queue = osMessageQueueNew(CHANNEL_REPORT_QUEUE_SIZE, sizeof(ChannelReport_t), NULL);
   if (channel_report_queue == NULL) {
-    return false;
+    REGISTER_ERROR(ERROR_QUEUE_INITIALIZATION)
   }
 
   BackgroundNoise_Reset();
-  return true;
 }
 
 void BackgroundNoise_Reset()
