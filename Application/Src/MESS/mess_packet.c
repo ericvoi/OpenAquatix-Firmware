@@ -39,41 +39,31 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-void initPacket(BitMessage_t* bit_msg, const DspConfig_t* cfg);
-bool addChunk(BitMessage_t* bit_msg, uint8_t chunk, uint8_t chunk_size);
-void addData(BitMessage_t* bit_msg, void* data, uint8_t num_bits);
-void getData(BitMessage_t* bit_msg, uint16_t* start_position, uint8_t num_bits, void* data);
+static void initPacket(BitMessage_t* bit_msg, const DspConfig_t* cfg);
+static void addData(BitMessage_t* bit_msg, void* data, uint8_t num_bits);
+static bool getData(BitMessage_t* bit_msg, uint16_t* start_position, uint8_t num_bits, void* data);
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool Packet_PrepareTx(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* cfg)
+void Packet_PrepareTx(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* cfg)
 {
-  RETURN_IF_ERROR_PRESENT()
+  RETURN_IF_ERROR_PRESENT();
   if (msg == NULL || bit_msg == NULL)
-    REGISTER_ERROR(ERROR_NULL_PTR)
+    REGISTER_ERROR(ERROR_NULL_PTR);
 
   initPacket(bit_msg, cfg);
 
   // Add preamble to bit packet
-  if (Preamble_Add(bit_msg, msg, cfg) == false) {
-    return false;
-  }
+  RETURN_IF_ERROR_PRESENT(Preamble_Add(bit_msg, msg, cfg));
 
   // Adds the data payload bits to the packet
-  if (Cargo_Add(bit_msg, msg, cfg) == false) {
-    return false;
-  }
-  return true;
+  RETURN_IF_ERROR_PRESENT(Cargo_Add(bit_msg, msg, cfg));
 }
 
-bool Packet_PrepareRx(BitMessage_t* bit_msg, const DspConfig_t* cfg)
+void Packet_PrepareRx(BitMessage_t* bit_msg, const DspConfig_t* cfg)
 {
-  RETURN_IF_ERROR_PRESENT()
-  if (initPacket(bit_msg, cfg) == false) {
-    return false;
-  }
-
-  return true;
+  RETURN_IF_ERROR_PRESENT();
+  initPacket(bit_msg, cfg);
 }
 
 bool Packet_AddBit(BitMessage_t* bit_msg, bool bit)
@@ -137,26 +127,23 @@ void Packet_Add32(BitMessage_t* bit_msg, uint32_t data)
   addData(bit_msg, &data, 8 * sizeof(uint32_t));
 }
 
-void Packet_Get8(BitMessage_t* bit_msg, uint16_t* start_position, uint8_t* data)
+bool Packet_Get8(BitMessage_t* bit_msg, uint16_t* start_position, uint8_t* data)
 {
-  getData(bit_msg, start_position, 8 * sizeof(uint8_t), data);
+  return getData(bit_msg, start_position, 8 * sizeof(uint8_t), data);
 }
 
-void Packet_Get16(BitMessage_t* bit_msg, uint16_t* start_position, uint16_t* data)
+bool Packet_Get16(BitMessage_t* bit_msg, uint16_t* start_position, uint16_t* data)
 {
-  getData(bit_msg, start_position, 8 * sizeof(uint16_t), data);
+  return getData(bit_msg, start_position, 8 * sizeof(uint16_t), data);
 }
 
-void Packet_Get32(BitMessage_t* bit_msg, uint16_t* start_position, uint32_t* data)
+bool Packet_Get32(BitMessage_t* bit_msg, uint16_t* start_position, uint32_t* data)
 {
-  getData(bit_msg, start_position, 8 * sizeof(uint32_t), data);
+  return getData(bit_msg, start_position, 8 * sizeof(uint32_t), data);
 }
 
 bool Packet_FlipBit(BitMessage_t* bit_msg, uint16_t bit_index)
 {
-  if (bit_msg == NULL) {
-    return false;
-  }
   if (bit_index >= bit_msg->final_length) {
     return false;
   }
@@ -187,10 +174,10 @@ bool Packet_SetBit(BitMessage_t* bit_msg, uint16_t bit_index, bool bit)
   return true;
 }
 
-bool Packet_Compare(const BitMessage_t* msg1, const BitMessage_t* msg2, bool* identical)
+void Packet_Compare(const BitMessage_t* msg1, const BitMessage_t* msg2, bool* identical)
 {
   if (msg1 == NULL || msg2 == NULL || identical == NULL) {
-    return false;
+    REGISTER_ERROR(ERROR_NULL_PTR);
   }
 
   uint16_t bit_count1 = msg1->combined_message_len;
@@ -198,7 +185,7 @@ bool Packet_Compare(const BitMessage_t* msg1, const BitMessage_t* msg2, bool* id
 
   if (bit_count1 != bit_count2) {
     *identical = false;
-    return true;
+    return;
   }
 
   uint16_t byte_count = bit_count1 / 8;
@@ -209,14 +196,13 @@ bool Packet_Compare(const BitMessage_t* msg1, const BitMessage_t* msg2, bool* id
   }
   else {
     *identical = false;
-    return true;
+    return;
   }
 
   uint8_t last_byte1 = msg1->data[byte_count] >> (8 - remaining_bits);
   uint8_t last_byte2 = msg2->data[byte_count] >> (8 - remaining_bits);
 
   *identical = last_byte1 == last_byte2;
-  return true;
 }
 
 /**
@@ -273,10 +259,10 @@ void Packet_Copy(const BitMessage_t* src_msg, BitMessage_t* dest_msg, const uint
   for (uint16_t i = start_index; i < start_index + length; i++) {
     bool bit;
     if (Packet_GetBit(src_msg, i, &bit) == false) {
-      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN)
+      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
     }
     if (Packet_SetBit(dest_msg, i, bit) == false) {
-      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN)
+      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
     }
   }
 }
@@ -308,46 +294,31 @@ void initPacket(BitMessage_t* bit_msg, const DspConfig_t* cfg)
   bit_msg->added_to_queue = false;
 }
 
-bool addChunk(BitMessage_t* bit_msg, uint8_t chunk, uint8_t chunk_size)
-{
-  if (chunk_size > 8) {
-    return false;
-  }
-
-  for (uint8_t i = 8 - chunk_size; i < 8; i++) {
-    bool bit = (chunk & (1 << (7 - i))) != 0;
-    if (Packet_AddBit(bit_msg, bit) == false) {
-      return false;
-    }
-  }
-  return true;
-}
-
 void addData(BitMessage_t* bit_msg, void* data, uint8_t num_bits)
 {
   if (bit_msg == NULL || data == NULL || num_bits > 32)
-    REGISTER_ERROR(ERROR_NULL_PTR)
+    REGISTER_ERROR(ERROR_NULL_PTR);
 
   for (uint8_t i = 0; i < num_bits; i++) {
     uint8_t byte_index = i / 8;
     uint8_t bit_index = i % 8;
     bool bit = (*(((uint8_t*) data) + byte_index) & (1 << (7 - bit_index))) != 0;
     if (Packet_AddBit(bit_msg, bit) == false) 
-      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN)
+      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
   }
 }
 
-void getData(BitMessage_t* bit_msg, uint16_t* start_position, uint8_t num_bits, void* data)
+bool getData(BitMessage_t* bit_msg, uint16_t* start_position, uint8_t num_bits, void* data)
 {
   if (bit_msg == NULL || start_position == NULL || data == NULL || num_bits > 32) 
-    REGISTER_ERROR(ERROR_NULL_PTR)
+    return false;
 
   for (uint8_t i = 0; i < num_bits; i++) {
     uint8_t byte_index = i / 8;
     uint8_t bit_index = i % 8;
     bool bit;
     if (Packet_GetBit(bit_msg, *start_position + i, &bit) == false)
-      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN)
+      return false;
 
     if (bit == true) {
       *(((uint8_t*) data) + byte_index) |= (1 << (7 - bit_index));
@@ -356,4 +327,5 @@ void getData(BitMessage_t* bit_msg, uint16_t* start_position, uint8_t num_bits, 
     }
   }
   *start_position += num_bits;
+  return true;
 }

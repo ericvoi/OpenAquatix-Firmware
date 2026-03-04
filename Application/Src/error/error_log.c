@@ -120,7 +120,7 @@ void ErrorLog_PrintLog(CommInterface_t interface)
     OpenAquatixErrors_t error_code = sorted_log[i].error_code;
     formatAbsoluteTimestamp(sorted_log[i].reset_count, sorted_log[i].timestamp, 
                             formatted_timestamp);
-    snprintf(out_buf, ERROR_LOG_LINE_SIZE, "%-*s %-*u %-*s %-*s %-*u %-*s %-*s %-*u\r\n",
+    snprintf(out_buf, ERROR_LOG_LINE_SIZE, "%-*s %-*u %-*s %-*s %-*lu %-*s %-*s %-*lu\r\n",
              FORMATTED_TIMESTAMP_SIZE, formatted_timestamp,
              ERROR_CODE_WIDTH, error_code,
              FILE_NAME_WIDTH, sorted_log[i].file_name,

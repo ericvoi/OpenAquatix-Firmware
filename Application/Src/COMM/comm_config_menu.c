@@ -1457,12 +1457,7 @@ void setCenterFrequency(FunctionContext_t* context)
 void getBitPeriod(FunctionContext_t* context)
 {
   float bit_period_ms;
-
-  if (MESS_GetBitPeriod(&bit_period_ms) == false) {
-    COMM_TransmitData("\r\nInternal Error!\r\n", CALC_LEN, context->comm_interface);
-    context->state->state = PARAM_STATE_COMPLETE;
-    return;
-  }
+  MESS_GetBitPeriod(&bit_period_ms);
 
   sprintf((char*) context->output_buffer, "\r\nBit period: %.2fms\r\n", bit_period_ms);
   COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);

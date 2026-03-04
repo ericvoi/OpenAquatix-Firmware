@@ -60,10 +60,8 @@ extern uint16_t* feedback_buffer;
  *
  * Configures and starts Timer 8 which is used for ADC triggering,
  * resets buffer indices, and clears the ADC buffer.
- *
- * @return true if initialization succeeds, false otherwise
  */
-bool ADC_Init();
+void ADC_Init();
 
 /**
  * @brief Starts ADC conversions on the input channel using DMA

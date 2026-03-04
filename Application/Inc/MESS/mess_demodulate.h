@@ -79,13 +79,11 @@ void Demodulate_Init();
  * @param data Pointer to demodulation data structure containing input samples
  *             and which will be updated with demodulation results
  *
- * @return true if demodulation was successful, false otherwise
- *
  * @note For HISTORICAL_COMPARISON method, previous demodulation results are
  *       considered to improve the detection when significant energy shifts occur
  * @see Modulate_GetFhbfskFrequency
  */
-bool Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg);
+void Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg);
 
 /**
  * @brief Power normalization factor for current windowing function

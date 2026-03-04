@@ -30,7 +30,6 @@ extern "C" {
 
 typedef enum {
   SYNC_OK,
-  SYNC_ERROR,
   SYNC_SUCCESS
 } SyncState_t;
 
@@ -69,8 +68,7 @@ uint16_t Sync_NumSteps(const DspConfig_t* cfg);
  * 
  * @param cfg 
  * 
- * @return SYNC_OK if no errors and no synchronization yet 
- * @return SYNC_ERROR if error occurred
+ * @return SYNC_OK if no errors and no synchronization yet
  * @return SYNC_SUCCESS if successfully synchronized
  */
 SyncState_t Sync_Synchronize(const DspConfig_t* cfg);

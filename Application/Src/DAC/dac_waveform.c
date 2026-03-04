@@ -20,6 +20,7 @@
 #include "sleep/wakeup_tones.h"
 #include "FreeRTOS.h"
 #include "cmsis_os.h"
+#include "error_manager.h"
 #include <stdbool.h>
 #include <string.h>
 #include <math.h>
@@ -163,6 +164,7 @@ bool Waveform_RegisterParams()
 
 void Waveform_Flush()
 {
+  RETURN_IF_ERROR_PRESENT();
   Waveform_SetWaveformSequence(1, false);
   HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
   wave_ctrl.phase_accumulator = 0;

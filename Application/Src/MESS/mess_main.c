@@ -147,6 +147,9 @@ DEFINE_DESC_TABLE(ENCRYPTION_TABLE, encryption_descriptors)
 
 static void switchState(ProcessingState_t newState);
 static void handleFlags();
+static void sendMessage();
+static void handleSync(SyncState_t sync_state);
+static void resetTask();
 static void registerMessParams();
 static void registerMessMainParams();
 static void getConfig();
@@ -158,28 +161,14 @@ void MESS_StartTask(void* argument)
   (void)(argument);
   osEventFlagsClear(print_event_handle, 0xFFFFFFFF);
   MessDacResource_Init();
+  BackgroundNoise_CreateShared();
 
   Error_RegisterTask("MESS");
   registerMessParams();
   Error_ParameterRegistrationComplete();
   CFG_WaitLoadComplete();
 
-
-  Pga113_Init();
-  Pga113_Enable();
-  osDelay(1);
-  Pga113_SetGain(PGA_GAIN_1);
-  ADC_Init();
-  Input_Init();
-  Feedback_Init();
-  FeedbackTests_Init();
-  Demodulate_Init();
-  BackgroundNoise_Init();
-  switchState(LISTENING);
-
-  osDelay(10);
-  Waveform_Flush();
-  ADC_StartInput();
+  resetTask();
   for (;;) {
     switch (task_state) {
       case DRIVING_TRANSDUCER:
@@ -205,56 +194,18 @@ void MESS_StartTask(void* argument)
         if (MESS_GetMessageFromTxQ(&tx_msg) == true) {
           getConfig();
 
-          if (Packet_PrepareTx(&tx_msg, &bit_msg, cfg) == false) {
-            Error_Routine(ERROR_MESS_PROCESSING);
-            break;
-          }
-          // Add ECC
-          if (ErrorCorrection_AddCorrection(&bit_msg, cfg) == false) {
-            Error_Routine(ERROR_MESS_PROCESSING);
-          }
-          // Add feedback network test false bits
-          if (FeedbackTests_CorruptMessage(&bit_msg) == false) {
-            Error_Routine(ERROR_MESS_PROCESSING);
-            break;
-          }
-          if (Interleaver_Apply(&bit_msg, cfg) == false) {
-            Error_Routine(ERROR_MESS_PROCESSING);
-          }
+          Packet_PrepareTx(&tx_msg, &bit_msg, cfg);
+          ErrorCorrection_AddCorrection(&bit_msg, cfg);
+          FeedbackTests_CorruptMessage(&bit_msg); // if applicable
+          Interleaver_Apply(&bit_msg, cfg);
           message_length = bit_msg.bit_count;
-          switch (tx_msg.type) {
-            case MSG_TRANSMIT_TRANSDUCER:
-              switchState(DRIVING_TRANSDUCER);
-              break;
-            case MSG_TRANSMIT_FEEDBACK:
-              if (AFE_SetMode(AFE_MODE_RX_FEEDBACK) != AFE_OK) {
-                Error_Routine(ERROR_MESS_PROCESSING);
-              }
-              Modulate_StartFeedbackOutput(message_length, cfg, &bit_msg);
-              // Should automatically go to processing once waveform being received without intervention
-              break;
-            default:
-              break;
-          }
+          sendMessage();
         }
 
         SyncState_t sync_state = Sync_Synchronize(cfg);
-        switch (sync_state) {
-          case SYNC_SUCCESS:
-            switchState(PROCESSING);
-            break;
-          case SYNC_OK:
-            break; // Do nothing, still synchronizing
-          case SYNC_ERROR:
-          default:
-            Error_Routine(ERROR_MESS_PROCESSING);
-            break;
-        }
+        handleSync(sync_state);
 
-        if (BackgroundNoise_Calculate(cfg) == false) {
-          Error_Routine(ERROR_MESS_PROCESSING);
-          break;
-        }
+        BackgroundNoise_Calculate(cfg);
         break;
       case PROCESSING:
         // Process ADC input data only
@@ -262,26 +213,14 @@ void MESS_StartTask(void* argument)
             (input_bit_msg.bit_count >= input_bit_msg.final_length) &&
             (input_bit_msg.preamble_received == true);
 
-        if (Input_UpdatePgaGain() == false) {
-          Error_Routine(ERROR_MESS_PROCESSING);
-          break;
-        }
+        Input_UpdatePgaGain();
         if (input_bit_msg.fully_received == false) {
-          if (Input_SegmentBlocks(cfg) == false) {
-            Error_Routine(ERROR_MESS_PROCESSING);
-            break;
-          }
+          Input_SegmentBlocks(cfg);
         }
-        if (Input_ProcessBlocks(&input_bit_msg, cfg) == false) {
-          Error_Routine(ERROR_MESS_PROCESSING);
-          break;
-        }
+        Input_ProcessBlocks(&input_bit_msg, cfg);
 
         bool proceed = true;
-        if (Input_DecodeBits(&input_bit_msg, cfg, &rx_msg, &proceed) == false) {
-          Error_Routine(ERROR_MESS_PROCESSING);
-          break;
-        }
+        Input_DecodeBits(&input_bit_msg, cfg, &rx_msg, &proceed);
         if (proceed == false) {switchState(LISTENING); break;};
 
         if (input_bit_msg.fully_received == true && input_bit_msg.added_to_queue == false) {
@@ -292,34 +231,22 @@ void MESS_StartTask(void* argument)
           rx_msg.length_bits = input_bit_msg.data_len_bits;
           rx_msg.protocol = cfg->protocol;
 
-          if (Interleaver_Undo(&input_bit_msg, cfg, false) == false) {
-            Error_Routine(ERROR_MESS_PROCESSING);
-          }
+          Interleaver_Undo(&input_bit_msg, cfg, false);
 
           // TODO: change to also require message to be custom
           if (rx_msg.preamble.message_type.value == EVAL && (rx_msg.preamble.message_type.valid == true)) {
-            if (Evaluate_UncodedBer(&rx_msg.eval_info, &input_bit_msg, cfg) == false) {
-              Error_Routine(ERROR_MESS_PROCESSING);
-            }
+            Evaluate_UncodedBer(&rx_msg.eval_info, &input_bit_msg, cfg);
           }
 
           // undo fec
-          if (ErrorCorrection_CheckCorrection(&input_bit_msg, cfg, false,
-              &input_bit_msg.error_message,
-              &input_bit_msg.corrected_error_message) == false) {
-            Error_Routine(ERROR_MESS_PROCESSING);
-          }
+          ErrorCorrection_CheckCorrection(&input_bit_msg, cfg, false,
+              &input_bit_msg.error_message, 
+              &input_bit_msg.corrected_error_message);
           // decode message
-          if (Cargo_Decode(&input_bit_msg, &rx_msg, cfg) == false) {
-            Error_Routine(ERROR_MESS_PROCESSING);
-            break;
-          }
+          Cargo_Decode(&input_bit_msg, &rx_msg, cfg);
 
-          if (ErrorDetection_CheckDetection(&input_bit_msg,
-              &rx_msg.error_detected, cfg, false) == false) {
-            Error_Routine(ERROR_MESS_PROCESSING);
-            break;
-          }
+          ErrorDetection_CheckDetection(&input_bit_msg,
+              &rx_msg.error_detected, cfg, false);
           rx_msg.error_detected |= input_bit_msg.error_preamble;
           // send it via queue
           if (FeedbackTests_Check(&rx_msg, &input_bit_msg) == false) {
@@ -327,10 +254,7 @@ void MESS_StartTask(void* argument)
           }
           input_bit_msg.added_to_queue = true;
         }
-        if (Input_PrintWaveform(&print_next_waveform, input_bit_msg.fully_received) == false) {
-          Error_Routine(ERROR_MESS_PROCESSING);
-          break;
-        }
+        Input_PrintWaveform(&print_next_waveform, input_bit_msg.fully_received);
 
         if (input_bit_msg.fully_received == true && print_next_waveform == false) {
           switchState(LISTENING);
@@ -339,6 +263,12 @@ void MESS_StartTask(void* argument)
       default:
         break;
     }
+    ErrorCheck_t status = Error_CheckStatus();
+    TaskResetStatus_t reset_required = Error_CheckModuleReset();
+    bool reset_cond1 = (status == ERROR_QUIT) && (task_state != LISTENING);
+    bool reset_cond2 = reset_required == TASK_RESET;
+    Error_ResetAbortFlag();
+    if (reset_cond1 || reset_cond2) resetTask();
     osDelay(1);
   }
 }
@@ -348,19 +278,24 @@ void MESS_InitializeQueues(void)
   tx_queue = osMessageQueueNew(MSG_QUEUE_SIZE, sizeof(Message_t), NULL);
   rx_queue = osMessageQueueNew(MSG_QUEUE_SIZE, sizeof(Message_t), NULL);
 
-  if (tx_queue == NULL || rx_queue == NULL) {
-    // TODO: Handle error
-  }
+  if (tx_queue == NULL || rx_queue == NULL) 
+    REGISTER_ERROR(ERROR_QUEUE_INITIALIZATION);
 }
 
 bool MESS_GetMessageFromTxQ(Message_t* msg)
 {
+  RETURN_IF_ERROR_PRESENT_INT(,false);
   if (tx_queue == NULL || msg == NULL) {
+    REGISTER_ERROR_INT(ERROR_NULL_PTR, false);
     return false;
   }
 
   if (osMessageQueueGetCount(tx_queue) > 0) {
-    return osMessageQueueGet(tx_queue, (void*) msg, NULL, 0) == osOK;
+    if (osMessageQueueGet(tx_queue, (void*) msg, NULL, 0) != osOK) {
+      REGISTER_ERROR_INT(ERROR_QUEUE_RUNNING, false);
+      return false;
+    }
+    return true;
   }
 
   return false;
@@ -368,11 +303,17 @@ bool MESS_GetMessageFromTxQ(Message_t* msg)
 
 bool MESS_AddMessageToTxQ(const Message_t* msg)
 {
+  RETURN_IF_ERROR_PRESENT_INT(,false);
   if (tx_queue == NULL || msg == NULL) {
+    REGISTER_ERROR_INT(ERROR_NULL_PTR, false);
     return false;
   }
 
-  return osMessageQueuePut(tx_queue, msg, 0, 0) == osOK;
+  if (osMessageQueuePut(tx_queue, msg, 0, 0) != osOK) {
+    REGISTER_ERROR_INT(ERROR_QUEUE_RUNNING, false);
+    return false;
+  }
+  return true;
 }
 
 bool MESS_GetMessageFromRxQ(Message_t* msg)
@@ -382,7 +323,11 @@ bool MESS_GetMessageFromRxQ(Message_t* msg)
   }
 
   if (osMessageQueueGetCount(rx_queue) > 0) {
-    return osMessageQueueGet(rx_queue, (void*) msg, NULL, 0) == osOK;
+    if (osMessageQueueGet(rx_queue, (void*) msg, NULL, 0) != osOK) {
+      REGISTER_ERROR_INT(ERROR_QUEUE_RUNNING, false);
+      return false;
+    }
+    return true;
   }
 
   return false;
@@ -390,24 +335,37 @@ bool MESS_GetMessageFromRxQ(Message_t* msg)
 
 bool MESS_AddMessageToRxQ(const Message_t* msg)
 {
-  if (rx_queue == NULL || msg == NULL) {
+  RETURN_IF_ERROR_PRESENT_INT(,false);
+  if (tx_queue == NULL || msg == NULL) {
+    REGISTER_ERROR_INT(ERROR_NULL_PTR, false);
     return false;
   }
 
-  return osMessageQueuePut(rx_queue, msg, 0, 0) == osOK;
+  if (osMessageQueuePut(rx_queue, msg, 0, 0) != osOK) {
+    REGISTER_ERROR_INT(ERROR_QUEUE_RUNNING, false);
+    return false;
+  }
+  return true;
 }
 
 bool MESS_PriorityTransmission(const Message_t* msg)
 {
+  RETURN_IF_ERROR_PRESENT_INT(,false);
   if (tx_queue == NULL || msg == NULL) {
+    REGISTER_ERROR_INT(ERROR_NULL_PTR, false);
     return false;
   }
 
   if (osMessageQueueReset(tx_queue) != osOK) {
+    REGISTER_ERROR_INT(ERROR_QUEUE_RUNNING, false);
     return false;
   }
 
-  return osMessageQueuePut(tx_queue, msg, 0, 0) == osOK;
+  if (osMessageQueuePut(tx_queue, msg, 0, 0) != osOK) {
+    REGISTER_ERROR_INT(ERROR_QUEUE_RUNNING, false);
+    return false;
+  }
+  return true;
 }
 
 void MESS_RoundBaud(float* baud)
@@ -424,9 +382,6 @@ void MESS_RoundBaud(float* baud)
 bool MESS_GetBandwidth(uint32_t* bandwidth, uint32_t* lower_freq, uint32_t* upper_freq)
 {
   if (custom_config.mod_demod_method == MOD_DEMOD_FSK) {
-    if (custom_config.fsk_f0 == custom_config.fsk_f1) {
-      return false;
-    }
     if (custom_config.fsk_f0 < custom_config.fsk_f1) {
       *lower_freq = custom_config.fsk_f0;
       *upper_freq = custom_config.fsk_f1;
@@ -451,13 +406,13 @@ bool MESS_GetBandwidth(uint32_t* bandwidth, uint32_t* lower_freq, uint32_t* uppe
     *bandwidth = *upper_freq - *lower_freq;
     return true;
   }
+  REGISTER_ERROR_INT(ERROR_UNHANDLED_CASE, false);
   return false;
 }
 
-bool MESS_GetBitPeriod(float* bit_period_ms)
+void MESS_GetBitPeriod(float* bit_period_ms)
 {
-  *bit_period_ms =  (1.0f / custom_config.baud_rate) * 1000;
-  return true;
+  *bit_period_ms = (1.0f / custom_config.baud_rate) * 1000;
 }
 
 ProcessingState_t MESS_GetState()
@@ -469,24 +424,23 @@ ProcessingState_t MESS_GetState()
 
 void switchState(ProcessingState_t newState)
 {
+  RETURN_IF_ERROR_PRESENT();
   // First deactivate and clear all adcs, dacs, and all buffers except for the input buffer when transitioning from listening to processing
   task_state = CHANGING;
   switch (newState) {
     case DRIVING_TRANSDUCER:
-      if (AFE_SetMode(AFE_MODE_TX) != AFE_OK) { // TODO: change to include feedback for input and output
-        Error_Routine(ERROR_MESS_PROCESSING);
-      }
-      Modulate_StartTransducerOutput(message_length, cfg, &bit_msg);
+      RETURN_IF_ERROR_PRESENT(AFE_SetMode(AFE_MODE_TX)); // TODO: change to include feedback for input and output
+      RETURN_IF_ERROR_PRESENT(Modulate_StartTransducerOutput(message_length, cfg, &bit_msg));
       task_state = DRIVING_TRANSDUCER;
       break;
     case LISTENING:
       Sync_Reset();
       cfg = &custom_config;
       CFG_IncrementVersionNumber();
-      Waveform_StopWaveformOutput();
-      if (AFE_SetMode(AFE_MODE_RX) != AFE_OK) {
-        Error_Routine(ERROR_MESS_PROCESSING);
-      }
+      if (Waveform_StopWaveformOutput() == false) 
+        REGISTER_ERROR(ERROR_STOPPING_TRANSDUCER_OUTPUT);
+      
+      RETURN_IF_ERROR_PRESENT(AFE_SetMode(AFE_MODE_RX));
       task_state = LISTENING;
       break;
     case PROCESSING:
@@ -507,7 +461,7 @@ void handleFlags()
   }
 
   if (flags & 0x80000000U) {
-    REGISTER_ERROR(ERROR_FLAGS_RUNNING)
+    REGISTER_ERROR(ERROR_FLAGS_RUNNING);
   }
 
   if (flags & MESS_PRINT_REQUEST) {
@@ -534,6 +488,57 @@ void handleFlags()
     Input_NoiseFft();
     osEventFlagsSet(print_event_handle, MESS_PRINT_COMPLETE);
   }
+}
+
+void sendMessage()
+{
+  RETURN_IF_ERROR_PRESENT();
+  switch (tx_msg.type) {
+    case MSG_TRANSMIT_TRANSDUCER:
+      switchState(DRIVING_TRANSDUCER);
+      break;
+    case MSG_TRANSMIT_FEEDBACK:
+      AFE_SetMode(AFE_MODE_RX_FEEDBACK);
+      Modulate_StartFeedbackOutput(message_length, cfg, &bit_msg);
+      // Should automatically go to processing once waveform being received without intervention
+      // TODO: what if above unsuccessful?
+      break;
+    default:
+      break;
+  }
+}
+
+void handleSync(SyncState_t sync_state)
+{
+  RETURN_IF_ERROR_PRESENT();
+  switch (sync_state) {
+    case SYNC_SUCCESS:
+      switchState(PROCESSING);
+      break;
+    case SYNC_OK:
+      break; // Do nothing, still synchronizing
+    default:
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
+      break;
+  }
+}
+
+void resetTask()
+{
+  Pga113_Init();
+  osDelay(1);
+  Pga113_SetGain(PGA_GAIN_1);
+  ADC_Init();
+  Input_Init();
+  Feedback_Init();
+  FeedbackTests_Init();
+  Demodulate_Init();
+  BackgroundNoise_Reset();
+  switchState(LISTENING);
+
+  osDelay(10);
+  Waveform_Flush();
+  ADC_StartInput();
 }
 
 void registerMessParams()
@@ -577,7 +582,7 @@ void registerMessMainParams()
   if (Param_Register(PARAM_MOD_DEMOD_METHOD, "mod/demod method", PARAM_TYPE_ENUM,
                      &custom_config.mod_demod_method, sizeof(uint8_t),
                      &min_u32, &max_u32, NULL, mod_demod_descriptors) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_FC;
@@ -627,7 +632,7 @@ void registerMessMainParams()
                      &custom_config.cargo_validation, sizeof(uint8_t),
                      &min_u32, &max_u32, NULL, error_detection_descriptors
                      ) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_ECC_METHOD;
@@ -652,7 +657,7 @@ void registerMessMainParams()
   if (Param_Register(PARAM_USE_INTERLEAVER, "message interleaving", PARAM_TYPE_UINT8,
                      &custom_config.use_interleaver, sizeof(bool),
                      &min_u32, &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_FHBFSK_HOPPER;
@@ -774,6 +779,7 @@ void registerMessMainParams()
 
 void getConfig()
 {
+  RETURN_IF_ERROR_PRESENT();
   if (FeedbackTests_GetConfig(&cfg) == true) return;
 
   switch (messaging_protocol) {

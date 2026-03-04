@@ -68,10 +68,8 @@ void Modulate_StartTransducerOutput(uint16_t num_steps,
  * @param num_steps The number of steps in the bit message sequence
  * @param new_cfg The configuration to use for the next modulation
  * @param new_bit_msg The bit message to send out through the feedback network
- * 
- * @return true if all peripherals successfully started, false otherwise
  */
-bool Modulate_StartFeedbackOutput(uint16_t num_steps, 
+void Modulate_StartFeedbackOutput(uint16_t num_steps, 
                                   const DspConfig_t* new_cfg, 
                                   BitMessage_t* new_bit_msg);
 

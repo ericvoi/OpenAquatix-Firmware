@@ -45,7 +45,7 @@ typedef struct {
   SectionInfo_t cargo;
   uint16_t final_length; // includes ecc
   uint16_t combined_message_len; // not including ecc
-  float normalized_vitrebi_error_metric; // Only set when the ecc method uses convoltuional codes
+  float normalized_viterbi_error_metric; // Only set when the ecc method uses convoltuional codes
   bool preamble_received; // Set when first preamble number of bits received and decoded
   bool fully_received;    // Set when message bit count > final bit count
   bool added_to_queue;    // Set when message decoded and "done with"
@@ -79,19 +79,17 @@ typedef struct {
  * @param bit_msg Pointer to the bit message structure to be filled
  * @param cfg Configuration data for the message
  *
- * @return true if preparation succeeded, false on any failure
+ * @note Can cause abort and unrecoverable errors
  */
-bool Packet_PrepareTx(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* cfg);
+void Packet_PrepareTx(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* cfg);
 
 /**
  * @brief Initializes a bit message structure for receiving incoming data
  *
  * @param bit_msg Pointer to the bit message structure to initialize
  * @param cfg Configuration values used for decoding input messages
- *
- * @return true if initialization succeeded
  */
-bool Packet_PrepareRx(BitMessage_t* bit_msg, const DspConfig_t* cfg);
+void Packet_PrepareRx(BitMessage_t* bit_msg, const DspConfig_t* cfg);
 
 /**
  * @brief Adds a single bit to a bit message
@@ -167,8 +165,8 @@ void Packet_Add32(BitMessage_t* bit_msg, uint32_t data);
  * @param bit_msg Pointer to the bit message structure
  * @param start_position Pointer to the starting bit position (will be updated)
  * @param data Pointer where the extracted value will be stored
- *
- * @return true if successful, false if requested bits exceed message bounds
+ * 
+ * @return true if requested indices do not exceed message length
  */
 bool Packet_Get8(BitMessage_t* bit_msg, uint16_t* start_position, uint8_t* data);
 
@@ -178,8 +176,6 @@ bool Packet_Get8(BitMessage_t* bit_msg, uint16_t* start_position, uint8_t* data)
  * @param bit_msg Pointer to the bit message structure
  * @param start_position Pointer to the starting bit position (will be updated)
  * @param data Pointer where the extracted value will be stored
- *
- * @return true if successful, false if requested bits exceed message bounds
  */
 bool Packet_Get16(BitMessage_t* bit_msg, uint16_t* start_position, uint16_t* data);
 
@@ -189,8 +185,6 @@ bool Packet_Get16(BitMessage_t* bit_msg, uint16_t* start_position, uint16_t* dat
  * @param bit_msg Pointer to the bit message structure
  * @param start_position Pointer to the starting bit position (will be updated)
  * @param data Pointer where the extracted value will be stored
- *
- * @return true if successful, false if requested bits exceed message bounds
  */
 bool Packet_Get32(BitMessage_t* bit_msg, uint16_t* start_position, uint32_t* data);
 
@@ -221,10 +215,8 @@ bool Packet_SetBit(BitMessage_t* bit_msg, uint16_t bit_index, bool bit);
  * @param msg1 Pointer to the first message to compare
  * @param msg2 Pointer to the second message to compare
  * @param identical Returned value indicating if all bits identical
- *
- * @return true if successful and false otherwise
  */
-bool Packet_Compare(const BitMessage_t* msg1, const BitMessage_t* msg2, bool* identical);
+void Packet_Compare(const BitMessage_t* msg1, const BitMessage_t* msg2, bool* identical);
 
 /**
  * @brief The minimum 7 bit length index required for the number of cargo bytes

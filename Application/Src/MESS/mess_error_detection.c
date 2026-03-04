@@ -84,37 +84,38 @@ void ErrorDetection_AddDetection(BitMessage_t* bit_msg, const DspConfig_t* cfg, 
     case CRC_16:
       uint16_t crc_16;
       calculateCrc16(bit_msg, start_bit, end_bit, &crc_16);
-      RETURN_IF_ERROR_PRESENT(Packet_Add16(bit_msg, crc_16))
+      RETURN_IF_ERROR_PRESENT(Packet_Add16(bit_msg, crc_16));
       break;
     case CRC_32:
       uint32_t crc_32;
       calculateCrc32(bit_msg, start_bit, end_bit, &crc_32);
-      RETURN_IF_ERROR_PRESENT(Packet_Add32(bit_msg, crc_32))
+      RETURN_IF_ERROR_PRESENT(Packet_Add32(bit_msg, crc_32));
       break;
     case CHECKSUM_8:
       uint8_t checksum_8;
-      RETURN_IF_ERROR_PRESENT(calculateChecksum8(bit_msg, start_bit, end_bit, &checksum_8))
-      RETURN_IF_ERROR_PRESENT(Packet_Add8(bit_msg, checksum_8))
+      RETURN_IF_ERROR_PRESENT(calculateChecksum8(bit_msg, start_bit, end_bit, &checksum_8));
+      RETURN_IF_ERROR_PRESENT(Packet_Add8(bit_msg, checksum_8));
       break;
     case CHECKSUM_16:
       uint16_t checksum_16;
-      RETURN_IF_ERROR_PRESENT(calculateChecksum16(bit_msg, start_bit, end_bit, &checksum_16))
-      RETURN_IF_ERROR_PRESENT(Packet_Add16(bit_msg, checksum_16))
+      RETURN_IF_ERROR_PRESENT(calculateChecksum16(bit_msg, start_bit, end_bit, &checksum_16));
+      RETURN_IF_ERROR_PRESENT(Packet_Add16(bit_msg, checksum_16));
       break;
     case CHECKSUM_32:
       uint32_t checksum_32;
-      RETURN_IF_ERROR_PRESENT(calculateChecksum32(bit_msg, start_bit, end_bit, &checksum_32))
-      RETURN_IF_ERROR_PRESENT(Packet_Add32(bit_msg, checksum_32))
+      RETURN_IF_ERROR_PRESENT(calculateChecksum32(bit_msg, start_bit, end_bit, &checksum_32));
+      RETURN_IF_ERROR_PRESENT(Packet_Add32(bit_msg, checksum_32));
       break;
     case NO_ERROR_DETECTION:
       return;
     default:
-      REGISTER_ERROR(ERROR_UNHANDLED_CASE)
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
   }
 }
 
 void ErrorDetection_CheckDetection(BitMessage_t* bit_msg, bool* error, const DspConfig_t* cfg, bool is_preamble)
 {
+  RETURN_IF_ERROR_PRESENT();
   uint16_t start_bit;
   uint16_t end_bit;
   ErrorDetectionMethod_t method;
@@ -134,27 +135,27 @@ void ErrorDetection_CheckDetection(BitMessage_t* bit_msg, bool* error, const Dsp
   end_bit -= len;
   switch (method) {
     case CRC_8:
-      RETURN_IF_ERROR_PRESENT(checkCrc8(bit_msg, start_bit, end_bit, error))
+      RETURN_IF_ERROR_PRESENT(checkCrc8(bit_msg, start_bit, end_bit, error));
       break;
     case CRC_16:
-      RETURN_IF_ERROR_PRESENT(checkCrc16(bit_msg, start_bit, end_bit, error))
+      RETURN_IF_ERROR_PRESENT(checkCrc16(bit_msg, start_bit, end_bit, error));
       break;
     case CRC_32:
-      RETURN_IF_ERROR_PRESENT(checkCrc32(bit_msg, start_bit, end_bit, error))
+      RETURN_IF_ERROR_PRESENT(checkCrc32(bit_msg, start_bit, end_bit, error));
       break;
     case CHECKSUM_8:
-      RETURN_IF_ERROR_PRESENT(checkChecksum8(bit_msg, start_bit, end_bit, error))
+      RETURN_IF_ERROR_PRESENT(checkChecksum8(bit_msg, start_bit, end_bit, error));
       break;
     case CHECKSUM_16:
-      RETURN_IF_ERROR_PRESENT(checkChecksum16(bit_msg, start_bit, end_bit, error))
+      RETURN_IF_ERROR_PRESENT(checkChecksum16(bit_msg, start_bit, end_bit, error));
       break;
     case CHECKSUM_32:
-      RETURN_IF_ERROR_PRESENT(checkChecksum32(bit_msg, start_bit, end_bit, error))
+      RETURN_IF_ERROR_PRESENT(checkChecksum32(bit_msg, start_bit, end_bit, error));
       break;
     case NO_ERROR_DETECTION:
       return;
     default:
-      REGISTER_ERROR(ERROR_UNHANDLED_CASE)
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
   }
 }
 
@@ -359,7 +360,8 @@ void calculateChecksum8(BitMessage_t* bit_msg, uint16_t start_bit, uint16_t end_
   uint16_t current_bit = start_bit;
   while ((end_bit - current_bit + 1) >= 8) {
     uint8_t chunk;
-    RETURN_IF_ERROR_PRESENT(Packet_Get8(bit_msg, &current_bit, &chunk))
+    if (Packet_Get8(bit_msg, &current_bit, &chunk) == false)
+      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
     intermediate += chunk;
     if (((intermediate >> 8) & 1) == 1) {
       intermediate = (intermediate + 1) & 0xFF;
@@ -370,7 +372,7 @@ void calculateChecksum8(BitMessage_t* bit_msg, uint16_t start_bit, uint16_t end_
   for (uint16_t i = 0; i < remaining_bits; i++) {
     bool bit;
     if (Packet_GetBit(bit_msg, current_bit++, &bit) == false) 
-      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN)
+      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
 
     chunk |= bit << (7 - i);
   }
@@ -387,7 +389,7 @@ void calculateChecksum16(BitMessage_t* bit_msg, uint16_t start_bit, uint16_t end
   uint16_t current_bit = start_bit;
   while ((end_bit - current_bit + 1) >= 16) {
     uint16_t chunk;
-    RETURN_IF_ERROR_PRESENT(Packet_Get16(bit_msg, &current_bit, &chunk))
+    RETURN_IF_ERROR_PRESENT(Packet_Get16(bit_msg, &current_bit, &chunk));
     intermediate += chunk;
     if (((intermediate >> 16) & 1) == 1) {
       intermediate = (intermediate + 1) & 0xFFFF;
@@ -398,7 +400,7 @@ void calculateChecksum16(BitMessage_t* bit_msg, uint16_t start_bit, uint16_t end
   for (uint16_t i = 0; i < remaining_bits; i++) {
     bool bit;
     if (Packet_GetBit(bit_msg, current_bit++, &bit) == false)
-      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN)
+      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
     
     chunk |= bit << (15 - i);
   }
@@ -415,7 +417,7 @@ void calculateChecksum32(BitMessage_t* bit_msg, uint16_t start_bit, uint16_t end
   uint16_t current_bit = start_bit;
   while ((end_bit - current_bit + 1) >= 32) {
     uint32_t chunk;
-    RETURN_IF_ERROR_PRESENT(Packet_Get32(bit_msg, &current_bit, &chunk))
+    RETURN_IF_ERROR_PRESENT(Packet_Get32(bit_msg, &current_bit, &chunk));
     intermediate += chunk;
     if (((intermediate >> 8) & 1) == 1) {
       intermediate = (intermediate + 1) & 0xFF;
@@ -426,7 +428,7 @@ void calculateChecksum32(BitMessage_t* bit_msg, uint16_t start_bit, uint16_t end
   for (uint16_t i = 0; i < remaining_bits; i++) {
     bool bit;
     if (Packet_GetBit(bit_msg, current_bit++, &bit) == false)
-      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN)
+      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
     
     chunk |= bit << (31 - i);
   }
@@ -448,7 +450,7 @@ void checkCrc8(BitMessage_t* bit_msg, uint16_t start_bit, uint16_t end_bit, bool
   uint8_t actual_crc;
   end_bit++;
   if (Packet_Get8(bit_msg, &end_bit, &actual_crc) == false)
-    REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN)
+    REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
 
   *error = actual_crc != theoretical_crc;
 }
@@ -462,7 +464,7 @@ void checkCrc16(BitMessage_t* bit_msg, uint16_t start_bit, uint16_t end_bit, boo
   uint16_t actual_crc;
   end_bit++;
   if (Packet_Get16(bit_msg, &end_bit, &actual_crc) == false) 
-    REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN)
+    REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
 
   *error = actual_crc != theoretical_crc;
 }
@@ -476,7 +478,7 @@ void checkCrc32(BitMessage_t* bit_msg, uint16_t start_bit, uint16_t end_bit, boo
   uint32_t actual_crc;
   end_bit++;
   if (Packet_Get32(bit_msg, &end_bit, &actual_crc) == false) 
-    REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN)
+    REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
 
   *error = actual_crc != theoretical_crc;
 }
@@ -486,11 +488,11 @@ void checkChecksum8(BitMessage_t* bit_msg, uint16_t start_bit, uint16_t end_bit,
   *error = true;
 
   uint8_t theoretical_checksum;
-  RETURN_IF_ERROR_PRESENT(calculateChecksum8(bit_msg, start_bit, end_bit, &theoretical_checksum))
+  RETURN_IF_ERROR_PRESENT(calculateChecksum8(bit_msg, start_bit, end_bit, &theoretical_checksum));
   uint8_t actual_checksum;
   end_bit++;
   if (Packet_Get8(bit_msg, &end_bit, &actual_checksum) == false) 
-    REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN)
+    REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
 
   *error = actual_checksum != theoretical_checksum;
 }
@@ -500,11 +502,11 @@ void checkChecksum16(BitMessage_t* bit_msg, uint16_t start_bit, uint16_t end_bit
   *error = true;
 
   uint16_t theoretical_checksum;
-  RETURN_IF_ERROR_PRESENT(calculateChecksum16(bit_msg, start_bit, end_bit, &theoretical_checksum))
+  RETURN_IF_ERROR_PRESENT(calculateChecksum16(bit_msg, start_bit, end_bit, &theoretical_checksum));
   uint16_t actual_checksum;
   end_bit++;
   if (Packet_Get16(bit_msg, &end_bit, &actual_checksum) == false)
-    REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN)
+    REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
 
   *error = actual_checksum != theoretical_checksum;
 }
@@ -514,11 +516,11 @@ void checkChecksum32(BitMessage_t* bit_msg, uint16_t start_bit, uint16_t end_bit
   *error = true;
 
   uint32_t theoretical_checksum;
-  RETURN_IF_ERROR_PRESENT(calculateChecksum32(bit_msg, start_bit, end_bit, &theoretical_checksum))
+  RETURN_IF_ERROR_PRESENT(calculateChecksum32(bit_msg, start_bit, end_bit, &theoretical_checksum));
   uint32_t actual_checksum;
   end_bit++;
   if (Packet_Get32(bit_msg, &end_bit, &actual_checksum) == false)
-    REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN)
+    REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
 
   *error = actual_checksum != theoretical_checksum;
 }

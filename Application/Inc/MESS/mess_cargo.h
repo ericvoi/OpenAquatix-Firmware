@@ -45,10 +45,11 @@ extern "C" {
  * 
  * @param bit_msg Bit message to add the cargo to
  * @param msg message to take the cargo from
- * @param cfg Configurationd definign encoding
- * @return true if successful, false otherwise
+ * @param cfg Configuration defining encoding
+ * 
+ * @note Can cause unrecoverable and blocking errors
  */
-bool Cargo_Add(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
+void Cargo_Add(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
 
 /**
  * @brief Extracts payload data from bit message into a structured message
@@ -60,11 +61,9 @@ bool Cargo_Add(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
  * @param msg Pointer to message structure where decoded data will be stored
  * @param cfg Configuration parameters
  *
- * @return true if message extraction succeeds, false on extraction failure
- *
  * @pre Preamble must have been successfully received and decoded
  */
-bool Cargo_Decode(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
+void Cargo_Decode(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
 
 /**
  * @brief The non-FEC length of the cargo with coding applied

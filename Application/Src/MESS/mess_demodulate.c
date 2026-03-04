@@ -75,10 +75,11 @@ static void setWindowHamming();
 
 void Demodulate_Init()
 {
+  RETURN_IF_ERROR_PRESENT();
   updateWindow();
 }
 
-bool Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg)
+void Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg)
 {
   switch (cfg->mod_demod_method) {
     case MOD_DEMOD_FSK:
@@ -113,12 +114,13 @@ bool Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg)
       break;
     }
     default:
-      return false;
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
+      break;
   }
 
   switch (decision_method) {
     case AMPLITUDE_COMPARISON:
-      return true;
+      return;
     /* In the HISTORICAL_COMPARISON method:
      * The algorithm uses prior demodulation results to handle cases where
      * there are significant energy shifts between f0 and f1 frequencies.
@@ -182,9 +184,8 @@ bool Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg)
       demodulation_history[buffer_index][frequency_index].energy_f1 = data->energy_f1;
       break;
     default:
-      return false;
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
   }
-  return true;
 }
 
 float Demodulate_PowerNormalization()
@@ -209,7 +210,7 @@ void Demodulate_RegisterParams()
                      PARAM_TYPE_ENUM, &decision_method, sizeof(uint8_t), 
                      &min_u32, &max_u32, NULL, 
                      demodulation_decision_descriptors) == false) {
-    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION)
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_DEMOD_CAL_LOWER_F;
@@ -217,7 +218,7 @@ void Demodulate_RegisterParams()
   if (Param_Register(PARAM_DEMOD_CAL_LOWER_FREQ, "demod cal lower frequency", 
                      PARAM_TYPE_UINT32, &lower_calibration_frequency, 
                      sizeof(uint32_t), &min_u32, &max_u32, NULL, NULL) == false) {
-    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION)
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_DEMOD_CAL_LOWER_F;
@@ -225,7 +226,7 @@ void Demodulate_RegisterParams()
   if (Param_Register(PARAM_DEMOD_CAL_UPPER_FREQ, "demod cal upper frequency", 
                      PARAM_TYPE_UINT32, &upper_calibration_frequency, 
                      sizeof(uint32_t), &min_u32, &max_u32, NULL, NULL) == false) {
-    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION)
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   float min_f = MIN_HIST_CMP_THRESH;
@@ -234,7 +235,7 @@ void Demodulate_RegisterParams()
                      "significant shift threshold", PARAM_TYPE_FLOAT,
                      &significant_shift_threshold, sizeof(float), &min_f, 
                      &max_f, NULL, NULL) == false) {
-    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION)
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_WINDOW_FUNCTION;
@@ -243,7 +244,7 @@ void Demodulate_RegisterParams()
                      PARAM_TYPE_ENUM, &window_function, sizeof(uint8_t), 
                      &min_u32, &max_u32, updateWindow, 
                      window_function_descriptors) == false) {
-    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION)
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 }
 
@@ -271,7 +272,7 @@ void updateWindow()
       setWindowHamming();
       break;
     default:
-      REGISTER_ERROR(ERROR_UNHANDLED_CASE)
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
       break;
   }
 }

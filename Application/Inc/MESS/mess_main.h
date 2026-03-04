@@ -273,7 +273,7 @@ void MESS_RoundBaud(float* baud);
  * @param lower_freq Pointer to uint32 containing lowest used frequency (modified)
  * @param upper_freq Pointer to uint32 containing highest used frequency (modified)
  *
- * @return true unless an internal parameter like frequency was set incorrectly
+ * @return true unless modulation method not handled
  */
 bool MESS_GetBandwidth(uint32_t* bandwidth, uint32_t* lower_freq, uint32_t* upper_freq);
 
@@ -283,10 +283,8 @@ bool MESS_GetBandwidth(uint32_t* bandwidth, uint32_t* lower_freq, uint32_t* uppe
  * Returns the bit period in ms as a float
  *
  * @param bit_period_ms Pointer to float containing the bit period (modified)
- *
- * @return true always
  */
-bool MESS_GetBitPeriod(float* bit_period_ms);
+void MESS_GetBitPeriod(float* bit_period_ms);
 
 /**
  * @brief State of the MESS task

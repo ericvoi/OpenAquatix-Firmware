@@ -116,40 +116,40 @@ static void extractPreambleFields(const PreambleFieldConfig_t* fields, BitMessag
 static JanusMessageData_t janusMessageType(uint8_t class_user_id, uint8_t application_type);
 static void cargoLengthCalculation(BitMessage_t* bit_msg, const DspConfig_t* cfg);
 
-static bool addCustomPreamble(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
+static void addCustomPreamble(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
 static void addJanusPreamble(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
-static bool decodeCustomPreamble(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
+static void decodeCustomPreamble(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
 static void decodeJanusPreamble(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
 
 /* Exported function definitions ---------------------------------------------*/
 
 void Preamble_Add(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
 {
-  RETURN_IF_ERROR_PRESENT()
+  RETURN_IF_ERROR_PRESENT();
   switch (cfg->protocol) {
     case PROTOCOL_CUSTOM:
-      RETURN_IF_ERROR_PRESENT(addCustomPreamble(bit_msg, msg, cfg))
+      RETURN_IF_ERROR_PRESENT(addCustomPreamble(bit_msg, msg, cfg));
       break;
     case PROTOCOL_JANUS:
-      RETURN_IF_ERROR_PRESENT(addJanusPreamble(bit_msg, msg, cfg))
+      RETURN_IF_ERROR_PRESENT(addJanusPreamble(bit_msg, msg, cfg));
       break;
     default:
-      REGISTER_ERROR(ERROR_UNHANDLED_CASE)
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
   }
 }
 
 void Preamble_Decode(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
 {
-  RETURN_IF_ERROR_PRESENT()
+  RETURN_IF_ERROR_PRESENT();
   switch (cfg->protocol) {
     case PROTOCOL_CUSTOM:
-      RETURN_IF_ERROR_PRESENT(decodeCustomPreamble(bit_msg, msg, cfg))
+      RETURN_IF_ERROR_PRESENT(decodeCustomPreamble(bit_msg, msg, cfg));
       break;
     case PROTOCOL_JANUS:
-      RETURN_IF_ERROR_PRESENT(decodeJanusPreamble(bit_msg, msg, cfg))
+      RETURN_IF_ERROR_PRESENT(decodeJanusPreamble(bit_msg, msg, cfg));
       break;
     default:
-      REGISTER_ERROR(ERROR_UNHANDLED_CASE)
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
   }
 }
 
@@ -173,7 +173,7 @@ void calculateJanusCargoBits(Message_t* msg, BitMessage_t* bit_msg, uint16_t num
 {
   uint16_t num_bytes = (num_bits + 7) / 8;
   if (num_bytes > 480 || num_bytes == 0) 
-    REGISTER_ERROR(ERROR_INVALID_CARGO_LENGTH)
+    REGISTER_ERROR(ERROR_INVALID_CARGO_LENGTH);
 
   uint8_t e = 0;
   uint16_t offset = 32;
@@ -202,11 +202,11 @@ void calculateJanusCargoBits(Message_t* msg, BitMessage_t* bit_msg, uint16_t num
 void decodeJanusCargoBits(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* cfg)
 {
   if (msg->preamble.cargo_length.valid != true)
-    REGISTER_ERROR(ERROR_INVALID_CARGO_LENGTH)
+    REGISTER_ERROR(ERROR_INVALID_CARGO_LENGTH);
   
   uint16_t length_index = msg->preamble.cargo_length.value;
   if (length_index > 127)
-    REGISTER_ERROR(ERROR_INVALID_CARGO_LENGTH)
+    REGISTER_ERROR(ERROR_INVALID_CARGO_LENGTH);
 
   uint16_t num_bytes = calculateCargoBytes(length_index);
 
@@ -251,11 +251,11 @@ bool calculateJanusReservationBits(Message_t* msg, BitMessage_t* bit_msg, const 
 void decodeJanusReservationBits(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* cfg)
 {
   if (msg->preamble.reservation_time_10ms.valid == false)
-    REGISTER_ERROR(ERROR_INVALID_PREAMBLE_FIELD)
+    REGISTER_ERROR(ERROR_INVALID_PREAMBLE_FIELD);
   
   uint16_t reservation_time_index = msg->preamble.reservation_time_10ms.value;
   if (reservation_time_index > 127) 
-    REGISTER_ERROR(ERROR_INVALID_PREAMBLE_FIELD)
+    REGISTER_ERROR(ERROR_INVALID_PREAMBLE_FIELD);
   
   uint8_t m = reservation_time_index & 0x0F;
   uint8_t e = (reservation_time_index >> 4) & 0x07;
@@ -286,7 +286,7 @@ void loadCustomParameters(Message_t* msg)
 {
   uint8_t value;
   if (Param_GetUint8(PARAM_ID, &value) == false)
-    REGISTER_ERROR(ERROR_PARAMETER_ACCESS)
+    REGISTER_ERROR(ERROR_PARAMETER_ACCESS);
 
   // Checks for validity since configuration values can be overridden by
   // feedback tests in which case the value should not be overwritten
@@ -295,7 +295,7 @@ void loadCustomParameters(Message_t* msg)
     msg->preamble.modem_id.valid = true;
   }
   if (Param_GetUint8(PARAM_STATIONARY_FLAG, &value) == false)
-    REGISTER_ERROR(ERROR_PARAMETER_ACCESS)
+    REGISTER_ERROR(ERROR_PARAMETER_ACCESS);
 
   if (msg->preamble.is_mobile.valid != true) {
     msg->preamble.is_mobile.value = value;
@@ -307,7 +307,7 @@ void loadJanusParameters(Message_t* msg)
 {
   uint8_t value;
   if (Param_GetUint8(PARAM_TX_RX_ABILITY, &value) == false)
-    REGISTER_ERROR(ERROR_PARAMETER_ACCESS)
+    REGISTER_ERROR(ERROR_PARAMETER_ACCESS);
 
   // Checks for validity since configuration values can be overridden by
   // feedback tests in which case the value should not be overwritten
@@ -317,42 +317,42 @@ void loadJanusParameters(Message_t* msg)
   }
 
   if (Param_GetUint8(PARAM_FORWARD_CAPABILITY, &value) == false) 
-    REGISTER_ERROR(ERROR_PARAMETER_ACCESS)
+    REGISTER_ERROR(ERROR_PARAMETER_ACCESS);
   if (msg->preamble.can_forward.valid != true) {
     msg->preamble.can_forward.value = value;
     msg->preamble.can_forward.valid = true;
   }
 
   if (Param_GetUint8(PARAM_JANUS_ID, &value) == false) 
-    REGISTER_ERROR(ERROR_PARAMETER_ACCESS)
+    REGISTER_ERROR(ERROR_PARAMETER_ACCESS);
   if (msg->preamble.modem_id.valid != true) {
     msg->preamble.modem_id.value = value;
     msg->preamble.modem_id.valid = true;
   }
 
   if (Param_GetUint8(PARAM_JANUS_DESTINATION, &value) == false) 
-    REGISTER_ERROR(ERROR_PARAMETER_ACCESS)
+    REGISTER_ERROR(ERROR_PARAMETER_ACCESS);
   if (msg->preamble.destination_id.valid != true) {
     msg->preamble.destination_id.value = value;
     msg->preamble.destination_id.valid = true;
   }
 
   if (Param_GetUint8(PARAM_CODING, &value) == false) 
-    REGISTER_ERROR(ERROR_PARAMETER_ACCESS)
+    REGISTER_ERROR(ERROR_PARAMETER_ACCESS);
   if (msg->preamble.coding.valid != true) {
     msg->preamble.coding.value = value;
     msg->preamble.coding.valid = true;
   }
 
   if (Param_GetUint8(PARAM_ENCRYPTION, &value) == false) 
-    REGISTER_ERROR(ERROR_PARAMETER_ACCESS)
+    REGISTER_ERROR(ERROR_PARAMETER_ACCESS);
   if (msg->preamble.encryption.valid != true) {
     msg->preamble.encryption.value = value;
     msg->preamble.encryption.valid = true;
   }
 
   if (Param_GetUint8(PARAM_STATIONARY_FLAG, &value) == false) 
-    REGISTER_ERROR(ERROR_PARAMETER_ACCESS)
+    REGISTER_ERROR(ERROR_PARAMETER_ACCESS);
   if (msg->preamble.is_mobile.valid != true) {
     msg->preamble.is_mobile.value = value;
     msg->preamble.is_mobile.valid = true;
@@ -366,10 +366,10 @@ void getFields(const PreambleFieldConfig_t** fields, const Message_t* msg, const
       *fields = custom_fields;
       return;
     case PROTOCOL_JANUS:
-      RETURN_IF_ERROR_PRESENT(janusFields(fields, msg->janus_data_type))
+      RETURN_IF_ERROR_PRESENT(janusFields(fields, msg->janus_data_type));
       return;
     default:
-      REGISTER_ERROR(ERROR_UNHANDLED_CASE)
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
   }
 }
 
@@ -380,7 +380,7 @@ void janusFields(const PreambleFieldConfig_t** fields, JanusMessageData_t janus_
       *fields = janus_011_01_sms_fields;
       return;
     default:
-      REGISTER_ERROR(ERROR_UNHANDLED_CASE)
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
   }
 }
 
@@ -394,7 +394,7 @@ void addPreambleFields(const PreambleFieldConfig_t* fields, const Message_t* msg
         const uint16_t* value_source = (const uint16_t*)(base_source + fields[i].value_offset);
         const bool* flag_source = (const bool*)(base_source + fields[i].flag_offset);
         if (*flag_source != true) 
-          REGISTER_ERROR(ERROR_INVALID_PREAMBLE_FIELD)
+          REGISTER_ERROR(ERROR_INVALID_PREAMBLE_FIELD);
         
         value = *value_source;
         break;
@@ -406,12 +406,13 @@ void addPreambleFields(const PreambleFieldConfig_t* fields, const Message_t* msg
         value = 0U;
         break;
       default:
-        REGISTER_ERROR(ERROR_UNHANDLED_CASE)
+        REGISTER_ERROR(ERROR_UNHANDLED_CASE);
+        return;
     }
 
     for (uint16_t j = 0; j < fields[i].bit_len; j++) {
       if (Packet_AddBit(bit_msg, (value >> (fields[i].bit_len - j - 1)) & 1) == false) 
-        REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN)
+        REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
     }
   }
 }
@@ -424,7 +425,7 @@ void extractPreambleFields(const PreambleFieldConfig_t* fields, BitMessage_t* bi
     for (uint16_t j = 0; j < fields[i].bit_len; j++) {
       bool bit;
       if (Packet_GetBit(bit_msg, fields[i].start_bit + j, &bit) == false)
-        REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN)
+        REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
       
       value |= bit << (fields[i].bit_len - j - 1);
     }
@@ -447,7 +448,7 @@ void extractPreambleFields(const PreambleFieldConfig_t* fields, BitMessage_t* bi
       case ENCODE_UNUSED:
         break;
       default:
-        REGISTER_ERROR(ERROR_UNHANDLED_CASE)
+        REGISTER_ERROR(ERROR_UNHANDLED_CASE);
     }
   }
 }
@@ -466,7 +467,7 @@ void cargoLengthCalculation(BitMessage_t* bit_msg, const DspConfig_t* cfg)
   bit_msg->cargo.ecc_len = cargo_ecc_len;
 
   // Check CRC
-  RETURN_IF_ERROR_PRESENT(ErrorDetection_CheckDetection(bit_msg, &bit_msg->error_preamble, cfg, true))
+  RETURN_IF_ERROR_PRESENT(ErrorDetection_CheckDetection(bit_msg, &bit_msg->error_preamble, cfg, true));
 
   // Final message length calculations
   bit_msg->final_length = bit_msg->preamble.ecc_len + bit_msg->cargo.ecc_len;
@@ -474,7 +475,7 @@ void cargoLengthCalculation(BitMessage_t* bit_msg, const DspConfig_t* cfg)
   bit_msg->cargo.ecc_start_index = bit_msg->preamble.ecc_start_index + bit_msg->preamble.ecc_len;
 }
 
-bool addCustomPreamble(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
+void addCustomPreamble(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
 {
   // Calculate required fields
 
@@ -489,31 +490,31 @@ bool addCustomPreamble(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t*
     case FLOAT:
     case BITS:
     case UNKNOWN:
-      RETURN_IF_ERROR_PRESENT(calculateJanusCargoBits(msg, bit_msg, msg->length_bits + detection_bits))
+      RETURN_IF_ERROR_PRESENT(calculateJanusCargoBits(msg, bit_msg, msg->length_bits + detection_bits));
       break;
     case EVAL: {
       uint16_t eval_bytes;
       if (Param_GetUint16(PARAM_EVAL_MESSAGE_LEN, &eval_bytes) == false)
-        REGISTER_ERROR(ERROR_PARAMETER_ACCESS)
+        REGISTER_ERROR(ERROR_PARAMETER_ACCESS);
 
-      RETURN_IF_ERROR_PRESENT(calculateJanusCargoBits(msg, bit_msg, eval_bytes * 8))
+      RETURN_IF_ERROR_PRESENT(calculateJanusCargoBits(msg, bit_msg, eval_bytes * 8));
       break;
     }
     default:
-      REGISTER_ERROR(ERROR_UNHANDLED_CASE)
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
   }
 
   // Add required fields
 
   const PreambleFieldConfig_t* fields;
   getFields(&fields, msg, cfg);
-  RETURN_IF_ERROR_PRESENT(addPreambleFields(fields, msg, bit_msg))
+  RETURN_IF_ERROR_PRESENT(addPreambleFields(fields, msg, bit_msg));
 
   // Update length of bit message
   Preamble_UpdateNumBits(bit_msg, cfg);
 
   // Add CRC required by cfg
-  RETURN_IF_ERROR_PRESENT(ErrorDetection_AddDetection(bit_msg, cfg, true))
+  RETURN_IF_ERROR_PRESENT(ErrorDetection_AddDetection(bit_msg, cfg, true));
 }
 
 void addJanusPreamble(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
@@ -526,7 +527,7 @@ void addJanusPreamble(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* 
     case JANUS_011_01_SMS:
       uint16_t raw_coded_len = Cargo_RawCodedLength(msg->length_bits, msg->preamble.coding.value) + detection_bits;
       if (calculateJanusReservationBits(msg, bit_msg, cfg, raw_coded_len) == false) 
-        REGISTER_ERROR(ERROR_INVALID_RESERVATION_TIME)
+        REGISTER_ERROR(ERROR_INVALID_RESERVATION_TIME);
       
       msg->preamble.class_user_id.value = JANUS_011_01_SMS_CLASS_USER_ID;
       msg->preamble.application_type.value = JANUS_011_01_SMS_APPLICATION_TYPE;
@@ -537,7 +538,7 @@ void addJanusPreamble(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* 
 
       // Encryption is a 3 bit value but 011 01 only allots 2 bits for encryption
       if (msg->preamble.encryption.value > 3) 
-        REGISTER_ERROR(ERROR_INVALID_PREAMBLE_FIELD)
+        REGISTER_ERROR(ERROR_INVALID_PREAMBLE_FIELD);
       break;
     default:
       REGISTER_ERROR(ERROR_UNHANDLED_CASE);
@@ -546,24 +547,24 @@ void addJanusPreamble(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* 
   const PreambleFieldConfig_t* fields;
   getFields(&fields, msg, cfg);
 
-  RETURN_IF_ERROR_PRESENT(addPreambleFields(fields, msg, bit_msg))
+  RETURN_IF_ERROR_PRESENT(addPreambleFields(fields, msg, bit_msg));
 
   // Update length of bit message
   Preamble_UpdateNumBits(bit_msg, cfg);
 
   // Add CRC required by cfg
-  RETURN_IF_ERROR_PRESENT(ErrorDetection_AddDetection(bit_msg, cfg, true))
+  RETURN_IF_ERROR_PRESENT(ErrorDetection_AddDetection(bit_msg, cfg, true));
 }
 
-bool decodeCustomPreamble(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
+void decodeCustomPreamble(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
 {
   memset(&msg->preamble, 0, sizeof(PreambleContent_t));
   // Decode relevant fields
   const PreambleFieldConfig_t* fields;
   getFields(&fields, msg, cfg);
-  RETURN_IF_ERROR_PRESENT(extractPreambleFields(fields, bit_msg, msg))
+  RETURN_IF_ERROR_PRESENT(extractPreambleFields(fields, bit_msg, msg));
   if (msg->preamble.message_type.valid == false)
-    REGISTER_ERROR(ERROR_INVALID_PREAMBLE_FIELD)
+    REGISTER_ERROR(ERROR_INVALID_PREAMBLE_FIELD);
   
   // Calculate relevant parameters
   switch (msg->preamble.message_type.value) {
@@ -573,17 +574,17 @@ bool decodeCustomPreamble(BitMessage_t* bit_msg, Message_t* msg, const DspConfig
     case BITS:
     case UNKNOWN:
     case EVAL:
-      RETURN_IF_ERROR_PRESENT(decodeJanusCargoBits(msg, bit_msg, cfg))
+      RETURN_IF_ERROR_PRESENT(decodeJanusCargoBits(msg, bit_msg, cfg));
       break;
     default:
       // Attempt decoding anyways, but issue warning to user
-      REGISTER_ERROR(ERROR_UNKNOWN_MESSAGE)
-      RETURN_IF_ERROR_PRESENT(decodeJanusCargoBits(msg, bit_msg, cfg))
+      REGISTER_ERROR(ERROR_UNKNOWN_MESSAGE);
+      RETURN_IF_ERROR_PRESENT(decodeJanusCargoBits(msg, bit_msg, cfg));
       msg->preamble.message_type.value = UNKNOWN;
       break;
   }
 
-  RETURN_IF_ERROR_PRESENT(cargoLengthCalculation(bit_msg, cfg))
+  RETURN_IF_ERROR_PRESENT(cargoLengthCalculation(bit_msg, cfg));
 }
 
 void decodeJanusPreamble(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
@@ -594,33 +595,33 @@ void decodeJanusPreamble(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_
   uint8_t application_type;
   uint16_t start_pos = 8;
   if (Packet_Get8BitChunk(bit_msg, &start_pos, 8, &class_user_id) == false)
-    REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN)
+    REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
   
   start_pos = 16;
   if (Packet_Get8BitChunk(bit_msg, &start_pos, 6, &application_type) == false)
-    REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN)
+    REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
 
   JanusMessageData_t message_type = janusMessageType(class_user_id, application_type);
-  if (message_type == JANUS_UNKNOWN) REGISTER_ERROR(ERROR_UNKNOWN_JANUS)
+  if (message_type == JANUS_UNKNOWN) REGISTER_ERROR(ERROR_UNKNOWN_JANUS);
 
   msg->janus_data_type = message_type;
 
   const PreambleFieldConfig_t* fields;
   janusFields(&fields, message_type);
 
-  RETURN_IF_ERROR_PRESENT(extractPreambleFields(fields, bit_msg, msg))
+  RETURN_IF_ERROR_PRESENT(extractPreambleFields(fields, bit_msg, msg));
 
   switch (message_type) {
     case JANUS_011_01_SMS:
-      RETURN_IF_ERROR_PRESENT(decodeJanusReservationBits(msg, bit_msg, cfg))
+      RETURN_IF_ERROR_PRESENT(decodeJanusReservationBits(msg, bit_msg, cfg));
       break;
     case JANUS_UNKNOWN:
       bit_msg->data_len_bits = 0;
       bit_msg->cargo.raw_len = 0;
       break;
     default:
-      REGISTER_ERROR(ERROR_UNKNOWN_JANUS)
+      REGISTER_ERROR(ERROR_UNKNOWN_JANUS);
   }
 
-  RETURN_IF_ERROR_PRESENT(cargoLengthCalculation(bit_msg, cfg))
+  RETURN_IF_ERROR_PRESENT(cargoLengthCalculation(bit_msg, cfg));
 }

@@ -14,6 +14,7 @@
 #include "mess_feedback.h"
 #include "usb_comm.h"
 #include "dac_waveform.h"
+#include "error_manager.h"
 #include <stdbool.h>
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,6 +41,7 @@
 
 void Feedback_Init()
 {
+  RETURN_IF_ERROR_PRESENT();
   ADC_FeedbackClear();
 }
 

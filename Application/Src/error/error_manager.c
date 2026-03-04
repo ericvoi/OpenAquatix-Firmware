@@ -172,7 +172,9 @@ TaskResetStatus_t Error_CheckModuleReset(void)
 {
   TaskInfo_t* task_info = getTaskInfo();
 
-  return (task_info->pending_reset == true) ? (TASK_RESET) : (TASK_PROCEED);
+  TaskResetStatus_t ret = (task_info->pending_reset == true) ? (TASK_RESET) : (TASK_PROCEED);
+  task_info->pending_reset = false;
+  return ret;
 }
 
 /* Private function definitions ----------------------------------------------*/

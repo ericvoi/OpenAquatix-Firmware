@@ -47,14 +47,14 @@ void Calibrate_RegisterParams()
   if (Param_Register(PARAM_MOD_CAL_LOWER_FREQ, "lower calibration frequency", 
                      PARAM_TYPE_UINT32, &mod_cal_lower_freq, sizeof(uint32_t), 
                      &min, &max, NULL, NULL) == false) {
-    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION)
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min = MIN_MOD_CAL_UPPER_FREQ;
   max = MAX_MOD_CAL_UPPER_FREQ;
   if (Param_Register(PARAM_MOD_CAL_UPPER_FREQ, "upper calibration frequency", 
                      PARAM_TYPE_UINT32, &mod_cal_upper_freq, sizeof(uint32_t), &min, &max, NULL, NULL) == false) {
-    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION)
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 }
 

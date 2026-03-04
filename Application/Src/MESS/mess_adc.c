@@ -76,8 +76,9 @@ void incrementRollover();
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool ADC_Init()
+void ADC_Init()
 {
+  RETURN_IF_ERROR_PRESENT();
   HAL_StatusTypeDef ret1 = HAL_TIM_Base_Start(&htim8);
 
   input_head_pos = 0;
@@ -87,7 +88,7 @@ bool ADC_Init()
 
   memset(adc_buffer, 0, ADC_BUFFER_SIZE * sizeof(uint16_t));
 
-  return ret1 == HAL_OK;
+  if (ret1 != HAL_OK) REGISTER_ERROR(ERROR_INPUT_ADC_INITIALIZATION);
 }
 
 void ADC_StartInput()
@@ -96,11 +97,11 @@ void ADC_StartInput()
   input_tail_pos = 0;
 
   if (HAL_TIM_Base_Start(&htim8) != HAL_OK) 
-    REGISTER_ERROR(ERROR_INPUT_ADC_INITIALIZATION)
+    REGISTER_ERROR(ERROR_INPUT_ADC_INITIALIZATION);
 
   HAL_StatusTypeDef ret = HAL_ADC_Start_DMA(&INPUT_ADC, (uint32_t*) adc_buffer, ADC_BUFFER_SIZE);
   if (ret != HAL_OK) 
-    REGISTER_ERROR(ERROR_INPUT_ADC_INITIALIZATION)
+    REGISTER_ERROR(ERROR_INPUT_ADC_INITIALIZATION);
 }
 
 void ADC_StartFeedback()
@@ -109,10 +110,8 @@ void ADC_StartFeedback()
   feedback_tail_pos = 0;
 
   HAL_StatusTypeDef ret = HAL_ADC_Start_DMA(&FEEDBACK_ADC, (uint32_t*) adc_buffer, ADC_BUFFER_SIZE);
-  if (ret != HAL_OK) {
-    REGISTER_ERROR(ERROR_FEEDBACK_ADC_INITIALIZATION)
-    return;
-  }
+  if (ret != HAL_OK) 
+    REGISTER_ERROR(ERROR_FEEDBACK_ADC_INITIALIZATION);
 }
 
 bool ADC_StopFeedback()

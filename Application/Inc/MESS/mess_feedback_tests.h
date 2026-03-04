@@ -73,10 +73,10 @@ void FeedbackTests_GetNext(void);
  * 
  * @param bit_msg Message to add the bit errors to (modified)
  * 
- * @return true if successful even if no errors added
+ * @note can cause unrecoverable and blocking errors
  */
-bool FeedbackTests_CorruptMessage(BitMessage_t* bit_msg);
-// returns true if doing a feedback network test and false otherwise
+void FeedbackTests_CorruptMessage(BitMessage_t* bit_msg);
+
 /**
  * @brief Compares the received message against the feedback network test
  * 

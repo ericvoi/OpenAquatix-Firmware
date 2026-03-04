@@ -17,6 +17,7 @@
 #include "mess_error_correction.h"
 #include "mess_packet.h"
 #include "number_utils.h"
+#include "error_manager.h"
 #include <stdbool.h>
 #include <string.h>
 
@@ -50,7 +51,7 @@ typedef struct {
   uint16_t traceback[JANUS_TRACEBACK_LENGTH][JANUS_NUM_STATES]; // Survivor paths
   uint16_t traceback_index;                                     // Current position in traceback array
   float error_metric;                                           // Final error metric after decoding
-} JanusVitrebiDecoder_t;
+} JanusViterbiDecoder_t;
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -62,11 +63,14 @@ static uint8_t message_buffer[PACKET_MAX_LENGTH_BYTES] = {0};
 
 /* Private function prototypes -----------------------------------------------*/
 
-static bool addHamming(BitMessage_t* bit_msg, bool is_preamble, uint16_t* bits_added);
-static bool decodeHamming(BitMessage_t* bit_msg, bool is_preamble, bool* error_detected, bool* error_corrected);
+static void addNoEcc(BitMessage_t* bit_msg, bool is_preamble, uint16_t* bits_added);
+static void decodeNoEcc(BitMessage_t* bit_msg, bool is_preamble, bool* error_detected, bool* error_corrected);
 
-static bool addJanusConvolutional(BitMessage_t* bit_msg, bool is_preamble, uint16_t* bits_added);
-static bool decodeJanusConvolutional(BitMessage_t* bit_msg, bool is_preamble, bool* error_detected, bool* error_corrected);
+static void addHamming(BitMessage_t* bit_msg, bool is_preamble, uint16_t* bits_added);
+static void decodeHamming(BitMessage_t* bit_msg, bool is_preamble, bool* error_detected, bool* error_corrected);
+
+static void addJanusConvolutional(BitMessage_t* bit_msg, bool is_preamble, uint16_t* bits_added);
+static void decodeJanusConvolutional(BitMessage_t* bit_msg, bool is_preamble, bool* error_detected, bool* error_corrected);
 
 // Hamming functions
 static uint16_t calculateNumParityBits(const uint16_t num_bits);
@@ -75,13 +79,13 @@ static uint16_t countLeadingZeros(const uint16_t value);
 // JANUS 1:2 convolutional encoder functions
 static void janusConvEncoderInit(ConvEncoder_t* encoder);
 static void janusConvEncodeBit(ConvEncoder_t* encoder, bool input_bit, bool output_bits[2]);
-static void janusVitrebiInit(JanusVitrebiDecoder_t* decoder);
+static void janusViterbiInit(JanusViterbiDecoder_t* decoder);
 static float janusComputeBranchMetric(bool received_bit1, bool received_bit2,
                                       bool expected_bit1, bool expected_bit2);
 static void janusCalculateOutput(uint16_t state, bool input_bit, bool output[2]);
-static void janusVitrebiDecodePair(JanusVitrebiDecoder_t* decoder, bool received_bit1, bool received_bit2, bool is_flush_bit);
-static bool janusVitrebiTraceback(JanusVitrebiDecoder_t* decoder, bool* bit, uint16_t bit_index);
-static uint16_t janusVitrebiFindBestState(JanusVitrebiDecoder_t* decoder);
+static void janusViterbiDecodePair(JanusViterbiDecoder_t* decoder, bool received_bit1, bool received_bit2, bool is_flush_bit);
+static bool janusViterbiTraceback(JanusViterbiDecoder_t* decoder, bool* bit, uint16_t bit_index);
+static uint16_t janusViterbiFindBestState(JanusViterbiDecoder_t* decoder);
 
 // General helper functions
 static void clearBuffer(void);
@@ -91,54 +95,51 @@ static void copyBufferToMessage(BitMessage_t* bit_msg, uint16_t new_len);
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool ErrorCorrection_AddCorrection(BitMessage_t* bit_msg, 
+void ErrorCorrection_AddCorrection(BitMessage_t* bit_msg, 
                                    const DspConfig_t* cfg)
 {
+  RETURN_IF_ERROR_PRESENT();
   uint16_t bits_added = 0;
   clearBuffer();
   switch (cfg->preamble_ecc_method) {
     case NO_ECC:
-      return true;
+      RETURN_IF_ERROR_PRESENT(addNoEcc(bit_msg, true, &bits_added));
+      break;
     case HAMMING_CODE:
-      if (addHamming(bit_msg, true, &bits_added) == false) {
-        return false;
-      }
+      RETURN_IF_ERROR_PRESENT(addHamming(bit_msg, true, &bits_added));
       break;
     case JANUS_CONVOLUTIONAL:
-      if (addJanusConvolutional(bit_msg, true, &bits_added) == false) {
-        return false;
-      }
+      RETURN_IF_ERROR_PRESENT(addJanusConvolutional(bit_msg, true, &bits_added));
       break;
     default:
-      return false;
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
+      break;
   }
 
   switch (cfg->cargo_ecc_method) {
     case NO_ECC:
-      return true;
+      RETURN_IF_ERROR_PRESENT(addNoEcc(bit_msg, false, &bits_added));
+      break;
     case HAMMING_CODE:
-      if (addHamming(bit_msg, false, &bits_added) == false) {
-        return false;
-      }
+      RETURN_IF_ERROR_PRESENT(addHamming(bit_msg, false, &bits_added));
       break;
     case JANUS_CONVOLUTIONAL:
-      if (addJanusConvolutional(bit_msg, false, &bits_added) == false) {
-        return false;
-      }
+      RETURN_IF_ERROR_PRESENT(addJanusConvolutional(bit_msg, false, &bits_added));
       break;
     default:
-      return false;
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
+      break;
   }
   copyBufferToMessage(bit_msg, bits_added);
-  return true;
 }
 
-bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg, 
+void ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg, 
                                      const DspConfig_t* cfg, 
                                      bool is_preamble, 
                                      bool* error_detected, 
                                      bool* error_corrected)
 {
+  RETURN_IF_ERROR_PRESENT();
   *error_detected = false;
   *error_corrected = false;
   bit_msg->combined_message_len = bit_msg->preamble.raw_len +
@@ -149,31 +150,35 @@ bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg,
   if (is_preamble) {
     switch (cfg->preamble_ecc_method) {
       case NO_ECC:
-        *error_detected = false;
-        *error_corrected = false;
-        return true;
+        decodeNoEcc(bit_msg, true, error_detected, error_corrected);
+        return;
       case HAMMING_CODE:
-        return decodeHamming(bit_msg, true, error_detected, error_corrected);
+        RETURN_IF_ERROR_PRESENT(decodeHamming(bit_msg, true, error_detected,
+            error_corrected));
+        return;
       case JANUS_CONVOLUTIONAL:
-        return decodeJanusConvolutional(bit_msg, true, error_detected,
-                                        error_corrected);
+        RETURN_IF_ERROR_PRESENT(decodeJanusConvolutional(bit_msg, true, 
+            error_detected, error_corrected));
+        return;
       default:
-        return false;
+        REGISTER_ERROR(ERROR_UNHANDLED_CASE);
     }
   }
   else {
     switch (cfg->cargo_ecc_method) {
       case NO_ECC:
-        *error_detected = false;
-        *error_corrected = false;
-        return true;
+        decodeNoEcc(bit_msg, true, error_detected, error_corrected);
+        return;
       case HAMMING_CODE:
-        return decodeHamming(bit_msg, false, error_detected, error_corrected);
+        RETURN_IF_ERROR_PRESENT(decodeHamming(bit_msg, true, error_detected,
+            error_corrected));
+        return;
       case JANUS_CONVOLUTIONAL:
-        return decodeJanusConvolutional(bit_msg, false, error_detected,
-                                        error_corrected);
+        RETURN_IF_ERROR_PRESENT(decodeJanusConvolutional(bit_msg, true, 
+            error_detected, error_corrected));
+        return;
       default:
-        return false;
+        REGISTER_ERROR(ERROR_UNHANDLED_CASE);
     }
   }
 }
@@ -189,6 +194,7 @@ uint16_t ErrorCorrection_CodedLength(const uint16_t length,
     case JANUS_CONVOLUTIONAL:
       return 2 * (length + JANUS_FLUSH_LENGTH);
     default:
+      REGISTER_ERROR_INT(ERROR_UNHANDLED_CASE, 0);
       return 0;
   }
 }
@@ -204,11 +210,39 @@ uint16_t ErrorCorrection_UncodedLength(const uint16_t length,
     case JANUS_CONVOLUTIONAL:
       return (length / 2) - 8;
     default:
+      REGISTER_ERROR_INT(ERROR_UNHANDLED_CASE, 0);
       return 0;
   }
 }
 
 /* Private function definitions ----------------------------------------------*/
+
+void addNoEcc(BitMessage_t* bit_msg, bool is_preamble, uint16_t* bits_added)
+{
+  SectionInfo_t section_info = is_preamble ? bit_msg->preamble : bit_msg->cargo;
+
+  for (uint16_t i = 0; i < section_info.raw_len; i++) {
+    bool bit_to_add;
+    if (Packet_GetBit(bit_msg, section_info.raw_start_index + i, 
+                      &bit_to_add) == false) 
+      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
+    
+    if (setBitInBuffer(bit_to_add, section_info.ecc_start_index + i) == false) 
+      REGISTER_ERROR(ERROR_EXCEED_TEMP_BUFFER_LEN);
+  }
+  *bits_added += section_info.ecc_len;
+}
+
+void decodeNoEcc(BitMessage_t* bit_msg, 
+                 bool is_preamble, 
+                 bool* error_detected, 
+                 bool* error_corrected)
+{
+  (void) (bit_msg);
+  (void) (is_preamble);
+  (void) (error_detected);
+  (void) (error_corrected);
+}
 
 /*
  * Hamming codes work by placing parity bits at bit positions that are powers
@@ -229,7 +263,7 @@ uint16_t ErrorCorrection_UncodedLength(const uint16_t length,
  * 
  * Encoded message: 1001100
  */
-bool addHamming(BitMessage_t* bit_msg, 
+void addHamming(BitMessage_t* bit_msg, 
                 bool is_preamble, 
                 uint16_t* bits_added)
 {
@@ -246,16 +280,16 @@ bool addHamming(BitMessage_t* bit_msg,
     bool bit_to_add;
     if (Packet_GetBit(bit_msg, section_info.raw_start_index + message_bits_added++, 
                       &bit_to_add) == false) {
-      return false;
+      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
     }
     if (setBitInBuffer(bit_to_add, section_info.ecc_start_index + i) == false) {
-      return false;
+      REGISTER_ERROR(ERROR_EXCEED_TEMP_BUFFER_LEN);
     }
     if (message_bits_added >= section_info.raw_len) break;
   }
-  if (message_bits_added != section_info.raw_len) {
-    return false;
-  }
+  if (message_bits_added != section_info.raw_len) 
+    REGISTER_ERROR(ERROR_SANITY_CHECK);
+  
 
   // Add parity bits at indices that are powers of 2 offset from the start index
   for (uint16_t p = 0; p < parity_bits; p++) {
@@ -265,25 +299,22 @@ bool addHamming(BitMessage_t* bit_msg,
     for (uint16_t i = parity_pos; i < section_info.ecc_len; i++) {
       if ((i + 1) & (1 << p)) {
         bool bit;
-        if (getBitFromBuffer(i + section_info.ecc_start_index, &bit) == false) {
-          return false;
-        }
+        if (getBitFromBuffer(i + section_info.ecc_start_index, &bit) == false) 
+          REGISTER_ERROR(ERROR_EXCEED_TEMP_BUFFER_LEN);
+        
         parity ^= bit;
       }
     }
 
-    if (setBitInBuffer(parity, parity_pos + section_info.ecc_start_index) == false) {
-      return false;
-    }
+    if (setBitInBuffer(parity, parity_pos + section_info.ecc_start_index) == false)
+      REGISTER_ERROR(ERROR_EXCEED_TEMP_BUFFER_LEN);
   }
 
-
   *bits_added += section_info.ecc_len;
-  return true;
 }
 
 /*
- * Decosing a hamming code message works by checking to see if each parity
+ * Decoding a hamming code message works by checking to see if each parity
  * condition in the received message still holds. If a parity condition does
  * not hold then it is known that there is a bit error at a position where the
  * bit index corresponding to the parity bit checked is set. For example, in a
@@ -300,7 +331,7 @@ bool addHamming(BitMessage_t* bit_msg,
  * a position that satisfies xx1, x1x, and 1xx. This is 111 or bit position 7,
  * precisely where the error was!
  */
-bool decodeHamming(BitMessage_t* bit_msg, 
+void decodeHamming(BitMessage_t* bit_msg, 
                    bool is_preamble, 
                    bool* error_detected, 
                    bool* error_corrected)
@@ -317,9 +348,9 @@ bool decodeHamming(BitMessage_t* bit_msg,
     for (uint16_t i = 0; i < section_info.ecc_len; i++) {
       if ((i + 1) & (1 << p)) {
         bool bit;
-        if (Packet_GetBit(bit_msg, i + section_info.ecc_start_index, &bit) == false) {
-          return false;
-        }
+        if (Packet_GetBit(bit_msg, i + section_info.ecc_start_index, &bit) == false)
+          REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
+        
         parity ^= bit;
       }
     }
@@ -331,9 +362,9 @@ bool decodeHamming(BitMessage_t* bit_msg,
   }
 
   if (syndrome != 0 && syndrome < section_info.ecc_len) {
-    if (Packet_FlipBit(bit_msg, section_info.ecc_start_index + syndrome - 1) == false) {
-      return false;
-    }
+    if (Packet_FlipBit(bit_msg, section_info.ecc_start_index + syndrome - 1) == false)
+      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
+    
     *error_corrected = true;
   }
 
@@ -342,17 +373,15 @@ bool decodeHamming(BitMessage_t* bit_msg,
     if (NumberUtils_IsPowerOf2(i + 1) == false) {
       bool bit;
       if (Packet_GetBit(bit_msg, i + section_info.ecc_start_index, &bit) == false) {
-        return false;
+        REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
       }
       if (Packet_SetBit(bit_msg, decoded_pos + section_info.raw_start_index, bit) == false) {
-        return false;
+        REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
       }
       decoded_pos++;
       if (decoded_pos >= section_info.raw_len) break;
     }
   }
-
-  return true;
 }
 
 /*
@@ -392,7 +421,7 @@ bool decodeHamming(BitMessage_t* bit_msg,
  * are prepended but this means that they are added before encoding *not* that
  * the zeroes are added to the start of the data stream.
  */
-bool addJanusConvolutional(BitMessage_t* bit_msg, 
+void addJanusConvolutional(BitMessage_t* bit_msg, 
                            bool is_preamble, 
                            uint16_t* bits_added)
 {
@@ -406,33 +435,32 @@ bool addJanusConvolutional(BitMessage_t* bit_msg,
   // First add the actual message bits
   for (uint16_t i = 0; i < section_info.raw_len; i++) {
     bool input_bit;
-    if (Packet_GetBit(bit_msg, i + section_info.raw_start_index, &input_bit) == false) {
-      return false;
-    }
+    if (Packet_GetBit(bit_msg, i + section_info.raw_start_index, &input_bit) == false) 
+      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
+    
 
     janusConvEncodeBit(&encoder, input_bit, output_bits);
 
-    if (setBitInBuffer(output_bits[0], output_index++) == false) {
-      return false;
-    }
-    if (setBitInBuffer(output_bits[1], output_index++) == false) {
-      return false;
-    }
+    if (setBitInBuffer(output_bits[0], output_index++) == false) 
+      REGISTER_ERROR(ERROR_EXCEED_TEMP_BUFFER_LEN);
+    
+    if (setBitInBuffer(output_bits[1], output_index++) == false) 
+      REGISTER_ERROR(ERROR_EXCEED_TEMP_BUFFER_LEN);
+    
   }
 
   // Then flush the encoder
   for (uint16_t i = 0; i < JANUS_FLUSH_LENGTH; i++) {
       janusConvEncodeBit(&encoder, false, output_bits);
   
-      if (setBitInBuffer(output_bits[0], output_index++) == false) {
-        return false;
-      }
-      if (setBitInBuffer(output_bits[1], output_index++) == false) {
-        return false;
-      }
+      if (setBitInBuffer(output_bits[0], output_index++) == false) 
+        REGISTER_ERROR(ERROR_EXCEED_TEMP_BUFFER_LEN);
+      
+      if (setBitInBuffer(output_bits[1], output_index++) == false) 
+        REGISTER_ERROR(ERROR_EXCEED_TEMP_BUFFER_LEN);
+      
     }
   *bits_added += output_index - section_info.ecc_start_index;
-  return true;
 }
 
 /*
@@ -460,14 +488,14 @@ bool addJanusConvolutional(BitMessage_t* bit_msg,
  * determine an error metric. This can then be used in conjunction with each
  * of the path metrics to determine the best path. 
  */
-bool decodeJanusConvolutional(BitMessage_t* bit_msg, 
+void decodeJanusConvolutional(BitMessage_t* bit_msg, 
                               bool is_preamble, 
                               bool* error_detected, 
                               bool* error_corrected)
 {
-  JanusVitrebiDecoder_t janus_decoder;
+  JanusViterbiDecoder_t janus_decoder;
   SectionInfo_t section_info = is_preamble ? bit_msg->preamble : bit_msg->cargo;
-  janusVitrebiInit(&janus_decoder);
+  janusViterbiInit(&janus_decoder);
 
   uint16_t output_bit_index = 0;
 
@@ -477,25 +505,24 @@ bool decodeJanusConvolutional(BitMessage_t* bit_msg,
     bool is_flush_bit = i >= (section_info.ecc_len - 2 * JANUS_FLUSH_LENGTH);
     uint16_t bit_position = section_info.ecc_start_index + i;
     bool bit1, bit2;
-    if (Packet_GetBit(bit_msg, bit_position, &bit1) == false) {
-      return false;
-    }
-    if (Packet_GetBit(bit_msg, bit_position + 1, &bit2) == false) {
-      return false;
-    }
+    if (Packet_GetBit(bit_msg, bit_position, &bit1) == false) 
+      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
+    
+    if (Packet_GetBit(bit_msg, bit_position + 1, &bit2) == false)
+      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
 
-    janusVitrebiDecodePair(&janus_decoder, bit1, bit2, is_flush_bit);
+    janusViterbiDecodePair(&janus_decoder, bit1, bit2, is_flush_bit);
 
     // Only decode bits if we absolutely have to. Waiting any longer would
     // result in the history buffer being overwritten
     if (janus_decoder.traceback_index >= JANUS_TRACEBACK_LENGTH) {
       bool bit;
-      if (janusVitrebiTraceback(&janus_decoder, &bit, output_bit_index) == false) {
-        return false;
-      }
-      if (Packet_SetBit(bit_msg, section_info.raw_start_index + output_bit_index, bit) == false) {
-        return false;
-      }
+      if (janusViterbiTraceback(&janus_decoder, &bit, output_bit_index) == false)
+        REGISTER_ERROR(ERROR_VITERBI_TRACEBACK);
+      
+      if (Packet_SetBit(bit_msg, section_info.raw_start_index + output_bit_index, bit) == false) 
+        REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
+      
       output_bit_index++;
     }
   } 
@@ -505,22 +532,20 @@ bool decodeJanusConvolutional(BitMessage_t* bit_msg,
   uint16_t remaining_bits = MIN(section_info.raw_len, JANUS_TRACEBACK_LENGTH - 1);
   for (uint16_t i = 0; i < remaining_bits; i++) {
     bool bit;
-    if (janusVitrebiTraceback(&janus_decoder, &bit, output_bit_index) == false) {
-      return false;
-    }
-    if (Packet_SetBit(bit_msg, section_info.raw_start_index + output_bit_index, bit) == false) {
-      return false;
-    }
+    if (janusViterbiTraceback(&janus_decoder, &bit, output_bit_index) == false) 
+      REGISTER_ERROR(ERROR_VITERBI_TRACEBACK);
+    
+    if (Packet_SetBit(bit_msg, section_info.raw_start_index + output_bit_index, bit) == false) 
+      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
+    
     output_bit_index++;
   }
 
-  bit_msg->normalized_vitrebi_error_metric =
+  bit_msg->normalized_viterbi_error_metric =
       (float) janus_decoder.error_metric / (section_info.ecc_len / 2.0f);
 
-  *error_detected = bit_msg->normalized_vitrebi_error_metric != 0.0f;
+  *error_detected = bit_msg->normalized_viterbi_error_metric != 0.0f;
   *error_corrected = *error_detected;
-
-  return true;
 }
 
 uint16_t calculateNumParityBits(const uint16_t num_bits)
@@ -533,7 +558,7 @@ uint16_t calculateNumParityBits(const uint16_t num_bits)
   return parity_bits;
 }
 
-static uint16_t countLeadingZeros(const uint16_t value)
+uint16_t countLeadingZeros(const uint16_t value)
 {
   for (uint16_t i = 0; i < 16; i++) {
     if (value & (1 << (15 - i))) {
@@ -559,9 +584,9 @@ void janusConvEncodeBit(ConvEncoder_t* encoder, bool input_bit, bool output_bits
   output_bits[1] = __builtin_parity(state & CE_G2_JANUS);
 }
 
-void janusVitrebiInit(JanusVitrebiDecoder_t* decoder)
+void janusViterbiInit(JanusViterbiDecoder_t* decoder)
 {
-  memset(decoder, 0, sizeof(JanusVitrebiDecoder_t));
+  memset(decoder, 0, sizeof(JanusViterbiDecoder_t));
 
   decoder->path_metrics[0] = 0.0f;
   for (uint16_t i = 1; i < JANUS_NUM_STATES; i++) {
@@ -579,7 +604,7 @@ void janusVitrebiInit(JanusVitrebiDecoder_t* decoder)
 float janusComputeBranchMetric(bool received_bit1, bool received_bit2,
                                bool expected_bit1, bool expected_bit2)
 {
-  // Soft decision vitrebi traceback uses a cotninuous range to decide how
+  // Soft decision viterbi traceback uses a cotninuous range to decide how
   // far off the branch is from actual. The continuous range is ususally a
   // 4-byte float, but a 1- or 2-byte value could be used.
   // Keeping the energies of each frequency for each bit would use 4 bytes
@@ -591,7 +616,7 @@ float janusComputeBranchMetric(bool received_bit1, bool received_bit2,
   // history array corresponding to the bit position. Considering how the
   // MESS task is such a high priority task that is run often, this could
   // be viable as the current maximum baud rate of 1000 gives 10 ms with
-  // an energy history of 10. TODO (investigate soft decision vitrebi)
+  // an energy history of 10. TODO (investigate soft decision viterbi)
   #if JANUS_SOFT_DECISION
     return (received_bit1 - expected_bit1) * (received_bit1 - expected_bit1) + 
            (received_bit2 - expected_bit2) * (received_bit2 - expected_bit2);
@@ -608,7 +633,7 @@ void janusCalculateOutput(uint16_t state, bool input_bit, bool output[2])
   output[1] = __builtin_parity(full_state & CE_G2_JANUS);
 }
 
-void janusVitrebiDecodePair(JanusVitrebiDecoder_t* decoder,
+void janusViterbiDecodePair(JanusViterbiDecoder_t* decoder,
                             bool received_bit1,
                             bool received_bit2,
                             bool is_flush_bit)
@@ -651,12 +676,12 @@ void janusVitrebiDecodePair(JanusVitrebiDecoder_t* decoder,
 }
 
 // TODO: optimize for repeated tracebacks with the same path
-bool janusVitrebiTraceback(JanusVitrebiDecoder_t* decoder, bool* bit, uint16_t bit_index)
+bool janusViterbiTraceback(JanusViterbiDecoder_t* decoder, bool* bit, uint16_t bit_index)
 {
   if (bit_index >= decoder->traceback_index) {
     return false;
   }
-  uint16_t current_state = janusVitrebiFindBestState(decoder);
+  uint16_t current_state = janusViterbiFindBestState(decoder);
 
   uint16_t available_symbols = decoder->traceback_index - bit_index - 1;
 
@@ -670,7 +695,7 @@ bool janusVitrebiTraceback(JanusVitrebiDecoder_t* decoder, bool* bit, uint16_t b
   return true;
 }
 
-static uint16_t janusVitrebiFindBestState(JanusVitrebiDecoder_t* decoder)
+uint16_t janusViterbiFindBestState(JanusViterbiDecoder_t* decoder)
 {
   uint16_t best_state = 0;
   float min_metric = decoder->path_metrics[0];

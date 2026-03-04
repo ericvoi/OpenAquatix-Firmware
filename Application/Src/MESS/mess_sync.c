@@ -20,6 +20,7 @@
 #include "mess_background_noise.h"
 #include "cfg_main.h"
 #include "dac_waveform.h"
+#include "error_manager.h"
 #include "goertzel.h"
 #include <string.h>
 #include <math.h>
@@ -95,12 +96,12 @@ static bool pending_reset = true;
 /* Private function prototypes -----------------------------------------------*/
 
 static void updateParameters(const DspConfig_t* cfg);
-static bool janusPnStep(bool* bit, uint16_t step);
+static void janusPnStep(bool* bit, uint16_t step);
 static void fillJanusFrequencies(const DspConfig_t* cfg);
 static SyncState_t janusPnSynchronize();
-static bool resetPnSynchronization();
+static void resetPnSynchronization();
 static void fillWindowOffsets(const DspConfig_t* cfg);
-static bool updateSlidingGoertzel(uint16_t new_samples);
+static void updateSlidingGoertzel(uint16_t new_samples);
 static SyncState_t evaluateSlidingPnWindows();
 
 /* Exported function definitions ---------------------------------------------*/
@@ -137,14 +138,13 @@ SyncState_t Sync_Synchronize(const DspConfig_t* cfg)
 {
   updateParameters(cfg);
   switch (cfg->sync_method) {
-    case NO_SYNC: {
-      bool ret = Input_DetectMessageStart(cfg);
-      return (ret == true) ? (SYNC_SUCCESS) : (SYNC_OK);
-    }
+    case NO_SYNC:
+      return Input_DetectMessageStart(cfg);
     case SYNC_PN_32_JANUS:
       return janusPnSynchronize(cfg);
     default:
-      return SYNC_ERROR;
+      REGISTER_ERROR_INT(ERROR_UNHANDLED_CASE, SYNC_OK);
+      return SYNC_OK;
   }
 }
 
@@ -173,11 +173,10 @@ void updateParameters(const DspConfig_t* cfg)
   fillWindowOffsets(cfg);
 }
 
-bool janusPnStep(bool* bit, uint16_t step)
+void janusPnStep(bool* bit, uint16_t step)
 {
-  if (step >= 32) return false;
+  if (step >= 32) REGISTER_ERROR(ERROR_INVALID_FUNCTION_PARAMETERS);
   *bit = (janus_pn_32 >> (31 - step)) & 1;
-  return true;
 }
 
 // TODO: change for FSK and consider implications of penalty function
@@ -210,14 +209,13 @@ SyncState_t janusPnSynchronize()
   if (next_idx == 0) {
     // Wraparound: remaining samples in this symbol
     required_samples = samples_per_symbol - window_offsets[offset_index];
-  } else {
+  } 
+  else {
     required_samples = window_offsets[next_idx] - window_offsets[offset_index];
   }
 
   while (ADC_InputAvailableSamples() >= required_samples) {
-    if (updateSlidingGoertzel(required_samples) == false) {
-      return SYNC_ERROR;
-    }
+    RETURN_IF_ERROR_PRESENT_INT(updateSlidingGoertzel(required_samples), SYNC_OK);
     uint16_t next_idx = (offset_index + 1) % PN_SYNC_SUBDIVIDE;
     if (next_idx == 0) {
       // Wraparound: remaining samples in this symbol
@@ -230,7 +228,7 @@ SyncState_t janusPnSynchronize()
   return evaluateSlidingPnWindows();
 }
 
-bool resetPnSynchronization()
+void resetPnSynchronization()
 {
   offset_index = 0;
   candidate_index = 0;
@@ -247,7 +245,6 @@ bool resetPnSynchronization()
 
   memset(&pn_sync_candidates, 0, sizeof(pn_sync_candidates));
   ADC_InputTailAdvance(samples_per_symbol);
-  return true;
 }
 
 void fillWindowOffsets(const DspConfig_t* cfg)
@@ -264,7 +261,7 @@ void fillWindowOffsets(const DspConfig_t* cfg)
   }
 }
 
-bool updateSlidingGoertzel(uint16_t new_samples)
+void updateSlidingGoertzel(uint16_t new_samples)
 {
   // Initializes each candidate
   uint64_t absolute_starting_index = ADC_TailRolloverCount(false) << PROCESSING_BUFFER_POWER;
@@ -305,16 +302,14 @@ bool updateSlidingGoertzel(uint16_t new_samples)
       float average_energy = sum / NUM_SYNC_FREQUENCIES;
       pn_sync_candidates[sliding_index].ambient_snr = (average_energy - background_noise) / background_noise;
     }
-    if (pn_sync_candidates[sliding_index].frequencies_added > NUM_SYNC_FREQUENCIES) {
-      return false;
-    }
+    if (pn_sync_candidates[sliding_index].frequencies_added > NUM_SYNC_FREQUENCIES) 
+      REGISTER_ERROR(ERROR_OVERFLOW_SYNC);
   }
 
   offset_index = (offset_index + 1) % PN_SYNC_SUBDIVIDE;
   candidate_index = (candidate_index + 1) % NUM_PN_SYNC_CANDIDATES;
   candidate_tracker.num_candidates++;
   ADC_InputTailAdvance(new_samples);
-  return true;
 }
 
 SyncState_t evaluateSlidingPnWindows()
@@ -324,7 +319,8 @@ SyncState_t evaluateSlidingPnWindows()
     uint16_t idx = (s_idx < 0) ? (NUM_PN_SYNC_CANDIDATES + s_idx) : ((uint16_t) s_idx);
     PnSynchronizationCandidate_t* candidate = &pn_sync_candidates[idx];
     if (candidate->frequencies_added != NUM_SYNC_FREQUENCIES)  {
-      return SYNC_ERROR;
+      REGISTER_ERROR_INT(ERROR_OVERFLOW_SYNC, SYNC_OK);
+      return SYNC_OK;
     }
     bool exceeds_capped_snr = candidate->capped_snr > TARGET_SNR;
     bool exceeds_symbol_count = candidate->symbols_exceeding_threshold > MIN_SYMBOLS_ABOVE_THRESH;
@@ -356,7 +352,8 @@ SyncState_t evaluateSlidingPnWindows()
         }
         break;
       default:
-        return SYNC_ERROR;
+        REGISTER_ERROR_INT(ERROR_UNHANDLED_CASE, SYNC_OK);
+        return SYNC_OK;
     }
 
     candidate_tracker.num_candidates--;

@@ -82,39 +82,43 @@ osMessageQueueId_t channel_report_queue = NULL;
 /* Private function prototypes -----------------------------------------------*/
 
 static void updateBackgroundNoise();
-static bool updateFrequencyIndices(const DspConfig_t* cfg);
+static void updateFrequencyIndices(const DspConfig_t* cfg);
 
 static float computePercentile(const float* buf, uint16_t count);
 
-static bool fskFrequencyIndices(const DspConfig_t* cfg);
-static bool fhbfskFrequencyIndices(const DspConfig_t* cfg);
+static void fskFrequencyIndices(const DspConfig_t* cfg);
+static void fhbfskFrequencyIndices(const DspConfig_t* cfg);
 
 static float frequencyToIndex(float frequency, uint16_t fft_size);
 
-static bool updateChannelReport();
-static bool channelReportingRequirement(const DspConfig_t* cfg);
-static bool updateChannelReportTotalCount(const DspConfig_t* cfg);
+static void updateChannelReport();
+static void channelReportingRequirement(const DspConfig_t* cfg);
+static void updateChannelReportTotalCount(const DspConfig_t* cfg);
 
 /* Exported function definitions ---------------------------------------------*/
 
-void BackgroundNoise_Init()
+void BackgroundNoise_CreateShared()
 {
+  if (channel_report_flag != NULL) REGISTER_ERROR(ERROR_FLAGS_INITIALIZATION);
+  if (channel_report_queue != NULL) REGISTER_ERROR(ERROR_QUEUE_INITIALIZATION);
+
   channel_report_flag = osEventFlagsNew(NULL);
-  if (channel_report_flag == NULL) {
-    REGISTER_ERROR(ERROR_FLAGS_INITIALIZATION)
-  }
+  if (channel_report_flag == NULL) 
+    REGISTER_ERROR(ERROR_FLAGS_INITIALIZATION);
+  
   osEventFlagsClear(channel_report_flag, 0xFFFFFFFF);
 
   channel_report_queue = osMessageQueueNew(CHANNEL_REPORT_QUEUE_SIZE, sizeof(ChannelReport_t), NULL);
-  if (channel_report_queue == NULL) {
-    REGISTER_ERROR(ERROR_QUEUE_INITIALIZATION)
-  }
-
-  BackgroundNoise_Reset();
+  if (channel_report_queue == NULL) 
+    REGISTER_ERROR(ERROR_QUEUE_INITIALIZATION);
 }
 
 void BackgroundNoise_Reset()
 {
+  RETURN_IF_ERROR_PRESENT();
+  osEventFlagsClear(channel_report_flag, 0xFFFFFFFF);
+  osMessageQueueReset(channel_report_queue);
+
   noise_buffer_tail = 0;
   noise_history_index = 0;
   in_band_noise = 0;
@@ -124,15 +128,12 @@ void BackgroundNoise_Reset()
   estimator_state = BG_NOISE_BOOT;
 }
 
-bool BackgroundNoise_Calculate(const DspConfig_t* cfg)
+void BackgroundNoise_Calculate(const DspConfig_t* cfg)
 {
-  if (updateFrequencyIndices(cfg) == false) {
-    return false;
-  }
+  RETURN_IF_ERROR_PRESENT();
+  updateFrequencyIndices(cfg);
 
-  if (channelReportingRequirement(cfg) == false) {
-    return false;
-  }
+  RETURN_IF_ERROR_PRESENT(channelReportingRequirement(cfg));
 
   uint16_t head = ADC_InputGetHead();
   while (((head - noise_buffer_tail) & PROCESSING_BUFFER_MASK) > NOISE_BUFFER_SIZE) {
@@ -158,12 +159,9 @@ bool BackgroundNoise_Calculate(const DspConfig_t* cfg)
     }
     current_block.counts++;
     updateBackgroundNoise();
-    if (updateChannelReport() == false) {
-      return false;
-    }
+    RETURN_IF_ERROR_PRESENT(updateChannelReport());
     noise_buffer_tail = (noise_buffer_tail + NOISE_BUFFER_SIZE) & PROCESSING_BUFFER_MASK;
   }
-  return true;
 }
 
 float BackgroundNoise_Get()
@@ -209,24 +207,23 @@ void updateBackgroundNoise()
   current_block.counts = 0;
 }
 
-bool updateFrequencyIndices(const DspConfig_t* cfg)
+void updateFrequencyIndices(const DspConfig_t* cfg)
 {
   static uint32_t previous_version_number = 0; 
   uint32_t current_version_number = CFG_GetVersionNumber(); 
 
-  if (current_version_number == previous_version_number) {
-    return true; // No updated needed
-  }
-
+  if (current_version_number == previous_version_number) return; // No updated needed
   previous_version_number = current_version_number;
 
   switch (cfg->mod_demod_method) {
     case MOD_DEMOD_FSK:
-      return fskFrequencyIndices(cfg);
+      fskFrequencyIndices(cfg);
+      break;
     case MOD_DEMOD_FHBFSK:
-      return fhbfskFrequencyIndices(cfg);
+      fhbfskFrequencyIndices(cfg);
+      break;
     default:
-      return false;
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
   }
 }
 
@@ -251,7 +248,7 @@ float computePercentile(const float* buf, uint16_t count)
   return tmp[k];
 }
 
-bool fskFrequencyIndices(const DspConfig_t* cfg)
+void fskFrequencyIndices(const DspConfig_t* cfg)
 {
   lower_noise_bin = (uint16_t) roundf(frequencyToIndex(cfg->fsk_f0, NOISE_BUFFER_SIZE));
   upper_noise_bin = (uint16_t) roundf(frequencyToIndex(cfg->fsk_f1, NOISE_BUFFER_SIZE));
@@ -262,15 +259,13 @@ bool fskFrequencyIndices(const DspConfig_t* cfg)
     upper_noise_bin = tmp;
   }
 
-  if (upper_noise_bin > NOISE_BUFFER_SIZE / 2) {
-    return false;
-  }
+  if (upper_noise_bin > NOISE_BUFFER_SIZE / 2) 
+    REGISTER_ERROR(ERROR_INVALID_NOISE_BIN);
 
   num_noise_bins = upper_noise_bin - lower_noise_bin + 1;
-  return true;
 }
 
-bool fhbfskFrequencyIndices(const DspConfig_t* cfg)
+void fhbfskFrequencyIndices(const DspConfig_t* cfg)
 {
   uint16_t lower_freq = Modulate_GetFhbfskFrequency(false, 0, cfg);
   uint16_t upper_freq = lower_freq + (uint16_t) (cfg->baud_rate * ((2 * cfg->fhbfsk_num_tones - 1) * cfg->fhbfsk_freq_spacing));
@@ -278,12 +273,10 @@ bool fhbfskFrequencyIndices(const DspConfig_t* cfg)
   lower_noise_bin = (uint16_t) roundf(frequencyToIndex(lower_freq, NOISE_BUFFER_SIZE));
   upper_noise_bin = (uint16_t) roundf(frequencyToIndex(upper_freq, NOISE_BUFFER_SIZE));
 
-  if (upper_noise_bin > NOISE_BUFFER_SIZE / 2) {
-    return false;
-  }
+  if (upper_noise_bin > NOISE_BUFFER_SIZE / 2) 
+    REGISTER_ERROR(ERROR_INVALID_NOISE_BIN);
 
   num_noise_bins = upper_noise_bin - lower_noise_bin + 1;
-  return true;
 }
 
 float frequencyToIndex(float frequency, uint16_t fft_size)
@@ -291,31 +284,31 @@ float frequencyToIndex(float frequency, uint16_t fft_size)
   return frequency * fft_size / ((float) ADC_SAMPLING_RATE);
 }
 
-bool updateChannelReport()
+void updateChannelReport()
 {
   switch (channel_report_type) {
     case REPORT_NONE:
-      return true;
+      break;
     case REPORT_16_CD_PSD:
       current_counts_in_report++;
       if (current_counts_in_report >= total_counts_in_report) {
         channel_report.psd /= current_counts_in_report;
         current_counts_in_report = 0;
-        if (osMessageQueueGetSpace(channel_report_queue) == 0) {
-          return false;
-        }
+        if (osMessageQueueGetSpace(channel_report_queue) == 0) 
+          REGISTER_ERROR(ERROR_QUEUE_RUNNING);
+        
         if (osMessageQueuePut(channel_report_queue, &channel_report, 0, 0) != osOK) {
-          return false;
+          REGISTER_ERROR(ERROR_QUEUE_RUNNING);
         }
         channel_report.psd = 0.0f;
       }
-      return true;
+      break;
     default:
-      return false;
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
   }
 }
 
-bool channelReportingRequirement(const DspConfig_t* cfg)
+void channelReportingRequirement(const DspConfig_t* cfg)
 {
   static ChannelReportType_t last_report_type = REPORT_NONE;
   static uint32_t last_cfg_number = 0;
@@ -326,17 +319,15 @@ bool channelReportingRequirement(const DspConfig_t* cfg)
       case REPORT_NONE:
         break;
       case REPORT_16_CD_PSD:
-        return updateChannelReportTotalCount(cfg);
+        updateChannelReportTotalCount(cfg);
+        break;
       default:
-        return false;
+        REGISTER_ERROR(ERROR_UNHANDLED_CASE);
+        return;
     }
   }
 
   uint32_t flags = osEventFlagsGet(channel_report_flag);
-  if (flags == 0) {
-    return true;
-  }
-
   if (flags & REPORT_NONE) {
     channel_report_type = REPORT_NONE;
   }
@@ -344,26 +335,25 @@ bool channelReportingRequirement(const DspConfig_t* cfg)
     channel_report_type = REPORT_16_CD_PSD;
   }
 
-  if (channel_report_type == last_report_type) {
-    return true;
-  }
+  if (channel_report_type == last_report_type) return;
 
   switch (channel_report_type) {
     case REPORT_NONE:
       break;
     case REPORT_16_CD_PSD:
-      return updateChannelReportTotalCount(cfg);
+      updateChannelReportTotalCount(cfg);
+      break;
     default:
-      return false;
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
+      break;
   }
-  return true;
 }
 
-bool updateChannelReportTotalCount(const DspConfig_t* cfg)
+void updateChannelReportTotalCount(const DspConfig_t* cfg)
 {
-  if (cfg->mod_demod_method != MOD_DEMOD_FSK && cfg->mod_demod_method != MOD_DEMOD_FHBFSK) {
-    return false;
-  }
+  if (cfg->mod_demod_method != MOD_DEMOD_FSK && cfg->mod_demod_method != MOD_DEMOD_FHBFSK)
+    REGISTER_ERROR(ERROR_UNHANDLED_CASE);
+  
   uint32_t samples_per_chip = (uint32_t) ((float) ADC_SAMPLING_RATE) / cfg->baud_rate;
   uint32_t samples_per_report = samples_per_chip * CHANNEL_REPORT_CD;
   uint32_t new_total_counts_in_report = (samples_per_report + NOISE_BUFFER_SIZE - 1) / NOISE_BUFFER_SIZE;
@@ -373,5 +363,4 @@ bool updateChannelReportTotalCount(const DspConfig_t* cfg)
     current_counts_in_report = 0;
     total_counts_in_report = new_total_counts_in_report;
   }
-  return true;
 }

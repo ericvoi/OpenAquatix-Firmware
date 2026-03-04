@@ -48,9 +48,9 @@ extern "C" {
  * @param bit_msg Bit message to apply ECC to. ECC is applied in place
  * @param cfg Configuration (using ECC methods only)
  * 
- * @return true if successful, false otherwise
+ * @note can cause unrecoverable and abort errors
  */
-bool ErrorCorrection_AddCorrection(BitMessage_t* bit_msg, 
+void ErrorCorrection_AddCorrection(BitMessage_t* bit_msg, 
                                    const DspConfig_t* cfg);
 
 /**
@@ -66,12 +66,10 @@ bool ErrorCorrection_AddCorrection(BitMessage_t* bit_msg,
  * @param error_detected Pointer to flag indicating error found (potentially updated)
  * @param error_corrected Pointer to flag indicating error corrected (will be updated)
  * 
- * @return true if successfully ran without errors, false otherwise
- * 
  * @note Not all ECC methods can detect errors so error_detected cannot be
  * uninitialized
  */
-bool ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg, 
+void ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg, 
                                      const DspConfig_t* cfg, 
                                      bool is_preamble, 
                                      bool* error_detected, 
