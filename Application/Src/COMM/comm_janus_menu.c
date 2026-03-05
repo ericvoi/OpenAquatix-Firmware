@@ -16,6 +16,7 @@
 #include "comm_main.h"
 #include "mess_main.h"
 #include "cmsis_os.h"
+#include "error_manager.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -234,7 +235,7 @@ static const MenuNode_t janus_sender = {
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool COMM_RegisterJanusMenu()
+void COMM_RegisterJanusMenu()
 {
   bool ret = MenuSystem_RegisterMenu(&janus_menu) && MenuSystem_RegisterMenu(&messaging_protocol) &&
              MenuSystem_RegisterMenu(&janus_param_menu) && MenuSystem_RegisterMenu(&janus_send_menu) &&
@@ -242,7 +243,8 @@ bool COMM_RegisterJanusMenu()
              MenuSystem_RegisterMenu(&janus_tx_rx) && MenuSystem_RegisterMenu(&janus_forward) &&
              MenuSystem_RegisterMenu(&janus_coding) && MenuSystem_RegisterMenu (&janus_encryption) &&
              MenuSystem_RegisterMenu(&janus_dest) && MenuSystem_RegisterMenu(&janus_sender);
-  return ret;
+  
+  if (ret == false) REGISTER_ERROR(ERROR_MENU_REGISTRATION);
 }
 
 /* Private function definitions ----------------------------------------------*/

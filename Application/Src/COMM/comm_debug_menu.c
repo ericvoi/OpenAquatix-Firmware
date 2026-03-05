@@ -31,6 +31,7 @@
 
 #include "cmsis_os.h"
 #include "main.h"
+#include "error_manager.h"
 
 #include <ctype.h>
 #include <stdbool.h>
@@ -269,7 +270,7 @@ static const MenuNode_t debug_menu_deep_sleep = {
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool COMM_RegisterDebugMenu(void)
+void COMM_RegisterDebugMenu(void)
 {
   bool ret = MenuSystem_RegisterMenu(&debug_menu) && MenuSystem_RegisterMenu(&debug_menu_gpio) &&
              MenuSystem_RegisterMenu(&debug_menu_set_led) && MenuSystem_RegisterMenu(&debug_menu_print) &&
@@ -278,7 +279,8 @@ bool COMM_RegisterDebugMenu(void)
              MenuSystem_RegisterMenu(&debug_menu_dfu) && MenuSystem_RegisterMenu(&debug_menu_reset) &&
              MenuSystem_RegisterMenu(&debug_menu_noise_f) && MenuSystem_RegisterMenu(&debug_menu_noise_level) &&
              MenuSystem_RegisterMenu(&debug_menu_deep_sleep);
-  return ret;
+
+  if (ret == false) REGISTER_ERROR(ERROR_MENU_REGISTRATION);
 }
 
 /* Private function definitions ----------------------------------------------*/

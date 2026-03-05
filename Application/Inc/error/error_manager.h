@@ -90,7 +90,8 @@ typedef struct {
   X(ERROR_SETTING_PARAMETER,              ERROR_SEVERITY_UNRECOVERABLE,   "Failed to set parameter",                  SUBSYS_NONE)      \
   X(ERROR_PARAMETER_FLASH_WRITE,          ERROR_SEVERITY_UNRECOVERABLE,   "Failed to write a parameter to flash",     SUBSYS_NONE)      \
   X(ERROR_FAILED_PARAM_FLASH_RESET,       ERROR_SEVERITY_UNRECOVERABLE,   "Failed to reset parameter flash",          SUBSYS_NONE)      \
-  X(ERROR_FAILED_PARAM_NUM_ERASES,        ERROR_SEVERITY_WARN,            "Failed to update flash erase count",       SUBSYS_NONE)
+  X(ERROR_FAILED_PARAM_NUM_ERASES,        ERROR_SEVERITY_WARN,            "Failed to update flash erase count",       SUBSYS_NONE)      \
+  X(ERROR_MENU_REGISTRATION,              ERROR_SEVERITY_UNRECOVERABLE,   "Failed to register menu",                  SUBSYS_NONE)
 
 #define XERROR_ENUM(error, severity, description, subsystem) error,
 

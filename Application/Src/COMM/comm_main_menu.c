@@ -12,6 +12,7 @@
 
 #include "comm_menu_registration.h"
 #include "comm_menu_system.h"
+#include "error_manager.h"
 #include <stdbool.h>
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,10 +49,11 @@ static const MenuNode_t main_menu = {
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool COMM_RegisterMainMenu(void)
+void COMM_RegisterMainMenu(void)
 {
   bool ret = MenuSystem_RegisterMenu(&main_menu);
-  return ret;
+
+  if (ret == false) REGISTER_ERROR(ERROR_MENU_REGISTRATION);
 }
 
 /* Private function definitions ----------------------------------------------*/

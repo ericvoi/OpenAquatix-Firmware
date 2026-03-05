@@ -318,7 +318,9 @@ bool MESS_AddMessageToTxQ(const Message_t* msg)
 
 bool MESS_GetMessageFromRxQ(Message_t* msg)
 {
+  RETURN_IF_ERROR_PRESENT_INT(, false);
   if (rx_queue == NULL || msg == NULL) {
+    REGISTER_ERROR_INT(ERROR_NULL_PTR, false);
     return false;
   }
 

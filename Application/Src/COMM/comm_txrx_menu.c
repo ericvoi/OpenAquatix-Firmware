@@ -24,6 +24,7 @@
 #include "check_inputs.h"
 #include "number_utils.h"
 #include "usb_comm.h"
+#include "error_manager.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -223,14 +224,15 @@ static const MenuNode_t txrx_toggle_print = {
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool COMM_RegisterTxRxMenu()
+void COMM_RegisterTxRxMenu()
 {
   bool ret = MenuSystem_RegisterMenu(&txrx_menu) && MenuSystem_RegisterMenu(&txrx_bits_transducer) &&
              MenuSystem_RegisterMenu(&txrx_str_transducer) && MenuSystem_RegisterMenu(&txrx_int_transducer) &&
              MenuSystem_RegisterMenu(&txrx_float_transducer) && MenuSystem_RegisterMenu(&txrx_toggle_print) &&
              MenuSystem_RegisterMenu(&txrx_str_feedback) && MenuSystem_RegisterMenu(&txrx_bits_feedback) &&
              MenuSystem_RegisterMenu(&txrx_int_feedback) && MenuSystem_RegisterMenu(&txrx_float_feedback);
-  return ret;
+  
+  if (ret == false) REGISTER_ERROR(ERROR_MENU_REGISTRATION);
 }
 
 /* Private function definitions ----------------------------------------------*/

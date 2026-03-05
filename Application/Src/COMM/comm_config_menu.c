@@ -20,6 +20,7 @@
 #include "mess_main.h"
 #include "mess_modulate.h"
 #include "check_inputs.h"
+#include "error_manager.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -1230,7 +1231,7 @@ static const MenuNode_t demod_cal_config_export = {
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool COMM_RegisterConfigurationMenu()
+void COMM_RegisterConfigurationMenu()
 {
   bool ret = MenuSystem_RegisterMenu(&config_menu) && MenuSystem_RegisterMenu(&univ_config_menu) &&
              MenuSystem_RegisterMenu(&mod_config_menu) && MenuSystem_RegisterMenu(&demod_config_menu) &&
@@ -1270,7 +1271,7 @@ bool COMM_RegisterConfigurationMenu()
              MenuSystem_RegisterMenu(&univ_wakeup_config_en) && MenuSystem_RegisterMenu(&univ_wakeup_config_tone2) &&
              MenuSystem_RegisterMenu(&univ_wakeup_config_tone3) && MenuSystem_RegisterMenu(&change_mac);
 
-  return ret;
+  if (ret == false) REGISTER_ERROR(ERROR_MENU_REGISTRATION);
 }
 
 /* Private function definitions ----------------------------------------------*/

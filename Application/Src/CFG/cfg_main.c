@@ -49,7 +49,7 @@ void CFG_StartTask(void* argument)
 {
   (void)(argument);
 
-  Error_RegisterTask("COMM");
+  Error_RegisterTask("CFG");
   registerCfgParams();
   Error_ParameterRegistrationComplete();
   waitAllTasksRegistered();

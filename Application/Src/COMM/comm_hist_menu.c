@@ -15,6 +15,7 @@
 #include "comm_function_loops.h"
 #include "sys_temperature.h"
 #include "sys_power.h"
+#include "error_manager.h"
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -243,7 +244,7 @@ static const MenuNode_t avg_temp_hist = {
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool COMM_RegisterHistoryMenu()
+void COMM_RegisterHistoryMenu()
 {
   bool ret = MenuSystem_RegisterMenu(&hist_menu) && MenuSystem_RegisterMenu(&pwr_hist_menu) &&
              MenuSystem_RegisterMenu(&temp_hist_menu) && MenuSystem_RegisterMenu(&received_hist) &&
@@ -252,7 +253,8 @@ bool COMM_RegisterHistoryMenu()
              MenuSystem_RegisterMenu(&avg_pwr_hist) && MenuSystem_RegisterMenu(&curr_pwr_hist) &&
              MenuSystem_RegisterMenu(&curr_temp_hist) && MenuSystem_RegisterMenu(&peak_temp_hist) &&
              MenuSystem_RegisterMenu(&avg_temp_hist);
-  return ret;
+  
+  if (ret == false) REGISTER_ERROR(ERROR_MENU_REGISTRATION);
 }
 
 /* Private function definitions ----------------------------------------------*/

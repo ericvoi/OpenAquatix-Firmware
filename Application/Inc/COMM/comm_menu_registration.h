@@ -37,13 +37,13 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-bool COMM_RegisterMainMenu(void);
-bool COMM_RegisterConfigurationMenu(void);
-bool COMM_RegisterDebugMenu(void);
-bool COMM_RegisterHistoryMenu(void);
-bool COMM_RegisterTxRxMenu(void);
-bool COMM_RegisterEvalMenu(void);
-bool COMM_RegisterJanusMenu(void);
+void COMM_RegisterMainMenu(void);
+void COMM_RegisterConfigurationMenu(void);
+void COMM_RegisterDebugMenu(void);
+void COMM_RegisterHistoryMenu(void);
+void COMM_RegisterTxRxMenu(void);
+void COMM_RegisterEvalMenu(void);
+void COMM_RegisterJanusMenu(void);
 
 /* Private defines -----------------------------------------------------------*/
 

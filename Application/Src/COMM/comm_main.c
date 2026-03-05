@@ -16,6 +16,7 @@
 
 #include "usb_comm.h"
 #include "dau_card-driver.h"
+#include "error_manager.h"
 
 #include "comm_menu_registration.h"
 #include "comm_main.h"
@@ -23,8 +24,6 @@
 #include "comm_print.h"
 
 #include "mess_main.h"
-
-#include "sys_error.h"
 
 #include "cfg_main.h"
 #include "cfg_parameters.h"
@@ -65,7 +64,7 @@ static uint16_t last_echo_len = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 
-static bool registerMenus(void);
+static void registerMenus(void);
 static RxState_t getHmiInput(CommInterface_t* interface);
 
 static void handleHmiWithdraw(void);
@@ -82,7 +81,7 @@ static void resetInputEcho(void);
 
 static void printNotifications(void);
 
-static bool registerCommParams(void);
+static void registerCommParams(void);
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -93,25 +92,16 @@ void COMM_StartTask(void *argument)
   DAU_Init();
   menu_context.interface = COMM_BOTH;
 
-  if (Param_RegisterTask(COMM_TASK, "COMM") == false) {
-    Error_Routine(ERROR_COMM_INIT);
-  }
-
-  if (registerCommParams() == false) {
-    Error_Routine(ERROR_COMM_INIT);
-  }
-
-  if (Param_TaskRegistrationComplete(COMM_TASK) == false) {
-    Error_Routine(ERROR_COMM_INIT);
-  }
-
+  Error_RegisterTask("COMM");
+  registerCommParams();
+  Error_ParameterRegistrationComplete();
   CFG_WaitLoadComplete();
 
   osDelay(1000);
 
   COMM_TransmitData(test_msg, sizeof(test_msg) - 1, menu_context.interface);
 
-  if (registerMenus() == false) Error_Routine(ERROR_COMM_INIT);
+  registerMenus();
 
   menu_context.current_menu = MenuSystem_GetMenu(MENU_ID_MAIN);
   displaySubMenus();
@@ -172,12 +162,15 @@ void COMM_TransmitData(const void *data, uint32_t data_len, CommInterface_t inte
 
 /* Private function definitions ----------------------------------------------*/
 
-bool registerMenus(void)
+void registerMenus(void)
 {
-  return COMM_RegisterMainMenu()  && COMM_RegisterConfigurationMenu() &&
-         COMM_RegisterDebugMenu() && COMM_RegisterHistoryMenu()       &&
-         COMM_RegisterTxRxMenu()  && COMM_RegisterEvalMenu()          &&
-         COMM_RegisterJanusMenu();
+  COMM_RegisterMainMenu();
+  COMM_RegisterConfigurationMenu();
+  COMM_RegisterDebugMenu();
+  COMM_RegisterHistoryMenu();
+  COMM_RegisterTxRxMenu();
+  COMM_RegisterEvalMenu();
+  COMM_RegisterJanusMenu();
 }
 
 RxState_t getHmiInput(CommInterface_t* interface)
@@ -353,9 +346,7 @@ void printNotifications(void)
   }
 }
 
-bool registerCommParams(void)
+void registerCommParams(void)
 {
-  if (Print_RegisterParams() == false) return false;
-
-  return true;
+  Print_RegisterParams();
 }
