@@ -29,7 +29,7 @@
 
 /* Private macro -------------------------------------------------------------*/
 
-// check queue for latest waveform steps as well as set a flag when the message has been fully added
+
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -38,6 +38,7 @@
 /* Private function prototypes -----------------------------------------------*/
 
 static void registerDacParams(void);
+static void resetTask(void);
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -54,6 +55,8 @@ void DAC_StartTask(void* argument)
   // TODO: address why this is needed twice
   Waveform_Flush();
 
+  resetTask();
+
   for (;;)
   {
     uint32_t flags;
@@ -66,6 +69,11 @@ void DAC_StartTask(void* argument)
     if (flags & DAC_FILL_LAST_HALF) {
       Waveform_FillBuffer(FILL_LAST_HALF);
     }
+
+    if (Error_CheckModuleReset() == TASK_RESET) {
+      resetTask();
+    }
+    Error_ResetAbortFlag();
   }
 }
 
@@ -74,4 +82,9 @@ void DAC_StartTask(void* argument)
 void registerDacParams()
 {
   Waveform_RegisterParams();
+}
+
+void resetTask()
+{
+
 }

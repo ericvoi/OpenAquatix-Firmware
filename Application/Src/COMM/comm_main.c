@@ -350,6 +350,18 @@ void printNotifications(void)
     COMM_TransmitData("Dropped a packet with an invalid cargo\r\n", CALC_LEN, menu_context.interface);
     osEventFlagsClear(print_event_handle, MESS_DROPPED_PACKET_CARGO);
   }
+  if (flags & MESS_MAC_LOST_MESSAGE) {
+    COMM_TransmitData("TX REQUEST FAILED: Lost message in MAC; message not sent\r\n", CALC_LEN, menu_context.interface);
+    osEventFlagsClear(print_event_handle, MESS_MAC_LOST_MESSAGE);
+  }
+  if (flags & MESS_MAC_TX_SPACE) {
+    COMM_TransmitData("TX REQUEST FAILED: No space in TX queue for message\r\n", CALC_LEN, menu_context.interface);
+    osEventFlagsClear(print_event_handle, MESS_MAC_TX_SPACE);
+  }
+  if (flags & MESS_MAC_DROPPED_MESSAGE) {
+    COMM_TransmitData("TX REQUEST FAILED: Channel did not free in time\r\n", CALC_LEN, menu_context.interface);
+    osEventFlagsClear(print_event_handle, MESS_MAC_DROPPED_MESSAGE);
+  }
 }
 
 void registerCommParams(void)

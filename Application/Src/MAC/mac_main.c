@@ -18,6 +18,7 @@
 #include "mac_csma_ca_beb.h"
 #include "mac_no_mac.h"
 #include "mac_protocol.h"
+#include "error_manager.h"
 #include "cmsis_os.h"
 #include <stdbool.h>
 
@@ -73,42 +74,32 @@ extern osMessageQueueId_t channel_report_queue;
 
 static void registerProtocols();
 
-static bool registerMacParams();
-static bool createTxQueues();
-static bool createRxQueues();
+static void registerMacParams();
+static void createTxQueues();
+static void createRxQueues();
 
-static bool switchMacProtocol();
+static void switchMacProtocol();
+static void resetTask();
 
 /* Exported function definitions ---------------------------------------------*/
 
 void MAC_StartTask(void* argument)
 {
   (void) (argument);
-
-  if (Param_RegisterTask(MAC_TASK, "MAC") == false) {
-    Error_Routine(ERROR_MAC_INIT);
-  }
-
-  if (registerMacParams() == false) {
-    Error_Routine(ERROR_MAC_INIT);
-  }
-
-  if (Param_TaskRegistrationComplete(MAC_TASK) == false) {
-    Error_Routine(ERROR_MAC_INIT);
-  }
-
-  if (createRxQueues() == false || createTxQueues() == false) {
-    Error_Routine(ERROR_MAC_INIT);
-  }
+  createRxQueues();
+  createTxQueues();
 
   registerProtocols();
 
+  Error_RegisterTask("DAC");
+  registerMacParams();
+  Error_ParameterRegistrationComplete();
   CFG_WaitLoadComplete();
 
+  resetTask();
+
   for (;;) {
-    if (switchMacProtocol() == false) {
-      Error_Routine(ERROR_MAC_PROCESSING);
-    }
+    switchMacProtocol();
 
     ChannelReport_t channel_report;
     if (osMessageQueueGet(channel_report_queue, &channel_report, NULL, 0) == osOK) {
@@ -122,23 +113,24 @@ void MAC_StartTask(void* argument)
         task_context.state = task_context.interface->handleTxRequest(&task_context.protocol_data.csma_ca_beb_data);
         switch (task_context.state) {
           case MAC_STATE_DROPPED:
-            // TODO: inform user
+            osEventFlagsSet(print_event_handle, MESS_MAC_DROPPED_MESSAGE);
             break;
           case MAC_STATE_ERROR:
-            Error_Routine(ERROR_MAC_PROCESSING);
             break;
           case MAC_STATE_SUCCESS: {
             // add to mess queue
             Message_t message;
             if (osMessageQueueGet(regular_tx_queue, &message, NULL, 0) != osOK) {
-              Error_Routine(ERROR_MAC_PROCESSING);
+              osEventFlagsSet(print_event_handle, MESS_MAC_LOST_MESSAGE);
               break;
             }
             if (MESS_AddMessageToTxQ(&message) == false) {
-              Error_Routine(ERROR_MAC_PROCESSING);
+              osEventFlagsSet(print_event_handle, MESS_MAC_TX_SPACE);
             }
             break;
           }
+          case MAC_STATE_DEFERRED:
+            break;
           default:
             break;
         }
@@ -160,7 +152,14 @@ void MAC_StartTask(void* argument)
       if (task_context.interface->processRxMessage != NULL) {
         task_context.state = task_context.interface->processRxMessage(&task_context.protocol_data.csma_ca_beb_data, &received_message);
       }
+
+      MESS_AddMessageToRxQ(&received_message);
     }
+
+    if (Error_CheckModuleReset() == TASK_RESET) {
+      resetTask();
+    }
+    Error_ResetAbortFlag();
 
     osDelay(1);
   }
@@ -174,55 +173,53 @@ void registerProtocols()
   protocol_registry[MAC_PROTOCOL_CSMA_CA_BEB] = csma_ca_beb_interface;
 }
 
-bool registerMacParams()
+void registerMacParams()
 {
   uint32_t min_u32 = MIN_MAC;
   uint32_t max_u32 = MAX_MAC;
   if (Param_Register(PARAM_MAC, "MAC method", PARAM_TYPE_ENUM, 
                      &task_context.requested_protocol, sizeof(MacProtocol_t),
                      &min_u32, &max_u32, NULL, mac_protocol_descriptions) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
-  return true;
 }
 
-bool createTxQueues()
+void createTxQueues()
 {
-  if (regular_tx_queue != NULL || emergency_tx_queue != NULL) {
-    return false;
-  }
+  if (regular_tx_queue != NULL || emergency_tx_queue != NULL) 
+    REGISTER_ERROR(ERROR_QUEUE_INITIALIZATION);
+  
   regular_tx_queue = osMessageQueueNew(REGULAR_TX_QUEUE_SIZE, sizeof(Message_t), NULL);
   emergency_tx_queue = osMessageQueueNew(EMERGENCY_TX_QUEUE_SIZE, sizeof(Message_t), NULL);
 
-  if (regular_tx_queue == NULL || emergency_tx_queue == NULL) {
-    return false;
-  }
-  return true;
+  if (regular_tx_queue == NULL || emergency_tx_queue == NULL) 
+    REGISTER_ERROR(ERROR_QUEUE_INITIALIZATION);
 }
 
-bool createRxQueues()
+void createRxQueues()
 {
-  if (mac_rx_queue != NULL) {
-    return false;
-  }
+  if (mac_rx_queue != NULL) 
+    REGISTER_ERROR(ERROR_QUEUE_INITIALIZATION);
+  
   mac_rx_queue = osMessageQueueNew(RX_QUEUE_SIZE, sizeof(Message_t), NULL);
 
-  return mac_rx_queue != NULL;
+  if (mac_rx_queue == NULL) 
+    REGISTER_ERROR(ERROR_QUEUE_INITIALIZATION);
 }
 
-bool switchMacProtocol()
+void switchMacProtocol()
 {
-  if (task_context.current_protocol == task_context.requested_protocol) {
-    return true;
-  }
+  RETURN_IF_ERROR_PRESENT();
+  if (task_context.current_protocol == task_context.requested_protocol) 
+    return;
 
   if (task_context.current_protocol != MAC_PROTOCOL_UNKNOWN) {
-    if (task_context.interface == NULL) {
-      return false;
-    }
-    if (task_context.interface->deinit == NULL) {
-      return false;
-    }
+    if (task_context.interface == NULL) 
+      REGISTER_ERROR(ERROR_NULL_PTR);
+    
+    if (task_context.interface->deinit == NULL) 
+      REGISTER_ERROR(ERROR_NULL_PTR);
+    
     task_context.interface->deinit(&task_context.protocol_data);
   }
 
@@ -233,8 +230,14 @@ bool switchMacProtocol()
     task_context.state = MAC_STATE_IDLE;
     task_context.interface = protocol_registry[i];
     task_context.current_protocol = protocol_registry[i]->protocol;
-    return true;
+    return;
   }
 
-  return false;
+  // Can only get here if protocol not in registry
+  REGISTER_ERROR(ERROR_UNHANDLED_CASE);
+}
+
+void resetTask()
+{
+  // TODO: de-init and re-init mac method if known
 }

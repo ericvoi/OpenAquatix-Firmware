@@ -17,6 +17,7 @@
 #include "mess_main.h"
 #include "cfg_main.h"
 #include "cmsis_os.h"
+#include "error_manager.h"
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -80,7 +81,7 @@ static void CsmaCaBeb_Init(void* protocol_data)
   CFG_IncrementVersionNumber();
 }
 
-static void CsmaCaBeb_Deinit(void* protocol_data)
+void CsmaCaBeb_Deinit(void* protocol_data)
 {
   (void) (protocol_data);
   osEventFlagsSet(channel_report_flag, REPORT_NONE);
@@ -88,7 +89,7 @@ static void CsmaCaBeb_Deinit(void* protocol_data)
 
 // Checks if there is an active reservation, whether the channel is busy and
 // decides whether to add the message to the tx queue based on that
-static MacState_t CsmaCaBeb_HandleTxRequest(void* protocol_data)
+MacState_t CsmaCaBeb_HandleTxRequest(void* protocol_data)
 {
   CsmaCaBebData_t* data = (CsmaCaBebData_t*) protocol_data;
 
@@ -129,7 +130,7 @@ static MacState_t CsmaCaBeb_HandleTxRequest(void* protocol_data)
         return MAC_STATE_DEFERRED;
         #else
         return probabilisticTransmission(data);
-        #endif
+        #endif // JANUS_BAND_A
       }
     case SLOT_BACKOFF:
       if (data->fresh_report == false) {
@@ -150,11 +151,12 @@ static MacState_t CsmaCaBeb_HandleTxRequest(void* protocol_data)
         if (data->busy_slot == true) {
           return MAC_STATE_DEFERRED;
         } 
-        #endif
+        #endif // JANUS_BAND_A
         return probabilisticTransmission(data);
       }
       return MAC_STATE_DEFERRED;
     default:
+      REGISTER_ERROR_INT(ERROR_UNHANDLED_CASE, MAC_STATE_ERROR);
       return MAC_STATE_ERROR;
   }
   return MAC_STATE_ERROR;
@@ -200,6 +202,7 @@ static MacState_t CsmaCaBeb_ProcessRxMessage(void* protocol_data, const Message_
 
   if (message->preamble.reservation_time_10ms.valid == true) {
     if (message->preamble.reservation_time_10ms.value > MAXIMUM_RESERVATION_TIME_MS / 10) {
+      REGISTER_ERROR_INT(ERROR_INVALID_RESERVATION_TIME, MAC_STATE_ERROR);
       ret = MAC_STATE_ERROR;
     }
     uint32_t reserved_until = message->timestamp + message->preamble.reservation_time_10ms.value * 10;
@@ -213,10 +216,6 @@ static MacState_t CsmaCaBeb_ProcessRxMessage(void* protocol_data, const Message_
     }
   }
 
-  if (MESS_AddMessageToRxQ(message) == false) {
-    ret = MAC_STATE_ERROR;
-  }
-
   return ret;
 }
 
@@ -224,7 +223,7 @@ static MacState_t CsmaCaBeb_ProcessRxMessage(void* protocol_data, const Message_
 static MacState_t CsmaCaBeb_EmergencyTx(void* protocol_data, const Message_t* message)
 {
   (void) (protocol_data);
-  if (MESS_AddMessageToTxQ(message) == false) {
+  if (MESS_PriorityTransmission(message) == false) {
     return MAC_STATE_ERROR;
   }
 
@@ -263,6 +262,7 @@ MacState_t timeout(CsmaCaBebData_t* data)
 
   uint32_t current_timestamp = osKernelGetTickCount();
   if (current_timestamp - data->deferral_timestamp > CSMA_TIMEOUT_MS) {
+    REGISTER_ERROR_INT(ERROR_CSMA_BEB_TIMEOUT, MAC_STATE_ERROR);
     return MAC_STATE_ERROR;
   }
   else {

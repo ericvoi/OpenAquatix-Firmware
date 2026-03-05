@@ -165,7 +165,10 @@ typedef enum {
   MESS_DAC_READY = 1 << 5,
   MESS_INPUT_FFT = 1 << 6,
   MESS_DROPPED_PACKET_PREAMBLE = 1 << 7,
-  MESS_DROPPED_PACKET_CARGO = 1 << 8
+  MESS_DROPPED_PACKET_CARGO = 1 << 8,
+  MESS_MAC_LOST_MESSAGE = 1 << 9,
+  MESS_MAC_TX_SPACE = 1 << 10,
+  MESS_MAC_DROPPED_MESSAGE = 1 << 11
 } MessageFlags_t;
 
 /* Exported macro ------------------------------------------------------------*/
