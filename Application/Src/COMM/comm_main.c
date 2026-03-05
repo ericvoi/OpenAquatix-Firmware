@@ -83,13 +83,14 @@ static void printNotifications(void);
 
 static void registerCommParams(void);
 
+static void resetTask(void);
+
 /* Exported function definitions ---------------------------------------------*/
 
 void COMM_StartTask(void *argument)
 {
   (void)(argument);
-  USB_Init();
-  DAU_Init();
+  USB_CreateShared();
   menu_context.interface = COMM_BOTH;
 
   Error_RegisterTask("COMM");
@@ -134,6 +135,11 @@ void COMM_StartTask(void *argument)
       default:
         break;
     }
+
+    if (Error_CheckModuleReset() == TASK_RESET) {
+      resetTask();
+    }
+    Error_ResetAbortFlag();
     osDelay(10);
   }
 }
@@ -349,4 +355,10 @@ void printNotifications(void)
 void registerCommParams(void)
 {
   Print_RegisterParams();
+}
+
+void resetTask(void)
+{
+  USB_Init();
+  DAU_Init();
 }

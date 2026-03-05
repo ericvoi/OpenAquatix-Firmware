@@ -156,10 +156,9 @@ bool Waveform_IsRunning()
   return dac_running;
 }
 
-bool Waveform_RegisterParams()
+void Waveform_RegisterParams()
 {
 
-  return true;
 }
 
 void Waveform_Flush()

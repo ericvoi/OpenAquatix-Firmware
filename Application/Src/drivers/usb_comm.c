@@ -15,6 +15,7 @@
 #include "cmsis_os.h"
 #include "comm_main.h"
 #include "cmsis_os.h"
+#include "error_manager.h"
 #include <string.h>
 #include <stdbool.h>
 
@@ -46,6 +47,18 @@ static osEventFlagsId_t transfer_events;
 
 /* Exported function definitions ---------------------------------------------*/
 
+void USB_CreateShared(void)
+{
+  if (usb_mutex != NULL) REGISTER_ERROR(ERROR_MUTEX_INITIALIZATION);
+  if (transfer_events != NULL) REGISTER_ERROR(ERROR_FLAGS_INITIALIZATION);
+
+  usb_mutex = osMutexNew(NULL);
+  if (usb_mutex == NULL) REGISTER_ERROR(ERROR_MUTEX_INITIALIZATION);
+
+  transfer_events = osEventFlagsNew(NULL);
+  if (transfer_events == NULL) REGISTER_ERROR(ERROR_FLAGS_INITIALIZATION);
+}
+
 void USB_Init(void)
 {
   usb_overflow_mess_len = strlen(USB_OVERFLOW_MESS);
@@ -54,9 +67,6 @@ void USB_Init(void)
   usb_buffer.contents_changed = false;
   usb_buffer.data_ready = false;
   usb_buffer.source = COMM_USB;
-
-  usb_mutex = osMutexNew(NULL);
-  transfer_events = osEventFlagsNew(NULL);
 }
 
 void USB_TransmitData(uint8_t* data, uint16_t len)

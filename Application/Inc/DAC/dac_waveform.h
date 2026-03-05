@@ -112,11 +112,9 @@ bool Waveform_IsRunning(void);
 /**
  * @brief Registers module parameters with the parameter system
  *
- * Makes the DAC transition length accessible via the HMI.
- *
  * @note Logs an error in the event of a failure
  */
-bool Waveform_RegisterParams(void);
+void Waveform_RegisterParams(void);
 
 /**
  * @brief Sends a flushing message through the dac

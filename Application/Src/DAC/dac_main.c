@@ -12,7 +12,7 @@
 #include "dac_main.h"
 #include "dac_waveform.h"
 #include "cfg_parameters.h"
-#include "sys_error.h"
+#include "error_manager.h"
 #include "cfg_main.h"
 #include "main.h"
 #include "cmsis_os.h"
@@ -37,29 +37,21 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-bool registerDacParams(void);
+static void registerDacParams(void);
 
 /* Exported function definitions ---------------------------------------------*/
 
 void DAC_StartTask(void* argument)
 {
   (void)(argument);
-  if (Param_RegisterTask(DAC_TASK, "DAC") == false) {
-    Error_Routine(ERROR_DAC_INIT);
-  }
-
-  if (registerDacParams() == false) {
-    Error_Routine(ERROR_DAC_INIT);
-  }
-
-  if (Param_TaskRegistrationComplete(DAC_TASK) == false) {
-    Error_Routine(ERROR_DAC_INIT);
-  }
-
+  Error_RegisterTask("DAC");
+  registerDacParams();
+  Error_ParameterRegistrationComplete();
   CFG_WaitLoadComplete();
 
   Waveform_InitWaveformGenerator();
 
+  // TODO: address why this is needed twice
   Waveform_Flush();
 
   for (;;)
@@ -79,10 +71,7 @@ void DAC_StartTask(void* argument)
 
 /* Private function definitions ----------------------------------------------*/
 
-bool registerDacParams()
+void registerDacParams()
 {
-  if (Waveform_RegisterParams() == false) {
-    return false;
-  }
-  return true;
+  Waveform_RegisterParams();
 }

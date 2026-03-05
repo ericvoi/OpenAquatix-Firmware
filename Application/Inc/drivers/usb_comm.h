@@ -43,6 +43,11 @@ extern "C" {
 /* Exported functions prototypes ---------------------------------------------*/
 
 /**
+ * @brief Initializes shared resources for USB driver
+ */
+void USB_CreateShared(void);
+
+/**
  * @brief Initializes the USB communication interface
  *
  * Sets up the USB buffer structure with default values and prepares
