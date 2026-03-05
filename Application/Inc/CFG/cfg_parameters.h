@@ -149,12 +149,11 @@ bool Param_Init(void);
  * Loops through the entire flash sector for saved parameters and saves them
  * one at a time to RAM. Also resets the is_modified flag
  *
- * @return true if successful and false if the version of an entry is incorrect
- * or updating a parameter failed
+ * @note can cause unrecoverable errors
  *
  * @note Must be called after all parameters have been registered
  */
-bool Param_LoadInit(void);
+void Param_LoadInit(void);
 
 /**
  * @brief Registers a parameter in the HMI parameter system
@@ -629,10 +628,9 @@ char** Param_GetDescriptors(ParamIds_t id);
  * has changed, save it to the next flash word. If the next address is outside
  * of the flash sector, reset flash. Can save multiple parameters
  *
- * @return true if all modified parameters saved
- *         false if error saving parameter
+ * @note can cause unrecoverable errors
  */
-bool Param_SaveToFlash(void);
+void Param_SaveToFlash(void);
 
 /**
  * @brief Registers a task in the parameter management system

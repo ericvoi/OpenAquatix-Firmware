@@ -13,7 +13,7 @@
 #include "cfg_main.h"
 #include "cmsis_os.h"
 #include "cfg_parameters.h"
-#include "sys_error.h"
+#include "error_manager.h"
 #include "main.h"
 
 /* Private typedef -----------------------------------------------------------*/
@@ -39,46 +39,36 @@ static volatile uint32_t cfg_number = 1;
 /* Private function prototypes -----------------------------------------------*/
 
 static void waitAllTasksRegistered(void);
-static bool registerCfgParams(void);
-static bool waitForFlashSave(void);
+static void registerCfgParams(void);
+static void waitForFlashSave(void);
+static void resetTask(void);
 
 /* Exported function definitions ---------------------------------------------*/
 
 void CFG_StartTask(void* argument)
 {
   (void)(argument);
-  if (Param_RegisterTask(CFG_TASK, "CFG") == false) {
-    Error_Routine(ERROR_CFG_INIT);
-  }
 
-  if (registerCfgParams() == false) {
-    Error_Routine(ERROR_CFG_INIT);
-  }
-
-  if (Param_TaskRegistrationComplete(CFG_TASK) == false) {
-    Error_Routine(ERROR_CFG_INIT);
-  }
-  // wait until all tasks parameters have been registered
+  Error_RegisterTask("COMM");
+  registerCfgParams();
+  Error_ParameterRegistrationComplete();
   waitAllTasksRegistered();
 
-  // then update all parameters from flash
-  if (Param_LoadInit() == false) {
-    Error_Routine(ERROR_CFG_INIT);
-  }
-  osEventFlagsClear(flash_events, FLASH_SAVE_REQUESTED); // TODO: handle errors
+  // Update all parameters from flash
+  Param_LoadInit();
+  osEventFlagsClear(flash_events, FLASH_SAVE_REQUESTED);
 
   // then indicate to tasks that all parameters have been updated from flash memory
   osEventFlagsSet(param_events, EVENT_PARAMS_LOADED);
   for (;;) {
-    if (waitForFlashSave() == true) {
-      osDelay(100); // Small wait for multiple successive saves
-      if (Param_SaveToFlash() == false) {
-        Error_Routine(ERROR_FLASH);
-      }
+    waitForFlashSave();
+    osDelay(100); // Small wait for multiple successive saves
+    Param_SaveToFlash();
+
+    if (Error_CheckModuleReset() == TASK_RESET) {
+      resetTask();
     }
-    else {
-      Error_Routine(ERROR_FLASH);
-    }
+    Error_ResetAbortFlag();
   }
 }
 
@@ -139,16 +129,19 @@ void waitAllTasksRegistered()
   osEventFlagsWait(param_events, EVENT_ALL_TASKS_REGISTERED, osFlagsWaitAny, osWaitForever);
 }
 
-bool registerCfgParams()
+void registerCfgParams()
 {
-  return true;
+
 }
 
-bool waitForFlashSave()
+void waitForFlashSave()
 {
   uint32_t flags = osEventFlagsWait(flash_events, FLASH_SAVE_REQUESTED, osFlagsWaitAny, osWaitForever);
-  if (flags & osFlagsError) {
-    return false;
-  }
-  return true;
+  if (flags & osFlagsError) 
+    REGISTER_ERROR(ERROR_FLAGS_RUNNING);
+}
+
+void resetTask(void)
+{
+
 }
