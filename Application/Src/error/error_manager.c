@@ -13,6 +13,7 @@
 #include "error_manager.h"
 #include "error_log.h"
 #include "error_reset.h"
+#include "error_subsys.h"
 #include "cfg_main.h"
 #include "cfg_parameters.h"
 #include "comm_main.h"
@@ -118,6 +119,7 @@ void Error_RegisterError(OpenAquatixErrors_t error_code, const char* file, uint1
   TaskInfo_t* task_info = getTaskInfo();
 
   ErrorSeverity_t severity = error_lut[error_code].severity;
+  SubSystemId_t subsys = error_lut[error_code].subsystem;
 
   ErrorLog_LogError(file, task_info->name, line, error_code);
 
@@ -137,11 +139,11 @@ void Error_RegisterError(OpenAquatixErrors_t error_code, const char* file, uint1
       break;
     case ERROR_SEVERITY_RESET_SUBSYS:\
       last_abort_timestamp = current_timestamp;
-      // TODO: reset subsystem
+      ErrorSubsys_RequestReset(subsys);
       break;
     case ERROR_SEVERITY_DISABLE_SUBSYS:
       last_error_timestamp = current_timestamp;
-      // TODO: disable subsytem
+      ErrorSubsys_Disable(subsys);
       break;
     case ERROR_SEVERITY_FULL_RESET:
       performSystemReset(error_code);

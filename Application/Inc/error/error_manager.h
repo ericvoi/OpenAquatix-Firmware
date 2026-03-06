@@ -37,7 +37,7 @@ DECLARE_ENUM(ERROR_SEVERITY_TABLE, NUM_ERROR_SEVERITY, ErrorSeverity_t)
 typedef struct {
   ErrorSeverity_t severity;
   const char* description;
-  SubSystemIds_t subsystem; 
+  SubSystemId_t subsystem; 
 } ErrorLutEntry_t;
 
 /**
