@@ -34,7 +34,9 @@ typedef struct {
 
 /* Private define ------------------------------------------------------------*/
 
-
+#define ERROR_TIMEOUT_MS          15
+#define ABORT_TIMEOUT_MS          10
+#define WARNING_TIMEOUT_MS        6
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -51,6 +53,12 @@ static TaskInfo_t isr_info = {
 };
 
 static uint8_t tasks_fully_registered = 0;
+
+// Non-zero initialization equivalent to negative timestamp since the absolute
+// timestamp will never get even close to 2^64 (only 2^36 for 3 years)
+static uint64_t last_error_timestamp = 0x7FFFFFFFFFFFFFFF;
+static uint64_t last_abort_timestamp = 0x7FFFFFFFFFFFFFFF;
+static uint64_t last_warning_timestamp = 0x7FFFFFFFFFFFFFFF;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -113,19 +121,26 @@ void Error_RegisterError(OpenAquatixErrors_t error_code, const char* file, uint1
 
   ErrorLog_LogError(file, task_info->name, line, error_code);
 
+  uint64_t current_timestamp = HAL_AbsoluteTimestamp();
+
   switch (severity) {
     case ERROR_SEVERITY_WARN:
+      last_warning_timestamp = current_timestamp;
       break;
     case ERROR_SEVERITY_ABORT:
+      last_abort_timestamp = current_timestamp;
       task_info->blocked_by_error = true;
       break;
     case ERROR_SEVERITY_TASK_RESET:
+      last_error_timestamp = current_timestamp;
       task_info->pending_reset = true;
       break;
-    case ERROR_SEVERITY_RESET_SUBSYS:
+    case ERROR_SEVERITY_RESET_SUBSYS:\
+      last_abort_timestamp = current_timestamp;
       // TODO: reset subsystem
       break;
     case ERROR_SEVERITY_DISABLE_SUBSYS:
+      last_error_timestamp = current_timestamp;
       // TODO: disable subsytem
       break;
     case ERROR_SEVERITY_FULL_RESET:
@@ -154,6 +169,27 @@ const char* Error_GetSeverity(OpenAquatixErrors_t error_code)
   ErrorSeverity_t severity = error_lut[error_code].severity;
 
   return severity_descriptions[severity];
+}
+
+OpenAquatixStatus_t Error_GetStatus(void)
+{
+  uint64_t current_timestamp = HAL_AbsoluteTimestamp();
+
+  if ((current_timestamp - last_error_timestamp) > ERROR_TIMEOUT_MS)
+    return OA_STATUS_ERROR;
+
+  if ((current_timestamp - last_abort_timestamp) > ABORT_TIMEOUT_MS)
+    return OA_STATUS_ABORT;
+
+  if ((current_timestamp - last_warning_timestamp) > WARNING_TIMEOUT_MS)
+    return OA_STATUS_WARN;
+
+  return OA_STATUS_OK;
+}
+
+void Error_LogWarmReset(void)
+{
+  last_error_timestamp = 0; // Makes error indication go off immediately
 }
 
 ErrorCheck_t Error_CheckStatus(void)

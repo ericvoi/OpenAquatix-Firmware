@@ -37,6 +37,7 @@
 #define RGB_MAGENTA   255,0,  255
 #define RGB_CYAN      0,  255,255
 #define RGB_OFF       0,  0,  0
+#define RGB_ORANGE    255,165,0
 
 #define LISTENING_COLOUR      RGB_GREEN
 #define DRIVING_COLOUR        RGB_BLUE
@@ -44,7 +45,8 @@
 #define CHANGING_COLOUR       RGB_OFF
 
 #define ERROR_COLOUR          RGB_RED
-#define WARNING_COLOUR        RGB_YELLOW // TODO: add warning system
+#define ABORT_COLOUR          RGB_ORANGE
+#define WARNING_COLOUR        RGB_YELLOW
 
 #define OVERRIDE_DURATION_MS 10000
 
@@ -88,15 +90,27 @@ void LED_Update()
     }
   }
 
-  // check for errors. If errors exist, set to red
-  // TODO: Update for new error manager
-  // if (Error_Exists()) {
-  //   Ws2812b_SetColour(ERROR_COLOUR);
-  //   if (Ws2812b_Update(brightness) == false) REGISTER_ERROR(ERROR_RGB_LED);
-  //   return;
-  // }
+  OpenAquatixStatus_t status = Error_GetStatus();
+  switch (status) {
+    case OA_STATUS_ERROR:
+      Ws2812b_SetColour(ERROR_COLOUR);
+      if (Ws2812b_Update(brightness) == false) REGISTER_ERROR(ERROR_RGB_LED);
+      return;
+    case OA_STATUS_ABORT:
+      Ws2812b_SetColour(ABORT_COLOUR);
+      if (Ws2812b_Update(brightness) == false) REGISTER_ERROR(ERROR_RGB_LED);
+      return;
+    case OA_STATUS_WARN:
+      Ws2812b_SetColour(WARNING_COLOUR);
+      if (Ws2812b_Update(brightness) == false) REGISTER_ERROR(ERROR_RGB_LED);
+      return;
+    case OA_STATUS_OK:
+      break;
+    default:
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
+  }
 
-  // check mess task state
+  // No warnings or errors -> show MESS task state
   ProcessingState_t state = MESS_GetState();
 
   switch (state) {

@@ -12,6 +12,7 @@
 
 #include "stm32h7xx_hal.h"
 #include "bkpsram_layout.h"
+#include "error_reset.h"
 
 /* Private typedef -----------------------------------------------------------*/
 
@@ -37,9 +38,14 @@
 
 void ErrorReset_WarmReset()
 {
-  bkpsram.log_reset_flag = LOG_RESET_MAGIC_NUMBER;
+  bkpsram.error_reset_flag = ERROR_RESET_MAGIC_NUMBER;
   __DSB();
   HAL_NVIC_SystemReset();
+}
+
+void ErrorReset_NotifyErrorReset()
+{
+  Error_LogWarmReset();
 }
 
 /* Private function definitions ----------------------------------------------*/

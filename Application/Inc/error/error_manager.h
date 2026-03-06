@@ -119,6 +119,13 @@ typedef enum {
   TASK_RESET
 } TaskResetStatus_t;
 
+typedef enum {
+  OA_STATUS_ERROR,  // Includes task resets and subsystems being disabled
+  OA_STATUS_ABORT,  // Includes subsystem resets as well
+  OA_STATUS_WARN,
+  OA_STATUS_OK
+} OpenAquatixStatus_t;
+
 /* Exported constants --------------------------------------------------------*/
 
 
@@ -187,6 +194,24 @@ const char* Error_GetDescription(OpenAquatixErrors_t error_code);
  * @return const char* String containing severity description (null-terminated)
  */
 const char* Error_GetSeverity(OpenAquatixErrors_t error_code);
+
+/**
+ * @brief Current system status
+ * 
+ * @note Status automatically times out errors/warnings if they were first
+ * raised sufficiently long ago
+ * 
+ * @return OpenAquatixStatus_t Current status
+ */
+OpenAquatixStatus_t Error_GetStatus(void);
+
+/**
+ * @brief Call this when a warm reset is detected
+ * 
+ * If a warm reset has occurred, the last error timestamp is set to the current
+ * timestamp
+ */
+void Error_LogWarmReset(void);
 
 /**
  * @brief Checks if program flow should continue

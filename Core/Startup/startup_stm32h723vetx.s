@@ -110,8 +110,6 @@ Reset_Handler:
   bl    ExitRun0Mode
 /* Call the clock system initialization function.*/
   bl    SystemInit
-/* Clear the backup SRAM if the rest condition is POR */
-  bl    Bkpsram_Init
 
 /* Copy the data segment initializers from flash to SRAM */
   ldr   r0, =_sdata
@@ -154,6 +152,8 @@ LoopFillZerobss:
 /* Call static constructors */
     bl __libc_init_array
 /* Call the application's entry point.*/
+/* Clear the backup SRAM if the rest condition is POR */
+  bl    Bkpsram_Init
   bl  main
   bx  lr
 .size  Reset_Handler, .-Reset_Handler

@@ -42,6 +42,11 @@ extern "C" {
  */
 void ErrorReset_WarmReset(void);
 
+/**
+ * @brief Notifies error manager that the reset condition was error-induced
+ */
+void ErrorReset_NotifyErrorReset(void);
+
 /* Private defines -----------------------------------------------------------*/
 
 #ifdef __cplusplus

@@ -12,6 +12,7 @@
 
 #include "stm32h723xx.h"
 #include "bkpsram_layout.h"
+#include "error_reset.h"
 #include <string.h>
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,10 +41,12 @@ void Bkpsram_Init(void)
 {
   RCC->RSR |= RCC_RSR_RMVF;
 
-  if (bkpsram.log_reset_flag == LOG_RESET_MAGIC_NUMBER) {
-    bkpsram.log_reset_flag = 0;
+  if (bkpsram.error_reset_flag == ERROR_RESET_MAGIC_NUMBER) {
+    bkpsram.error_reset_flag = 0;
     bkpsram.reset_count++;
-  } else {
+    ErrorReset_NotifyErrorReset();
+  } 
+  else {
     memset((void*)&bkpsram, 0, sizeof(bkpsram));
   }
 }
