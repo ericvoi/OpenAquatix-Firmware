@@ -94,6 +94,15 @@ typedef struct {
   X(ERROR_MENU_REGISTRATION,              ERROR_SEVERITY_UNRECOVERABLE,   "Failed to register menu",                  SUBSYS_NONE)      \
   X(ERROR_MUTEX_INITIALIZATION,           ERROR_SEVERITY_UNRECOVERABLE,   "Failed to initialize mutex",               SUBSYS_NONE)      \
   X(ERROR_CSMA_BEB_TIMEOUT,               ERROR_SEVERITY_TASK_RESET,      "CSMA with BEB background noise timeout",   SUBSYS_NONE)      \
+  X(ERROR_PRESSURE_SENSOR,                ERROR_SEVERITY_DISABLE_SUBSYS,  "Error in pressure sensor",                 SUBSYS_LPS)       \
+  X(ERROR_GENERAL_WARN_ISR,               ERROR_SEVERITY_WARN,            "Unexpected error in an ISR",               SUBSYS_NONE)      \
+  X(ERROR_TIMER_INITIALIZATION,           ERROR_SEVERITY_UNRECOVERABLE,   "Error timer initialization",               SUBSYS_NONE)      \
+  X(ERROR_POWER_MONITOR,                  ERROR_SEVERITY_DISABLE_SUBSYS,  "Error in power monitor",                   SUBSYS_INA)       \
+  X(ERROR_RGB_LED,                        ERROR_SEVERITY_WARN,            "Error updating RGB LED colour",            SUBSYS_NONE)      \
+  X(ERROR_JUNCTION_TEMPERATURE,           ERROR_SEVERITY_DISABLE_SUBSYS,  "Error in obtaining junction temp",         SUBSYS_TJ)        \
+  X(ERROR_MUTEX_TIMEOUT,                  ERROR_SEVERITY_ABORT,           "Timed out while waiting for mutex",        SUBSYS_NONE)      \
+  X(ERROR_WAVEFORM_STEP,                  ERROR_SEVERITY_UNRECOVERABLE,   "Error in waveform step generation",        SUBSYS_NONE)      \
+  X(ERROR_DAC_FLUSH,                      ERROR_SEVERITY_UNRECOVERABLE,   "Error flushing DAC",                       SUBSYS_NONE)
 
 #define XERROR_ENUM(error, severity, description, subsystem) error,
 
@@ -126,14 +135,14 @@ typedef enum {
   RETURN_IF_ERROR_PRESENT(Error_RegisterError(error_code, __FILE_NAME__, __LINE__)) 
 
 // Special error handlers to use when the function returns an integer not void
-#define RETURN_IF_ERROR_PRESENT_INT(func, ret_val) do { \
+#define RETURN_IF_ERROR_PRESENT_NON_VOID(func, ret_val) do { \
   func; \
   ErrorCheck_t ret_status = Error_CheckStatus(); \
   if (ret_status == ERROR_QUIT) return ret_val; \
 } while (0)
 
-#define REGISTER_ERROR_INT(error_code, ret_val) \
-  RETURN_IF_ERROR_PRESENT_INT(Error_RegisterError(error_code, __FILE_NAME__, __LINE__), ret_val)
+#define REGISTER_ERROR_NON_VOID(error_code, ret_val) \
+  RETURN_IF_ERROR_PRESENT_NON_VOID(Error_RegisterError(error_code, __FILE_NAME__, __LINE__), ret_val)
 
 /* Exported functions prototypes ---------------------------------------------*/
 

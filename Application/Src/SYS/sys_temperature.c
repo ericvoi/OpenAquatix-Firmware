@@ -14,6 +14,7 @@
 #include "sys_temperature.h"
 #include "mess_adc.h"
 #include "lps22hh-driver.h"
+#include "error_manager.h"
 
 #include <stdbool.h>
 
@@ -81,8 +82,9 @@ float rawTjToTemperature(uint16_t raw);
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool Temperature_Init()
+void Temperature_Init()
 {
+  RETURN_IF_ERROR_PRESENT();
   // Read factory calibration data
   ts_cal1 = *((uint16_t*) TS_CAL1_ADDRESS);
   ts_cal2 = *((uint16_t*) TS_CAL2_ADDRESS);
@@ -91,20 +93,13 @@ bool Temperature_Init()
 
   ta_buf_head = 0;
   ta_buf_tail = 0;
-  if (LPS_RegisterTemperatureBuf(ta_buf, TEMPERATURE_BUFFER_SIZE, &ta_buf_head) == false) {
-    return false;
-  }
-
-  return true;
+  LPS_RegisterTemperatureBuf(ta_buf, TEMPERATURE_BUFFER_SIZE, &ta_buf_head);
 }
 
-bool Temperature_TriggerTjConversion()
+void Temperature_TriggerTjConversion()
 {
-  if (HAL_ADC_Start_IT(&TEMPERATURE_ADC) != HAL_OK) {
-    return false;
-  }
-
-  return true;
+  if (HAL_ADC_Start_IT(&TEMPERATURE_ADC) != HAL_OK) 
+    REGISTER_ERROR(ERROR_JUNCTION_TEMPERATURE);
 }
 
 void Temperature_AddTjValue()
@@ -118,7 +113,7 @@ void Temperature_AddTjValue()
   tj_buf_head = (tj_buf_head + 1) % TEMPERATURE_BUFFER_SIZE;
 }
 
-bool Temperature_Process()
+void Temperature_Process()
 {
   while (tj_buf_head != tj_buf_tail) {
     accumulated_raw_tj += tj_buf[tj_buf_tail].raw_value;
@@ -142,7 +137,6 @@ bool Temperature_Process()
     }
     ta_buf_tail = (ta_buf_tail + 1) % TEMPERATURE_BUFFER_SIZE;
   }
-  return true;
 }
 
 float Temperature_GetAverageTj()

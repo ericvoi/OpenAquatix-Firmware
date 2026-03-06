@@ -18,6 +18,7 @@
 #include "comm_main.h"
 #include "ws2812b-driver.h"
 #include "cmsis_os.h"
+#include "cmsis_gcc.h"
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -45,6 +46,10 @@ static const ErrorLutEntry_t error_lut[] = { ERROR_MANAGEMENT_TABLE(XERROR_LUT) 
 DEFINE_DESC_TABLE(ERROR_SEVERITY_TABLE, severity_descriptions);
 static TaskInfo_t registered_tasks[NUM_TASKS] = {0};
 
+static TaskInfo_t isr_info = {
+  .name = "ISR"
+};
+
 static uint8_t tasks_fully_registered = 0;
 
 /* Private function prototypes -----------------------------------------------*/
@@ -53,11 +58,13 @@ static void taskDeathLoop(void);
 static void systemDeathLoop(void);
 static TaskInfo_t* getTaskInfo(void);
 static void performSystemReset(OpenAquatixErrors_t reason);
+static bool isIsr(void);
 
 /* Exported function definitions ---------------------------------------------*/
 
 void Error_RegisterTask(const char* task_name)
 {
+  if (isIsr()) return;
   if (task_name == NULL) taskDeathLoop();
 
   osThreadId thread_id = osThreadGetId();
@@ -79,6 +86,7 @@ void Error_RegisterTask(const char* task_name)
 
 void Error_ParameterRegistrationComplete(void)
 {
+  if (isIsr()) return;
   osThreadId thread_id = osThreadGetId();
   if (thread_id == NULL) taskDeathLoop();
 
@@ -180,16 +188,17 @@ TaskResetStatus_t Error_CheckModuleReset(void)
 /* Private function definitions ----------------------------------------------*/
 
 // In case of termination during initialization, the task is sent to a loop
-// and updates the LED to be red. Since the error occurred during early
+// and updates the LED to be flashing red. Since the error occurred during early
 // initialization, it is likely a programming error so resetting will do nothing
 void taskDeathLoop(void)
 {
-  uint8_t brightness;
-  Param_GetUint8(PARAM_LED_BRIGHTNESS, &brightness);
   for (;;) {
-    osDelay(1);
+    osDelay(300);
     Ws2812b_SetColour(255, 0, 0);
-    Ws2812b_Update(brightness);
+    Ws2812b_Update(255);
+    osDelay(300);
+    Ws2812b_SetColour(0, 0, 0);
+    Ws2812b_Update(255);
   }
 }
 
@@ -208,8 +217,8 @@ void systemDeathLoop(void)
 
 TaskInfo_t* getTaskInfo(void)
 {
+  if (isIsr()) return &isr_info;
   osThreadId thread_id = osThreadGetId();
-  if (thread_id == NULL) taskDeathLoop();
 
   for (uint8_t i = 0; i < NUM_TASKS; i++) {
     if (registered_tasks[i].task_id == thread_id)
@@ -231,4 +240,9 @@ void performSystemReset(OpenAquatixErrors_t reason)
   ErrorLog_PrintLog(COMM_BOTH);
   osDelay(50);
   ErrorReset_WarmReset();
+}
+
+bool isIsr(void)
+{
+  return __get_IPSR() != 0;
 }

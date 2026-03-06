@@ -14,13 +14,13 @@
 #include "stm32h7xx_hal.h"
 #include "main.h"
 #include "sys_main.h"
-#include "sys_error.h"
 #include "sys_sensor_timer.h"
 #include "sys_temperature.h"
 #include "sys_pressure.h"
 #include "sys_led.h"
 #include "sys_power.h"
 #include "sleep/sleep_manager.h"
+#include "error_manager.h"
 #include "cfg_main.h"
 #include "cfg_parameters.h"
 #include "cfg_defaults.h"
@@ -48,62 +48,56 @@ static volatile uint8_t hardware_id = 255;
 
 /* Private function prototypes -----------------------------------------------*/
 
-bool registerSysParam();
-bool createSleepEvents();
-void readHardwareId();
+static void registerSysParams();
+static void createSleepEvents();
+static void readHardwareId();
+static void resetTask();
 
 /* Exported function definitions ---------------------------------------------*/
 
 void SYS_StartTask(void* argument)
 {
   (void)(argument);
-  if (Param_RegisterTask(SYS_TASK, "SYS") == false) {
-    Error_Routine(ERROR_SYS_INIT);
-  }
+  Error_RegisterTask("SYS");
+  registerSysParams();
+  Error_ParameterRegistrationComplete();
 
-  if (registerSysParam() == false) {
-    Error_Routine(ERROR_SYS_INIT);
-  }
-
-  if (Param_TaskRegistrationComplete(SYS_TASK) == false) {
-    Error_Routine(ERROR_SYS_INIT);
-  }
-
+  LPS_CreateResources();
+  createSleepEvents();
+  
   CFG_WaitLoadComplete();
 
-  if (LPS_Init(LPS_ODR_1) == false) Error_Routine(ERROR_SYS_INIT);
-  if (SensorTimer_Init()  == false) Error_Routine(ERROR_SYS_INIT);
-  if (Pressure_Init()     == false) Error_Routine(ERROR_SYS_INIT);
-  if (Temperature_Init()  == false) Error_Routine(ERROR_SYS_INIT);
-  if (Power_Init()        == false) Error_Routine(ERROR_SYS_INIT);
-  if (createSleepEvents() == false) Error_Routine(ERROR_SYS_INIT);
-
   readHardwareId();
+  resetTask();
 
   for (;;) {
     LED_Update();
     Temperature_Process();
     Power_Process();
     SleepManager_Enter();
+
+    if (Error_CheckModuleReset() == TASK_RESET) {
+      resetTask();
+    }
+    Error_ResetAbortFlag();
     osDelay(10);
   }
 }
 
 /* Private function definitions ----------------------------------------------*/
 
-bool registerSysParam()
+void registerSysParams()
 {
-  if (LED_RegisterParams() == false) {
-    return false;
-  }
-  return true;
+  LED_RegisterParams();
 }
 
-bool createSleepEvents()
+void createSleepEvents()
 {
+  if (sleep_events != NULL) REGISTER_ERROR(ERROR_FLAGS_INITIALIZATION);
+
   sleep_events = osEventFlagsNew(NULL);
 
-  return sleep_events != NULL;
+  if (sleep_events == NULL) REGISTER_ERROR(ERROR_FLAGS_INITIALIZATION);
 }
 
 void readHardwareId()
@@ -117,4 +111,13 @@ void readHardwareId()
   hardware_id |= bit << 2;
   bit = HAL_GPIO_ReadPin(HW_ID_PIN3_GPIO_Port, HW_ID_PIN3_Pin);
   hardware_id |= bit << 3;
+}
+
+void resetTask()
+{
+  LPS_Init(LPS_ODR_1);
+  SensorTimer_Init();
+  Pressure_Init();
+  Temperature_Init();
+  Power_Init();
 }

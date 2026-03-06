@@ -52,12 +52,18 @@ typedef enum {
 /* Exported functions prototypes ---------------------------------------------*/
 
 /**
+ * @brief Initializes mutex and event resources for LPS driver
+ * 
+ * @note Only call this function once
+ */
+void LPS_CreateResources(void);
+
+/**
  * @brief Initializes registers in LPA22HH, creates mutex, and events
  * 
  * @param odr Rate at which pressure/temperature samples should be created
- * @return true if  everything succeeded, false otherwise
  */
-bool LPS_Init(LpsOdr_t odr);
+void LPS_Init(LpsOdr_t odr);
 
 /**
  * @brief Registers a buffer to store raw pressure values
@@ -65,11 +71,10 @@ bool LPS_Init(LpsOdr_t odr);
  * @param p_buf Array to store raw pressure readings
  * @param buf_len Length of p_buf
  * @param buf_head Pointer to head of array (modified when new sample added)
- * @return true if valid inputs, false otherwise
  * 
  * @note If this function is not called, pressure readings will not be read
  */
-bool LPS_RegisterPressureBuf(uint32_t* p_buf, uint16_t buf_len, uint16_t* buf_head);
+void LPS_RegisterPressureBuf(uint32_t* p_buf, uint16_t buf_len, uint16_t* buf_head);
 
 /**
  * @brief Registers a buffer to store raw pressure values
@@ -77,27 +82,22 @@ bool LPS_RegisterPressureBuf(uint32_t* p_buf, uint16_t buf_len, uint16_t* buf_he
  * @param t_buf Array to store raw temperature readings
  * @param buf_len Length of t_buf
  * @param buf_head Pointer to head of array (modified when new sample added)
- * @return true if valid inputs, false otherwise
  * 
  * @note If this function is not called, temperature readings will not be read
  */
-bool LPS_RegisterTemperatureBuf(uint16_t* t_buf, uint16_t buf_len, uint16_t* buf_head);
+void LPS_RegisterTemperatureBuf(uint16_t* t_buf, uint16_t buf_len, uint16_t* buf_head);
 
 /**
  * @brief Powers down the LPS22HH to reduce power consumption
- * 
- * @return true if command successfully written to device, false otherwise
  */
-bool LPS_PowerDown(void);
+void LPS_PowerDown(void);
 
 /**
  * @brief Powers up the LPS22HH to get readings after device powered down
  * 
- * @return true if command successfully written to device, false otherwise
- * 
  * @note uses the same ODR as when the device was last booted
  */
-bool LPS_PowerUp(void);
+void LPS_PowerUp(void);
 
 /**
  * @brief Attempts to read the WHO_AMI_I register to check if the SPI interface
@@ -111,10 +111,8 @@ bool LPS_CheckInterface(void);
 /**
  * @brief Reads the pressure and temperature data registers of the device if
  * a buffer has been registered for them and adds readings to buffers
- * 
- * @return true if read registers successfully, false otherwise
  */
-bool LPS_ReadData(void);
+void LPS_ReadData(void);
 
 /**
  * @brief Converts a pressure reading from the LPS22HH to a floating point

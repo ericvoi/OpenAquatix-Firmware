@@ -156,7 +156,7 @@ MacState_t CsmaCaBeb_HandleTxRequest(void* protocol_data)
       }
       return MAC_STATE_DEFERRED;
     default:
-      REGISTER_ERROR_INT(ERROR_UNHANDLED_CASE, MAC_STATE_ERROR);
+      REGISTER_ERROR_NON_VOID(ERROR_UNHANDLED_CASE, MAC_STATE_ERROR);
       return MAC_STATE_ERROR;
   }
   return MAC_STATE_ERROR;
@@ -202,7 +202,7 @@ static MacState_t CsmaCaBeb_ProcessRxMessage(void* protocol_data, const Message_
 
   if (message->preamble.reservation_time_10ms.valid == true) {
     if (message->preamble.reservation_time_10ms.value > MAXIMUM_RESERVATION_TIME_MS / 10) {
-      REGISTER_ERROR_INT(ERROR_INVALID_RESERVATION_TIME, MAC_STATE_ERROR);
+      REGISTER_ERROR_NON_VOID(ERROR_INVALID_RESERVATION_TIME, MAC_STATE_ERROR);
       ret = MAC_STATE_ERROR;
     }
     uint32_t reserved_until = message->timestamp + message->preamble.reservation_time_10ms.value * 10;
@@ -262,7 +262,7 @@ MacState_t timeout(CsmaCaBebData_t* data)
 
   uint32_t current_timestamp = osKernelGetTickCount();
   if (current_timestamp - data->deferral_timestamp > CSMA_TIMEOUT_MS) {
-    REGISTER_ERROR_INT(ERROR_CSMA_BEB_TIMEOUT, MAC_STATE_ERROR);
+    REGISTER_ERROR_NON_VOID(ERROR_CSMA_BEB_TIMEOUT, MAC_STATE_ERROR);
     return MAC_STATE_ERROR;
   }
   else {

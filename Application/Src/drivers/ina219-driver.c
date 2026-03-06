@@ -12,6 +12,7 @@
 
 #include "cmsis_os.h"
 #include "ina219-driver.h"
+#include "error_manager.h"
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -141,16 +142,17 @@ extern I2C_HandleTypeDef hi2c1; // I2C handle for communication
 static bool memWrite(uint16_t address, uint16_t data);
 static bool memRead(uint16_t address);
 
-static bool readIna(void);
+static void readIna(void);
 
 static float convertRawShuntVoltage(uint16_t raw_reading);
 static float convertRawBusVoltage(uint16_t raw_reading);
 
 /* Exported functions Definitions ---------------------------------------------*/
-// Function to initialize INA219 using IT
-bool INA_Init() // Set configuration register
+
+void INA_Init() // Set configuration register
 {
   ina_state = INA_IDLE;
+  ina_ready = false;
 
   uint16_t config = CONFIG_VOLTAGE_RANGE |
                     CONFIG_GAIN |
@@ -158,30 +160,30 @@ bool INA_Init() // Set configuration register
                     CONFIG_BUS_ADC |
                     CONFIG_MODE;
 
-  if (memWrite(CONFIGURATION_ADDRESS, config) == false) {
-    return false;
-  }
-  return ina_ready == true;
+  if (memWrite(CONFIGURATION_ADDRESS, config) == false) 
+    REGISTER_ERROR(ERROR_POWER_MONITOR);
+  
+  if (ina_ready == false) REGISTER_ERROR(ERROR_POWER_MONITOR); 
 }
 
-bool INA_RegisterBuffer(InaPowerValues_t* buf, uint16_t buf_len, volatile uint16_t* buf_head)
+void INA_RegisterBuffer(InaPowerValues_t* buf, uint16_t buf_len, volatile uint16_t* buf_head)
 {
-  if (buf == NULL || buf_len == 0 || buf_head == NULL) return false;
+  if (buf == NULL || buf_len == 0 || buf_head == NULL) REGISTER_ERROR(ERROR_NULL_PTR);
 
   power_buffer_info.buf = buf;
   power_buffer_info.buf_len = buf_len;
   power_buffer_info.buf_head = buf_head;
-
-  return true;
 }
 
-bool INA_StartRead(void)
+void INA_StartRead(void)
 {
-  if ((power_buffer_info.buf_head == NULL) || (power_buffer_info.buf == NULL)) return false;
+  if ((power_buffer_info.buf_head == NULL) || (power_buffer_info.buf == NULL)) 
+    REGISTER_ERROR(ERROR_POWER_MONITOR);
 
-  if (ina_state != INA_IDLE) return false;
+  if (ina_state != INA_IDLE) return;
+  if (ina_ready == false) return;
 
-  return readIna();
+  readIna();
 }
 
 void INA_RxComplete(void)
@@ -214,17 +216,19 @@ bool memRead(uint16_t address)
   return true;
 }
 
-bool readIna(void)
+void readIna(void)
 {
   InaPowerValues_t* entry = &power_buffer_info.buf[*power_buffer_info.buf_head];
   switch (ina_state) {
     case INA_IDLE:
-      if (memRead(SHUNT_VOLTAGE_ADDRESS) == false) return false;
+      if (memRead(SHUNT_VOLTAGE_ADDRESS) == false) 
+        REGISTER_ERROR(ERROR_POWER_MONITOR);
       ina_state = INA_READING_SHUNT_VOLTAGE;
       break;
     case INA_READING_SHUNT_VOLTAGE:
       entry->current_A = convertRawShuntVoltage(__REV16(rx_data));
-      if (memRead(BUS_VOLTAGE_ADDRESS) == false) return false;
+      if (memRead(BUS_VOLTAGE_ADDRESS) == false) 
+        REGISTER_ERROR(ERROR_POWER_MONITOR);
       ina_state = INA_READING_BUS_VOLTAGE;
       break;
     case INA_READING_BUS_VOLTAGE:
@@ -235,11 +239,11 @@ bool readIna(void)
       ina_state = INA_IDLE;
       break;
     case INA_ERROR:
-      return false;
+      REGISTER_ERROR(ERROR_POWER_MONITOR);
+      break;
     default:
-      return false;
+      REGISTER_ERROR(ERROR_POWER_MONITOR);
   }
-  return true;
 }
 
 // Converts to current

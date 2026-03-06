@@ -106,20 +106,17 @@ static SyncState_t evaluateSlidingPnWindows();
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool Sync_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step)
+void Sync_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step)
 {
   switch (cfg->sync_method) {
-    case NO_SYNC:
-      return false;
     case SYNC_PN_32_JANUS:
       waveform_step->freq_hz = janus_frequencies[step];
       waveform_step->duration_us = (uint32_t) roundf(1000000.0f / cfg->baud_rate);
       waveform_step->relative_amplitude = Modulate_GetAmplitude(waveform_step->freq_hz);
-      return true;
+      break;
     default:
-      return false;
+      REGISTER_ERROR(ERROR_WAVEFORM_STEP);
   }
-  return true;
 }
 
 uint16_t Sync_NumSteps(const DspConfig_t* cfg)
@@ -143,7 +140,7 @@ SyncState_t Sync_Synchronize(const DspConfig_t* cfg)
     case SYNC_PN_32_JANUS:
       return janusPnSynchronize(cfg);
     default:
-      REGISTER_ERROR_INT(ERROR_UNHANDLED_CASE, SYNC_OK);
+      REGISTER_ERROR_NON_VOID(ERROR_UNHANDLED_CASE, SYNC_OK);
       return SYNC_OK;
   }
 }
@@ -215,7 +212,7 @@ SyncState_t janusPnSynchronize()
   }
 
   while (ADC_InputAvailableSamples() >= required_samples) {
-    RETURN_IF_ERROR_PRESENT_INT(updateSlidingGoertzel(required_samples), SYNC_OK);
+    RETURN_IF_ERROR_PRESENT_NON_VOID(updateSlidingGoertzel(required_samples), SYNC_OK);
     uint16_t next_idx = (offset_index + 1) % PN_SYNC_SUBDIVIDE;
     if (next_idx == 0) {
       // Wraparound: remaining samples in this symbol
@@ -319,7 +316,7 @@ SyncState_t evaluateSlidingPnWindows()
     uint16_t idx = (s_idx < 0) ? (NUM_PN_SYNC_CANDIDATES + s_idx) : ((uint16_t) s_idx);
     PnSynchronizationCandidate_t* candidate = &pn_sync_candidates[idx];
     if (candidate->frequencies_added != NUM_SYNC_FREQUENCIES)  {
-      REGISTER_ERROR_INT(ERROR_OVERFLOW_SYNC, SYNC_OK);
+      REGISTER_ERROR_NON_VOID(ERROR_OVERFLOW_SYNC, SYNC_OK);
       return SYNC_OK;
     }
     bool exceeds_capped_snr = candidate->capped_snr > TARGET_SNR;
@@ -352,7 +349,7 @@ SyncState_t evaluateSlidingPnWindows()
         }
         break;
       default:
-        REGISTER_ERROR_INT(ERROR_UNHANDLED_CASE, SYNC_OK);
+        REGISTER_ERROR_NON_VOID(ERROR_UNHANDLED_CASE, SYNC_OK);
         return SYNC_OK;
     }
 

@@ -83,7 +83,7 @@ static MacState_t NoMac_ProcessRxMessage(void* protocol_data, const Message_t* m
 
   if (message->preamble.reservation_time_10ms.valid == true) {
     if (message->preamble.reservation_time_10ms.value > MAXIMUM_RESERVATION_TIME_MS / 10) {
-      REGISTER_ERROR_INT(ERROR_INVALID_RESERVATION_TIME, MAC_STATE_ERROR);
+      REGISTER_ERROR_NON_VOID(ERROR_INVALID_RESERVATION_TIME, MAC_STATE_ERROR);
       ret = MAC_STATE_ERROR;
     }
     uint32_t reserved_until = message->timestamp + message->preamble.reservation_time_10ms.value * 10;

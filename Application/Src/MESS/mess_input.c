@@ -196,10 +196,10 @@ SyncState_t Input_DetectMessageStart(const DspConfig_t* cfg)
         messageStartWithThreshold(&message_detected);
         break;
       case MSG_START_FREQUENCY:
-        RETURN_IF_ERROR_PRESENT_INT(messageStartWithFrequency(cfg, &message_detected), SYNC_OK);
+        RETURN_IF_ERROR_PRESENT_NON_VOID(messageStartWithFrequency(cfg, &message_detected), SYNC_OK);
         break;
       default:
-        REGISTER_ERROR_INT(ERROR_UNHANDLED_CASE, SYNC_OK);
+        REGISTER_ERROR_NON_VOID(ERROR_UNHANDLED_CASE, SYNC_OK);
         break;
     }
   }

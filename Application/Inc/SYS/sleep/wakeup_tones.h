@@ -47,9 +47,8 @@ extern "C" {
  * @param cfg Signal processing parameters defining wakeup tones
  * @param waveform_step Waveform step to transmit (modified)
  * @param step_index Step of the transmit sequence
- * @return true if valid step index, false otherwise
  */
-bool WakeupTones_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step_index);
+void WakeupTones_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step_index);
 
 /**
  * @brief Number of steps in the transmission wakeup sequence

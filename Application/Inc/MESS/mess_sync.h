@@ -50,9 +50,8 @@ typedef enum {
  * @param cfg Configuration struct to use
  * @param waveform_step Parameters of the waveform to use for modulation (modified)
  * @param step current step
- * @return true if successful, false otherwise
  */
-bool Sync_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step);
+void Sync_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step);
 
 /**
  * @brief Returns number of steps in the synchronization sequence

@@ -12,6 +12,7 @@
 /* Private includes ----------------------------------------------------------*/
 #include "ina219-driver.h"
 #include "sys_power.h"
+#include "error_manager.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -67,19 +68,16 @@ static uint64_t acc_count = 0;       // Number of values in average
 
 
 /* Exported function definitions ---------------------------------------------*/
-bool Power_Init(void)
+void Power_Init(void)
 {
-  if (INA_Init() == false) return false;
+  RETURN_IF_ERROR_PRESENT();
+  INA_Init();
 
   // Clear the power buffer for fresh readings
   memset(power_buffer, 0, sizeof(power_buffer));
   buffer_head = 0;
 
-  if (INA_RegisterBuffer(power_buffer, POWER_BUFFER_SIZE, &buffer_head) == false) {
-    return false;
-  }
-
-  return true;
+  INA_RegisterBuffer(power_buffer, POWER_BUFFER_SIZE, &buffer_head);
 }
 
 void Power_Process(void)

@@ -194,7 +194,7 @@ uint16_t ErrorCorrection_CodedLength(const uint16_t length,
     case JANUS_CONVOLUTIONAL:
       return 2 * (length + JANUS_FLUSH_LENGTH);
     default:
-      REGISTER_ERROR_INT(ERROR_UNHANDLED_CASE, 0);
+      REGISTER_ERROR_NON_VOID(ERROR_UNHANDLED_CASE, 0);
       return 0;
   }
 }
@@ -210,7 +210,7 @@ uint16_t ErrorCorrection_UncodedLength(const uint16_t length,
     case JANUS_CONVOLUTIONAL:
       return (length / 2) - 8;
     default:
-      REGISTER_ERROR_INT(ERROR_UNHANDLED_CASE, 0);
+      REGISTER_ERROR_NON_VOID(ERROR_UNHANDLED_CASE, 0);
       return 0;
   }
 }

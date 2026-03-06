@@ -33,8 +33,6 @@
 #include "mess_demodulate.h"
 #include "mess_error_detection.h"
 
-#include "sys_error.h"
-
 #include "cfg_main.h"
 #include "cfg_parameters.h"
 #include "cfg_defaults.h"
@@ -159,13 +157,15 @@ static void getConfig();
 void MESS_StartTask(void* argument)
 {
   (void)(argument);
-  osEventFlagsClear(print_event_handle, 0xFFFFFFFF);
-  MessDacResource_Init();
-  BackgroundNoise_CreateShared();
 
   Error_RegisterTask("MESS");
   registerMessParams();
   Error_ParameterRegistrationComplete();
+
+  osEventFlagsClear(print_event_handle, 0xFFFFFFFF);
+  MessDacResource_Init();
+  BackgroundNoise_CreateShared();
+
   CFG_WaitLoadComplete();
 
   resetTask();
@@ -284,15 +284,15 @@ void MESS_InitializeQueues(void)
 
 bool MESS_GetMessageFromTxQ(Message_t* msg)
 {
-  RETURN_IF_ERROR_PRESENT_INT(,false);
+  RETURN_IF_ERROR_PRESENT_NON_VOID(,false);
   if (tx_queue == NULL || msg == NULL) {
-    REGISTER_ERROR_INT(ERROR_NULL_PTR, false);
+    REGISTER_ERROR_NON_VOID(ERROR_NULL_PTR, false);
     return false;
   }
 
   if (osMessageQueueGetCount(tx_queue) > 0) {
     if (osMessageQueueGet(tx_queue, (void*) msg, NULL, 0) != osOK) {
-      REGISTER_ERROR_INT(ERROR_QUEUE_RUNNING, false);
+      REGISTER_ERROR_NON_VOID(ERROR_QUEUE_RUNNING, false);
       return false;
     }
     return true;
@@ -303,14 +303,14 @@ bool MESS_GetMessageFromTxQ(Message_t* msg)
 
 bool MESS_AddMessageToTxQ(const Message_t* msg)
 {
-  RETURN_IF_ERROR_PRESENT_INT(,false);
+  RETURN_IF_ERROR_PRESENT_NON_VOID(,false);
   if (tx_queue == NULL || msg == NULL) {
-    REGISTER_ERROR_INT(ERROR_NULL_PTR, false);
+    REGISTER_ERROR_NON_VOID(ERROR_NULL_PTR, false);
     return false;
   }
 
   if (osMessageQueuePut(tx_queue, msg, 0, 0) != osOK) {
-    REGISTER_ERROR_INT(ERROR_QUEUE_RUNNING, false);
+    REGISTER_ERROR_NON_VOID(ERROR_QUEUE_RUNNING, false);
     return false;
   }
   return true;
@@ -318,15 +318,15 @@ bool MESS_AddMessageToTxQ(const Message_t* msg)
 
 bool MESS_GetMessageFromRxQ(Message_t* msg)
 {
-  RETURN_IF_ERROR_PRESENT_INT(, false);
+  RETURN_IF_ERROR_PRESENT_NON_VOID(, false);
   if (rx_queue == NULL || msg == NULL) {
-    REGISTER_ERROR_INT(ERROR_NULL_PTR, false);
+    REGISTER_ERROR_NON_VOID(ERROR_NULL_PTR, false);
     return false;
   }
 
   if (osMessageQueueGetCount(rx_queue) > 0) {
     if (osMessageQueueGet(rx_queue, (void*) msg, NULL, 0) != osOK) {
-      REGISTER_ERROR_INT(ERROR_QUEUE_RUNNING, false);
+      REGISTER_ERROR_NON_VOID(ERROR_QUEUE_RUNNING, false);
       return false;
     }
     return true;
@@ -337,14 +337,14 @@ bool MESS_GetMessageFromRxQ(Message_t* msg)
 
 bool MESS_AddMessageToRxQ(const Message_t* msg)
 {
-  RETURN_IF_ERROR_PRESENT_INT(,false);
+  RETURN_IF_ERROR_PRESENT_NON_VOID(,false);
   if (tx_queue == NULL || msg == NULL) {
-    REGISTER_ERROR_INT(ERROR_NULL_PTR, false);
+    REGISTER_ERROR_NON_VOID(ERROR_NULL_PTR, false);
     return false;
   }
 
   if (osMessageQueuePut(rx_queue, msg, 0, 0) != osOK) {
-    REGISTER_ERROR_INT(ERROR_QUEUE_RUNNING, false);
+    REGISTER_ERROR_NON_VOID(ERROR_QUEUE_RUNNING, false);
     return false;
   }
   return true;
@@ -352,19 +352,19 @@ bool MESS_AddMessageToRxQ(const Message_t* msg)
 
 bool MESS_PriorityTransmission(const Message_t* msg)
 {
-  RETURN_IF_ERROR_PRESENT_INT(,false);
+  RETURN_IF_ERROR_PRESENT_NON_VOID(,false);
   if (tx_queue == NULL || msg == NULL) {
-    REGISTER_ERROR_INT(ERROR_NULL_PTR, false);
+    REGISTER_ERROR_NON_VOID(ERROR_NULL_PTR, false);
     return false;
   }
 
   if (osMessageQueueReset(tx_queue) != osOK) {
-    REGISTER_ERROR_INT(ERROR_QUEUE_RUNNING, false);
+    REGISTER_ERROR_NON_VOID(ERROR_QUEUE_RUNNING, false);
     return false;
   }
 
   if (osMessageQueuePut(tx_queue, msg, 0, 0) != osOK) {
-    REGISTER_ERROR_INT(ERROR_QUEUE_RUNNING, false);
+    REGISTER_ERROR_NON_VOID(ERROR_QUEUE_RUNNING, false);
     return false;
   }
   return true;
@@ -408,7 +408,7 @@ bool MESS_GetBandwidth(uint32_t* bandwidth, uint32_t* lower_freq, uint32_t* uppe
     *bandwidth = *upper_freq - *lower_freq;
     return true;
   }
-  REGISTER_ERROR_INT(ERROR_UNHANDLED_CASE, false);
+  REGISTER_ERROR_NON_VOID(ERROR_UNHANDLED_CASE, false);
   return false;
 }
 

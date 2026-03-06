@@ -147,15 +147,22 @@ void Modulate_StartTransducerOutput(uint16_t num_steps,
 {
   if (HAL_TIM_Base_Stop(&htim6) != HAL_OK) 
     REGISTER_ERROR(ERROR_STARTING_TRANSDUCER_OUTPUT);
+
   if (ADC_StopAll() == false) 
     REGISTER_ERROR(ERROR_STARTING_TRANSDUCER_OUTPUT);
+
   if (Waveform_StopWaveformOutput() == false)
     REGISTER_ERROR(ERROR_STARTING_TRANSDUCER_OUTPUT);
+
   osDelay(1);
+
   MessDacResource_RegisterMessageConfiguration(new_cfg, new_bit_msg);
-  if (Waveform_SetWaveformSequence(num_steps, true))
+
+  if (Waveform_SetWaveformSequence(num_steps, true) == false)
     REGISTER_ERROR(ERROR_STARTING_TRANSDUCER_OUTPUT);
+
   RETURN_IF_ERROR_PRESENT(ADC_StartFeedback());
+
   if (Waveform_StartWaveformOutput(DAC_CHANNEL_1) == false)
     REGISTER_ERROR(ERROR_STARTING_TRANSDUCER_OUTPUT);
   
@@ -172,10 +179,14 @@ void Modulate_StartFeedbackOutput(uint16_t num_steps,
   HAL_TIM_Base_Stop(&htim6);
   if (Waveform_StopWaveformOutput() == false) 
     REGISTER_ERROR(ERROR_TRANSDUCER_FB_INITIALIZATION);
+
   osDelay(1);
+
   MessDacResource_RegisterMessageConfiguration(new_cfg, new_bit_msg);
+  
   if (Waveform_SetWaveformSequence(num_steps, true) == false) 
     REGISTER_ERROR(ERROR_TRANSDUCER_FB_INITIALIZATION);
+
   if (Waveform_StartWaveformOutput(DAC_CHANNEL_1) == false) 
     REGISTER_ERROR(ERROR_TRANSDUCER_FB_INITIALIZATION);
 
@@ -226,12 +237,12 @@ uint32_t Modulate_GetFskFrequency(bool bit, const DspConfig_t* cfg)
   return (bit) ? cfg->fsk_f1 : cfg->fsk_f0;
 }
 
-bool Modulate_DataStep(const DspConfig_t* cfg, BitMessage_t* bit_msg, WaveformStep_t* waveform_step, uint16_t bit_index, uint16_t symbol_index)
+void Modulate_DataStep(const DspConfig_t* cfg, BitMessage_t* bit_msg, WaveformStep_t* waveform_step, uint16_t bit_index, uint16_t symbol_index)
 {
   bool bit;
-  if (Packet_GetBit(bit_msg, bit_index, &bit) == false) {
-    return false;
-  }
+  if (Packet_GetBit(bit_msg, bit_index, &bit) == false)
+    REGISTER_ERROR(ERROR_WAVEFORM_STEP);
+  
   switch (cfg->mod_demod_method) {
     case MOD_DEMOD_FSK:
       waveform_step->freq_hz = Modulate_GetFskFrequency(bit, cfg);
@@ -240,14 +251,12 @@ bool Modulate_DataStep(const DspConfig_t* cfg, BitMessage_t* bit_msg, WaveformSt
       waveform_step->freq_hz = Modulate_GetFhbfskFrequency(bit, symbol_index, cfg);
       break;
     default:
-      return false;
+      REGISTER_ERROR(ERROR_WAVEFORM_STEP);
   }
   waveform_step->duration_us = (uint32_t) roundf(1000000.0f / cfg->baud_rate);
   waveform_step->relative_amplitude = Modulate_GetAmplitude(waveform_step->freq_hz);
 
   waveform_step->output_type = (apply_tukey) ? (OUTPUT_CONSTANT_TUKEY) : (OUTPUT_CONSTANT_SQUARE);
-
-  return true;
 }
 
 void Modulate_RegisterParams()

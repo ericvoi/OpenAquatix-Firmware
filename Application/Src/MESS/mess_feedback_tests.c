@@ -685,25 +685,25 @@ void FeedbackTests_CorruptMessage(BitMessage_t* bit_msg)
 
 bool FeedbackTests_Check(Message_t* received_msg, BitMessage_t* received_bit_msg)
 {
-  RETURN_IF_ERROR_PRESENT_INT(,false);
+  RETURN_IF_ERROR_PRESENT_NON_VOID(,false);
   if (performing_test == false) {
     return false;
   }
 
   uint16_t test_index;
   if (getTestIndex(&test_index) == false) {
-    REGISTER_ERROR_INT(ERROR_FBK_TEST_INDEX, true);
+    REGISTER_ERROR_NON_VOID(ERROR_FBK_TEST_INDEX, true);
     return true;
   }
 
   BitMessage_t bit_msg;
 
-  RETURN_IF_ERROR_PRESENT_INT(Packet_PrepareTx(&feedback_tests[test_index].reference_message->test_msg,
+  RETURN_IF_ERROR_PRESENT_NON_VOID(Packet_PrepareTx(&feedback_tests[test_index].reference_message->test_msg,
       &bit_msg, &feedback_tests[test_index].cfg), true);
 
   // Compares the bit messages to see if the bits match up
   bool identical_bits;
-  RETURN_IF_ERROR_PRESENT_INT(Packet_Compare(&bit_msg,
+  RETURN_IF_ERROR_PRESENT_NON_VOID(Packet_Compare(&bit_msg,
       received_bit_msg, &identical_bits), true);
   if (identical_bits == false) {
     feedback_tests[test_index].messages_with_any_errors++;
@@ -711,7 +711,7 @@ bool FeedbackTests_Check(Message_t* received_msg, BitMessage_t* received_bit_msg
 
   // Compare headers
   bool identical_headers;
-  RETURN_IF_ERROR_PRESENT_INT(compareHeaders(&feedback_tests[test_index].reference_message->test_msg,
+  RETURN_IF_ERROR_PRESENT_NON_VOID(compareHeaders(&feedback_tests[test_index].reference_message->test_msg,
       received_msg, &identical_headers), true);
 
   if (identical_headers == false) {
@@ -757,7 +757,7 @@ bool FeedbackTests_GetConfig(DspConfig_t** cfg)
 
   uint16_t test_index;
   if (getTestIndex(&test_index) == false) {
-    REGISTER_ERROR_INT(ERROR_FBK_TEST_INDEX, false);
+    REGISTER_ERROR_NON_VOID(ERROR_FBK_TEST_INDEX, false);
     return false;
   }
 

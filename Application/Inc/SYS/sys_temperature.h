@@ -41,19 +41,15 @@ extern "C" {
  * @brief Initializes analog temeprature sensor module
  * 
  * Sets up calibration factors
- * 
- * @return true 
  */
-bool Temperature_Init(void);
+void Temperature_Init(void);
 
 /**
  * @brief Starts conversion in interrupt mode. Only call from sys_sensor_timer
  * 
- * @return true if ADC call successful, false otherwise
- * 
  * @see SensorTimer_Tick
  */
-bool Temperature_TriggerTjConversion(void);
+void Temperature_TriggerTjConversion(void);
 
 /**
  * @brief Reads the temperature ADC and adds to ring buffer
@@ -66,10 +62,8 @@ void Temperature_AddTjValue(void);
  * @brief Processes unprocessed temperature data in temperature buffer
  * 
  * Performs calculations for average temperature and peak temperature
- * 
- * @return true 
  */
-bool Temperature_Process(void);
+void Temperature_Process(void);
 
 /**
  * @brief Average uC junction/die temperature since reset

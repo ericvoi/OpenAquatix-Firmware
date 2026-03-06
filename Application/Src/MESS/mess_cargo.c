@@ -114,7 +114,7 @@ uint16_t Cargo_RawCodedLength(uint16_t uncoded_len, CodingInfo_t coding_method)
     case CODING_ASCII6:
       return uncoded_len * 6 / 8;
     default:
-      REGISTER_ERROR_INT(ERROR_UNHANDLED_CASE, 0);
+      REGISTER_ERROR_NON_VOID(ERROR_UNHANDLED_CASE, 0);
       return 0;
   }
 }
@@ -130,7 +130,7 @@ uint16_t Cargo_RawUncodedLength(uint16_t coded_len, CodingInfo_t coding_method)
     case CODING_ASCII6:
       return coded_len * 8 / 6;
     default:
-      REGISTER_ERROR_INT(ERROR_UNHANDLED_CASE, 0);
+      REGISTER_ERROR_NON_VOID(ERROR_UNHANDLED_CASE, 0);
       return 0;
   }
 }

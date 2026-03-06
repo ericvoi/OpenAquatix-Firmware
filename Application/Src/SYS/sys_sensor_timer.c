@@ -16,6 +16,8 @@
 #include "sys_temperature.h"
 #include "sys_power.h"
 
+#include "error_manager.h"
+
 #include <stdbool.h>
 
 /* Private typedef -----------------------------------------------------------*/
@@ -23,6 +25,16 @@
 
 
 /* Private define ------------------------------------------------------------*/
+
+#define SENSOR_TIMER_SOURCE             htim16
+
+#define SENSOR_TIMER_TICK_RATE_HZ       1000
+// Trigger a temeprature sensor reading every 200ms
+#define TEMPERATURE_SENSOR_PERIOD_MS    200
+// Power reading every 1ms
+#define INA_PERIOD_MS                   1
+
+extern TIM_HandleTypeDef SENSOR_TIMER_SOURCE;
 
 #define TICKS_FOR_TEMPERATURE ((TEMPERATURE_SENSOR_PERIOD_MS * \
                                 SENSOR_TIMER_TICK_RATE_HZ) / \
@@ -46,13 +58,13 @@ static uint32_t sensor_ticks = 0;
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool SensorTimer_Init()
+void SensorTimer_Init()
 {
-  if (HAL_TIM_Base_Start_IT(&SENSOR_TIMER_SOURCE) != HAL_OK) {
-    return false;
-  }
+  RETURN_IF_ERROR_PRESENT();
+  if (HAL_TIM_Base_Start_IT(&SENSOR_TIMER_SOURCE) != HAL_OK) 
+    REGISTER_ERROR(ERROR_TIMER_INITIALIZATION);
 
-  return true;
+  sensor_ticks = 0;
 }
 
 void SensorTimer_Tick()

@@ -13,7 +13,6 @@
 #include "cfg_main.h"
 #include "cfg_parameters.h"
 #include "cfg_defaults.h"
-#include "sys_error.h"
 #include "mess_main.h"
 #include "mac_csma_ca_beb.h"
 #include "mac_no_mac.h"
@@ -86,14 +85,15 @@ static void resetTask();
 void MAC_StartTask(void* argument)
 {
   (void) (argument);
-  createRxQueues();
-  createTxQueues();
-
   registerProtocols();
 
   Error_RegisterTask("DAC");
   registerMacParams();
   Error_ParameterRegistrationComplete();
+
+  createRxQueues();
+  createTxQueues();
+
   CFG_WaitLoadComplete();
 
   resetTask();
