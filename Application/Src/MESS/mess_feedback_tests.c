@@ -72,7 +72,7 @@ typedef enum {
 
 /* Private define ------------------------------------------------------------*/
 
-#define CFG_UPDATE_TIME_MS                100
+#define CFG_UPDATE_TIME_MS                2000
 
 /* Private macro -------------------------------------------------------------*/
 

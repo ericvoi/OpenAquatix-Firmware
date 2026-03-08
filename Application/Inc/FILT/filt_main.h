@@ -47,7 +47,30 @@ DECLARE_ENUM(DIGITAL_FILTER_TABLE, NUM_DIGITAL_FILTERS, DigitalFilter_t)
 
 /* Exported functions prototypes ---------------------------------------------*/
 
+/**
+ * @brief Starts the FILT task
+ * 
+ * @param argument (ignored)
+ */
 void FILT_StartTask(void* argument);
+
+/**
+ * @brief Converts a baseband frequency into its passband counterpart
+ * 
+ * @param freq_hz Original baseband frequency
+ * 
+ * @return uint32_t Folded frequency
+ * 
+ * @note This must be called when referencing any frequency in the ADC buffers
+ */
+uint32_t FILT_PassbandToBaseband(uint32_t freq_hz);
+
+/**
+ * @brief Gets the bandwidth of the baseband input (after decimation)
+ * 
+ * @return uint32_t Baseband bandwidth
+ */
+uint32_t FILT_GetBandwidth(void);
 
 /* Private defines -----------------------------------------------------------*/
 

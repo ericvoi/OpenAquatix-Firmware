@@ -19,6 +19,7 @@
 #include "mess_demodulate.h"
 #include "mess_background_noise.h"
 #include "cfg_main.h"
+#include "filt_main.h"
 #include "sys_error.h"
 #include "dac_waveform.h"
 #include "goertzel.h"
@@ -172,6 +173,7 @@ void updateParameters(const DspConfig_t* cfg)
   previous_version_number = current_version_number;
   fillJanusFrequencies(cfg);
   fillWindowOffsets(cfg);
+  resetPnSynchronization();
 }
 
 bool janusPnStep(bool* bit, uint16_t step)
@@ -259,7 +261,7 @@ void fillWindowOffsets(const DspConfig_t* cfg)
   // is far from a multiple of stage 1 subdivide. Without the additional
   // precision, there can be up to the subdivide/2 missing samples.
   static const uint8_t offsets_precision = 4;
-  samples_per_symbol = (uint16_t) ((float) ADC_SAMPLING_RATE / cfg->baud_rate);
+  samples_per_symbol = (uint16_t) (FILT_GetBandwidth() * 2.0f / cfg->baud_rate);
   uint32_t offsets_increment = (samples_per_symbol << offsets_precision) / PN_SYNC_SUBDIVIDE;
   for (uint8_t i = 0; i < PN_SYNC_SUBDIVIDE; i++) {
     window_offsets[i] = (i * offsets_increment) >> offsets_precision;

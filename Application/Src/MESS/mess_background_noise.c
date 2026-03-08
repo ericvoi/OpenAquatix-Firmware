@@ -17,6 +17,7 @@
 #include "mess_modulate.h"
 #include "mac_channel_reports.h"
 #include "cfg_main.h"
+#include "filt_main.h"
 #include "arm_math.h"
 #include "cmsis_os.h"
 #include <math.h>
@@ -39,7 +40,6 @@ typedef enum {
 
 #define NOISE_BUFFER_SIZE           128
 #define MS_PER_ENTRY                100
-#define COUNTS_PER_ENTRY            (ADC_SAMPLING_RATE * MS_PER_ENTRY / 1000 / NOISE_BUFFER_SIZE)
 #define NOISE_HISTORY_SIZE          (1 << 6) // 64 or 6.4s
 
 #define NOISE_ESTIMATION_PERCENTILE 25      // The noise value percentile to use
@@ -63,13 +63,14 @@ static float noise_history[NOISE_HISTORY_SIZE];
 
 static BackgroundNoiseState_t estimator_state = BG_NOISE_BOOT;
 
+static uint16_t counts_per_entry = ADC_SAMPLING_RATE * MS_PER_ENTRY / 1000 / NOISE_BUFFER_SIZE;
+
 // Two-sided PSD. Not normalized by sampling rate for ease of computation
 static volatile float in_band_noise = 0;
 static uint16_t noise_history_index = 0;
 static uint16_t accumulated_noise_entries = 0;
 
 static uint16_t lower_noise_bin = 0;
-static uint16_t upper_noise_bin = 0;
 static uint16_t num_noise_bins = 1;
 
 static ChannelReportType_t channel_report_type = REPORT_NONE;
@@ -89,8 +90,9 @@ static float computePercentile(const float* buf, uint16_t count);
 
 static bool fskFrequencyIndices(const DspConfig_t* cfg);
 static bool fhbfskFrequencyIndices(const DspConfig_t* cfg);
+static bool updateNoiseIndices(uint32_t f0, uint32_t f1);
 
-static float frequencyToIndex(float frequency, uint16_t fft_size);
+static float frequencyToIndex(uint32_t frequency, uint16_t fft_size);
 
 static bool updateChannelReport();
 static bool channelReportingRequirement(const DspConfig_t* cfg);
@@ -144,9 +146,10 @@ bool BackgroundNoise_Calculate(const DspConfig_t* cfg)
     }
     arm_rfft_fast_f32(&fft_handle128, fft_in_buf, fft_out_buf, 0);
 
-    for (uint16_t j = lower_noise_bin; j < upper_noise_bin; j++) {
-      float real = fft_out_buf[2 * j];
-      float imag = fft_out_buf[2 * j + 1];
+    for (uint16_t j = 0; j < num_noise_bins; j++) {
+      uint16_t index = (lower_noise_bin + j) % (NOISE_BUFFER_SIZE / 2);
+      float real = fft_out_buf[2 * index];
+      float imag = fft_out_buf[2 * index + 1];
 
       // Normalize to PSD (P/Hz)
       float mag = (real * real + imag * imag) / NOISE_BUFFER_SIZE;
@@ -172,7 +175,7 @@ float BackgroundNoise_GetScaleless()
 
 float BackgroundNoise_GetNsd()
 {
-  float psd_two_sided = in_band_noise / ADC_SAMPLING_RATE;
+  float psd_two_sided = in_band_noise / FILT_GetBandwidth() / 2.0f;
   float psd_one_sided = psd_two_sided * 2.0f * (ADC_V_SCALE * ADC_V_SCALE);
   return sqrtf(psd_one_sided) * 1.0e9f;
 }
@@ -186,7 +189,7 @@ bool BackgroundNoise_Ready()
 
 void updateBackgroundNoise()
 {
-  if (current_block.counts < COUNTS_PER_ENTRY) return;
+  if (current_block.counts < counts_per_entry) return;
   current_block.accumulated_energy /= current_block.counts;
   accumulated_noise_entries = MIN(NOISE_HISTORY_SIZE, accumulated_noise_entries + 1);
 
@@ -226,6 +229,8 @@ bool updateFrequencyIndices(const DspConfig_t* cfg)
 
   previous_version_number = current_version_number;
 
+  counts_per_entry = FILT_GetBandwidth() * 2 * MS_PER_ENTRY / 1000 / NOISE_BUFFER_SIZE;
+
   switch (cfg->mod_demod_method) {
     case MOD_DEMOD_FSK:
       return fskFrequencyIndices(cfg);
@@ -259,42 +264,39 @@ float computePercentile(const float* buf, uint16_t count)
 
 bool fskFrequencyIndices(const DspConfig_t* cfg)
 {
-  lower_noise_bin = (uint16_t) roundf(frequencyToIndex(cfg->fsk_f0, NOISE_BUFFER_SIZE));
-  upper_noise_bin = (uint16_t) roundf(frequencyToIndex(cfg->fsk_f1, NOISE_BUFFER_SIZE));
-
-  if (lower_noise_bin > upper_noise_bin) {
-    uint16_t tmp = lower_noise_bin;
-    lower_noise_bin = upper_noise_bin;
-    upper_noise_bin = tmp;
-  }
-
-  if (upper_noise_bin > NOISE_BUFFER_SIZE / 2) {
-    return false;
-  }
-
-  num_noise_bins = upper_noise_bin - lower_noise_bin + 1;
-  return true;
+  uint32_t f0 = cfg->fsk_f0;
+  uint32_t f1 = cfg->fsk_f1;
+  return updateNoiseIndices(f0, f1);
 }
 
 bool fhbfskFrequencyIndices(const DspConfig_t* cfg)
 {
-  uint16_t lower_freq = Modulate_GetFhbfskFrequency(false, 0, cfg);
-  uint16_t upper_freq = lower_freq + (uint16_t) (cfg->baud_rate * ((2 * cfg->fhbfsk_num_tones - 1) * cfg->fhbfsk_freq_spacing));
+  uint32_t f0 = Modulate_GetFhbfskFrequency(false, 0, cfg);
+  uint32_t f1 = f0 + (uint16_t) (cfg->baud_rate * ((2 * cfg->fhbfsk_num_tones - 1) * cfg->fhbfsk_freq_spacing));
+  return updateNoiseIndices(f0, f1);
+}
 
-  lower_noise_bin = (uint16_t) roundf(frequencyToIndex(lower_freq, NOISE_BUFFER_SIZE));
-  upper_noise_bin = (uint16_t) roundf(frequencyToIndex(upper_freq, NOISE_BUFFER_SIZE));
+bool updateNoiseIndices(uint32_t f0, uint32_t f1)
+{
+  uint16_t noise_bin0 = (uint16_t) roundf(frequencyToIndex(f0, NOISE_BUFFER_SIZE));
+  uint16_t noise_bin1 = (uint16_t) roundf(frequencyToIndex(f1, NOISE_BUFFER_SIZE));
 
-  if (upper_noise_bin > NOISE_BUFFER_SIZE / 2) {
-    return false;
+  if (noise_bin0 <= noise_bin1) {
+    lower_noise_bin = noise_bin0;
+    num_noise_bins = noise_bin1 - noise_bin0 + 1;
+  } 
+  else {
+    lower_noise_bin = noise_bin1;
+    num_noise_bins = noise_bin0 - noise_bin1 + 1;
   }
 
-  num_noise_bins = upper_noise_bin - lower_noise_bin + 1;
   return true;
 }
 
-float frequencyToIndex(float frequency, uint16_t fft_size)
+float frequencyToIndex(uint32_t frequency, uint16_t fft_size)
 {
-  return frequency * fft_size / ((float) ADC_SAMPLING_RATE);
+  float folded_frequency = (float) FILT_PassbandToBaseband(frequency);
+  return folded_frequency * fft_size / (FILT_GetBandwidth() * 2.0f);
 }
 
 bool updateChannelReport()
@@ -370,7 +372,7 @@ bool updateChannelReportTotalCount(const DspConfig_t* cfg)
   if (cfg->mod_demod_method != MOD_DEMOD_FSK && cfg->mod_demod_method != MOD_DEMOD_FHBFSK) {
     return false;
   }
-  uint32_t samples_per_chip = (uint32_t) ((float) ADC_SAMPLING_RATE) / cfg->baud_rate;
+  uint32_t samples_per_chip = (uint32_t) (FILT_GetBandwidth() * 2.0f) / cfg->baud_rate;
   uint32_t samples_per_report = samples_per_chip * CHANNEL_REPORT_CD;
   uint32_t new_total_counts_in_report = (samples_per_report + NOISE_BUFFER_SIZE - 1) / NOISE_BUFFER_SIZE;
 

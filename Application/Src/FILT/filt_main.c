@@ -109,6 +109,7 @@ static void checkFilterChange(void);
 static void decimateFilteredData(void);
 static void processRawAdcData(bool first_half);
 static void resetFmac(void);
+static DigitalFilter_t getFilter(void);
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -141,6 +142,26 @@ void FILT_StartTask(void* argument)
     handleEvents();
     osDelay(1);
   }
+}
+
+uint32_t FILT_PassbandToBaseband(uint32_t freq_hz)
+{
+  uint32_t baseband_bw = FILT_GetBandwidth();
+  uint32_t fold_period = 2 * baseband_bw;
+  uint32_t remainder = freq_hz % fold_period;
+
+  /* If remainder is in the upper half, it folds (mirrors) back */
+  if (remainder > baseband_bw)
+    return fold_period - remainder;
+
+  return remainder;
+}
+
+uint32_t FILT_GetBandwidth(void)
+{
+  DigitalFilter_t filter = getFilter();
+  uint8_t d = filter_infos[filter].decimation_factor;
+  return ADC_SAMPLING_RATE / (2 * d);
 }
 
 /* Private function definitions ----------------------------------------------*/
@@ -217,6 +238,7 @@ void checkFilterChange(void)
   uint32_t current_cfg_num = CFG_GetVersionNumber();
 
   if (current_cfg_num == previous_cfg_num) return;
+  previous_cfg_num = current_cfg_num;
 
   uint8_t mod_method;
   DigitalFilter_t new_filter;
@@ -233,10 +255,6 @@ void checkFilterChange(void)
       return;
   }
 
-  if (new_filter == task_context.current_filter) {
-    previous_cfg_num = current_cfg_num;
-    return;
-  }
   task_context.current_filter    = new_filter;
   task_context.decimation_factor = filter_infos[new_filter].decimation_factor;
   task_context.use_filter        = filter_infos[new_filter].use_filter;
@@ -282,4 +300,19 @@ void processRawAdcData(bool first_half)
 void resetFmac(void)
 {
 
+}
+
+DigitalFilter_t getFilter(void)
+{
+  uint8_t mod_method;
+  if (Param_GetEnum(PARAM_MOD_DEMOD_METHOD, &mod_method) == false) return DIGITAL_FILTER_NONE;
+
+  switch (mod_method) {
+    case MOD_DEMOD_FSK:
+      return fsk_filter;
+    case MOD_DEMOD_FHBFSK:
+      return fhbfsk_filter;
+    default:
+      return DIGITAL_FILTER_NONE;
+  }
 }

@@ -13,6 +13,7 @@
 #include "goertzel.h"
 #include "uam_math.h"
 #include "mess_filt_resources.h"
+#include "filt_main.h"
 #include "math.h"
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,7 +41,7 @@ static uint16_t sliding_goertzel_index = 0;
 
 void goertzel_1(GoertzelInfo_t* goertzel_info)
 {
-  float omega_f0 = 2.0 * goertzel_info->f[0] / ADC_SAMPLING_RATE;
+  float omega_f0 = ((float) FILT_PassbandToBaseband(goertzel_info->f[0])) / FILT_GetBandwidth();
 
   float coeff_f0 = 2.0 * uam_cosf(omega_f0);
 
@@ -74,8 +75,8 @@ void goertzel_1(GoertzelInfo_t* goertzel_info)
 // operations required. Uses 10/32 floating-point registers in the main loop
 void goertzel_2(GoertzelInfo_t* goertzel_info)
 {
-  float omega_f0 = 2.0 * goertzel_info->f[0] / ADC_SAMPLING_RATE;
-  float omega_f1 = 2.0 * goertzel_info->f[1] / ADC_SAMPLING_RATE;
+  float omega_f0 = ((float) FILT_PassbandToBaseband(goertzel_info->f[0])) / FILT_GetBandwidth();
+  float omega_f1 = ((float) FILT_PassbandToBaseband(goertzel_info->f[1])) / FILT_GetBandwidth();
 
   float coeff_f0 = 2.0 * uam_cosf(omega_f0);
   float coeff_f1 = 2.0 * uam_cosf(omega_f1);
@@ -117,12 +118,12 @@ void goertzel_2(GoertzelInfo_t* goertzel_info)
 // operations required. Uses 26/32 floating-point registers in the main loop
 void goertzel_6(GoertzelInfo_t* goertzel_info)
 {
-  float omega_f0 = 2.0 * goertzel_info->f[0] / ADC_SAMPLING_RATE;
-  float omega_f1 = 2.0 * goertzel_info->f[1] / ADC_SAMPLING_RATE;
-  float omega_f2 = 2.0 * goertzel_info->f[2] / ADC_SAMPLING_RATE;
-  float omega_f3 = 2.0 * goertzel_info->f[3] / ADC_SAMPLING_RATE;
-  float omega_f4 = 2.0 * goertzel_info->f[4] / ADC_SAMPLING_RATE;
-  float omega_f5 = 2.0 * goertzel_info->f[5] / ADC_SAMPLING_RATE;
+  float omega_f0 = ((float) FILT_PassbandToBaseband(goertzel_info->f[0])) / FILT_GetBandwidth();
+  float omega_f1 = ((float) FILT_PassbandToBaseband(goertzel_info->f[1])) / FILT_GetBandwidth();
+  float omega_f2 = ((float) FILT_PassbandToBaseband(goertzel_info->f[2])) / FILT_GetBandwidth();
+  float omega_f3 = ((float) FILT_PassbandToBaseband(goertzel_info->f[3])) / FILT_GetBandwidth();
+  float omega_f4 = ((float) FILT_PassbandToBaseband(goertzel_info->f[4])) / FILT_GetBandwidth();
+  float omega_f5 = ((float) FILT_PassbandToBaseband(goertzel_info->f[5])) / FILT_GetBandwidth();
 
   float coeff_f0 = 2.0 * uam_cosf(omega_f0);
   float coeff_f1 = 2.0 * uam_cosf(omega_f1);
@@ -198,7 +199,7 @@ void goertzel_SlidingInit(SlidingGoertzelInfo_t* goertzel_info, uint32_t f, uint
   goertzel_info->x_real = 0.0f;
   goertzel_info->x_imag = 0.0f;
 
-  float omega_normalized = 2.0f * M_PI * (float)f / (float)ADC_SAMPLING_RATE;
+  float omega_normalized = M_PI * (float)FILT_PassbandToBaseband(f) / (float)FILT_GetBandwidth();
   
   // No CORDIC acceleration since high accuracy required for stability
   goertzel_info->cos_omega = cosf(omega_normalized);

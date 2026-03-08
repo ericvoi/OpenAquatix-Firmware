@@ -21,6 +21,7 @@
 #include "mess_interleaver.h"
 #include "mess_sync.h"
 #include "mess_preamble.h"
+#include "filt_main.h"
 #include "cfg_defaults.h"
 #include "cfg_parameters.h"
 #include "cfg_main.h"
@@ -145,6 +146,7 @@ static uint16_t findStartPosition(uint16_t analysis_index, uint16_t check_length
 static bool printReceivedWaveform(char* preamble_sequence);
 static void updateFrequencyIndices(const DspConfig_t* cfg);
 static uint32_t totalWaitSamples(const DspConfig_t* cfg);
+static void updateThresholdSamples(void);
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -157,21 +159,7 @@ bool Input_Init()
 
   MessFiltResources_InputAdcClear();
 
-  max_frequency_threshold_length = 0;
-
-  for (uint16_t i = 0; i < unique_frequency_conditions; i++) {
-    frequency_thresholds[i].energy_threshold = (float) frequency_thresholds[i].raw_amplitude_threshold *
-        frequency_thresholds[i].raw_amplitude_threshold * MSG_START_FFT_SIZE / 2.0f;
-
-    uint32_t ns_per_sample = 1000000000 / ADC_SAMPLING_RATE;
-    frequency_thresholds[i].num_samples = frequency_thresholds[i].length_us * 1000 / ns_per_sample * FFT_OVERLAP / MSG_START_FFT_SIZE + 1;
-
-    if (frequency_thresholds[i].num_samples > max_frequency_threshold_length) {
-      max_frequency_threshold_length = frequency_thresholds[i].num_samples;
-    }
-
-    frequency_thresholds[i].hits = 0;
-  }
+  updateThresholdSamples();
 
   fft_handle64.fftLenRFFT = MSG_START_FFT_SIZE;
   arm_status ret = arm_rfft_64_fast_init_f32(&fft_handle64);
@@ -232,7 +220,7 @@ bool Input_DetectMessageStart(const DspConfig_t* cfg)
 // Segments blocks and adds them to array of blocks to be processed
 bool Input_SegmentBlocks(const DspConfig_t* cfg)
 {
-  uint16_t analysis_buffer_length = (uint16_t) ((float) ADC_SAMPLING_RATE / cfg->baud_rate);
+  uint16_t analysis_buffer_length = (uint16_t) (FILT_GetBandwidth() * 2.0f / cfg->baud_rate);
   while (MessFiltResources_AvailableProcessingSamples() >= analysis_buffer_length) {
 
     analysis_count1++;
@@ -616,12 +604,13 @@ bool messageStartWithFrequency(const DspConfig_t* cfg)
 
 float frequencyToIndex(float frequency, uint16_t fft_size)
 {
-  return frequency * fft_size / ((float) ADC_SAMPLING_RATE);
+  float folded_frequency = FILT_PassbandToBaseband((uint32_t) frequency);
+  return folded_frequency * fft_size / (FILT_GetBandwidth() * 2.0f);
 }
 
 float indexToFrequency(float index, uint16_t fft_size)
 {
-  return ADC_SAMPLING_RATE * index / ((float) fft_size);
+  return FILT_GetBandwidth() * 2.0f * index / ((float) fft_size);
 }
 
 bool checkFftConditions(uint16_t check_length, float multiplier)
@@ -772,5 +761,29 @@ void updateFrequencyIndices(const DspConfig_t* cfg)
 static uint32_t totalWaitSamples(const DspConfig_t* cfg)
 {
   uint16_t num_steps = Sync_NumSteps(cfg);
-  return (uint32_t) (((uint32_t) num_steps * ADC_SAMPLING_RATE) / cfg->baud_rate);
+  return (uint32_t) (((uint32_t) num_steps * FILT_GetBandwidth() * 2) / cfg->baud_rate);
+}
+
+void updateThresholdSamples(void)
+{
+  static uint32_t last_cfg_num = 0;
+  uint32_t current_cfg_num = CFG_GetVersionNumber();
+  if (last_cfg_num == current_cfg_num) return;
+  last_cfg_num = current_cfg_num;
+
+  max_frequency_threshold_length = 0;
+
+  for (uint16_t i = 0; i < unique_frequency_conditions; i++) {
+    frequency_thresholds[i].energy_threshold = (float) frequency_thresholds[i].raw_amplitude_threshold *
+        frequency_thresholds[i].raw_amplitude_threshold * MSG_START_FFT_SIZE / 2.0f;
+
+    uint32_t ns_per_sample = 1000000000 / (FILT_GetBandwidth() * 2);
+    frequency_thresholds[i].num_samples = frequency_thresholds[i].length_us * 1000 / ns_per_sample * FFT_OVERLAP / MSG_START_FFT_SIZE + 1;
+
+    if (frequency_thresholds[i].num_samples > max_frequency_threshold_length) {
+      max_frequency_threshold_length = frequency_thresholds[i].num_samples;
+    }
+
+    frequency_thresholds[i].hits = 0;
+  }
 }
