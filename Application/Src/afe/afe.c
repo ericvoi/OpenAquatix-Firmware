@@ -20,7 +20,7 @@
 #include "internal/tpa32xx-driver.h"
 #include "internal/tr_switch.h"
 #include "pwr_domains.h"
-#include "mess_adc.h"
+#include "mess_filt_resources.h"
 #include "mess_input.h"
 #include "mess_sync.h"
 #include <stdbool.h>
@@ -174,7 +174,7 @@ AfeStatus_t enterRxFeedback(void)
 AfeStatus_t enterTx(bool with_feedback)
 {
   uint64_t start_timestamp = HAL_AbsoluteTimestamp();
-  if (ADC_StopAll() == false) {
+  if (MessFiltResources_StopAllAdcs() == false) {
     return AFE_ERROR;
   }
   Feedback_SwitchInput(false);
@@ -217,11 +217,11 @@ bool isTimedOut(uint64_t start_time)
 // Function only called when transitioning to receiving state
 bool restartADCs()
 {
-  if (ADC_StopAll() == false) {
+  if (MessFiltResources_StopAllAdcs() == false) {
     return false;
   }
   Input_Reset();
-  if (ADC_StartInput() == false) {
+  if (MessFiltResources_StartInputAdc() == false) {
     return false;
   }
   // If receiving prior, then the sync state is fine, but not if transmitting prior

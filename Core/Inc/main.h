@@ -44,6 +44,7 @@ typedef enum {
   SYS_TASK,
   DAC_TASK,
   MAC_TASK,
+  FILT_TASK,
   NUM_TASKS
 } TaskIds_t;
 /* USER CODE END ET */

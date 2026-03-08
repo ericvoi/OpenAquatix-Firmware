@@ -96,6 +96,8 @@ typedef enum {
   PARAM_APPLY_TUKEY,
   PARAM_PREAMBLE_ERROR_BEHAVIOR,
   PARAM_CARGO_ERROR_BEHAVIOR,
+  PARAM_FSK_FILTER,
+  PARAM_FHBFSK_FILTER,
   // Add new parameters just above here and nowhere else
   NUM_PARAM
 } ParamIds_t;

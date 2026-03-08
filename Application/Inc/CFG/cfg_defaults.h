@@ -240,6 +240,15 @@ extern "C" {
 #define MIN_CARGO_ERROR_BEHAVIOR          (0)
 #define MAX_CARGO_ERROR_BEHAVIOR          (NUM_CARGO_ERROR_BEHAVIORS - 1)
 
+#define DEFAULT_FSK_FILTER                (DIGITAL_FILTER_NONE)
+#define DEFAULT_FHBFSK_FILTER             (DIGITAL_FILTER_NONE)
+#define MIN_FILTER                        (0)
+#define MAX_FILTER                        (NUM_DIGITAL_FILTERS - 1)
+
+#define DEFAULT_DECIMATION_FACTOR         5
+#define MIN_DECIMATION_FACTOR             1
+#define MAX_DECIMATION_FACTOR             20
+
 
 // JANUS basic parameters
 #define JANUS_MOD_DEMOD             (MOD_DEMOD_FHBFSK)

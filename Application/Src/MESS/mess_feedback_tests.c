@@ -21,6 +21,8 @@
 
 #include "cmsis_os.h"
 
+#include "main.h"
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,7 +54,8 @@ typedef struct {
 
 typedef enum {
   SENT_MESSAGE,
-  DECODED_MESSAGE
+  DECODED_MESSAGE,
+  UPDATED_CFG
 } LastAction_t;
 
 typedef enum {
@@ -69,7 +72,7 @@ typedef enum {
 
 /* Private define ------------------------------------------------------------*/
 
-
+#define CFG_UPDATE_TIME_MS                100
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -581,6 +584,8 @@ static uint16_t current_test = 0;
 static uint16_t call_count = 0;
 static LastAction_t last_action = DECODED_MESSAGE;
 
+uint64_t last_cfg_update_timestamp = 0;
+
 /* Private function prototypes -----------------------------------------------*/
 
 static bool getTestIndex(uint16_t* index);
@@ -647,6 +652,12 @@ void FeedbackTests_GetNext()
   if (getTestIndex(&test_index) == false) {
     return;
   }
+
+  // Give time for new configuration to update filters and synchronization
+  if (last_action == UPDATED_CFG && 
+    (HAL_AbsoluteTimestamp() < (last_cfg_update_timestamp + CFG_UPDATE_TIME_MS))) {
+    return;
+  } 
 
   MESS_AddMessageToTxQ(&feedback_tests[test_index].reference_message->test_msg);
   call_count++;
@@ -773,6 +784,8 @@ bool FeedbackTests_GetConfig(DspConfig_t** cfg)
 
   CFG_IncrementVersionNumber();
   *cfg = &feedback_tests[test_index].cfg;
+  last_action = UPDATED_CFG;
+  last_cfg_update_timestamp = HAL_AbsoluteTimestamp();
   return true;
 }
 

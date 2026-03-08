@@ -18,7 +18,7 @@
 #include "mess_main.h"
 #include "mess_packet.h"
 #include "mess_modulate.h"
-#include "mess_adc.h"
+#include "mess_filt_resources.h"
 #include "mess_input.h"
 #include "mess_feedback.h"
 #include "mess_evaluate.h"
@@ -176,7 +176,7 @@ void MESS_StartTask(void* argument)
   Pga113_Enable();
   osDelay(1);
   Pga113_SetGain(PGA_GAIN_1);
-  ADC_Init();
+  MessFiltResources_Init();
   Input_Init();
   Feedback_Init();
   FeedbackTests_Init();
@@ -186,7 +186,7 @@ void MESS_StartTask(void* argument)
 
   osDelay(10);
   Waveform_Flush();
-  ADC_StartInput();
+  MessFiltResources_StartInputAdc();
   for (;;) {
     switch (task_state) {
       case DRIVING_TRANSDUCER:

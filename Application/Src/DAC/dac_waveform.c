@@ -12,7 +12,7 @@
 
 #include "dac_waveform.h"
 #include "dac_main.h"
-#include "mess_adc.h"
+#include "mess_filt_resources.h"
 #include "mess_modulate.h"
 #include "mess_dac_resources.h"
 #include "cfg_defaults.h"
@@ -146,7 +146,7 @@ bool Waveform_StopWaveformOutput()
 
   wave_ctrl.phase_accumulator = 0;
 
-  if (ADC_StopFeedback() == false) return false;
+  if (MessFiltResources_StopFeedbackAdc() == false) return false;
   return true;
 }
 

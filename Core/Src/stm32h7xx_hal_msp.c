@@ -477,6 +477,57 @@ void HAL_DTS_MspDeInit(DTS_HandleTypeDef* hdts)
 }
 
 /**
+  * @brief FMAC MSP Initialization
+  * This function configures the hardware resources used in this example
+  * @param hfmac: FMAC handle pointer
+  * @retval None
+  */
+void HAL_FMAC_MspInit(FMAC_HandleTypeDef* hfmac)
+{
+  if(hfmac->Instance==FMAC)
+  {
+    /* USER CODE BEGIN FMAC_MspInit 0 */
+
+    /* USER CODE END FMAC_MspInit 0 */
+    /* Peripheral clock enable */
+    __HAL_RCC_FMAC_CLK_ENABLE();
+    /* FMAC interrupt Init */
+    HAL_NVIC_SetPriority(FMAC_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(FMAC_IRQn);
+    /* USER CODE BEGIN FMAC_MspInit 1 */
+
+    /* USER CODE END FMAC_MspInit 1 */
+
+  }
+
+}
+
+/**
+  * @brief FMAC MSP De-Initialization
+  * This function freeze the hardware resources used in this example
+  * @param hfmac: FMAC handle pointer
+  * @retval None
+  */
+void HAL_FMAC_MspDeInit(FMAC_HandleTypeDef* hfmac)
+{
+  if(hfmac->Instance==FMAC)
+  {
+    /* USER CODE BEGIN FMAC_MspDeInit 0 */
+
+    /* USER CODE END FMAC_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_FMAC_CLK_DISABLE();
+
+    /* FMAC interrupt DeInit */
+    HAL_NVIC_DisableIRQ(FMAC_IRQn);
+    /* USER CODE BEGIN FMAC_MspDeInit 1 */
+
+    /* USER CODE END FMAC_MspDeInit 1 */
+  }
+
+}
+
+/**
   * @brief I2C MSP Initialization
   * This function configures the hardware resources used in this example
   * @param hi2c: I2C handle pointer

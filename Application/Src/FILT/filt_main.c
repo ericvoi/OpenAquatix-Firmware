@@ -200,8 +200,14 @@ void handleEvents(void)
 
   if (fmac_ready == true) decimateFilteredData();
 
-  if (raw_first_half_ready == true)   processRawAdcData(true);
-  if (raw_second_half_ready == true)  processRawAdcData(false);
+  if (raw_first_half_ready == true) {
+    osEventFlagsClear(filt_events, FILT_FIRST_HALF_RDY_RAW);
+    processRawAdcData(true);
+  }
+  if (raw_second_half_ready == true) {
+    osEventFlagsClear(filt_events, FILT_SECOND_HALF_RDY_RAW);
+    processRawAdcData(false);
+  }
 }
 
 void checkFilterChange(void)

@@ -41,6 +41,7 @@ extern "C" {
 #define ADC_BITS                  (16U)
 
 #define ADC_SAMPLING_RATE         120000  // 120 kHz
+#define ADC_VREF                  (3.3f)
 
 /* Exported macro ------------------------------------------------------------*/
 
