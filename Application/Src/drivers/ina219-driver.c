@@ -218,6 +218,7 @@ bool memRead(uint16_t address)
 
 void readIna(void)
 {
+  if (power_buffer_info.buf == NULL) return;
   InaPowerValues_t* entry = &power_buffer_info.buf[*power_buffer_info.buf_head];
   switch (ina_state) {
     case INA_IDLE:

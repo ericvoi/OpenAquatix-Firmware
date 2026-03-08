@@ -177,13 +177,13 @@ OpenAquatixStatus_t Error_GetStatus(void)
 {
   uint64_t current_timestamp = HAL_AbsoluteTimestamp();
 
-  if ((current_timestamp - last_error_timestamp) > ERROR_TIMEOUT_MS)
+  if ((current_timestamp - last_error_timestamp) < ERROR_TIMEOUT_MS)
     return OA_STATUS_ERROR;
 
-  if ((current_timestamp - last_abort_timestamp) > ABORT_TIMEOUT_MS)
+  if ((current_timestamp - last_abort_timestamp) < ABORT_TIMEOUT_MS)
     return OA_STATUS_ABORT;
 
-  if ((current_timestamp - last_warning_timestamp) > WARNING_TIMEOUT_MS)
+  if ((current_timestamp - last_warning_timestamp) < WARNING_TIMEOUT_MS)
     return OA_STATUS_WARN;
 
   return OA_STATUS_OK;

@@ -79,7 +79,8 @@ void incrementRollover();
 void ADC_Init()
 {
   RETURN_IF_ERROR_PRESENT();
-  HAL_StatusTypeDef ret1 = HAL_TIM_Base_Start(&htim8);
+  osDelay(1);
+  HAL_TIM_Base_Start(&htim8);
 
   input_head_pos = 0;
   input_tail_pos = 0;
@@ -87,17 +88,17 @@ void ADC_Init()
   feedback_tail_pos = 0;
 
   memset(adc_buffer, 0, ADC_BUFFER_SIZE * sizeof(uint16_t));
-
-  if (ret1 != HAL_OK) REGISTER_ERROR(ERROR_INPUT_ADC_INITIALIZATION);
 }
 
 void ADC_StartInput()
 {
+  RETURN_IF_ERROR_PRESENT();
   input_head_pos = 0;
   input_tail_pos = 0;
 
-  if (HAL_TIM_Base_Start(&htim8) != HAL_OK) 
-    REGISTER_ERROR(ERROR_INPUT_ADC_INITIALIZATION);
+  HAL_TIM_Base_Start(&htim8);
+
+  HAL_ADC_Stop_DMA(&INPUT_ADC);
 
   HAL_StatusTypeDef ret = HAL_ADC_Start_DMA(&INPUT_ADC, (uint32_t*) adc_buffer, ADC_BUFFER_SIZE);
   if (ret != HAL_OK) 

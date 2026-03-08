@@ -37,7 +37,7 @@
 #define RGB_MAGENTA   255,0,  255
 #define RGB_CYAN      0,  255,255
 #define RGB_OFF       0,  0,  0
-#define RGB_ORANGE    255,165,0
+#define RGB_ORANGE    255,100,0
 
 #define LISTENING_COLOUR      RGB_GREEN
 #define DRIVING_COLOUR        RGB_BLUE
