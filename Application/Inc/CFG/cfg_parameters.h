@@ -127,7 +127,7 @@ typedef enum {
   typedef enum { xtable(XENUM_ENUM) num_name } type_name;
 
 #define DEFINE_DESC_TABLE(xtable, arr_name) \
-  static char* arr_name[] = { xtable(XENUM_DESC) };
+  static const char* arr_name[] = { xtable(XENUM_DESC) };
 
 /* Exported functions prototypes ---------------------------------------------*/
 

@@ -357,7 +357,7 @@ void Input_PrintNoise()
     print_index = 0;
 
     for (uint16_t j = 0; j < PRINT_CHUNK_SIZE && (i + j) < PRINT_BUFFER_SIZE; j++) {
-      print_index += sprintf(&print_buffer[print_index], "%.0f\r\n", MessFiltResources_GetInputDataAbsolute(i + j));
+      print_index += sprintf(&print_buffer[print_index], "%.2ef\r\n", MessFiltResources_GetInputDataAbsolute(i + j));
     }
 
     COMM_TransmitData((uint8_t*) print_buffer, print_index, COMM_USB);
@@ -457,17 +457,17 @@ void Input_NoiseFft()
 
   COMM_TransmitData("\b\b\r\n\r\n", 6, COMM_USB);
 
-  COMM_TransmitData("Frequency, Amplitude\r\n", CALC_LEN, COMM_USB);
+  COMM_TransmitData("Frequency Amplitude\r\n", CALC_LEN, COMM_USB);
 
   char out_buf[80];
   for (uint16_t i = 0; i < NOISE_FFT_BLOCK_SIZE / 2; i++) {
-    sprintf(out_buf, "%.2f, %.2f\r\n", indexToFrequency(i, NOISE_FFT_BLOCK_SIZE), 
+    sprintf(out_buf, "%-9.2f %.2e\r\n", indexToFrequency(i, NOISE_FFT_BLOCK_SIZE), 
         fft_sums[i] / (NOISE_FFT_SAMPLES / NOISE_FFT_BLOCK_SIZE));
 
     COMM_TransmitData(out_buf, CALC_LEN, COMM_USB);
   }
 
-  sprintf(out_buf, "\r\nPeak frequency: %.2fHz with amplitude %.2f\r\n",
+  sprintf(out_buf, "\r\nPeak frequency: %.2fHz with amplitude %.2e\r\n",
       indexToFrequency(peak_index, NOISE_FFT_BLOCK_SIZE), peak_magnitude);
 
   COMM_TransmitData(out_buf, CALC_LEN, COMM_USB);
