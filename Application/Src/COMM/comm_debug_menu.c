@@ -212,7 +212,7 @@ static ParamContext_t debug_menu_noise_level_param = {
 };
 static const MenuNode_t debug_menu_noise_level = {
   .id = MENU_ID_DBG_NOISE,
-  .description = "Get scaleless background noise level",
+  .description = "Get background Noise Spectral Density",
   .handler = printBackgroundNoise,
   .parent_id = MENU_ID_DBG,
   .children_ids = NULL,
@@ -444,9 +444,9 @@ void printBackgroundNoise(FunctionContext_t* context)
     return;
   }
 
-  float background_noise = BackgroundNoise_Get();
+  float background_noise = BackgroundNoise_GetNsd();
 
-  sprintf((char*) context->output_buffer, "\r\nBackground noise: %.3f\r\n", background_noise);
+  sprintf((char*) context->output_buffer, "\r\nBackground noise: %.0f nV/sqrt(Hz)\r\n", background_noise);
   COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
   context->state->state = PARAM_STATE_COMPLETE;
 }

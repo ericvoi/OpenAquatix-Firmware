@@ -12,7 +12,7 @@
 
 #include "mess_modulate.h"
 #include "dac_waveform.h"
-#include "mess_adc.h"
+#include "mess_filt_resources.h"
 #include "cmsis_os.h"
 #include "mess_packet.h"
 #include "mess_feedback.h"
@@ -144,12 +144,12 @@ bool Modulate_StartTransducerOutput(uint16_t num_steps,
                                     BitMessage_t* new_bit_msg)
 {
   HAL_TIM_Base_Stop(&htim6);
-  ADC_StopAll();
+  MessFiltResources_StopAllAdcs();
   Waveform_StopWaveformOutput();
   osDelay(1);
   MessDacResource_RegisterMessageConfiguration(new_cfg, new_bit_msg);
   Waveform_SetWaveformSequence(num_steps, true);
-  if (ADC_StartFeedback() == false) {
+  if (MessFiltResources_StartFeedbackAdc() == false) {
     return false;
   }
   if (Waveform_StartWaveformOutput(DAC_CHANNEL_1) == false) {

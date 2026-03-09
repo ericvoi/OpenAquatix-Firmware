@@ -10,7 +10,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 
-#include "mess_adc.h"
+#include "mess_filt_resources.h"
 #include "mess_input.h"
 #include "mess_demodulate.h"
 #include "mess_packet.h"
@@ -21,6 +21,7 @@
 #include "mess_interleaver.h"
 #include "mess_sync.h"
 #include "mess_preamble.h"
+#include "filt_main.h"
 #include "cfg_defaults.h"
 #include "cfg_parameters.h"
 #include "cfg_main.h"
@@ -145,6 +146,7 @@ static uint16_t findStartPosition(uint16_t analysis_index, uint16_t check_length
 static bool printReceivedWaveform(char* preamble_sequence);
 static void updateFrequencyIndices(const DspConfig_t* cfg);
 static uint32_t totalWaitSamples(const DspConfig_t* cfg);
+static void updateThresholdSamples(void);
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -155,23 +157,9 @@ bool Input_Init()
     analysis_blocks[i].analysis_done = true;
   }
 
-  ADC_InputClear();
+  MessFiltResources_InputAdcClear();
 
-  max_frequency_threshold_length = 0;
-
-  for (uint16_t i = 0; i < unique_frequency_conditions; i++) {
-    frequency_thresholds[i].energy_threshold = (float) frequency_thresholds[i].raw_amplitude_threshold *
-        frequency_thresholds[i].raw_amplitude_threshold * MSG_START_FFT_SIZE / 2.0f;
-
-    uint32_t ns_per_sample = 1000000000 / ADC_SAMPLING_RATE;
-    frequency_thresholds[i].num_samples = frequency_thresholds[i].length_us * 1000 / ns_per_sample * FFT_OVERLAP / MSG_START_FFT_SIZE + 1;
-
-    if (frequency_thresholds[i].num_samples > max_frequency_threshold_length) {
-      max_frequency_threshold_length = frequency_thresholds[i].num_samples;
-    }
-
-    frequency_thresholds[i].hits = 0;
-  }
+  updateThresholdSamples();
 
   fft_handle64.fftLenRFFT = MSG_START_FFT_SIZE;
   arm_status ret = arm_rfft_64_fast_init_f32(&fft_handle64);
@@ -216,14 +204,14 @@ bool Input_DetectMessageStart(const DspConfig_t* cfg)
       samples_waited = 0;
       return true;
     }
-    uint16_t new_samples = ADC_InputAvailableSamples();
+    uint16_t new_samples = MessFiltResources_AvailableProcessingSamples();
     if (new_samples + samples_waited >= samples_to_wait) {
-      ADC_InputTailAdvance((uint16_t) (samples_to_wait - samples_waited));
+      MessFiltResources_ProcessingTailAdvance((uint16_t) (samples_to_wait - samples_waited));
       message_detected = false;
       samples_waited = 0;
       return true;
     }
-    ADC_InputTailAdvance(new_samples);
+    MessFiltResources_ProcessingTailAdvance(new_samples);
     samples_waited += new_samples;
   }
   return false;
@@ -232,8 +220,8 @@ bool Input_DetectMessageStart(const DspConfig_t* cfg)
 // Segments blocks and adds them to array of blocks to be processed
 bool Input_SegmentBlocks(const DspConfig_t* cfg)
 {
-  uint16_t analysis_buffer_length = (uint16_t) ((float) ADC_SAMPLING_RATE / cfg->baud_rate);
-  while (ADC_InputAvailableSamples() >= analysis_buffer_length) {
+  uint16_t analysis_buffer_length = (uint16_t) (FILT_GetBandwidth() * 2.0f / cfg->baud_rate);
+  while (MessFiltResources_AvailableProcessingSamples() >= analysis_buffer_length) {
 
     analysis_count1++;
 
@@ -242,7 +230,7 @@ bool Input_SegmentBlocks(const DspConfig_t* cfg)
     uint16_t analysis_index = (analysis_start_index + analysis_length) % MAX_ANALYSIS_BUFFER_SIZE;
     analysis_blocks[analysis_index].buf_len = PROCESSING_BUFFER_SIZE;
     analysis_blocks[analysis_index].data_len = analysis_buffer_length;
-    analysis_blocks[analysis_index].data_start_index = ADC_InputGetTail();
+    analysis_blocks[analysis_index].data_start_index = MessFiltResources_GetProcessingTail();
     analysis_blocks[analysis_index].chip_index = bit_index + sync_chips;
     analysis_blocks[analysis_index].bit_index = bit_index++;
     analysis_blocks[analysis_index].decoded_bit = false;
@@ -254,7 +242,7 @@ bool Input_SegmentBlocks(const DspConfig_t* cfg)
       return false; // overflow of analysis buffers
     }
 
-    ADC_InputTailAdvance(analysis_buffer_length);
+    MessFiltResources_ProcessingTailAdvance(analysis_buffer_length);
   }
   return true;
 }
@@ -344,7 +332,7 @@ bool Input_DecodeBits(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* 
 
 void Input_Reset()
 {
-  ADC_InputClear();
+  MessFiltResources_InputAdcClear();
   analysis_start_index = 0;
   analysis_length = 0;
   fft_analysis_index = 0;
@@ -355,11 +343,11 @@ void Input_Reset()
 void Input_PrintNoise()
 {
   uint16_t timeout_count = 0;
-  while (ADC_InputGetHead() < PRINT_BUFFER_SIZE) {
+  while (MessFiltResources_GetInputAdcHead() < PRINT_BUFFER_SIZE) {
     osDelay(1);
     if (++timeout_count > 100) return;
   }
-  ADC_StopInput();
+  MessFiltResources_StopInputAdc();
   char print_buffer[PRINT_CHUNK_SIZE * 7 + 1]; // Accommodates max uint16 length + \r\n + 1
   uint16_t print_index = 0;
   COMM_TransmitData("\b\b\r\n\r\n", 6, COMM_USB);
@@ -369,12 +357,12 @@ void Input_PrintNoise()
     print_index = 0;
 
     for (uint16_t j = 0; j < PRINT_CHUNK_SIZE && (i + j) < PRINT_BUFFER_SIZE; j++) {
-      print_index += sprintf(&print_buffer[print_index], "%.0f\r\n", ADC_InputGetDataAbsolute(i + j));
+      print_index += sprintf(&print_buffer[print_index], "%.2ef\r\n", MessFiltResources_GetInputDataAbsolute(i + j));
     }
 
     COMM_TransmitData((uint8_t*) print_buffer, print_index, COMM_USB);
   }
-  ADC_StartInput();
+  MessFiltResources_StartInputAdc();
 }
 
 bool Input_PrintWaveform(bool* print_next_waveform, bool fully_received)
@@ -388,7 +376,7 @@ bool Input_PrintWaveform(bool* print_next_waveform, bool fully_received)
   static bool previous_fully_received = false;
   static uint32_t message_end_time;
 
-  uint16_t new_length = (ADC_InputGetHead() - print_waveform_start_index) & mask;
+  uint16_t new_length = (MessFiltResources_GetInputAdcHead() - print_waveform_start_index) & mask;
   if (new_length > 8000) {
     return false;
   }
@@ -434,13 +422,13 @@ void Input_NoiseFft()
   uint16_t timeout_count = 0;
   uint16_t peak_index = 0;
   float peak_magnitude = 0;
-  while (ADC_InputGetHead() < NOISE_FFT_SAMPLES) {
+  while (MessFiltResources_GetInputAdcHead() < NOISE_FFT_SAMPLES) {
     osDelay(1);
     if (++timeout_count > 500) {
       return;
     }
   }
-  ADC_StopInput();
+  MessFiltResources_StopInputAdc();
 
   float fft_in_buf[NOISE_FFT_BLOCK_SIZE];
   float fft_out_buf[NOISE_FFT_BLOCK_SIZE];
@@ -448,7 +436,7 @@ void Input_NoiseFft()
 
   for (uint16_t i = 0; i < NOISE_FFT_SAMPLES; i += NOISE_FFT_BLOCK_SIZE) {
     for (uint16_t j = 0; j < NOISE_FFT_BLOCK_SIZE; j++) {
-      fft_in_buf[j] = ADC_InputGetData(i + j);
+      fft_in_buf[j] = MessFiltResources_GetProcessingData(i + j);
     }
     arm_rfft_fast_f32(&fft_handle128, fft_in_buf, fft_out_buf, 0);
 
@@ -469,21 +457,21 @@ void Input_NoiseFft()
 
   COMM_TransmitData("\b\b\r\n\r\n", 6, COMM_USB);
 
-  COMM_TransmitData("Frequency, Amplitude\r\n", CALC_LEN, COMM_USB);
+  COMM_TransmitData("Frequency Amplitude\r\n", CALC_LEN, COMM_USB);
 
   char out_buf[80];
   for (uint16_t i = 0; i < NOISE_FFT_BLOCK_SIZE / 2; i++) {
-    sprintf(out_buf, "%.2f, %.2f\r\n", indexToFrequency(i, NOISE_FFT_BLOCK_SIZE), 
+    sprintf(out_buf, "%-9.2f %.2e\r\n", indexToFrequency(i, NOISE_FFT_BLOCK_SIZE), 
         fft_sums[i] / (NOISE_FFT_SAMPLES / NOISE_FFT_BLOCK_SIZE));
 
     COMM_TransmitData(out_buf, CALC_LEN, COMM_USB);
   }
 
-  sprintf(out_buf, "\r\nPeak frequency: %.2fHz with amplitude %.2f\r\n",
+  sprintf(out_buf, "\r\nPeak frequency: %.2fHz with amplitude %.2e\r\n",
       indexToFrequency(peak_index, NOISE_FFT_BLOCK_SIZE), peak_magnitude);
 
   COMM_TransmitData(out_buf, CALC_LEN, COMM_USB);
-  ADC_StartInput();
+  MessFiltResources_StartInputAdc();
 }
 
 bool Input_UpdatePgaGain()
@@ -542,13 +530,13 @@ bool Input_RegisterParams()
 
 bool messageStartWithThreshold()
 {
-  if (ADC_InputAvailableSamples() == 0) return false; // no new data to process
+  if (MessFiltResources_AvailableProcessingSamples() == 0) return false; // no new data to process
 
-  while (ADC_InputAvailableSamples() != 0) {
-    if (ADC_InputGetData(0) > AMPLITUDE_THRESHOLD) {
+  while (MessFiltResources_AvailableProcessingSamples() != 0) {
+    if (MessFiltResources_GetProcessingData(0) > AMPLITUDE_THRESHOLD) {
       return true;
     }
-    ADC_InputTailAdvance(1);
+    MessFiltResources_ProcessingTailAdvance(1);
   }
 
   return false;
@@ -558,14 +546,14 @@ bool messageStartWithFrequency(const DspConfig_t* cfg)
 {
   static const uint16_t analysis_mask = FFT_ANALYSIS_BUFF_SIZE - 1;
 
-  if (ADC_InputAvailableSamples() < MSG_START_FFT_SIZE) return false;
+  if (MessFiltResources_AvailableProcessingSamples() < MSG_START_FFT_SIZE) return false;
 
   updateFrequencyIndices(cfg);
 
   do {
     // Prepare buffer
     for (uint16_t i = 0; i < MSG_START_FFT_SIZE; i++) {
-      fft_input_buffer[i] = ADC_InputGetData(i);
+      fft_input_buffer[i] = MessFiltResources_GetProcessingData(i);
     }
 
     arm_rfft_fast_f32(&fft_handle64, fft_input_buffer, fft_output_buffer, 0);
@@ -578,7 +566,7 @@ bool messageStartWithFrequency(const DspConfig_t* cfg)
       fft_mag_sq_buffer[i] = real * real + imag * imag;
     }
 
-    fft_analysis[fft_analysis_index].start_index = ADC_InputGetTail();
+    fft_analysis[fft_analysis_index].start_index = MessFiltResources_GetProcessingTail();
     fft_analysis[fft_analysis_index].length = MSG_START_FFT_SIZE;
     // skip the dc component to avoid overwhelming
     arm_mean_f32(&fft_mag_sq_buffer[1], MSG_START_FFT_SIZE / 2 - 1, &fft_analysis[fft_analysis_index].average);
@@ -592,13 +580,13 @@ bool messageStartWithFrequency(const DspConfig_t* cfg)
     fft_analysis_index = (fft_analysis_index + 1) & analysis_mask;
     fft_analysis_length += 1;
 
-    ADC_InputTailAdvance(MSG_START_FFT_SIZE / FFT_OVERLAP);
+    MessFiltResources_ProcessingTailAdvance(MSG_START_FFT_SIZE / FFT_OVERLAP);
     if (fft_analysis_length >= FFT_ANALYSIS_BUFF_SIZE) {
       // TODO: log error
       return false;
     }
 
-  } while (ADC_InputAvailableSamples() > MSG_START_FFT_SIZE);
+  } while (MessFiltResources_AvailableProcessingSamples() > MSG_START_FFT_SIZE);
 
   if (fft_analysis_length < 1) return false;
 
@@ -616,12 +604,13 @@ bool messageStartWithFrequency(const DspConfig_t* cfg)
 
 float frequencyToIndex(float frequency, uint16_t fft_size)
 {
-  return frequency * fft_size / ((float) ADC_SAMPLING_RATE);
+  float folded_frequency = FILT_PassbandToBaseband((uint32_t) frequency);
+  return folded_frequency * fft_size / (FILT_GetBandwidth() * 2.0f);
 }
 
 float indexToFrequency(float index, uint16_t fft_size)
 {
-  return ADC_SAMPLING_RATE * index / ((float) fft_size);
+  return FILT_GetBandwidth() * 2.0f * index / ((float) fft_size);
 }
 
 bool checkFftConditions(uint16_t check_length, float multiplier)
@@ -640,7 +629,7 @@ bool checkFftConditions(uint16_t check_length, float multiplier)
       check_count++;
       if (check_count >= check_length) {
         uint16_t new_tail = findStartPosition((index - check_length + 1) & analysis_mask, check_length);
-        ADC_InputSetTail(new_tail);
+        MessFiltResources_SetProcessingTail(new_tail);
         print_waveform_start_index = (new_tail - WAVEFORM_BACK_AMOUNT) & buffer_mask;
         return true;
       }
@@ -697,7 +686,7 @@ bool printReceivedWaveform(char* preamble_sequence)
 
   for (uint16_t i = 0; i < WAVEFORM_PRINT_CHUNK_SIZE_UINT16; i++) {
     // Back converted to u16 so it is easier to transfer over limited data rates
-    uint16_t data = (uint16_t) ADC_InputGetDataAbsolute((print_waveform_start_index + i) & mask);
+    uint16_t data = (uint16_t) MessFiltResources_GetInputDataAbsolute((print_waveform_start_index + i) & mask);
     print_waveform_out_buffer[out_buffer_index++] = data & 0xFF;
     print_waveform_out_buffer[out_buffer_index++] = (data >> 8) & 0xFF;
   }
@@ -772,5 +761,29 @@ void updateFrequencyIndices(const DspConfig_t* cfg)
 static uint32_t totalWaitSamples(const DspConfig_t* cfg)
 {
   uint16_t num_steps = Sync_NumSteps(cfg);
-  return (uint32_t) (((uint32_t) num_steps * ADC_SAMPLING_RATE) / cfg->baud_rate);
+  return (uint32_t) (((uint32_t) num_steps * FILT_GetBandwidth() * 2) / cfg->baud_rate);
+}
+
+void updateThresholdSamples(void)
+{
+  static uint32_t last_cfg_num = 0;
+  uint32_t current_cfg_num = CFG_GetVersionNumber();
+  if (last_cfg_num == current_cfg_num) return;
+  last_cfg_num = current_cfg_num;
+
+  max_frequency_threshold_length = 0;
+
+  for (uint16_t i = 0; i < unique_frequency_conditions; i++) {
+    frequency_thresholds[i].energy_threshold = (float) frequency_thresholds[i].raw_amplitude_threshold *
+        frequency_thresholds[i].raw_amplitude_threshold * MSG_START_FFT_SIZE / 2.0f;
+
+    uint32_t ns_per_sample = 1000000000 / (FILT_GetBandwidth() * 2);
+    frequency_thresholds[i].num_samples = frequency_thresholds[i].length_us * 1000 / ns_per_sample * FFT_OVERLAP / MSG_START_FFT_SIZE + 1;
+
+    if (frequency_thresholds[i].num_samples > max_frequency_threshold_length) {
+      max_frequency_threshold_length = frequency_thresholds[i].num_samples;
+    }
+
+    frequency_thresholds[i].hits = 0;
+  }
 }

@@ -15,10 +15,12 @@
 #include "mess_dsp_config.h"
 #include "mess_input.h"
 #include "mess_modulate.h"
-#include "mess_adc.h"
+#include "mess_filt_resources.h"
 #include "mess_demodulate.h"
 #include "mess_background_noise.h"
 #include "cfg_main.h"
+#include "filt_main.h"
+#include "sys_error.h"
 #include "dac_waveform.h"
 #include "goertzel.h"
 #include <string.h>
@@ -171,6 +173,7 @@ void updateParameters(const DspConfig_t* cfg)
   previous_version_number = current_version_number;
   fillJanusFrequencies(cfg);
   fillWindowOffsets(cfg);
+  resetPnSynchronization();
 }
 
 bool janusPnStep(bool* bit, uint16_t step)
@@ -199,7 +202,7 @@ SyncState_t janusPnSynchronize()
   }
 
   bool bg_noise_ready = BackgroundNoise_Ready();
-  background_noise = BackgroundNoise_Get();
+  background_noise = BackgroundNoise_GetScaleless();
   if (bg_noise_ready == false || background_noise == 0) {
     Sync_Reset();
     return SYNC_OK;
@@ -214,8 +217,9 @@ SyncState_t janusPnSynchronize()
     required_samples = window_offsets[next_idx] - window_offsets[offset_index];
   }
 
-  while (ADC_InputAvailableSamples() >= required_samples) {
+  while (MessFiltResources_AvailableProcessingSamples() >= required_samples) {
     if (updateSlidingGoertzel(required_samples) == false) {
+      Error_Routine(ERROR_MESS_PROCESSING);
       return SYNC_ERROR;
     }
     uint16_t next_idx = (offset_index + 1) % PN_SYNC_SUBDIVIDE;
@@ -236,17 +240,17 @@ bool resetPnSynchronization()
   candidate_index = 0;
   candidate_tracker.state = TRACKER_IDLE;
   candidate_tracker.num_candidates = 0;
-  while (ADC_InputAvailableSamples() < samples_per_symbol) {
+  while (MessFiltResources_AvailableProcessingSamples() < samples_per_symbol) {
     osDelay(1);
   }
 
   for (uint16_t i = 0; i < NUM_SYNC_FREQUENCIES; i++) {
     goertzel_SlidingInit(&sliding_goertzel[i], janus_frequencies[i], samples_per_symbol);
-    goertzel_SlidingReset(&sliding_goertzel[i], ADC_InputGetTail(), PROCESSING_BUFFER_SIZE);
+    goertzel_SlidingReset(&sliding_goertzel[i], MessFiltResources_GetProcessingTail(), PROCESSING_BUFFER_SIZE);
   }
 
   memset(&pn_sync_candidates, 0, sizeof(pn_sync_candidates));
-  ADC_InputTailAdvance(samples_per_symbol);
+  MessFiltResources_ProcessingTailAdvance(samples_per_symbol);
   return true;
 }
 
@@ -257,7 +261,7 @@ void fillWindowOffsets(const DspConfig_t* cfg)
   // is far from a multiple of stage 1 subdivide. Without the additional
   // precision, there can be up to the subdivide/2 missing samples.
   static const uint8_t offsets_precision = 4;
-  samples_per_symbol = (uint16_t) ((float) ADC_SAMPLING_RATE / cfg->baud_rate);
+  samples_per_symbol = (uint16_t) (FILT_GetBandwidth() * 2.0f / cfg->baud_rate);
   uint32_t offsets_increment = (samples_per_symbol << offsets_precision) / PN_SYNC_SUBDIVIDE;
   for (uint8_t i = 0; i < PN_SYNC_SUBDIVIDE; i++) {
     window_offsets[i] = (i * offsets_increment) >> offsets_precision;
@@ -267,8 +271,8 @@ void fillWindowOffsets(const DspConfig_t* cfg)
 bool updateSlidingGoertzel(uint16_t new_samples)
 {
   // Initializes each candidate
-  uint64_t absolute_starting_index = ADC_TailRolloverCount(false) << PROCESSING_BUFFER_POWER;
-  absolute_starting_index += ADC_InputGetTail() + new_samples;
+  uint64_t absolute_starting_index = MessFiltResources_TailRolloverCount(false) << PROCESSING_BUFFER_POWER;
+  absolute_starting_index += MessFiltResources_GetProcessingTail() + new_samples;
   absolute_starting_index -= samples_per_symbol;
   pn_sync_candidates[candidate_index].start_buffer_index = absolute_starting_index & PROCESSING_BUFFER_MASK;
   pn_sync_candidates[candidate_index].frequencies_added = 0;
@@ -279,7 +283,7 @@ bool updateSlidingGoertzel(uint16_t new_samples)
 
   // Loops through and updates each sliding goertzel filter and updates candidate accordingly
   for (uint16_t i = 0; i < NUM_SYNC_FREQUENCIES; i++) {
-    goertzel_SlidingPerform(&sliding_goertzel[i], ADC_InputGetTail(), new_samples, PROCESSING_BUFFER_SIZE);
+    goertzel_SlidingPerform(&sliding_goertzel[i], MessFiltResources_GetProcessingTail(), new_samples, PROCESSING_BUFFER_SIZE);
     float next_bin_e = (i == NUM_SYNC_FREQUENCIES - 1) ? (background_noise) : (MAX(sliding_goertzel[i + 1].e_f, background_noise));
     float in_band_energy = MAX(sliding_goertzel[i].e_f - next_bin_e, 0.0f);
     float snr = (in_band_energy) / background_noise;
@@ -313,7 +317,7 @@ bool updateSlidingGoertzel(uint16_t new_samples)
   offset_index = (offset_index + 1) % PN_SYNC_SUBDIVIDE;
   candidate_index = (candidate_index + 1) % NUM_PN_SYNC_CANDIDATES;
   candidate_tracker.num_candidates++;
-  ADC_InputTailAdvance(new_samples);
+  MessFiltResources_ProcessingTailAdvance(new_samples);
   return true;
 }
 
@@ -324,6 +328,7 @@ SyncState_t evaluateSlidingPnWindows()
     uint16_t idx = (s_idx < 0) ? (NUM_PN_SYNC_CANDIDATES + s_idx) : ((uint16_t) s_idx);
     PnSynchronizationCandidate_t* candidate = &pn_sync_candidates[idx];
     if (candidate->frequencies_added != NUM_SYNC_FREQUENCIES)  {
+      Error_Routine(ERROR_MESS_PROCESSING);
       return SYNC_ERROR;
     }
     bool exceeds_capped_snr = candidate->capped_snr > TARGET_SNR;
@@ -350,7 +355,7 @@ SyncState_t evaluateSlidingPnWindows()
           if (candidate_tracker.candidates_after_best >= REQUIRED_CANDIDATES_AFTER_BEST) {
             uint32_t new_tail = (pn_sync_candidates[candidate_tracker.best_index].start_buffer_index + NUM_SYNC_FREQUENCIES * samples_per_symbol) % PROCESSING_BUFFER_SIZE;
             most_recent_snr = candidate_tracker.best_snr;
-            ADC_InputSetTail(new_tail);
+            MessFiltResources_SetProcessingTail(new_tail);
             return SYNC_SUCCESS;
           }
         }

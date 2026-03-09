@@ -41,6 +41,7 @@
 #include "sys_main.h"
 #include "dac_main.h"
 #include "mac_main.h"
+#include "filt_main.h"
 #include "cfg_parameters.h"
 #include "stm32h7xx_ll_cordic.h"
 #include "pwr_domains.h"
@@ -75,6 +76,8 @@ DAC_HandleTypeDef hdac1;
 DMA_HandleTypeDef hdma_dac1_ch1;
 
 DTS_HandleTypeDef hdts;
+
+FMAC_HandleTypeDef hfmac;
 
 I2C_HandleTypeDef hi2c1;
 
@@ -112,7 +115,7 @@ const osThreadAttr_t defaultTask_attributes = {
 };
 /* Definitions for messageTask */
 osThreadId_t messageTaskHandle;
-uint32_t messageTaskBuffer[ 8000 ];
+uint32_t messageTaskBuffer[ 8000 ] __attribute__((section(".dtcm")));
 osStaticThreadDef_t messageTaskControlBlock;
 const osThreadAttr_t messageTask_attributes = {
   .name = "messageTask",
@@ -182,6 +185,18 @@ const osThreadAttr_t macTask_attributes = {
   .stack_size = sizeof(macTaskBuffer),
   .priority = (osPriority_t) osPriorityNormal1,
 };
+/* Definitions for filtTask */
+osThreadId_t filtTaskHandle;
+uint32_t filtTaskBuffer[ 500 ];
+osStaticThreadDef_t filtTaskControlBlock;
+const osThreadAttr_t filtTask_attributes = {
+  .name = "filtTask",
+  .cb_mem = &filtTaskControlBlock,
+  .cb_size = sizeof(filtTaskControlBlock),
+  .stack_mem = &filtTaskBuffer[0],
+  .stack_size = sizeof(filtTaskBuffer),
+  .priority = (osPriority_t) osPriorityRealtime,
+};
 /* Definitions for dau_uart_mutex */
 osMutexId_t dau_uart_mutexHandle;
 const osMutexAttr_t dau_uart_mutex_attributes = {
@@ -216,6 +231,7 @@ static void MX_LPUART1_UART_Init(void);
 static void MX_OCTOSPI1_Init(void);
 static void MX_RTC_Init(void);
 static void MX_SPI3_Init(void);
+static void MX_FMAC_Init(void);
 void StartDefaultTask(void *argument);
 void startMessageProcessingTask(void *argument);
 void startSystemManagementTask(void *argument);
@@ -223,6 +239,7 @@ void startCommunicationTask(void *argument);
 void startconfigTask(void *argument);
 void startDacTask(void *argument);
 void startMacTask(void *argument);
+void startFiltTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -313,6 +330,7 @@ int main(void)
   MX_OCTOSPI1_Init();
   MX_RTC_Init();
   MX_SPI3_Init();
+  MX_FMAC_Init();
   /* USER CODE BEGIN 2 */
   PWRLED_Update(0x0F);
   HAL_GPIO_WritePin(ULPI_RST__GPIO_Port, ULPI_RST__Pin, GPIO_PIN_SET);
@@ -374,6 +392,9 @@ int main(void)
 
   /* creation of macTask */
   macTaskHandle = osThreadNew(startMacTask, NULL, &macTask_attributes);
+
+  /* creation of filtTask */
+  filtTaskHandle = osThreadNew(startFiltTask, NULL, &filtTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -800,6 +821,32 @@ static void MX_DTS_Init(void)
   /* USER CODE BEGIN DTS_Init 2 */
 
   /* USER CODE END DTS_Init 2 */
+
+}
+
+/**
+  * @brief FMAC Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_FMAC_Init(void)
+{
+
+  /* USER CODE BEGIN FMAC_Init 0 */
+
+  /* USER CODE END FMAC_Init 0 */
+
+  /* USER CODE BEGIN FMAC_Init 1 */
+
+  /* USER CODE END FMAC_Init 1 */
+  hfmac.Instance = FMAC;
+  if (HAL_FMAC_Init(&hfmac) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN FMAC_Init 2 */
+
+  /* USER CODE END FMAC_Init 2 */
 
 }
 
@@ -1566,6 +1613,20 @@ void startMacTask(void *argument)
   /* USER CODE BEGIN startMacTask */
   MAC_StartTask(argument);
   /* USER CODE END startMacTask */
+}
+
+/* USER CODE BEGIN Header_startFiltTask */
+/**
+* @brief Function implementing the filtTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_startFiltTask */
+void startFiltTask(void *argument)
+{
+  /* USER CODE BEGIN startFiltTask */
+  FILT_StartTask(argument);
+  /* USER CODE END startFiltTask */
 }
 
  /* MPU Configuration */

@@ -10,7 +10,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 
-#include "mess_adc.h"
+#include "mess_filt_resources.h"
 #include "mess_feedback.h"
 #include "usb_comm.h"
 #include "dac_waveform.h"
@@ -40,7 +40,7 @@
 
 bool Feedback_Init()
 {
-  ADC_FeedbackClear();
+  MessFiltResources_FeedbackAdcClear();
   return true;
 }
 
@@ -54,12 +54,12 @@ void Feedback_DumpData()
     print_index = 0;
 
     for (uint16_t j = 0; j < PRINT_CHUNK_SIZE && (i + j) < data_len; j++) {
-      print_index += sprintf(&print_buffer[print_index], "%u\r\n", ADC_FeedbackGetDataAbsolute(i + j));
+      print_index += sprintf(&print_buffer[print_index], "%u\r\n", MessFiltResources_FeedbackGetDataAbsolute(i + j));
     }
 
     COMM_TransmitData(print_buffer, print_index, COMM_USB);
   }
-  ADC_FeedbackClear();
+  MessFiltResources_FeedbackAdcClear();
 }
 
 /* Private function definitions ----------------------------------------------*/

@@ -34,6 +34,9 @@
 #include "ws2812b-driver.h"
 #include "lps22hh-driver.h"
 #include "ina219-driver.h"
+#include "mess_filt_resources.h"
+#include "sys_temperature.h"
+#include "filt_main.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -73,6 +76,7 @@ extern DMA_HandleTypeDef hdma_adc2;
 extern ADC_HandleTypeDef hadc3;
 extern DMA_HandleTypeDef hdma_dac1_ch1;
 extern DAC_HandleTypeDef hdac1;
+extern FMAC_HandleTypeDef hfmac;
 extern I2C_HandleTypeDef hi2c1;
 extern DMA_HandleTypeDef hdma_lpuart1_rx;
 extern DMA_HandleTypeDef hdma_lpuart1_tx;
@@ -90,6 +94,11 @@ extern TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN EV */
 volatile unsigned long ulHighFrequencyTimerTicks = 0;
+extern ADC_HandleTypeDef hadc1;
+extern ADC_HandleTypeDef hadc2;
+extern ADC_HandleTypeDef hadc3;
+extern TIM_HandleTypeDef htim8;
+extern osEventFlagsId_t filt_events;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -504,6 +513,20 @@ void LPUART1_IRQHandler(void)
   /* USER CODE END LPUART1_IRQn 1 */
 }
 
+/**
+  * @brief This function handles FMAC interrupt.
+  */
+void FMAC_IRQHandler(void)
+{
+  /* USER CODE BEGIN FMAC_IRQn 0 */
+
+  /* USER CODE END FMAC_IRQn 0 */
+  HAL_FMAC_IRQHandler(&hfmac);
+  /* USER CODE BEGIN FMAC_IRQn 1 */
+
+  /* USER CODE END FMAC_IRQn 1 */
+}
+
 /* USER CODE BEGIN 1 */
 void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
 {
@@ -543,6 +566,36 @@ void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef* hi2c)
 {
   (void)(hi2c);
   INA_TxComplete();
+}
+
+void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc)
+{
+  if (hadc == &INPUT_ADC) {
+    osEventFlagsSet(filt_events, FILT_FIRST_HALF_RDY_RAW);
+  }
+  else if (hadc == &FEEDBACK_ADC) {
+    // addToFeedbackBuffer(true); //  TODO Feedback
+  }
+}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+{
+  if (hadc == &INPUT_ADC) {
+    osEventFlagsSet(filt_events, FILT_SECOND_HALF_RDY_RAW);
+  }
+  else if (hadc == &FEEDBACK_ADC) {
+    // addToFeedbackBuffer(false); // TODO Feedback
+  }
+  else if (hadc == &TEMPERATURE_ADC) {
+    Temperature_AddTjValue();
+  }
+}
+
+void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc)
+{
+  if (hadc == &INPUT_ADC) {
+    return;
+  }
 }
 
 /* USER CODE END 1 */
