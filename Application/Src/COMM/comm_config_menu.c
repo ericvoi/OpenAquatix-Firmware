@@ -47,10 +47,12 @@ void setMessageEcc(FunctionContext_t* context);
 void setModulationMethod(FunctionContext_t* context);
 void setFskF0(FunctionContext_t* context);
 void setFskF1(FunctionContext_t* context);
+void setFskFilter(FunctionContext_t* context);
 void setFhbfskFreqSpacing(FunctionContext_t* context);
 void setFhbfskDwell(FunctionContext_t* context);
 void setFhbfskTones(FunctionContext_t* context);
 void setFhbfskHopper(FunctionContext_t* context);
+void setFhbfskFilter(FunctionContext_t* context);
 void toggleWakeupTones(FunctionContext_t* context);
 void setWakeupTone1(FunctionContext_t* context);
 void setWakeupTone2(FunctionContext_t* context);
@@ -98,6 +100,7 @@ void exportDemodCal(FunctionContext_t* context);
 void setMacProtocol(FunctionContext_t* context);
 void setID(FunctionContext_t* context);
 void setStationaryFlag(FunctionContext_t* context);
+void setDecFiltFactor(FunctionContext_t* context);
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -161,7 +164,7 @@ static MenuID_t demod_config_menu_children[] = {
   MENU_ID_CFG_DEMOD_CAL,       MENU_ID_CFG_DEMOD_START, 
   MENU_ID_CFG_DEMOD_DECISION,  MENU_ID_CFG_DEMOD_CMPTHRESH, 
   MENU_ID_CFG_DEMOD_AGCEN,     MENU_ID_CFG_DEMOD_GAIN,
-  MENU_ID_CFG_DEMOD_WINDOWFCN
+  MENU_ID_CFG_DEMOD_WINDOWFCN, MENU_ID_CFG_DEMOD_FILT
 };
 static const MenuNode_t demod_config_menu = {
   .id = MENU_ID_CFG_DEMOD,
@@ -310,7 +313,7 @@ static const MenuNode_t univ_config_mod = {
 };
 
 static MenuID_t univ_config_fsk_children[] = {
-  MENU_ID_CFG_UNIV_FSK_F0, MENU_ID_CFG_UNIV_FSK_F1
+  MENU_ID_CFG_UNIV_FSK_F0, MENU_ID_CFG_UNIV_FSK_F1, MENU_ID_CFG_UNIV_FSK_FILT
 };
 static const MenuNode_t univ_config_fsk_menu = {
   .id = MENU_ID_CFG_UNIV_FSK,
@@ -325,7 +328,8 @@ static const MenuNode_t univ_config_fsk_menu = {
 
 static MenuID_t univ_config_fhbfsk_children[] = {
   MENU_ID_CFG_UNIV_FHBFSK_FSEP,  MENU_ID_CFG_UNIV_FHBFSK_DWELL,
-  MENU_ID_CFG_UNIV_FHBFSK_TONES, MENU_ID_CFG_UNIV_FHBFSK_HOPP
+  MENU_ID_CFG_UNIV_FHBFSK_TONES, MENU_ID_CFG_UNIV_FHBFSK_HOPP,
+  MENU_ID_CFG_UNIV_FHBFSK_FILT
 };
 static const MenuNode_t univ_config_fhbsk_menu = {
   .id = MENU_ID_CFG_UNIV_FHBFSK,
@@ -671,6 +675,20 @@ static const MenuNode_t demod_config_window_fcn = {
   .parameters = &demod_config_window_fcn_param
 };
 
+static MenuID_t demod_config_filt_children[] = {
+  MENU_ID_CFG_DEMOD_FILT_DEC
+};
+static const MenuNode_t demod_config_filt = {
+  .id = MENU_ID_CFG_DEMOD_FILT,
+  .description = "Filter options",
+  .handler = NULL,
+  .parent_id = MENU_ID_CFG_DEMOD,
+  .children_ids = demod_config_filt_children,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = NULL
+};
+
 static ParamContext_t dau_config_sleep_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_DAU_SLEEP
@@ -808,6 +826,21 @@ static const MenuNode_t univ_fsk_config_f1 = {
   .parameters = &univ_fsk_config_f1_param
 };
 
+static ParamContext_t univ_fsk_config_filt_param = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_UNIV_FSK_FILT
+};
+static const MenuNode_t univ_fsk_config_filt = {
+  .id = MENU_ID_CFG_UNIV_FSK_FILT,
+  .description = "Set FSK filter",
+  .handler = setFskFilter,
+  .parent_id = MENU_ID_CFG_UNIV_FSK,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &univ_fsk_config_filt_param
+};
+
 static ParamContext_t univ_fhbfsk_config_freq_spacing_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_CFG_UNIV_FHBFSK_FSEP
@@ -866,6 +899,21 @@ static const MenuNode_t univ_fhbfsk_config_hopper = {
   .num_children = 0,
   .access_level = 0,
   .parameters = &univ_fhbfsk_config_hopper_param
+};
+
+static ParamContext_t univ_fhbfsk_config_filt_param = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_UNIV_FHBFSK_FILT
+};
+static const MenuNode_t univ_fhbfsk_config_filt = {
+  .id = MENU_ID_CFG_UNIV_FHBFSK_FILT,
+  .description = "Set filter",
+  .handler = setFhbfskFilter,
+  .parent_id = MENU_ID_CFG_UNIV_FHBFSK,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &univ_fhbfsk_config_filt_param
 };
 
 static ParamContext_t univ_wakeup_config_en_param = {
@@ -1228,6 +1276,21 @@ static const MenuNode_t demod_cal_config_export = {
   .parameters = &demod_cal_config_export_param
 };
 
+static ParamContext_t demod_filt_config_dec_param = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_DEMOD_FILT_DEC
+};
+static const MenuNode_t demod_filt_config_dec = {
+  .id = MENU_ID_CFG_DEMOD_FILT_DEC,
+  .description = "Set decimation filter decimation factor",
+  .handler = setDecFiltFactor,
+  .parent_id = MENU_ID_CFG_DEMOD_CAL,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &demod_filt_config_dec_param
+};
+
 /* Exported function definitions ---------------------------------------------*/
 
 bool COMM_RegisterConfigurationMenu()
@@ -1268,7 +1331,9 @@ bool COMM_RegisterConfigurationMenu()
              MenuSystem_RegisterMenu(&univ_err_config_cargo_behavior) && MenuSystem_RegisterMenu(&demod_config_window_fcn) &&
              MenuSystem_RegisterMenu(&univ_config_wakeup_menu) && MenuSystem_RegisterMenu(&univ_wakeup_config_tone1) &&
              MenuSystem_RegisterMenu(&univ_wakeup_config_en) && MenuSystem_RegisterMenu(&univ_wakeup_config_tone2) &&
-             MenuSystem_RegisterMenu(&univ_wakeup_config_tone3) && MenuSystem_RegisterMenu(&change_mac);
+             MenuSystem_RegisterMenu(&univ_wakeup_config_tone3) && MenuSystem_RegisterMenu(&change_mac) &&
+             MenuSystem_RegisterMenu(&univ_fsk_config_filt) && MenuSystem_RegisterMenu(&univ_fhbfsk_config_filt) &&
+             MenuSystem_RegisterMenu(&demod_config_filt) && MenuSystem_RegisterMenu(&demod_filt_config_dec);
 
   return ret;
 }
@@ -1320,6 +1385,11 @@ void setFskF1(FunctionContext_t* context)
   COMMLoops_LoopUint32(context, PARAM_FSK_F1);
 }
 
+void setFskFilter(FunctionContext_t* context)
+{
+  COMMLoops_LoopEnum(context, PARAM_FSK_FILTER);
+}
+
 void setFhbfskFreqSpacing(FunctionContext_t* context)
 {
   COMMLoops_LoopUint8(context, PARAM_FHBFSK_FREQ_SPACING);
@@ -1338,6 +1408,11 @@ void setFhbfskTones(FunctionContext_t* context)
 void setFhbfskHopper(FunctionContext_t* context)
 {
   COMMLoops_LoopEnum(context, PARAM_FHBFSK_HOPPER);
+}
+
+void setFhbfskFilter(FunctionContext_t* context)
+{
+  COMMLoops_LoopEnum(context, PARAM_FHBFSK_FILTER);
 }
 
 void toggleWakeupTones(FunctionContext_t* context)
@@ -1368,7 +1443,7 @@ void setBaudRate(FunctionContext_t* context)
 
   static float new_baud;
 
-  char* parameter_name = Param_GetName(param_id);
+  const char* parameter_name = Param_GetName(param_id);
 
   if (parameter_name == NULL) {
     COMM_TransmitData(uninitialized_parameter_message, CALC_LEN, context->comm_interface);
@@ -1701,4 +1776,9 @@ void setID(FunctionContext_t* context)
 void setStationaryFlag(FunctionContext_t* context)
 {
   COMMLoops_LoopToggle(context, PARAM_STATIONARY_FLAG);
+}
+
+void setDecFiltFactor(FunctionContext_t* context)
+{
+  COMMLoops_LoopEnum(context, PARAM_DEC_FILTER_DEC_FACTOR);
 }

@@ -47,11 +47,13 @@ typedef enum {
   MENU_ID_CFG_UNIV_FSK,         // FSK based waveform processing parameters
   MENU_ID_CFG_UNIV_FSK_F0,      // FSK frequency corresponding to bit 0
   MENU_ID_CFG_UNIV_FSK_F1,      // FSK frequency corresponding to bit 1
+  MENU_ID_CFG_UNIV_FSK_FILT,    // Input filter to use with FSK
   MENU_ID_CFG_UNIV_FHBFSK,      // FHBFSK based waveform processing parameters
   MENU_ID_CFG_UNIV_FHBFSK_FSEP, // Integer frequency separation to use in the FHBFSK scheme
   MENU_ID_CFG_UNIV_FHBFSK_DWELL,// Number of bit periods to dwell on a tone in FHBFSK
   MENU_ID_CFG_UNIV_FHBFSK_TONES,// Number of tones to use in the FHBFSK modulations scheme
   MENU_ID_CFG_UNIV_FHBFSK_HOPP, // Frequency hopping method to use
+  MENU_ID_CFG_UNIV_FHBFSK_FILT, // FH-BFSK filter
   MENU_ID_CFG_UNIV_BAUD,        // Raw baud rate used for transmission
   MENU_ID_CFG_UNIV_FC,          // Center frequency used 
   MENU_ID_CFG_UNIV_BP,          // Bit period used in the baud rate. Currently the inverse of ^^
@@ -100,6 +102,8 @@ typedef enum {
   MENU_ID_CFG_DEMOD_AGCEN,      // Enable/disable automatic gain control (AGC)
   MENU_ID_CFG_DEMOD_GAIN,       // Set fixed PGA gain
   MENU_ID_CFG_DEMOD_WINDOWFCN,  // Window function to use
+  MENU_ID_CFG_DEMOD_FILT,       // Filter configuration options
+  MENU_ID_CFG_DEMOD_FILT_DEC,   // Decimation factor to use for decimation filter
   MENU_ID_CFG_MAC,              // Which MAC protocol to use
   MENU_ID_CFG_DAU,              // Daughter card configuration options
   MENU_ID_CFG_DAU_SLEEP,        // Enable/disable sleep modes from the daughter card

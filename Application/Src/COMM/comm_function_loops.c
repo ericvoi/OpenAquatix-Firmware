@@ -48,7 +48,7 @@ void COMMLoops_LoopUint32(FunctionContext_t* context, ParamIds_t param_id)
 {
   ParamState_t old_state = context->state->state;
 
-  char* parameter_name = Param_GetName(param_id);
+  const char* parameter_name = Param_GetName(param_id);
 
   if (parameter_name == NULL) {
     COMM_TransmitData(uninitialized_parameter_message, sizeof(uninitialized_parameter_message) - 1, context->comm_interface);
@@ -122,7 +122,7 @@ void COMMLoops_LoopUint16(FunctionContext_t* context, ParamIds_t param_id)
 {
   ParamState_t old_state = context->state->state;
 
-  char* parameter_name = Param_GetName(param_id);
+  const char* parameter_name = Param_GetName(param_id);
 
   if (parameter_name == NULL) {
     COMM_TransmitData(uninitialized_parameter_message, sizeof(uninitialized_parameter_message) - 1, 
@@ -197,7 +197,7 @@ void COMMLoops_LoopUint8(FunctionContext_t* context, ParamIds_t param_id)
 {
   ParamState_t old_state = context->state->state;
 
-  char* parameter_name = Param_GetName(param_id);
+  const char* parameter_name = Param_GetName(param_id);
 
   if (parameter_name == NULL) {
     COMM_TransmitData(uninitialized_parameter_message, sizeof(uninitialized_parameter_message) - 1, 
@@ -272,7 +272,7 @@ void COMMLoops_LoopFloat(FunctionContext_t* context, ParamIds_t param_id)
 {
   ParamState_t old_state = context->state->state;
 
-  char* parameter_name = Param_GetName(param_id);
+  const char* parameter_name = Param_GetName(param_id);
 
   if (parameter_name == NULL) {
     COMM_TransmitData(uninitialized_parameter_message, sizeof(uninitialized_parameter_message) - 1, 
@@ -346,7 +346,7 @@ void COMMLoops_LoopEnum(FunctionContext_t* context, ParamIds_t param_id)
 {
   ParamState_t old_state = context->state->state;
 
-  char* parameter_name = Param_GetName(param_id);
+  const char* parameter_name = Param_GetName(param_id);
 
   if (parameter_name == NULL) {
     COMM_TransmitData(uninitialized_parameter_message, sizeof(uninitialized_parameter_message) - 1, 
@@ -363,7 +363,7 @@ void COMMLoops_LoopEnum(FunctionContext_t* context, ParamIds_t param_id)
     return;
   }
 
-  char** descriptors = Param_GetDescriptors(param_id);
+  const char** descriptors = Param_GetDescriptors(param_id);
 
   /* This do-while construct allows multiple state transitions in a single call
    * while preventing infinite loops by ensuring we never return to a higher state */
@@ -435,7 +435,7 @@ void COMMLoops_LoopToggle(FunctionContext_t* context, ParamIds_t param_id)
 
   static bool current_state;
 
-  char* parameter_name = Param_GetName(param_id);
+  const char* parameter_name = Param_GetName(param_id);
 
   if (parameter_name == NULL) {
     COMM_TransmitData(uninitialized_parameter_message, sizeof(uninitialized_parameter_message) - 1, 

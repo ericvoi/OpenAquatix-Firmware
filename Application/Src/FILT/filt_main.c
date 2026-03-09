@@ -40,7 +40,7 @@ typedef struct {
 
 typedef struct {
   uint8_t decimation_factor;
-  bool use_filter;
+  const bool use_filter;
   // TODO: add filter coefficients
 } FilterInfo_t;
 
@@ -178,6 +178,14 @@ bool registerFiltParams(void)
   if (Param_Register(PARAM_FHBFSK_FILTER, "FH-BFSK filter", PARAM_TYPE_ENUM,
                      &fhbfsk_filter, sizeof(DigitalFilter_t), &min_u32, &max_u32,
                      NULL, digital_filter_descriptors) == false) {
+    return false;
+  }
+  min_u32 = MIN_DECIMATION_FACTOR;
+  max_u32 = MAX_DECIMATION_FACTOR;
+  if (Param_Register(PARAM_DEC_FILTER_DEC_FACTOR, 
+                     "Decimation filter decimation factor", PARAM_TYPE_UINT8,
+                     &filter_infos[DIGITAL_FILTER_DEC].decimation_factor, 
+                     sizeof(uint8_t), &min_u32, &max_u32, NULL, NULL) == false) {
     return false;
   }
   return true;

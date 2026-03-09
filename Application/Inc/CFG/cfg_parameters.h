@@ -98,6 +98,7 @@ typedef enum {
   PARAM_CARGO_ERROR_BEHAVIOR,
   PARAM_FSK_FILTER,
   PARAM_FHBFSK_FILTER,
+  PARAM_DEC_FILTER_DEC_FACTOR,
   // Add new parameters just above here and nowhere else
   NUM_PARAM
 } ParamIds_t;
@@ -183,7 +184,7 @@ bool Param_LoadInit(void);
  */
 bool Param_Register(ParamIds_t id, const char* name, ParamType_t type,
                     void* value_ptr, size_t value_size, void* min, void* max,
-                    void (*callback)(void), char** descriptors);
+                    void (*callback)(void), const char** descriptors);
 
 /**
  * @brief Retrieves a parameter value by ID
@@ -313,7 +314,7 @@ bool Param_GetEnum(ParamIds_t id, uint8_t* value);
  * @note This function blocks indefinitely while waiting for the mutex
  * @see findParamById, isParamInitialized
  */
-char* Param_GetName(ParamIds_t id);
+const char* Param_GetName(ParamIds_t id);
 
 /**
  * @brief Retrieves the minimum and maximum limits for a specified parameter
@@ -622,7 +623,7 @@ bool Param_GetParamType(ParamIds_t id, ParamType_t* param_type);
  * @param id identifier for the parameter
  * @return enum descriptors, or NULL if not set
  */
-char** Param_GetDescriptors(ParamIds_t id);
+const char** Param_GetDescriptors(ParamIds_t id);
 
 /**
  * @brief Saves parameters to flash (non-volatile) memory
