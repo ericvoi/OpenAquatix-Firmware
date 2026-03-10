@@ -137,8 +137,8 @@ DEFINE_DESC_TABLE(PREAMBLE_ERROR_BEHAVIOR_TABLE, preamble_error_behavior_descrip
 
 /* Private function prototypes -----------------------------------------------*/
 
-static bool messageStartWithThreshold(void);
-static bool messageStartWithFrequency(const DspConfig_t* cfg);
+static bool messageStartWithThreshold(Message_t* msg);
+static bool messageStartWithFrequency(const DspConfig_t* cfg, Message_t* msg);
 static float frequencyToIndex(float frequency, uint16_t fft_size);
 static float indexToFrequency(float index, uint16_t fft_size);
 static bool checkFftConditions(uint16_t check_length, float multiplier);
@@ -175,24 +175,24 @@ bool Input_Init()
   return true;
 }
 
-bool Input_DetectMessageStart(const DspConfig_t* cfg)
+bool Input_DetectMessageStart(const DspConfig_t* cfg, Message_t* msg)
 {
   static bool message_detected = false;
   static uint32_t samples_waited = 0;
   if (message_detected == false) {
     switch (message_start_function) {
       case MSG_START_AMPLITUDE:
-        if (messageStartWithThreshold() == true) {
+        if (messageStartWithThreshold(msg) == true) {
           message_detected = true;
         }
         break;
       case MSG_START_FREQUENCY:
-        if (messageStartWithFrequency(cfg) == true) {
+        if (messageStartWithFrequency(cfg, msg) == true) {
           message_detected = true;
         }
         break;
       default:
-        if (messageStartWithFrequency(cfg) == true) {
+        if (messageStartWithFrequency(cfg, msg) == true) {
           message_detected = true;
         }
     }
@@ -528,12 +528,14 @@ bool Input_RegisterParams()
 
 /* Private function definitions ----------------------------------------------*/
 
-bool messageStartWithThreshold()
+bool messageStartWithThreshold(Message_t* msg)
 {
   if (MessFiltResources_AvailableProcessingSamples() == 0) return false; // no new data to process
 
   while (MessFiltResources_AvailableProcessingSamples() != 0) {
     if (MessFiltResources_GetProcessingData(0) > AMPLITUDE_THRESHOLD) {
+      msg->doppler_mps = 0.0f;
+      msg->snr = 0.0f;
       return true;
     }
     MessFiltResources_ProcessingTailAdvance(1);
@@ -542,7 +544,7 @@ bool messageStartWithThreshold()
   return false;
 }
 
-bool messageStartWithFrequency(const DspConfig_t* cfg)
+bool messageStartWithFrequency(const DspConfig_t* cfg, Message_t* msg)
 {
   static const uint16_t analysis_mask = FFT_ANALYSIS_BUFF_SIZE - 1;
 
@@ -593,6 +595,8 @@ bool messageStartWithFrequency(const DspConfig_t* cfg)
   for (uint16_t i = 0; i < unique_frequency_conditions; i++) {
     if (checkFftConditions(frequency_thresholds[i].num_samples, frequency_thresholds[i].energy_threshold) == true) {
       frequency_thresholds[i].hits++;
+      msg->doppler_mps = 0.0f;
+      msg->snr = 0.0f;
       return true;
     }
   }

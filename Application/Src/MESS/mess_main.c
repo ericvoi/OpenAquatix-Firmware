@@ -251,7 +251,7 @@ void MESS_StartTask(void* argument)
           }
         }
 
-        SyncState_t sync_state = Sync_Synchronize(cfg);
+        SyncState_t sync_state = Sync_Synchronize(cfg, &rx_msg);
         switch (sync_state) {
           case SYNC_SUCCESS:
             switchState(PROCESSING);

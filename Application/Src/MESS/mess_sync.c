@@ -98,7 +98,6 @@ static PnTracker_t candidate_tracker;
 static volatile bool sync_error = false;
 
 static float background_noise;
-static float most_recent_snr = 0.0f;
 
 static bool pending_reset = true;
 
@@ -118,7 +117,6 @@ static uint8_t doppler_phase_buf_idx;
 static uint8_t doppler_since_reset[MAX_FHBFSK_BANK_SIZE];
 static float doppler_alpha_sum;
 static float doppler_alpha_weight;
-static float estimated_doppler_mps;
 static uint16_t doppler_accumulation_count;
 
 static float doppler_bias_alpha = 0.0f;
@@ -131,13 +129,13 @@ static void updateParameters(const DspConfig_t* cfg);
 static bool janusPnStep(bool* bit, uint16_t step);
 static void fillJanusFrequencies(const DspConfig_t* cfg);
 static void buildFrequencyBank(const DspConfig_t* cfg);
-static SyncState_t janusPnSynchronize(void);
+static SyncState_t janusPnSynchronize(Message_t* msg);
 static bool resetPnSynchronization(void);
 static void fillWindowOffsets(const DspConfig_t* cfg);
 static bool updateSlidingGoertzel(uint16_t new_samples);
 static void accumulateGlobalDoppler(uint16_t new_samples);
-static SyncState_t evaluateSlidingPnWindows(void);
-static float finalizeDopplerEstimate(void);
+static SyncState_t evaluateSlidingPnWindows(Message_t* msg);
+static void finalizeDopplerEstimate(Message_t* msg);
 static float computeFineSyncOffset(uint16_t best_idx);
 
 /* Exported function definitions ---------------------------------------------*/
@@ -170,29 +168,19 @@ uint16_t Sync_NumSteps(const DspConfig_t* cfg)
   }
 }
 
-SyncState_t Sync_Synchronize(const DspConfig_t* cfg)
+SyncState_t Sync_Synchronize(const DspConfig_t* cfg, Message_t* msg)
 {
-  updateParameters(cfg);
   switch (cfg->sync_method) {
     case NO_SYNC: {
-      bool ret = Input_DetectMessageStart(cfg);
+      bool ret = Input_DetectMessageStart(cfg, msg);
       return (ret == true) ? (SYNC_SUCCESS) : (SYNC_OK);
     }
     case SYNC_PN_32_JANUS:
-      return janusPnSynchronize();
+      updateParameters(cfg);
+      return janusPnSynchronize(msg);
     default:
       return SYNC_ERROR;
   }
-}
-
-float Sync_MostRecentSnr(void)
-{
-  return most_recent_snr;
-}
-
-float Sync_GetDopplerEstimate(void)
-{
-  return estimated_doppler_mps;
 }
 
 void Sync_Reset(void)
@@ -358,14 +346,13 @@ static bool resetPnSynchronization(void)
   doppler_alpha_sum = 0.0f;
   doppler_alpha_weight = 0.0f;
   doppler_accumulation_count = 0;
-  estimated_doppler_mps = 0.0f;
 
   memset(&pn_sync_candidates, 0, sizeof(pn_sync_candidates));
   MessFiltResources_ProcessingTailAdvance(samples_per_symbol);
   return true;
 }
 
-static SyncState_t janusPnSynchronize(void)
+static SyncState_t janusPnSynchronize(Message_t* msg)
 {
   if (pending_reset == true) {
     pending_reset = false;
@@ -399,7 +386,7 @@ static SyncState_t janusPnSynchronize(void)
     }
   }
 
-  return evaluateSlidingPnWindows();
+  return evaluateSlidingPnWindows(msg);
 }
 
 static bool updateSlidingGoertzel(uint16_t new_samples)
@@ -583,11 +570,11 @@ save_and_advance:
   doppler_phase_buf_idx = (doppler_phase_buf_idx + 1) % DOPPLER_PHASE_LOOKBACK;
 }
 
-static float finalizeDopplerEstimate(void)
+static void finalizeDopplerEstimate(Message_t* msg)
 {
   if (doppler_accumulation_count < MIN_DOPPLER_ACCUMULATIONS ||
       doppler_alpha_weight == 0.0f) {
-    return 0.0f;
+    return;
   }
   float raw_alpha = doppler_alpha_sum / doppler_alpha_weight;
 
@@ -599,7 +586,7 @@ static float finalizeDopplerEstimate(void)
     doppler_bias_calibrated = true;
   }
 
-  return (raw_alpha - doppler_bias_alpha) * SPEED_OF_SOUND_MPS;
+  msg->doppler_mps = (raw_alpha - doppler_bias_alpha) * SPEED_OF_SOUND_MPS;
 }
 
 /**
@@ -638,7 +625,7 @@ static float computeFineSyncOffset(uint16_t best_idx)
   return delta * avg_substep_samples;
 }
 
-static SyncState_t evaluateSlidingPnWindows(void)
+static SyncState_t evaluateSlidingPnWindows(Message_t* msg)
 {
   while (candidate_tracker.num_candidates > (MIN_NUM_CANDIDATES + 1)) { // + 1 For fine synchronization
     int16_t s_idx = (int16_t)candidate_index
@@ -681,7 +668,7 @@ static SyncState_t evaluateSlidingPnWindows(void)
           candidate_tracker.candidates_after_best++;
           if (candidate_tracker.candidates_after_best >= REQUIRED_CANDIDATES_AFTER_BEST) {
             /* --- Finalize Doppler estimate --- */
-            estimated_doppler_mps = finalizeDopplerEstimate();
+            finalizeDopplerEstimate(msg);
 
             /* --- Fine synchronization offset --- */
             float fine_offset = computeFineSyncOffset(candidate_tracker.best_index);
@@ -696,7 +683,7 @@ static SyncState_t evaluateSlidingPnWindows(void)
                 (base_tail + (uint32_t)(fine_offset_int + PROCESSING_BUFFER_SIZE))
                 & PROCESSING_BUFFER_MASK;
 
-            most_recent_snr = candidate_tracker.best_snr;
+            msg->snr = candidate_tracker.best_snr;
             MessFiltResources_SetProcessingTail(new_tail);
             return SYNC_SUCCESS;
           }

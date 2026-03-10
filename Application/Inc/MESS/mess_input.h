@@ -21,6 +21,7 @@ extern "C" {
 #include "mess_packet.h"
 #include "mess_main.h"
 #include "mess_dsp_config.h"
+#include "mess_sync.h"
 #include "cfg_parameters.h"
 
 #include <stdbool.h>
@@ -76,7 +77,7 @@ bool Input_Init();
  *
  * @return true if a message start is detected, false otherwise
  */
-bool Input_DetectMessageStart(const DspConfig_t* cfg);
+bool Input_DetectMessageStart(const DspConfig_t* cfg, Message_t* msg);
 
 /**
  * @brief Segments input buffer into analysis blocks for demodulation
