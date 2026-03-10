@@ -30,7 +30,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-static uint16_t sliding_goertzel_index = 0;
+
 
 /* Private function prototypes -----------------------------------------------*/
 

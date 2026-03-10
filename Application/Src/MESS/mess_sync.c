@@ -121,6 +121,10 @@ static float doppler_alpha_weight;
 static float estimated_doppler_mps;
 static uint16_t doppler_accumulation_count;
 
+static float doppler_bias_alpha = 0.0f;
+static bool  doppler_bias_calibrated = false;
+#define BIAS_CALIBRATION_COUNT  200  // accumulations before locking bias
+
 /* Private function prototypes -----------------------------------------------*/
 
 static void updateParameters(const DspConfig_t* cfg);
@@ -211,6 +215,9 @@ static void updateParameters(const DspConfig_t* cfg)
   buildFrequencyBank(cfg);
   fillWindowOffsets(cfg);
   resetPnSynchronization();
+
+  doppler_bias_alpha = 0;
+  doppler_bias_calibrated = false;
 }
 
 static bool janusPnStep(bool* bit, uint16_t step)
@@ -582,7 +589,17 @@ static float finalizeDopplerEstimate(void)
       doppler_alpha_weight == 0.0f) {
     return 0.0f;
   }
-  return (doppler_alpha_sum / doppler_alpha_weight) * SPEED_OF_SOUND_MPS;
+  float raw_alpha = doppler_alpha_sum / doppler_alpha_weight;
+
+  /* On the very first sync (known zero-Doppler calibration tone),
+   * record the bias. For subsequent real traffic, subtract it. */
+  if (!doppler_bias_calibrated &&
+      doppler_accumulation_count >= BIAS_CALIBRATION_COUNT) {
+    doppler_bias_alpha = raw_alpha;
+    doppler_bias_calibrated = true;
+  }
+
+  return (raw_alpha - doppler_bias_alpha) * SPEED_OF_SOUND_MPS;
 }
 
 /**

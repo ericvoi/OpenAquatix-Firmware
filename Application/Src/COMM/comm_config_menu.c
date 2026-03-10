@@ -684,7 +684,7 @@ static const MenuNode_t demod_config_filt = {
   .handler = NULL,
   .parent_id = MENU_ID_CFG_DEMOD,
   .children_ids = demod_config_filt_children,
-  .num_children = 0,
+  .num_children = sizeof(demod_config_filt_children) / sizeof(demod_config_filt_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
@@ -1780,5 +1780,5 @@ void setStationaryFlag(FunctionContext_t* context)
 
 void setDecFiltFactor(FunctionContext_t* context)
 {
-  COMMLoops_LoopEnum(context, PARAM_DEC_FILTER_DEC_FACTOR);
+  COMMLoops_LoopUint8(context, PARAM_DEC_FILTER_DEC_FACTOR);
 }

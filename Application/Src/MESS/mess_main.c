@@ -495,7 +495,6 @@ void switchState(ProcessingState_t newState)
     case LISTENING:
       Sync_Reset();
       cfg = &custom_config;
-      CFG_IncrementVersionNumber();
       Waveform_StopWaveformOutput();
       if (AFE_SetMode(AFE_MODE_RX) != AFE_OK) {
         Error_Routine(ERROR_MESS_PROCESSING);
