@@ -71,6 +71,9 @@ static volatile uint16_t current_step = 0;
 static volatile bool dac_running = false;
 static uint32_t current_symbol_duration_us = 0;
 
+// Flag that indicates that the next time this function is called it should terminate the DAC output
+static bool last_fill = false;
+
 static volatile uint32_t callback_count = 0;
 
 static uint16_t tukey_window[TUKEY_POINTS];
@@ -127,6 +130,7 @@ bool Waveform_StartWaveformOutput(uint32_t channel)
   if (HAL_DAC_Stop_DMA(&hdac1, channel) != HAL_OK) return false;
   wave_ctrl.phase_accumulator = 0;
 
+  last_fill = false;
   dac_running = true;
   updateWaveformParameters();
   Waveform_FillBuffer(FILL_FIRST_HALF);
@@ -193,77 +197,88 @@ void Waveform_Flush()
 
 void Waveform_FillBuffer(FillType_t type)
 {
-  // Flag that indicates that the next time this function is called it should terminate the DAC output
-  static bool last_fill = false;
-
   callback_count++;
 
-  if (last_fill == true) {
+  if (last_fill) {
     last_fill = false;
     Waveform_StopWaveformOutput();
     return;
   }
 
-  // Final step check
-  if (current_step == (sequence_length - 1)) {
-    if (current_symbol_duration_us >= current_waveform_step.duration_us) {
-      last_fill = true;
-      return;
-    }
-  }
-
-  // Running index to use
   uint16_t i = (type == FILL_FIRST_HALF) ? 0 : DAC_BUFFER_SIZE / 2;
+  const uint16_t half_end = i + DAC_BUFFER_SIZE / 2;
 
-  const uint16_t start_index = i; // Absolute starting index to use
+  /* Outer loop: keep filling until this half-buffer is completely written.
+   * This handles symbol transitions mid-buffer and short symbols that
+   * are smaller than a half-buffer. */
+  while (i < half_end) {
 
-  if (current_symbol_duration_us >= current_waveform_step.duration_us) { // Current sequence step has gone on long enough
-    // start new symbol
-    current_step++;
-    updateWaveformParameters();
-  }
+    // If the current symbol is exhausted, advance or terminate
+    if (current_symbol_duration_us >= current_waveform_step.duration_us) {
+      if (current_step >= sequence_length - 1) {
+        // Last symbol is done — fill remainder with DC midpoint so the
+        // DMA never outputs stale data, then schedule a stop
+        while (i < half_end)
+          dac_buffer[i++] = (DAC_MAX_VALUE + 1) / 2;
+        last_fill = true;
+        return;
+      }
+      current_step++;
+      updateWaveformParameters();
+    }
 
-  const uint16_t end_index = start_index + MIN(DAC_BUFFER_SIZE / 2, current_waveform_step.duration_us - current_symbol_duration_us);
+    // end_index: whichever comes first — end of this symbol or end of half-buffer
+    const uint16_t end_index = i + MIN(
+        (uint32_t)(half_end - i),
+        current_waveform_step.duration_us - current_symbol_duration_us);
 
-  // Initial envelope modulation
-  while (current_symbol_duration_us < wave_ctrl.initial_tukey_end_index && (i < end_index)) {
-    uint32_t index = wave_ctrl.phase_accumulator >> (PHASE_PRECISION - 10);
-    uint32_t base_value = sine_table[index & (SINE_POINTS - 1)]; // Ensures nothing out of index
+    // Initial envelope modulation (Tukey ramp-up)
+    while (current_symbol_duration_us < wave_ctrl.initial_tukey_end_index && (i < end_index)) {
+      uint32_t index = wave_ctrl.phase_accumulator >> (PHASE_PRECISION - 10);
+      uint32_t base_value = sine_table[index & (SINE_POINTS - 1)];
 
-    uint32_t scaling_value = tukey_window[wave_ctrl.initial_tukey_window_index >> TUKEY_PRECISION] * wave_ctrl.amplitude;
-    dac_buffer[i] = ((DAC_MAX_VALUE + 1) / 2) - ((scaling_value >> (4 + AMPLITUDE_PRECISION)) / 2) + (((uint64_t) base_value * scaling_value) >> (16 + AMPLITUDE_PRECISION));
-    i++; 
-    current_symbol_duration_us++;
-    wave_ctrl.phase_accumulator += wave_ctrl.phase_increment;
-    wave_ctrl.initial_tukey_window_index += wave_ctrl.tukey_increment;
-  }
+      uint32_t scaling_value = tukey_window[wave_ctrl.initial_tukey_window_index >> TUKEY_PRECISION]
+                               * wave_ctrl.amplitude;
+      dac_buffer[i] = ((DAC_MAX_VALUE + 1) / 2)
+                     - ((scaling_value >> (4 + AMPLITUDE_PRECISION)) / 2)
+                     + (((uint64_t)base_value * scaling_value) >> (16 + AMPLITUDE_PRECISION));
+      i++;
+      current_symbol_duration_us++;
+      wave_ctrl.phase_accumulator += wave_ctrl.phase_increment;
+      wave_ctrl.initial_tukey_window_index += wave_ctrl.tukey_increment;
+    }
 
-  // Rectangular window portion
-  uint16_t offset_amt = ((DAC_MAX_VALUE + 1) / 2) - (wave_ctrl.amplitude << (12 - AMPLITUDE_PRECISION - 1));
-  while (current_symbol_duration_us < wave_ctrl.final_tukey_start_index && (i < end_index)) {
-    uint32_t index = wave_ctrl.phase_accumulator >> (PHASE_PRECISION - 10);
-    uint32_t base_value = sine_table[index & (SINE_POINTS - 1)];
+    // Rectangular window portion (flat amplitude)
+    uint16_t offset_amt = ((DAC_MAX_VALUE + 1) / 2)
+                        - (wave_ctrl.amplitude << (12 - AMPLITUDE_PRECISION - 1));
+    while (current_symbol_duration_us < wave_ctrl.final_tukey_start_index && (i < end_index)) {
+      uint32_t index = wave_ctrl.phase_accumulator >> (PHASE_PRECISION - 10);
+      uint32_t base_value = sine_table[index & (SINE_POINTS - 1)];
 
-    dac_buffer[i] = offset_amt + ((base_value * wave_ctrl.amplitude) >> AMPLITUDE_PRECISION);
+      dac_buffer[i] = offset_amt + ((base_value * wave_ctrl.amplitude) >> AMPLITUDE_PRECISION);
 
-    // Update phase
-    wave_ctrl.phase_accumulator += wave_ctrl.phase_increment;
-    i++;
-    current_symbol_duration_us++;
-  }
+      wave_ctrl.phase_accumulator += wave_ctrl.phase_increment;
+      i++;
+      current_symbol_duration_us++;
+    }
 
-  // Final envelope modulation
-  while (current_symbol_duration_us < current_waveform_step.duration_us && (i < end_index)) {
-    uint32_t index = wave_ctrl.phase_accumulator >> (PHASE_PRECISION - 10);
-    uint32_t base_value = sine_table[index & (SINE_POINTS - 1)]; // Ensures nothing out of index
+    // Final envelope modulation (Tukey ramp-down)
+    while (current_symbol_duration_us < current_waveform_step.duration_us && (i < end_index)) {
+      uint32_t index = wave_ctrl.phase_accumulator >> (PHASE_PRECISION - 10);
+      uint32_t base_value = sine_table[index & (SINE_POINTS - 1)];
 
-    uint32_t scaling_value = tukey_window[wave_ctrl.final_tukey_window_index >> TUKEY_PRECISION] * wave_ctrl.amplitude;
-    dac_buffer[i] = ((DAC_MAX_VALUE + 1) / 2) - ((scaling_value >> (4 + AMPLITUDE_PRECISION)) / 2) + (((uint64_t) base_value * scaling_value) >> (16 + AMPLITUDE_PRECISION));
-    i++; 
-    current_symbol_duration_us++;
-    wave_ctrl.phase_accumulator += wave_ctrl.phase_increment;
-    wave_ctrl.final_tukey_window_index -= wave_ctrl.tukey_increment;
-  }
+      uint32_t scaling_value = tukey_window[wave_ctrl.final_tukey_window_index >> TUKEY_PRECISION]
+                               * wave_ctrl.amplitude;
+      dac_buffer[i] = ((DAC_MAX_VALUE + 1) / 2)
+                     - ((scaling_value >> (4 + AMPLITUDE_PRECISION)) / 2)
+                     + (((uint64_t)base_value * scaling_value) >> (16 + AMPLITUDE_PRECISION));
+      i++;
+      current_symbol_duration_us++;
+      wave_ctrl.phase_accumulator += wave_ctrl.phase_increment;
+      wave_ctrl.final_tukey_window_index -= wave_ctrl.tukey_increment;
+    }
+
+  } // while (i < half_end)
 }
 
 /* Private function definitions ----------------------------------------------*/
@@ -272,10 +287,11 @@ void Waveform_FillBuffer(FillType_t type)
 void generateSineTable(void)
 {
   for(uint16_t i = 0; i < SINE_POINTS; i++) {
-    sine_table[i] = (uint16_t)(2047.0f * sinf(2.0f * M_PI * i / SINE_POINTS) + 2047.0f);
+    sine_table[i] = (uint16_t)(2047.5f * sinf(2.0f * M_PI * i / SINE_POINTS) + 2047.5f);
   }
 }
 
+// Minor bug: the last index is never reached in the tukey window due to integer truncation
 void generateTukeyWindow(void)
 {
   for (uint16_t i = 0; i < TUKEY_POINTS; i++) {
