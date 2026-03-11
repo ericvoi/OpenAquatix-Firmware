@@ -574,7 +574,7 @@ static void finalizeDopplerEstimate(Message_t* msg)
 {
   if (doppler_accumulation_count < MIN_DOPPLER_ACCUMULATIONS ||
       doppler_alpha_weight == 0.0f) {
-        msg->doppler_mps = 0.0f
+        msg->doppler_mps = 0.0f;
     return;
   }
   float raw_alpha = doppler_alpha_sum / doppler_alpha_weight;
