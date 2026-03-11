@@ -25,11 +25,11 @@
 
 /* Private define ------------------------------------------------------------*/
 
-#define ALL_FLAGS (DAC_FILL_FIRST_HALF | DAC_FILL_LAST_HALF)
+#define ALL_FLAGS         0x000000FF
 
 /* Private macro -------------------------------------------------------------*/
 
-// check queue for latest waveform steps as well as set a flag when the message has been fully added
+
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -73,6 +73,14 @@ void DAC_StartTask(void* argument)
 
     if (flags & DAC_FILL_LAST_HALF) {
       Waveform_FillBuffer(FILL_LAST_HALF);
+    }
+
+    if (flags & DAC_START_OUTPUT) {
+      Waveform_StartOutput();
+    }
+
+    if (flags & DAC_START_RANGING_REQUEST) {
+      Waveform_SendRangingRequest();
     }
   }
 }

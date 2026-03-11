@@ -74,7 +74,6 @@ typedef struct {
 #define DOPPLER_BLOCK_SIZE              8
 #define DOPPLER_PHASE_LOOKBACK          8
 #define DOPPLER_ENERGY_THRESHOLD        3.0f
-#define SPEED_OF_SOUND_MPS              1500.0f
 #define MIN_DOPPLER_ACCUMULATIONS       20
 
 /* Private macro -------------------------------------------------------------*/

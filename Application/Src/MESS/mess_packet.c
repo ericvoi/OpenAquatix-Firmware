@@ -67,11 +67,13 @@ bool Packet_PrepareTx(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* 
   return true;
 }
 
-bool Packet_PrepareRx(BitMessage_t* bit_msg, const DspConfig_t* cfg)
+bool Packet_PrepareRx(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* cfg)
 {
   if (initPacket(bit_msg, cfg) == false) {
     return false;
   }
+
+  msg->error_detected = false;
 
   return true;
 }
@@ -311,7 +313,6 @@ bool initPacket(BitMessage_t* bit_msg, const DspConfig_t* cfg)
 {
   memset(bit_msg->data, 0, sizeof(bit_msg->data));
   bit_msg->bit_count = 0;
-  bit_msg->contents_data_type = UNKNOWN;
   bit_msg->final_length = 0;
 
   if (Preamble_UpdateNumBits(bit_msg, cfg) == false) {
@@ -327,6 +328,13 @@ bool initPacket(BitMessage_t* bit_msg, const DspConfig_t* cfg)
   bit_msg->preamble_received = false;
   bit_msg->fully_received = false;
   bit_msg->added_to_queue = false;
+
+  bit_msg->error_entire_message = false;
+  bit_msg->error_message = false;
+  bit_msg->error_preamble = false;
+  bit_msg->corrected_error_message = false;
+  bit_msg->corrected_error_preamble = false;
+  bit_msg->normalized_viterbi_error_metric = 0.0f;
   return true;
 }
 

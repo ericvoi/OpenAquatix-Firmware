@@ -514,10 +514,10 @@ bool decodeJanusConvolutional(BitMessage_t* bit_msg,
     output_bit_index++;
   }
 
-  bit_msg->normalized_vitrebi_error_metric =
+  bit_msg->normalized_viterbi_error_metric =
       (float) janus_decoder.error_metric / (section_info.ecc_len / 2.0f);
 
-  *error_detected = bit_msg->normalized_vitrebi_error_metric != 0.0f;
+  *error_detected = bit_msg->normalized_viterbi_error_metric != 0.0f;
   *error_corrected = *error_detected;
 
   return true;

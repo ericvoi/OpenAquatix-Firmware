@@ -482,108 +482,108 @@ bool calculateChecksum32(BitMessage_t* bit_msg, uint16_t start_bit, uint16_t end
 
 bool checkCrc8(BitMessage_t* bit_msg, uint16_t start_bit, uint16_t end_bit, bool* error)
 {
-  *error = true;
-
   uint8_t theoretical_crc;
   if (calculateCrc8(bit_msg, start_bit, end_bit, &theoretical_crc) == false) {
+    *error = true;
     return false;
   }
   uint8_t actual_crc;
   end_bit++;
   if (Packet_Get8(bit_msg, &end_bit, &actual_crc) == false) {
+    *error = true;
     return false;
   }
 
-  *error = actual_crc != theoretical_crc;
+  *error |= (actual_crc != theoretical_crc);
   return true;
 }
 
 bool checkCrc16(BitMessage_t* bit_msg, uint16_t start_bit, uint16_t end_bit, bool* error)
 {
-  *error = true;
-
   uint16_t theoretical_crc;
   if (calculateCrc16(bit_msg, start_bit, end_bit, &theoretical_crc) == false) {
+    *error = true;
     return false;
   }
   uint16_t actual_crc;
   end_bit++;
   if (Packet_Get16(bit_msg, &end_bit, &actual_crc) == false) {
+    *error = true;
     return false;
   }
 
-  *error = actual_crc != theoretical_crc;
+  *error |= (actual_crc != theoretical_crc);
   return true;
 }
 
 bool checkCrc32(BitMessage_t* bit_msg, uint16_t start_bit, uint16_t end_bit, bool* error)
 {
-  *error = true;
-
   uint32_t theoretical_crc;
   if (calculateCrc32(bit_msg, start_bit, end_bit, &theoretical_crc) == false) {
+    *error = true;
     return false;
   }
   uint32_t actual_crc;
   end_bit++;
   if (Packet_Get32(bit_msg, &end_bit, &actual_crc) == false) {
+    *error = true;
     return false;
   }
 
-  *error = actual_crc != theoretical_crc;
+  *error |= (actual_crc != theoretical_crc);
   return true;
 }
 
 bool checkChecksum8(BitMessage_t* bit_msg, uint16_t start_bit, uint16_t end_bit, bool* error)
 {
-  *error = true;
-
   uint8_t theoretical_checksum;
   if (calculateChecksum8(bit_msg, start_bit, end_bit, &theoretical_checksum) == false) {
+    *error = true;
     return false;
   }
   uint8_t actual_checksum;
   end_bit++;
   if (Packet_Get8(bit_msg, &end_bit, &actual_checksum) == false) {
+    *error = true;
     return false;
   }
 
-  *error = actual_checksum != theoretical_checksum;
+  *error |= (actual_checksum != theoretical_checksum);
   return true;
 }
 
 bool checkChecksum16(BitMessage_t* bit_msg, uint16_t start_bit, uint16_t end_bit, bool* error)
 {
-  *error = true;
-
   uint16_t theoretical_checksum;
   if (calculateChecksum16(bit_msg, start_bit, end_bit, &theoretical_checksum) == false) {
+    *error = true;
     return false;
   }
   uint16_t actual_checksum;
   end_bit++;
   if (Packet_Get16(bit_msg, &end_bit, &actual_checksum) == false) {
+    *error = true;
     return false;
   }
 
-  *error = actual_checksum != theoretical_checksum;
+  *error |= (actual_checksum != theoretical_checksum);
   return true;
 }
 
 bool checkChecksum32(BitMessage_t* bit_msg, uint16_t start_bit, uint16_t end_bit, bool* error)
 {
-  *error = true;
-
   uint32_t theoretical_checksum;
   if (calculateChecksum32(bit_msg, start_bit, end_bit, &theoretical_checksum) == false) {
+    *error = true;
     return false;
   }
   uint32_t actual_checksum;
   end_bit++;
   if (Packet_Get32(bit_msg, &end_bit, &actual_checksum) == false) {
+    *error = true;
     return false;
   }
 
-  *error = actual_checksum != theoretical_checksum;
+  *error |= (actual_checksum != theoretical_checksum);
   return true;
 }

@@ -301,7 +301,7 @@ bool Input_DecodeBits(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* 
         return false;
       }
 
-      if (ErrorDetection_CheckDetection(bit_msg, &bit_msg->error_preamble, cfg, true) == false) {
+      if (Preamble_Decode(bit_msg, msg, cfg) == false) {
         return false;
       }
 
@@ -317,12 +317,8 @@ bool Input_DecodeBits(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* 
           osEventFlagsSet(print_event_handle, MESS_DROPPED_PACKET_PREAMBLE);
         }
       }
-
-      if (Preamble_Decode(bit_msg, msg, cfg) == false) {
-        return false;
-      }
-      bit_msg->final_length = bit_msg->preamble.ecc_len;
-      bit_msg->final_length += bit_msg->cargo.ecc_len;
+      bit_msg->final_length = bit_msg->preamble.ecc_len + 
+                              bit_msg->cargo.ecc_len;
 
       bit_msg->preamble_received = true;
     }

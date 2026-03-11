@@ -313,6 +313,7 @@ void transmitBits(FunctionContext_t* context, bool is_feedback)
           msg.preamble.message_type.valid = true;
           msg.length_bits = num_bytes * 8;
           memcpy(msg.data, binary_data, num_bytes);
+          msg.delay = false;
 
           sendMessageToTxQueue(context, &msg, is_feedback);
         }
@@ -363,6 +364,7 @@ void transmitString(FunctionContext_t* context, bool is_feedback)
               msg.data[i] = '\0';
             }
           }
+          msg.delay = false;
           
           sendMessageToTxQueue(context, &msg, is_feedback);
         }
@@ -405,6 +407,7 @@ void transmitInt(FunctionContext_t* context, bool is_feedback)
           msg.preamble.message_type.valid = true;
           msg.length_bits = 8 * sizeof(uint32_t);
           memcpy(&msg.data[0], &input, sizeof(uint32_t));
+          msg.delay = false;
           
           sendMessageToTxQueue(context, &msg, is_feedback);
         }
@@ -445,6 +448,7 @@ void transmitFloat(FunctionContext_t* context, bool is_feedback)
           msg.preamble.message_type.valid = true;
           msg.length_bits = 8 * sizeof(float);
           memcpy(&msg.data[0], &input, sizeof(float));
+          msg.delay = false;
 
           sendMessageToTxQueue(context, &msg, is_feedback);
         }
