@@ -89,6 +89,7 @@ typedef enum {
   MENU_ID_CFG_MOD_PWROPT_C0,    // Series capacitance of the motional branch
   MENU_ID_CFG_MOD_PWROPT_L0,    // Series inductance of the motional branch
   MENU_ID_CFG_MOD_PWROPT_C1,    // Parallel capacitance with the motional branch
+  MENU_ID_CFG_MOD_TUKEY,        // Whether to apply Tukey window on output
   MENU_ID_CFG_DEMOD,            // Waveform demodulation parameters
   MENU_ID_CFG_DEMOD_CAL,        // Calibration options for demodulation
   MENU_ID_CFG_DEMOD_CAL_RATIO,  // Voltage division ratio on the feedback network

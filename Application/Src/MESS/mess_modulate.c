@@ -302,7 +302,7 @@ bool Modulate_RegisterParams()
 
   min_u32 = MIN_APPLY_TUKEY;
   max_u32 = MAX_APPLY_TUKEY;
-  if (Param_Register(PARAM_APPLY_TUKEY, "Tukey window application", PARAM_TYPE_UINT8,
+  if (Param_Register(PARAM_APPLY_TUKEY, "Tukey window modulation", PARAM_TYPE_UINT8,
                      &apply_tukey, sizeof(bool), &min_u32, &max_u32, NULL, NULL) == false) {
     return false;
   }

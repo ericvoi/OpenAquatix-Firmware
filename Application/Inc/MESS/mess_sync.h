@@ -68,19 +68,13 @@ uint16_t Sync_NumSteps(const DspConfig_t* cfg);
  * or a 32-chip JANUS preamble
  * 
  * @param cfg 
+ * @param msg Message the synchronization is for. Adds doppler and snr on success
  * 
  * @return SYNC_OK if no errors and no synchronization yet 
  * @return SYNC_ERROR if error occurred
  * @return SYNC_SUCCESS if successfully synchronized
  */
-SyncState_t Sync_Synchronize(const DspConfig_t* cfg);
-
-/**
- * @brief Returns most recent snr score from synchronization
- * 
- * @return float The most recent synchronization snr score
- */
-float Sync_MostRecentSnr();
+SyncState_t Sync_Synchronize(const DspConfig_t* cfg, Message_t* msg);
 
 /**
  * @brief Resets the synchronization process

@@ -23,7 +23,6 @@
 /* Private define ------------------------------------------------------------*/
 
 #define WINDOW_PRECISION                8
-#define SLIDING_CALLS_BEFORE_RESET      64
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -31,8 +30,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-#define MAX_SLIDING_INDEX 32
-static uint16_t sliding_goertzel_index = 0;
+
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -193,7 +191,7 @@ void goertzel_6(GoertzelInfo_t* goertzel_info)
   goertzel_info->e_f[5] = energy_f5 * normalization_factor;
 }
 
-void goertzel_SlidingInit(SlidingGoertzelInfo_t* goertzel_info, uint32_t f, uint16_t window_length)
+void goertzel_SlidingInit(SlidingGoertzelInfo_t* goertzel_info, uint32_t f, uint16_t window_length, uint16_t initial_countdown)
 {
   goertzel_info->f = f;
   goertzel_info->x_real = 0.0f;
@@ -205,14 +203,13 @@ void goertzel_SlidingInit(SlidingGoertzelInfo_t* goertzel_info, uint32_t f, uint
   goertzel_info->cos_omega = cosf(omega_normalized);
   goertzel_info->sin_omega = sinf(omega_normalized);
   goertzel_info->coeff = 2.0f * goertzel_info->cos_omega;
+  goertzel_info->omega = omega_normalized;
 
   goertzel_info->normalization_factor = 1.0f / (float)window_length;
-
   goertzel_info->window_length = window_length;
   
   // Stagger resets across filters to spread computational load
-  goertzel_info->calls_before_reset = sliding_goertzel_index * SLIDING_CALLS_BEFORE_RESET / MAX_SLIDING_INDEX;
-  sliding_goertzel_index = (sliding_goertzel_index + 1) % MAX_SLIDING_INDEX;
+  goertzel_info->calls_before_reset = initial_countdown;
 }
 
 void goertzel_SlidingPerform(SlidingGoertzelInfo_t* goertzel_info, uint16_t start_index, uint16_t samples, uint16_t buf_len)
@@ -223,7 +220,7 @@ void goertzel_SlidingPerform(SlidingGoertzelInfo_t* goertzel_info, uint16_t star
   if (goertzel_info->calls_before_reset == 0) {
     uint16_t window_start = (start_index + samples - goertzel_info->window_length) & mask;
     
-    goertzel_info->calls_before_reset = SLIDING_CALLS_BEFORE_RESET;
+    goertzel_info->calls_before_reset = SLIDING_GOERTZEL_CALLS_BEFORE_RESET;
     goertzel_SlidingReset(goertzel_info, window_start, buf_len);
     return;
   }

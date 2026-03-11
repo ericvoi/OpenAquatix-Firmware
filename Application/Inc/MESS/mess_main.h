@@ -137,6 +137,8 @@ typedef struct {
   MessagingProtocol_t protocol;
   uint16_t uncoded_data_len;
   bool is_emergency;
+  float doppler_mps;
+  float snr;
 } Message_t;
 
 typedef enum {

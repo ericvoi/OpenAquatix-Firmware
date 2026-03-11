@@ -68,6 +68,7 @@ void importConfigOptions(FunctionContext_t* context);
 void setDacTransitionDuration(FunctionContext_t* context);
 void setModPowerControlMethod(FunctionContext_t* context);
 void setModFixedOutput(FunctionContext_t* context);
+void toggleTukey(FunctionContext_t* context);
 void setMessageStartFunction(FunctionContext_t* context);
 void setBitDecisionFunction(FunctionContext_t* context);
 void setHistoricalComparisonThreshold(FunctionContext_t* context);
@@ -147,7 +148,8 @@ static const MenuNode_t univ_config_menu = {
 static MenuID_t mod_config_menu_children[] = {
   MENU_ID_CFG_MOD_TLEN,   MENU_ID_CFG_MOD_CAL, 
   MENU_ID_CFG_MOD_FB,     MENU_ID_CFG_MOD_METHOD,
-  MENU_ID_CFG_MOD_FIXED,  MENU_ID_CFG_MOD_PWROPT
+  MENU_ID_CFG_MOD_FIXED,  MENU_ID_CFG_MOD_PWROPT,
+  MENU_ID_CFG_MOD_TUKEY
 };
 static const MenuNode_t mod_config_menu = {
   .id = MENU_ID_CFG_MOD,
@@ -569,6 +571,21 @@ static const MenuNode_t mod_config_power_menu = {
   .parameters = NULL,
 };
 
+static ParamContext_t mod_config_tukey_param = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_CFG_MOD_TUKEY
+};
+static const MenuNode_t mod_config_tukey = {
+  .id = MENU_ID_CFG_MOD_TUKEY,
+  .description = "Toggle Tukey window",
+  .handler = toggleTukey,
+  .parent_id = MENU_ID_CFG_MOD,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &mod_config_tukey_param
+};
+
 static MenuID_t demod_config_cal_children[] = {
   MENU_ID_CFG_DEMOD_CAL_RATIO,     MENU_ID_CFG_DEMOD_CAL_PERFORM,
   MENU_ID_CFG_DEMOD_CAL_LOWFREQ,   MENU_ID_CFG_DEMOD_CAL_HIFREQ,
@@ -684,7 +701,7 @@ static const MenuNode_t demod_config_filt = {
   .handler = NULL,
   .parent_id = MENU_ID_CFG_DEMOD,
   .children_ids = demod_config_filt_children,
-  .num_children = 0,
+  .num_children = sizeof(demod_config_filt_children) / sizeof(demod_config_filt_children[0]),
   .access_level = 0,
   .parameters = NULL
 };
@@ -1333,7 +1350,8 @@ bool COMM_RegisterConfigurationMenu()
              MenuSystem_RegisterMenu(&univ_wakeup_config_en) && MenuSystem_RegisterMenu(&univ_wakeup_config_tone2) &&
              MenuSystem_RegisterMenu(&univ_wakeup_config_tone3) && MenuSystem_RegisterMenu(&change_mac) &&
              MenuSystem_RegisterMenu(&univ_fsk_config_filt) && MenuSystem_RegisterMenu(&univ_fhbfsk_config_filt) &&
-             MenuSystem_RegisterMenu(&demod_config_filt) && MenuSystem_RegisterMenu(&demod_filt_config_dec);
+             MenuSystem_RegisterMenu(&demod_config_filt) && MenuSystem_RegisterMenu(&demod_filt_config_dec) &&
+             MenuSystem_RegisterMenu(&mod_config_tukey);
 
   return ret;
 }
@@ -1604,6 +1622,11 @@ void setModFixedOutput(FunctionContext_t* context)
   COMMLoops_LoopFloat(context, PARAM_OUTPUT_AMPLITUDE);
 }
 
+void toggleTukey(FunctionContext_t* context)
+{
+  COMMLoops_LoopToggle(context, PARAM_APPLY_TUKEY);
+}
+
 void setMessageStartFunction(FunctionContext_t* context)
 {
   COMMLoops_LoopEnum(context, PARAM_MSG_START_FCN);
@@ -1780,5 +1803,5 @@ void setStationaryFlag(FunctionContext_t* context)
 
 void setDecFiltFactor(FunctionContext_t* context)
 {
-  COMMLoops_LoopEnum(context, PARAM_DEC_FILTER_DEC_FACTOR);
+  COMMLoops_LoopUint8(context, PARAM_DEC_FILTER_DEC_FACTOR);
 }

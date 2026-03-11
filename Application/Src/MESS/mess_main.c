@@ -251,7 +251,7 @@ void MESS_StartTask(void* argument)
           }
         }
 
-        SyncState_t sync_state = Sync_Synchronize(cfg);
+        SyncState_t sync_state = Sync_Synchronize(cfg, &rx_msg);
         switch (sync_state) {
           case SYNC_SUCCESS:
             switchState(PROCESSING);
@@ -495,7 +495,6 @@ void switchState(ProcessingState_t newState)
     case LISTENING:
       Sync_Reset();
       cfg = &custom_config;
-      CFG_IncrementVersionNumber();
       Waveform_StopWaveformOutput();
       if (AFE_SetMode(AFE_MODE_RX) != AFE_OK) {
         Error_Routine(ERROR_MESS_PROCESSING);

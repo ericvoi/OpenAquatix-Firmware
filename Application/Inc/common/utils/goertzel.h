@@ -46,6 +46,7 @@ typedef struct {
   float cos_omega;        // cos(2πf/fs)
   float sin_omega;        // sin(2πf/fs)
   float coeff;            // 2*cos(omega) - used for Goertzel reset
+  float omega;            // Angular frequency per sample
   
   float e_f;              // Energy at frequency f
   float normalization_factor;
@@ -55,7 +56,7 @@ typedef struct {
 
 /* Exported constants --------------------------------------------------------*/
 
-
+#define SLIDING_GOERTZEL_CALLS_BEFORE_RESET       64
 
 /* Exported macro ------------------------------------------------------------*/
 
@@ -90,8 +91,9 @@ void goertzel_6(GoertzelInfo_t* goertzel_info);
  * @param goertzel_info Structure populated with initialized goertzel information
  * @param f Frequency to initialize to
  * @param window_length Number of samples in the window
+ * @param initial_countdown Number of times the sliding filter can be called before resetting
  */
-void goertzel_SlidingInit(SlidingGoertzelInfo_t* goertzel_info, uint32_t f, uint16_t window_length);
+void goertzel_SlidingInit(SlidingGoertzelInfo_t* goertzel_info, uint32_t f, uint16_t window_length, uint16_t initial_countdown);
 
 /**
  * @brief Performs a sliding goertzel filter on the incoming data
