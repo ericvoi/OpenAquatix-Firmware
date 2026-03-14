@@ -403,6 +403,8 @@ bool addJanusConvolutional(BitMessage_t* bit_msg,
   bool output_bits[2];
   uint16_t output_index = section_info.ecc_start_index;
 
+  if (section_info.raw_len == 0) return true;
+
   // First add the actual message bits
   for (uint16_t i = 0; i < section_info.raw_len; i++) {
     bool input_bit;

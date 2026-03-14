@@ -12,12 +12,17 @@
 
 #include "mess_filt_resources.h"
 #include "main.h"
+#include "filt_main.h"
 #include "stm32h7xx_hal.h"
 #include <string.h>
 
 /* Private typedef -----------------------------------------------------------*/
 
-
+typedef struct {
+  uint32_t cyccnt;
+  uint32_t associated_rollover_count;
+  uint16_t associated_sample;
+} CyccntTracker_t;
 
 /* Private define ------------------------------------------------------------*/
 
@@ -56,6 +61,9 @@ volatile uint16_t feedback_tail_pos = 0;
 // Number of times the head of either buffer has wrapped around to 0
 static uint16_t buffer_rollover_count = 0;
 static uint64_t rollover_associated_time;
+
+// TODO: fix issue with multiple threads accessing this
+static CyccntTracker_t cyccnt_tracker;
 
 extern ADC_HandleTypeDef hadc1;
 extern ADC_HandleTypeDef hadc2;
@@ -139,7 +147,7 @@ void MessFiltResources_FeedbackAdcClear()
   memset(feedback_buffer, 0, PROCESSING_BUFFER_SIZE * sizeof(uint16_t));
 }
 
-void MessFiltResources_AddFilteredSamples(float* buf, uint16_t num_samples)
+void MessFiltResources_AddFilteredSamples(float* buf, uint16_t num_samples, uint32_t cyccnt)
 {
   uint16_t processing_len = (input_head_pos - input_processing_tail_pos) & PROCESSING_BUFFER_MASK;
   // uint16_t noise_len      = (input_head_pos - input_noise_tail_pos)      & PROCESSING_BUFFER_MASK;
@@ -161,14 +169,37 @@ void MessFiltResources_AddFilteredSamples(float* buf, uint16_t num_samples)
   input_head_pos = (input_head_pos + num_samples) & PROCESSING_BUFFER_MASK;
 
   if (chunk2_size != 0 || input_head_pos == 0) incrementRollover();
+
+  cyccnt_tracker.associated_sample = input_head_pos;
+  cyccnt_tracker.associated_rollover_count = buffer_rollover_count;
+  cyccnt_tracker.cyccnt = cyccnt;
 }
 
-uint16_t MessFiltResources_HeadRolloverCount()
+uint32_t MessFiltResources_AssociatedCyccnt(uint16_t position, uint32_t rollovers)
+{
+  uint64_t absolute_reference_index = 
+      (cyccnt_tracker.associated_rollover_count << PROCESSING_BUFFER_POWER) | 
+      (cyccnt_tracker.associated_sample);
+  uint64_t absolute_input_index = (rollovers << PROCESSING_BUFFER_POWER) | 
+                                   position;
+
+  if (absolute_reference_index < absolute_input_index) return 0;
+
+  uint32_t index_difference = absolute_reference_index - absolute_input_index;
+
+  uint32_t cyccnt_difference = 
+      ((uint64_t) index_difference * (uint64_t) SystemCoreClock) / 
+      (FILT_GetSamplingRate());
+
+  return cyccnt_tracker.cyccnt - cyccnt_difference;
+}
+
+uint32_t MessFiltResources_HeadRolloverCount()
 {
   return buffer_rollover_count;
 }
 
-uint16_t MessFiltResources_TailRolloverCount(bool feedback)
+uint32_t MessFiltResources_TailRolloverCount(bool feedback)
 {
   uint16_t head;
   uint16_t tail;

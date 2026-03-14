@@ -24,6 +24,7 @@
 #include "check_inputs.h"
 #include "number_utils.h"
 #include "usb_comm.h"
+#include "main.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -53,12 +54,15 @@ void transmitIntOut(FunctionContext_t* context);
 void transmitIntFb(FunctionContext_t* context);
 void transmitFloatOut(FunctionContext_t* context);
 void transmitFloatFb(FunctionContext_t* context);
+void rangingRequestTransducer(FunctionContext_t* context);
+void rangingRequestFeedback(FunctionContext_t* context);
 void togglePrint(FunctionContext_t* context);
 
 void transmitBits(FunctionContext_t* context, bool is_feedback);
 void transmitString(FunctionContext_t* context, bool is_feedback);
 void transmitInt(FunctionContext_t* context, bool is_feedback);
 void transmitFloat(FunctionContext_t* context, bool is_feedback);
+void transmitRangingRequest(FunctionContext_t* context, bool is_feedback);
 
 bool parseHexString(FunctionContext_t* context, uint16_t* num_bytes, uint8_t* decoded_bytes);
 void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_feedback);
@@ -72,7 +76,8 @@ extern osMessageQueueId_t regular_tx_queue;
 static MenuID_t txrx_menu_children[] = {
   MENU_ID_TXRX_BITSOUT,   MENU_ID_TXRX_BITSFB,    MENU_ID_TXRX_STROUT, 
   MENU_ID_TXRX_STRFB,     MENU_ID_TXRX_INTOUT,    MENU_ID_TXRX_INTFB,
-  MENU_ID_TXRX_FLOATOUT,  MENU_ID_TXRX_FLOATFB ,  MENU_ID_TXRX_ENPNT
+  MENU_ID_TXRX_FLOATOUT,  MENU_ID_TXRX_FLOATFB ,  MENU_ID_TXRX_RANGEOUT,
+  MENU_ID_TXRX_RANGEFB,   MENU_ID_TXRX_ENPNT
 };
 static const MenuNode_t txrx_menu = {
   .id = MENU_ID_TXRX,
@@ -205,6 +210,36 @@ static const MenuNode_t txrx_float_feedback = {
   .parameters = &txrx_float_feedback_param
 };
 
+static ParamContext_t txrx_range_transducer_param = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_TXRX_RANGEOUT
+};
+static const MenuNode_t txrx_range_transducer = {
+  .id = MENU_ID_TXRX_RANGEOUT,
+  .description = "Send ranging request through transducer",
+  .handler = rangingRequestTransducer,
+  .parent_id = MENU_ID_TXRX,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &txrx_range_transducer_param
+};
+
+static ParamContext_t txrx_range_feedback_param = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_TXRX_RANGEFB
+};
+static const MenuNode_t txrx_range_feedback = {
+  .id = MENU_ID_TXRX_RANGEFB,
+  .description = "Send ranging request through feedback",
+  .handler = rangingRequestFeedback,
+  .parent_id = MENU_ID_TXRX,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &txrx_range_feedback_param
+};
+
 static ParamContext_t txrx_toggle_print_param = {
   .state = PARAM_STATE_0,
   .param_id = MENU_ID_TXRX_ENPNT
@@ -229,7 +264,8 @@ bool COMM_RegisterTxRxMenu()
              MenuSystem_RegisterMenu(&txrx_str_transducer) && MenuSystem_RegisterMenu(&txrx_int_transducer) &&
              MenuSystem_RegisterMenu(&txrx_float_transducer) && MenuSystem_RegisterMenu(&txrx_toggle_print) &&
              MenuSystem_RegisterMenu(&txrx_str_feedback) && MenuSystem_RegisterMenu(&txrx_bits_feedback) &&
-             MenuSystem_RegisterMenu(&txrx_int_feedback) && MenuSystem_RegisterMenu(&txrx_float_feedback);
+             MenuSystem_RegisterMenu(&txrx_int_feedback) && MenuSystem_RegisterMenu(&txrx_float_feedback) &&
+             MenuSystem_RegisterMenu(&txrx_range_transducer) && MenuSystem_RegisterMenu(&txrx_range_feedback);
   return ret;
 }
 
@@ -275,11 +311,22 @@ void transmitFloatFb(FunctionContext_t* context)
   transmitFloat(context, true);
 }
 
+void rangingRequestTransducer(FunctionContext_t* context)
+{
+  osEventFlagsSet(print_event_handle, MESS_REQUEST_RANGE_TRANSDUCER);
+  context->state->state = PARAM_STATE_COMPLETE;
+}
+
+void rangingRequestFeedback(FunctionContext_t* context)
+{
+  osEventFlagsSet(print_event_handle, MESS_REQUEST_RANGE_FEEDBACK);
+  context->state->state = PARAM_STATE_COMPLETE;
+}
+
 void togglePrint(FunctionContext_t* context)
 {
   COMMLoops_LoopToggle(context, PARAM_PRINT_ENABLED);
 }
-
 
 void transmitBits(FunctionContext_t* context, bool is_feedback)
 {

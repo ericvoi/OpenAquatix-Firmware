@@ -36,6 +36,8 @@ typedef enum {
 } PnTrackerState_t;
 
 typedef struct {
+  // TODO: change to track cyccnt on successful sync
+  uint32_t start_cyccnt;
   uint16_t start_buffer_index;
   uint8_t symbols_exceeding_threshold;
   uint8_t frequencies_added;
@@ -300,7 +302,7 @@ static void buildFrequencyBank(const DspConfig_t* cfg)
 static void fillWindowOffsets(const DspConfig_t* cfg)
 {
   static const uint8_t offsets_precision = 4;
-  samples_per_symbol = (uint16_t)(FILT_GetBandwidth() * 2.0f / cfg->baud_rate);
+  samples_per_symbol = (uint16_t)((float) FILT_GetSamplingRate() / cfg->baud_rate);
   uint32_t offsets_increment = (samples_per_symbol << offsets_precision) / PN_SYNC_SUBDIVIDE;
   for (uint8_t i = 0; i < PN_SYNC_SUBDIVIDE; i++) {
     window_offsets[i] = (i * offsets_increment) >> offsets_precision;
@@ -425,6 +427,9 @@ static bool updateSlidingGoertzel(uint16_t new_samples)
   pn_sync_candidates[candidate_index].capped_snr = 0;
   pn_sync_candidates[candidate_index].uncapped_snr = 0;
   pn_sync_candidates[candidate_index].symbols_exceeding_threshold = 0;
+  pn_sync_candidates[candidate_index].start_cyccnt = MessFiltResources_AssociatedCyccnt(
+      pn_sync_candidates[candidate_index].start_buffer_index, 
+      absolute_starting_index >> PROCESSING_BUFFER_POWER);
 
   /* --- Phase 6: Evaluate each sync symbol's contribution to its candidate --- */
   for (uint16_t i = 0; i < NUM_SYNC_FREQUENCIES; i++) {
@@ -675,15 +680,19 @@ static SyncState_t evaluateSlidingPnWindows(Message_t* msg)
             int16_t fine_offset_int = (int16_t)roundf(fine_offset);
 
             /* --- Compute new processing tail --- */
+            uint32_t samples_since_start = NUM_SYNC_FREQUENCIES * samples_per_symbol;
+
             uint32_t base_tail =
                 (pn_sync_candidates[candidate_tracker.best_index].start_buffer_index
-                 + NUM_SYNC_FREQUENCIES * samples_per_symbol) % PROCESSING_BUFFER_SIZE;
+                 + samples_since_start) % PROCESSING_BUFFER_SIZE;
 
             uint32_t new_tail =
                 (base_tail + (uint32_t)(fine_offset_int + PROCESSING_BUFFER_SIZE))
                 & PROCESSING_BUFFER_MASK;
 
             msg->snr = candidate_tracker.best_snr;
+            msg->rx_cyccnt = 
+                pn_sync_candidates[candidate_tracker.best_index].start_cyccnt;
             MessFiltResources_SetProcessingTail(new_tail);
             return SYNC_SUCCESS;
           }

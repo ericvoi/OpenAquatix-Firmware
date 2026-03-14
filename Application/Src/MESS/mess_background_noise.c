@@ -229,7 +229,7 @@ bool updateFrequencyIndices(const DspConfig_t* cfg)
 
   previous_version_number = current_version_number;
 
-  counts_per_entry = FILT_GetBandwidth() * 2 * MS_PER_ENTRY / 1000 / NOISE_BUFFER_SIZE;
+  counts_per_entry = FILT_GetSamplingRate() * MS_PER_ENTRY / 1000 / NOISE_BUFFER_SIZE;
 
   switch (cfg->mod_demod_method) {
     case MOD_DEMOD_FSK:
@@ -296,7 +296,7 @@ bool updateNoiseIndices(uint32_t f0, uint32_t f1)
 float frequencyToIndex(uint32_t frequency, uint16_t fft_size)
 {
   float folded_frequency = (float) FILT_PassbandToBaseband(frequency);
-  return folded_frequency * fft_size / (FILT_GetBandwidth() * 2.0f);
+  return folded_frequency * fft_size / ((float) FILT_GetSamplingRate());
 }
 
 bool updateChannelReport()
@@ -372,7 +372,7 @@ bool updateChannelReportTotalCount(const DspConfig_t* cfg)
   if (cfg->mod_demod_method != MOD_DEMOD_FSK && cfg->mod_demod_method != MOD_DEMOD_FHBFSK) {
     return false;
   }
-  uint32_t samples_per_chip = (uint32_t) (FILT_GetBandwidth() * 2.0f) / cfg->baud_rate;
+  uint32_t samples_per_chip = (uint32_t) (((float) FILT_GetSamplingRate()) / cfg->baud_rate);
   uint32_t samples_per_report = samples_per_chip * CHANNEL_REPORT_CD;
   uint32_t new_total_counts_in_report = (samples_per_report + NOISE_BUFFER_SIZE - 1) / NOISE_BUFFER_SIZE;
 

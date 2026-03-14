@@ -43,7 +43,7 @@ static const uint8_t ais_6_ascii8_lut[] = {
 
 /* Private function prototypes -----------------------------------------------*/
 
-static bool addCustomCargo(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
+static bool addCustomCargo(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg, bool* no_cargo);
 static bool addJanusCargo(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
 static bool addDataCustomCargo(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
 static bool addJanus_11_01_Cargo(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
@@ -61,9 +61,10 @@ static bool decodeAscii6(uint8_t ascii_6, uint8_t* ascii_8);
 
 bool Cargo_Add(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
 {
+  bool no_cargo = false;
   switch (cfg->protocol) {
     case PROTOCOL_CUSTOM:
-      if (addCustomCargo(bit_msg, msg, cfg) == false) {
+      if (addCustomCargo(bit_msg, msg, cfg, &no_cargo) == false) {
         return false;
       }
       break;
@@ -75,9 +76,11 @@ bool Cargo_Add(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
     default:
       return false;
   }
+
+  ErrorCorrectionMethod_t ecc_method = (no_cargo) ? (NO_ECC) : (cfg->cargo_ecc_method);
   
   bit_msg->cargo.ecc_len = ErrorCorrection_CodedLength(bit_msg->cargo.raw_len, 
-                                                       cfg->cargo_ecc_method);
+                                                       ecc_method);
   bit_msg->combined_message_len = bit_msg->cargo.raw_len + bit_msg->preamble.raw_len;
   bit_msg->cargo.raw_start_index = bit_msg->preamble.raw_start_index
                                  + bit_msg->preamble.raw_len;
@@ -134,7 +137,7 @@ uint16_t Cargo_RawUncodedLength(uint16_t coded_len, CodingInfo_t coding_method)
 
 /* Private function definitions ----------------------------------------------*/
 
-bool addCustomCargo(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg) 
+bool addCustomCargo(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg, bool* no_cargo) 
 {
   switch (msg->data_type) {
     case INTEGER:
@@ -145,6 +148,12 @@ bool addCustomCargo(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cf
       return addDataCustomCargo(bit_msg, msg, cfg);
     case EVAL:
       return Evaluate_AddCargo(bit_msg);
+    case RANGING_REQUEST:
+    case RANGING_RESPONSE:
+      bit_msg->data_len_bits = 0;
+      bit_msg->bit_count = bit_msg->cargo.raw_start_index;
+      *no_cargo = true;
+      return true;
     default:
       return false;
   }
@@ -255,6 +264,9 @@ bool extractCustomCargo(BitMessage_t* bit_msg, Message_t* msg)
       return extractDataCustomCargo(bit_msg, msg);
     case EVAL:
       return Evaluate_CodedBer(&msg->eval_info, bit_msg);
+    case RANGING_REQUEST:
+    case RANGING_RESPONSE:
+      return true;
     default:
       return false;
   }

@@ -520,7 +520,7 @@ void switchState(ProcessingState_t newState)
 
 bool handleFlags()
 {
-  uint32_t flags = osEventFlagsWait(print_event_handle, 0x7F, osFlagsWaitAny, 0);
+  uint32_t flags = osEventFlagsWait(print_event_handle, 0xFFFF, osFlagsWaitAny, 0);
 
   if (flags == osFlagsErrorResource) {
     return true;
@@ -569,14 +569,14 @@ bool handlePreambleOnlyMessage()
 {
   switch (cfg->protocol) {
     case PROTOCOL_CUSTOM:
-      switch (rx_msg.data_type) {
+      switch (rx_msg.preamble.message_type.value) {
         case STRING:
         case BITS:
         case INTEGER:
         case FLOAT:
           return false; // Should drop/abort instead
         case RANGING_REQUEST:
-          Ranging_LogRequest();
+          // Ranging_LogRequest();
           Ranging_Respond(rx_msg.rx_cyccnt, rx_msg.type == MSG_RECEIVED_FEEDBACK);
           return true;
         case RANGING_RESPONSE:
