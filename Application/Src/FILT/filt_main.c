@@ -159,9 +159,14 @@ uint32_t FILT_PassbandToBaseband(uint32_t freq_hz)
 
 uint32_t FILT_GetBandwidth(void)
 {
+  return FILT_GetSamplingRate() / 2;
+}
+
+uint32_t FILT_GetSamplingRate(void)
+{
   DigitalFilter_t filter = getFilter();
   uint8_t d = filter_infos[filter].decimation_factor;
-  return ADC_SAMPLING_RATE / (2 * d);
+  return ADC_SAMPLING_RATE / (d);
 }
 
 /* Private function definitions ----------------------------------------------*/
@@ -286,6 +291,7 @@ void decimateFilteredData(void)
 void processRawAdcData(bool first_half)
 {
   if (task_context.use_filter == true) return;
+  uint32_t cyccnt = DWT->CYCCNT;
 
   uint16_t start = (first_half) ? (0)                   : (ADC_BUFFER_SIZE / 2);
   uint16_t end   = (first_half) ? (ADC_BUFFER_SIZE / 2) : (ADC_BUFFER_SIZE);
@@ -302,7 +308,7 @@ void processRawAdcData(bool first_half)
     entries_in_dec_buffer++;
   }
 
-  MessFiltResources_AddFilteredSamples(dec_buffer, entries_in_dec_buffer);
+  MessFiltResources_AddFilteredSamples(dec_buffer, entries_in_dec_buffer, cyccnt);
 }
 
 void resetFmac(void)

@@ -74,10 +74,12 @@ bool Waveform_InitWaveformGenerator(void);
  *
  * @param num_steps Number of steps in the sequence
  * @param is_message Whether the transmission is a full message or not
+ * @param delay Whether to delay the transmission until a specific cycle
+ * @param cyccnt The CYCCNT to start transmission at. Only relevant if delay is true
  *
  * @return true if sequence is valid and was set successfully, false otherwise
  */
-bool Waveform_SetWaveformSequence(uint16_t num_steps, bool is_message);
+bool Waveform_SetWaveformSequence(uint16_t num_steps, bool is_message, bool delay, uint32_t cyccnt);
 
 /**
  * @brief Starts the waveform output on the specified DAC channel
@@ -91,7 +93,11 @@ bool Waveform_SetWaveformSequence(uint16_t num_steps, bool is_message);
  *
  * @pre Waveform_SetWaveformSequence must be called successfully before this function
  */
-bool Waveform_StartWaveformOutput(uint32_t channel);
+bool Waveform_PrepareWaveformOutput(uint32_t channel);
+
+void Waveform_StartOutput(void);
+
+void Waveform_SendRangingRequest(void);
 
 /**
  * @brief Stops all DAC waveform output

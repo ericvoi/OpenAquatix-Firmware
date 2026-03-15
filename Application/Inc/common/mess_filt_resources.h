@@ -129,23 +129,33 @@ void MessFiltResources_FeedbackAdcClear();
  * 
  * @param buf Buffer containing the samples to add
  * @param num_samples The number of samples to add from the buffer
+ * @param cyccnt Cycle count of the last sample added to the array
  */
-void MessFiltResources_AddFilteredSamples(float* buf, uint16_t num_samples);
+void MessFiltResources_AddFilteredSamples(float* buf, uint16_t num_samples, uint32_t cyccnt);
+
+/**
+ * @brief Gets the associated cyccnt for a given position and rollover count
+ * 
+ * @param position ADC position in index
+ * @param rollovers Number of ADC rollovers
+ * @return uint32_t CYCCNT for the position and rollover
+ */
+uint32_t MessFiltResources_AssociatedCyccnt(uint16_t position, uint32_t rollovers);
 
 /**
  * @brief Number of times the ADC head has reset (both buffers)
  * 
- * @return uint16_t Number of rollovers for the tail
+ * @return uint32_t Number of rollovers for the tail
  */
-uint16_t MessFiltResources_HeadRolloverCount();
+uint32_t MessFiltResources_HeadRolloverCount();
 
 /**
  * @brief Number of buffer rollovers at the buffer tail position
  * 
  * @param feedback Whether the feedback or the input ADC is being used
- * @return uint16_t Number of rollovers for the tail
+ * @return uint32_t Number of rollovers for the tail
  */
-uint16_t MessFiltResources_TailRolloverCount(bool feedback);
+uint32_t MessFiltResources_TailRolloverCount(bool feedback);
 
 // Inline functions to interface with the input ADC buffer
 // Note: always_inline used to force basic optimization in low optimization

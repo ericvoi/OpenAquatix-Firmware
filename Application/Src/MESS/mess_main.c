@@ -32,6 +32,7 @@
 #include "mess_error_correction.h"
 #include "mess_demodulate.h"
 #include "mess_error_detection.h"
+#include "mess_ranging.h"
 
 #include "sys_error.h"
 
@@ -145,6 +146,7 @@ DEFINE_DESC_TABLE(ENCRYPTION_TABLE, encryption_descriptors)
 
 static void switchState(ProcessingState_t newState);
 static bool handleFlags();
+static bool handlePreambleOnlyMessage();
 static bool registerMessParams();
 static bool registerMessMainParams();
 static void getConfig();
@@ -243,7 +245,7 @@ void MESS_StartTask(void* argument)
               if (AFE_SetMode(AFE_MODE_RX_FEEDBACK) != AFE_OK) {
                 Error_Routine(ERROR_MESS_PROCESSING);
               }
-              Modulate_StartFeedbackOutput(message_length, cfg, &bit_msg);
+              Modulate_StartFeedbackOutput(message_length, cfg, &bit_msg, &tx_msg);
               // Should automatically go to processing once waveform being received without intervention
               break;
             default:
@@ -304,6 +306,12 @@ void MESS_StartTask(void* argument)
           rx_msg.timestamp = osKernelGetTickCount();
           rx_msg.length_bits = input_bit_msg.data_len_bits;
           rx_msg.protocol = cfg->protocol;
+
+          if (input_bit_msg.cargo.raw_len == 0) {
+            handlePreambleOnlyMessage();
+            switchState(LISTENING);
+            break;
+          }
 
           if (Interleaver_Undo(&input_bit_msg, cfg, false) == false) {
             Error_Routine(ERROR_MESS_PROCESSING);
@@ -489,7 +497,7 @@ void switchState(ProcessingState_t newState)
       if (AFE_SetMode(AFE_MODE_TX) != AFE_OK) { // TODO: change to include feedback for input and output
         Error_Routine(ERROR_MESS_PROCESSING);
       }
-      Modulate_StartTransducerOutput(message_length, cfg, &bit_msg);
+      Modulate_StartTransducerOutput(message_length, cfg, &bit_msg, &tx_msg);
       task_state = DRIVING_TRANSDUCER;
       break;
     case LISTENING:
@@ -502,7 +510,7 @@ void switchState(ProcessingState_t newState)
       task_state = LISTENING;
       break;
     case PROCESSING:
-      Packet_PrepareRx(&input_bit_msg, cfg);
+      Packet_PrepareRx(&rx_msg, &input_bit_msg, cfg);
       task_state = PROCESSING;
       break;
     default:
@@ -512,7 +520,7 @@ void switchState(ProcessingState_t newState)
 
 bool handleFlags()
 {
-  uint32_t flags = osEventFlagsWait(print_event_handle, 0x7F, osFlagsWaitAny, 0);
+  uint32_t flags = osEventFlagsWait(print_event_handle, 0xFFFF, osFlagsWaitAny, 0);
 
   if (flags == osFlagsErrorResource) {
     return true;
@@ -546,7 +554,41 @@ bool handleFlags()
     Input_NoiseFft();
     osEventFlagsSet(print_event_handle, MESS_PRINT_COMPLETE);
   }
+  else if (flags & MESS_REQUEST_RANGE_FEEDBACK) {
+    osEventFlagsClear(print_event_handle, MESS_REQUEST_RANGE_FEEDBACK);
+    Ranging_Request(cfg, true);
+  }
+  else if (flags & MESS_REQUEST_RANGE_TRANSDUCER) {
+    osEventFlagsClear(print_event_handle, MESS_REQUEST_RANGE_TRANSDUCER);
+    Ranging_Request(cfg, false);
+  }
   return true;
+}
+
+bool handlePreambleOnlyMessage()
+{
+  switch (cfg->protocol) {
+    case PROTOCOL_CUSTOM:
+      switch (rx_msg.preamble.message_type.value) {
+        case STRING:
+        case BITS:
+        case INTEGER:
+        case FLOAT:
+          return false; // Should drop/abort instead
+        case RANGING_REQUEST:
+          Ranging_Respond(rx_msg.rx_cyccnt, rx_msg.type == MSG_RECEIVED_FEEDBACK);
+          return true;
+        case RANGING_RESPONSE:
+          Ranging_LogResponse(&rx_msg);
+          return true;
+        default:
+          return false;
+      }
+    case PROTOCOL_JANUS:
+      return false;
+    default:
+      return false;
+  }
 }
 
 bool registerMessParams()

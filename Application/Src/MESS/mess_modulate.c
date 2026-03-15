@@ -12,6 +12,7 @@
 
 #include "mess_modulate.h"
 #include "dac_waveform.h"
+#include "dac_main.h"
 #include "mess_filt_resources.h"
 #include "cmsis_os.h"
 #include "mess_packet.h"
@@ -21,6 +22,7 @@
 #include "cfg_parameters.h"
 #include "cfg_defaults.h"
 #include "stm32h7xx_hal.h"
+#include "core_cm7.h"
 #include <math.h>
 #include <string.h>
 
@@ -59,6 +61,8 @@ typedef struct {
 
 
 /* Private variables ---------------------------------------------------------*/
+
+extern osThreadId_t dacTaskHandle;
 
 static float output_amplitude = DEFAULT_OUTPUT_AMPLITUDE;
 
@@ -141,50 +145,46 @@ float Modulate_GetAmplitude(uint32_t freq_hz)
 
 bool Modulate_StartTransducerOutput(uint16_t num_steps, 
                                     const DspConfig_t* new_cfg, 
-                                    BitMessage_t* new_bit_msg)
+                                    BitMessage_t* new_bit_msg,
+                                    const Message_t* tx_msg)
 {
   HAL_TIM_Base_Stop(&htim6);
   MessFiltResources_StopAllAdcs();
   Waveform_StopWaveformOutput();
   osDelay(1);
   MessDacResource_RegisterMessageConfiguration(new_cfg, new_bit_msg);
-  Waveform_SetWaveformSequence(num_steps, true);
+  Waveform_SetWaveformSequence(num_steps, true, tx_msg->delay, tx_msg->delay_cyccnt);
   if (MessFiltResources_StartFeedbackAdc() == false) {
     return false;
   }
-  if (Waveform_StartWaveformOutput(DAC_CHANNEL_1) == false) {
+  if (Waveform_PrepareWaveformOutput(DAC_CHANNEL_1) == false) {
     return false;
   }
   osDelay(150);
-  return HAL_TIM_Base_Start(&htim6) == HAL_OK;
+  if ((tx_msg->data_type == RANGING_REQUEST) && (new_cfg->protocol == PROTOCOL_CUSTOM))
+    osThreadFlagsSet(dacTaskHandle, DAC_START_RANGING_REQUEST);
+  else
+    osThreadFlagsSet(dacTaskHandle, DAC_START_OUTPUT);
+  return true;
 }
 
 bool Modulate_StartFeedbackOutput(uint16_t num_steps, 
                                   const DspConfig_t* new_cfg, 
-                                  BitMessage_t* new_bit_msg)
+                                  BitMessage_t* new_bit_msg,
+                                  const Message_t* tx_msg)
 {
   HAL_TIM_Base_Stop(&htim6);
   if (Waveform_StopWaveformOutput() == false) return false;
   osDelay(1);
   MessDacResource_RegisterMessageConfiguration(new_cfg, new_bit_msg);
-  if (Waveform_SetWaveformSequence(num_steps, true) == false) return false;
-  if (Waveform_StartWaveformOutput(DAC_CHANNEL_1) == false) return false;
+  if (Waveform_SetWaveformSequence(num_steps, true, tx_msg->delay, tx_msg->delay_cyccnt) == false) return false;
+  if (Waveform_PrepareWaveformOutput(DAC_CHANNEL_1) == false) return false;
 
-  HAL_StatusTypeDef ret = HAL_TIM_Base_Start(&htim6);
-  return ret == HAL_OK;
-}
-
-// TODO: properly deprecate
-void Modulate_TestOutput()
-{
-  test_sequence[0].duration_us = 1000;
-  test_sequence[0].freq_hz = 30000;
-  test_sequence[0].relative_amplitude = output_amplitude;
-  test_sequence[1].duration_us = 1000;
-  test_sequence[1].freq_hz = 33000;
-  test_sequence[1].relative_amplitude = output_amplitude;
-
-//  Waveform_SetWaveformSequence(test_sequence, 2);
+  if ((tx_msg->data_type == RANGING_REQUEST) && (new_cfg->protocol == PROTOCOL_CUSTOM))
+    osThreadFlagsSet(dacTaskHandle, DAC_START_RANGING_REQUEST);
+  else
+    osThreadFlagsSet(dacTaskHandle, DAC_START_OUTPUT);
+  return true;
 }
 
 // TODO: properly deprecate

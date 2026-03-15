@@ -72,6 +72,13 @@ uint32_t FILT_PassbandToBaseband(uint32_t freq_hz);
  */
 uint32_t FILT_GetBandwidth(void);
 
+/**
+ * @brief Gets the effective sampling rate after decimation
+ * 
+ * @return uint32_t Effective sampling rate
+ */
+uint32_t FILT_GetSamplingRate(void);
+
 /* Private defines -----------------------------------------------------------*/
 
 #ifdef __cplusplus

@@ -145,8 +145,10 @@ typedef enum {
   MENU_ID_TXRX_INTFB,           // Transmit an integer through feedback network
   MENU_ID_TXRX_FLOATOUT,        // Transmit a float through transducer
   MENU_ID_TXRX_FLOATFB,         // Transmit a float through feedback
+  MENU_ID_TXRX_RANGEOUT,        // Transmit ranging request through transducer
+  MENU_ID_TXRX_RANGEFB,         // Transmit ranging request through feedback
   MENU_ID_TXRX_ENPNT,           // Enable/disable printing of waveforms as they are received
-  MENU_ID_JANUS_PROTOCOL,         // Toggle JANUS mode
+  MENU_ID_JANUS_PROTOCOL,       // Toggle JANUS mode
   MENU_ID_JANUS_SEND,           // Send JANUS message
   MENU_ID_JANUS_SEND_011_01_OUT,// Send JANUS 011 01 (SMS) through transducer
   MENU_ID_JANUS_SEND_011_01_FB, // Send JANUS 011 01 (SMS) through feedback network

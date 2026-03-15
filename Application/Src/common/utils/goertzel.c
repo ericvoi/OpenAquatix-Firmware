@@ -277,11 +277,11 @@ void goertzel_SlidingReset(SlidingGoertzelInfo_t* goertzel_info, uint16_t start_
     q1 = q0;
   }
 
-  // X[k] = s[N-1] - e^(-jω)·s[N-2]
-  //      = s[N-1] - (cos(ω) - j·sin(ω))·s[N-2]
-  //      = (s[N-1] - cos(ω)·s[N-2]) + j·(sin(ω)·s[N-2])
-  goertzel_info->x_real = q1 - goertzel_info->cos_omega * q2;
-  goertzel_info->x_imag = goertzel_info->sin_omega * q2;
+  // X[k] = e^(jω) * s[N-1] - s[N-2]
+  //      = (cos(ω) + j * sin(ω)) * s[N-1] - s[N-2]
+  //      = (cos(ω) * s[N-1] - s[N-2]) + j * (sin(ω) * s[N-1])
+  goertzel_info->x_real = goertzel_info->cos_omega * q1 - q2;
+  goertzel_info->x_imag = goertzel_info->sin_omega * q1;
 
   float x_real = goertzel_info->x_real;
   float x_imag = goertzel_info->x_imag;

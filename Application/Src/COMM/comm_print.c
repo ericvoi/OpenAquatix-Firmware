@@ -163,6 +163,10 @@ void printCustomData(Message_t* msg, uint8_t* out_buffer, CommInterface_t interf
     case EVAL:
       printEvalMessage(msg, out_buffer, interface);
       return;
+    case RANGING_RESPONSE:
+      sprintf((char*) out_buffer, "Range: %.2fm\r\n", msg->range_m);
+      COMM_TransmitData(out_buffer, CALC_LEN, interface);
+      break;
     default:
       COMM_TransmitData("Unknown data type: N/A", CALC_LEN, interface);
       break;
