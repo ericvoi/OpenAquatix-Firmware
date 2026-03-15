@@ -129,8 +129,10 @@ void printCustomHeader(Message_t* msg, uint8_t* out_buffer, CommInterface_t inte
   sprintf((char*) out_buffer, "Mobile sender: %s\r\n", msg->preamble.is_mobile.value ? "Yes" : "No");
   COMM_TransmitData(out_buffer, CALC_LEN, interface);
 
-  float most_recent_snr = Sync_MostRecentSnr();
-  sprintf((char*) out_buffer, "SNR: %.2f\r\n", most_recent_snr);
+  sprintf((char*) out_buffer, "SNR: %.2f\r\n", msg->snr);
+  COMM_TransmitData(out_buffer, CALC_LEN, interface);
+
+  sprintf((char*) out_buffer, "Relative speed: %.3f m/s\r\n", msg->doppler_mps);
   COMM_TransmitData(out_buffer, CALC_LEN, interface);
 }
 
@@ -160,6 +162,10 @@ void printCustomData(Message_t* msg, uint8_t* out_buffer, CommInterface_t interf
     case EVAL:
       printEvalMessage(msg, out_buffer, interface);
       return;
+    case RANGING_RESPONSE:
+      sprintf((char*) out_buffer, "Range: %.2fm\r\n", msg->range_m);
+      COMM_TransmitData(out_buffer, CALC_LEN, interface);
+      break;
     default:
       COMM_TransmitData("Unknown data type: N/A", CALC_LEN, interface);
       break;
@@ -185,6 +191,12 @@ void printJanusHeader(Message_t* msg, uint8_t* out_buffer, CommInterface_t inter
 
   COMM_TransmitData("Application type: ", CALC_LEN, interface);
   printJanusHeaderParameter(msg->preamble.application_type, out_buffer, interface);
+
+  sprintf((char*) out_buffer, "SNR: %.2f\r\n", msg->snr);
+  COMM_TransmitData(out_buffer, CALC_LEN, interface);
+
+  sprintf((char*) out_buffer, "Relative speed: %.3f m/s\r\n", msg->doppler_mps);
+  COMM_TransmitData(out_buffer, CALC_LEN, interface);
 
   COMM_TransmitData("Message length (bits): ", CALC_LEN, interface);
   sprintf((char*) out_buffer, "%u\r\n", msg->length_bits);

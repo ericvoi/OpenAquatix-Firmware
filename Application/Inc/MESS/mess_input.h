@@ -22,6 +22,7 @@ extern "C" {
 #include "mess_main.h"
 #include "mess_sync.h"
 #include "mess_dsp_config.h"
+#include "mess_sync.h"
 #include "cfg_parameters.h"
 
 #include <stdbool.h>

@@ -25,7 +25,7 @@
 
 /* Private define ------------------------------------------------------------*/
 
-#define ALL_FLAGS (DAC_FILL_FIRST_HALF | DAC_FILL_LAST_HALF)
+#define ALL_FLAGS         0x000000FF
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -68,6 +68,14 @@ void DAC_StartTask(void* argument)
 
     if (flags & DAC_FILL_LAST_HALF) {
       Waveform_FillBuffer(FILL_LAST_HALF);
+    }
+
+    if (flags & DAC_START_OUTPUT) {
+      Waveform_StartOutput();
+    }
+
+    if (flags & DAC_START_RANGING_REQUEST) {
+      Waveform_SendRangingRequest();
     }
 
     if (Error_CheckModuleReset() == TASK_RESET) {

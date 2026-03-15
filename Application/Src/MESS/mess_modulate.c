@@ -13,7 +13,8 @@
 #include "stm32h7xx_hal.h"
 #include "mess_modulate.h"
 #include "dac_waveform.h"
-#include "mess_adc.h"
+#include "dac_main.h"
+#include "mess_filt_resources.h"
 #include "cmsis_os.h"
 #include "mess_packet.h"
 #include "mess_feedback.h"
@@ -23,6 +24,7 @@
 #include "cfg_defaults.h"
 #include "error_manager.h"
 #include "stm32h7xx_hal.h"
+#include "core_cm7.h"
 #include <math.h>
 #include <string.h>
 
@@ -61,6 +63,8 @@ typedef struct {
 
 
 /* Private variables ---------------------------------------------------------*/
+
+extern osThreadId_t dacTaskHandle;
 
 static float output_amplitude = DEFAULT_OUTPUT_AMPLITUDE;
 
@@ -143,37 +147,39 @@ float Modulate_GetAmplitude(uint32_t freq_hz)
 
 void Modulate_StartTransducerOutput(uint16_t num_steps, 
                                     const DspConfig_t* new_cfg, 
-                                    BitMessage_t* new_bit_msg)
+                                    BitMessage_t* new_bit_msg,
+                                    const Message_t* tx_msg)
 {
   if (HAL_TIM_Base_Stop(&htim6) != HAL_OK) 
     REGISTER_ERROR(ERROR_STARTING_TRANSDUCER_OUTPUT);
 
-  if (ADC_StopAll() == false) 
+  if (MessFiltResources_StopAllAdcs() == false) 
     REGISTER_ERROR(ERROR_STARTING_TRANSDUCER_OUTPUT);
 
   if (Waveform_StopWaveformOutput() == false)
     REGISTER_ERROR(ERROR_STARTING_TRANSDUCER_OUTPUT);
 
-  osDelay(1);
-
   MessDacResource_RegisterMessageConfiguration(new_cfg, new_bit_msg);
 
-  if (Waveform_SetWaveformSequence(num_steps, true) == false)
+  if (Waveform_SetWaveformSequence(num_steps, true, tx_msg->delay, tx_msg->delay_cyccnt) == false)
     REGISTER_ERROR(ERROR_STARTING_TRANSDUCER_OUTPUT);
 
-  RETURN_IF_ERROR_PRESENT(ADC_StartFeedback());
+  RETURN_IF_ERROR_PRESENT(MessFiltResources_StartFeedbackAdc());
 
-  if (Waveform_StartWaveformOutput(DAC_CHANNEL_1) == false)
+  if (Waveform_PrepareWaveformOutput(DAC_CHANNEL_1) == false)
     REGISTER_ERROR(ERROR_STARTING_TRANSDUCER_OUTPUT);
   
   osDelay(150);
-  if (HAL_TIM_Base_Start(&htim6) != HAL_OK) 
-    REGISTER_ERROR(ERROR_STARTING_TRANSDUCER_OUTPUT);
+  if ((tx_msg->data_type == RANGING_REQUEST) && (new_cfg->protocol == PROTOCOL_CUSTOM))
+    osThreadFlagsSet(dacTaskHandle, DAC_START_RANGING_REQUEST);
+  else
+    osThreadFlagsSet(dacTaskHandle, DAC_START_OUTPUT);
 }
 
 void Modulate_StartFeedbackOutput(uint16_t num_steps, 
                                   const DspConfig_t* new_cfg, 
-                                  BitMessage_t* new_bit_msg)
+                                  BitMessage_t* new_bit_msg,
+                                  const Message_t* tx_msg)
 {
   RETURN_IF_ERROR_PRESENT();
   HAL_TIM_Base_Stop(&htim6);
@@ -184,7 +190,7 @@ void Modulate_StartFeedbackOutput(uint16_t num_steps,
 
   MessDacResource_RegisterMessageConfiguration(new_cfg, new_bit_msg);
   
-  if (Waveform_SetWaveformSequence(num_steps, true) == false) 
+  if (Waveform_SetWaveformSequence(num_steps, true, tx_msg->delay, tx_msg->delay_cyccnt) == false) 
     REGISTER_ERROR(ERROR_TRANSDUCER_FB_INITIALIZATION);
 
   if (Waveform_StartWaveformOutput(DAC_CHANNEL_1) == false) 
@@ -192,19 +198,12 @@ void Modulate_StartFeedbackOutput(uint16_t num_steps,
 
   if (HAL_TIM_Base_Start(&htim6) != HAL_OK)
     REGISTER_ERROR(ERROR_TRANSDUCER_FB_INITIALIZATION);
-}
 
-// TODO: properly deprecate
-void Modulate_TestOutput()
-{
-  test_sequence[0].duration_us = 1000;
-  test_sequence[0].freq_hz = 30000;
-  test_sequence[0].relative_amplitude = output_amplitude;
-  test_sequence[1].duration_us = 1000;
-  test_sequence[1].freq_hz = 33000;
-  test_sequence[1].relative_amplitude = output_amplitude;
-
-//  Waveform_SetWaveformSequence(test_sequence, 2);
+  if ((tx_msg->data_type == RANGING_REQUEST) && (new_cfg->protocol == PROTOCOL_CUSTOM))
+    osThreadFlagsSet(dacTaskHandle, DAC_START_RANGING_REQUEST);
+  else
+    osThreadFlagsSet(dacTaskHandle, DAC_START_OUTPUT);
+  return true;
 }
 
 // TODO: properly deprecate
@@ -320,7 +319,7 @@ void Modulate_RegisterParams()
 
   min_u32 = MIN_APPLY_TUKEY;
   max_u32 = MAX_APPLY_TUKEY;
-  if (Param_Register(PARAM_APPLY_TUKEY, "Tukey window application", PARAM_TYPE_UINT8,
+  if (Param_Register(PARAM_APPLY_TUKEY, "Tukey window modulation", PARAM_TYPE_UINT8,
                      &apply_tukey, sizeof(bool), &min_u32, &max_u32, NULL, NULL) == false) {
     REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }

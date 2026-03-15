@@ -146,7 +146,6 @@ void MAC_StartTask(void* argument)
     }
 
     if (osMessageQueueGetCount(mac_rx_queue) != 0) {
-      // TODO: add to comm rx queue
       Message_t received_message;
       osMessageQueueGet(mac_rx_queue, &received_message, NULL, 0);
       if (task_context.interface->processRxMessage != NULL) {

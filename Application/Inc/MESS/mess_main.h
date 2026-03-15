@@ -18,10 +18,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
 #include "mess_dsp_config.h"
-#include "FreeRTOS.h"
-#include "queue.h"
 #include <stdbool.h>
-
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -29,7 +26,7 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
-#define EVAL_MESSAGE_LENGTH               100
+#define SPEED_OF_SOUND_MPS                1500.0f
 
 #define PACKET_SENDER_ID_BITS             4
 #define PACKET_MESSAGE_TYPE_BITS          4
@@ -102,6 +99,8 @@ typedef enum {
   STRING,
   FLOAT,
   BITS,
+  RANGING_REQUEST,
+  RANGING_RESPONSE,
   // Add new message data types here
   UNKNOWN,
   EVAL
@@ -137,6 +136,12 @@ typedef struct {
   MessagingProtocol_t protocol;
   uint16_t uncoded_data_len;
   bool is_emergency;
+  float doppler_mps;
+  float snr;
+  bool delay;
+  uint32_t delay_cyccnt;
+  float range_m;
+  uint32_t rx_cyccnt;
 } Message_t;
 
 typedef enum {
@@ -168,7 +173,12 @@ typedef enum {
   MESS_DROPPED_PACKET_CARGO = 1 << 8,
   MESS_MAC_LOST_MESSAGE = 1 << 9,
   MESS_MAC_TX_SPACE = 1 << 10,
-  MESS_MAC_DROPPED_MESSAGE = 1 << 11
+  MESS_MAC_DROPPED_MESSAGE = 1 << 11,
+  MESS_REQUEST_RANGE_FEEDBACK = 1 << 12,
+  MESS_REQUEST_RANGE_TRANSDUCER = 1 << 13,
+  MESS_FAILED_RANGING_REQUEST = 1 << 14,
+  MESS_FAILED_RANGING_RESPONSE = 1 << 15,
+  MESS_RECEIVED_RANGING_RESPONSE_BAD = 1 << 16
 } MessageFlags_t;
 
 /* Exported macro ------------------------------------------------------------*/

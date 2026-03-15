@@ -62,7 +62,14 @@ void BackgroundNoise_Calculate(const DspConfig_t* cfg);
  * 
  * @return float Background noise (scaleless)
  */
-float BackgroundNoise_Get();
+float BackgroundNoise_GetScaleless();
+
+/**
+ * @brief Returns the calculated background noise seen by ADC
+ * 
+ * @return float Noise Spectral Density in nV / sqrt(Hz)
+ */
+float BackgroundNoise_GetNsd();
 
 /**
  * @brief Whether enough samples have been analyzed for a background noise calculation

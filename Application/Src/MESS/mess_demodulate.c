@@ -11,7 +11,7 @@
 /* Private includes ----------------------------------------------------------*/
 
 #include "mess_demodulate.h"
-#include "mess_adc.h"
+#include "mess_filt_resources.h"
 #include "mess_main.h"
 #include "mess_modulate.h"
 

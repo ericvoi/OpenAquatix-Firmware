@@ -500,6 +500,12 @@ void addCustomPreamble(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t*
       RETURN_IF_ERROR_PRESENT(calculateJanusCargoBits(msg, bit_msg, eval_bytes * 8));
       break;
     }
+    case RANGING_REQUEST:
+    case RANGING_RESPONSE:
+      msg->preamble.cargo_length.value = 0;
+      msg->preamble.cargo_length.valid = true;
+      bit_msg->cargo.raw_len = 0;
+      break;
     default:
       REGISTER_ERROR(ERROR_UNHANDLED_CASE);
   }
@@ -575,6 +581,14 @@ void decodeCustomPreamble(BitMessage_t* bit_msg, Message_t* msg, const DspConfig
     case UNKNOWN:
     case EVAL:
       RETURN_IF_ERROR_PRESENT(decodeJanusCargoBits(msg, bit_msg, cfg));
+      break;
+    case RANGING_REQUEST:
+    case RANGING_RESPONSE:
+      bit_msg->cargo.raw_len = 0;
+      bit_msg->cargo.ecc_len = 0;
+      if (msg->preamble.cargo_length.value != 0) {
+        msg->error_detected = true;
+      }
       break;
     default:
       // Attempt decoding anyways, but issue warning to user

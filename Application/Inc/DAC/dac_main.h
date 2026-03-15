@@ -25,8 +25,10 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
-#define DAC_FILL_FIRST_HALF   (1 << 0)
-#define DAC_FILL_LAST_HALF    (1 << 1)
+#define DAC_FILL_FIRST_HALF         (1 << 0)
+#define DAC_FILL_LAST_HALF          (1 << 1)
+#define DAC_START_OUTPUT            (1 << 2)
+#define DAC_START_RANGING_REQUEST   (1 << 3)
 
 
 /* Exported constants --------------------------------------------------------*/

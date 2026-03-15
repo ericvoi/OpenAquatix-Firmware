@@ -44,7 +44,7 @@ static const uint8_t ais_6_ascii8_lut[] = {
 
 /* Private function prototypes -----------------------------------------------*/
 
-static void addCustomCargo(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
+static void addCustomCargo(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg, bool* no_cargo);
 static void addJanusCargo(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
 static void addDataCustomCargo(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
 static void addJanus_11_01_Cargo(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
@@ -63,9 +63,10 @@ static void decodeAscii6(uint8_t ascii_6, uint8_t* ascii_8);
 void Cargo_Add(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
 {
   RETURN_IF_ERROR_PRESENT();
+  bool no_cargo = false;
   switch (cfg->protocol) {
     case PROTOCOL_CUSTOM:
-      RETURN_IF_ERROR_PRESENT(addCustomCargo(bit_msg, msg, cfg));
+      RETURN_IF_ERROR_PRESENT(addCustomCargo(bit_msg, msg, cfg, &no_cargo));
       break;
     case PROTOCOL_JANUS:
       RETURN_IF_ERROR_PRESENT(addJanusCargo(bit_msg, msg, cfg));
@@ -74,9 +75,11 @@ void Cargo_Add(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
       REGISTER_ERROR(ERROR_UNHANDLED_CASE);
       break;
   }
+
+  ErrorCorrectionMethod_t ecc_method = (no_cargo) ? (NO_ECC) : (cfg->cargo_ecc_method);
   
   bit_msg->cargo.ecc_len = ErrorCorrection_CodedLength(bit_msg->cargo.raw_len, 
-                                                       cfg->cargo_ecc_method);
+                                                       ecc_method);
   bit_msg->combined_message_len = bit_msg->cargo.raw_len + bit_msg->preamble.raw_len;
   bit_msg->cargo.raw_start_index = bit_msg->preamble.raw_start_index
                                  + bit_msg->preamble.raw_len;
@@ -137,7 +140,7 @@ uint16_t Cargo_RawUncodedLength(uint16_t coded_len, CodingInfo_t coding_method)
 
 /* Private function definitions ----------------------------------------------*/
 
-void addCustomCargo(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg) 
+void addCustomCargo(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg, bool* no_cargo) 
 {
   switch (msg->data_type) {
     case INTEGER:
@@ -149,6 +152,12 @@ void addCustomCargo(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cf
       break;
     case EVAL:
       RETURN_IF_ERROR_PRESENT(Evaluate_AddCargo(bit_msg));
+      break;
+    case RANGING_REQUEST:
+    case RANGING_RESPONSE:
+      bit_msg->data_len_bits = 0;
+      bit_msg->bit_count = bit_msg->cargo.raw_start_index;
+      *no_cargo = true;
       break;
     default:
       REGISTER_ERROR(ERROR_UNHANDLED_CASE);
@@ -245,6 +254,10 @@ void extractCustomCargo(BitMessage_t* bit_msg, Message_t* msg)
       break;
     case EVAL:
       RETURN_IF_ERROR_PRESENT(Evaluate_CodedBer(&msg->eval_info, bit_msg));
+      break;
+    case RANGING_REQUEST:
+    case RANGING_RESPONSE:
+      // No cargo
       break;
     default:
       REGISTER_ERROR(ERROR_UNKNOWN_MESSAGE);

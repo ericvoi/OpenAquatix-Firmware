@@ -350,6 +350,8 @@ void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_fe
 {
   if (inJanusMode(context) == false) return;
 
+  msg->delay = false;
+
   memset(&msg->preamble, 0, sizeof(PreambleContent_t));
   if (osMessageQueuePut(regular_tx_queue, msg, 0, 0) == true) {
     sprintf((char*) context->output_buffer, "\r\nSuccessfully added to"

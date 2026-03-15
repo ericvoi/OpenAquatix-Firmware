@@ -20,7 +20,7 @@
 #include "internal/tpa32xx-driver.h"
 #include "internal/tr_switch.h"
 #include "pwr_domains.h"
-#include "mess_adc.h"
+#include "mess_filt_resources.h"
 #include "mess_input.h"
 #include "mess_sync.h"
 #include "error_manager.h"
@@ -174,9 +174,9 @@ void enterRxFeedback(void)
 void enterTx(bool with_feedback)
 {
   uint64_t start_timestamp = HAL_AbsoluteTimestamp();
-  if (ADC_StopAll() == false)
+  if (MessFiltResources_StopAllAdcs() == false) {
     REGISTER_ERROR(ERROR_AFE_GENERAL);
-  
+  }
   Feedback_SwitchInput(false);
   Feedback_SwitchOutput(with_feedback);
   TPA_Mute(); // Mute PA prior to voltage rails being turned on to turn on in defined state
@@ -216,11 +216,13 @@ bool isTimedOut(uint64_t start_time)
 // Function only called when transitioning to receiving state
 void restartADCs()
 {
-  if (ADC_StopAll() == false)
+  if (MessFiltResources_StopAllAdcs() == false) {
     REGISTER_ERROR(ERROR_AFE_GENERAL);
-  
+  }
   Input_Reset();
-  ADC_StartInput();
+  if (MessFiltResources_StartInputAdc() == false) {
+    REGISTER_ERROR(ERROR_AFE_GENERAL);
+  }
   // If receiving prior, then the sync state is fine, but not if transmitting prior
   // Reset not used if not needed since computationally expensive
   if (AFE_IsTransmitting()) 

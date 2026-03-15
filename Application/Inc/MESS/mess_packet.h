@@ -40,7 +40,6 @@ typedef struct {
   uint8_t data[PACKET_MAX_LENGTH_BYTES];
   uint16_t bit_count;
   uint16_t data_len_bits;
-  CustomMessageData_t contents_data_type;
   SectionInfo_t preamble;
   SectionInfo_t cargo;
   uint16_t final_length; // includes ecc
@@ -86,10 +85,11 @@ void Packet_PrepareTx(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* 
 /**
  * @brief Initializes a bit message structure for receiving incoming data
  *
+ * @param msg Pointer to message containing new message information
  * @param bit_msg Pointer to the bit message structure to initialize
  * @param cfg Configuration values used for decoding input messages
  */
-void Packet_PrepareRx(BitMessage_t* bit_msg, const DspConfig_t* cfg);
+void Packet_PrepareRx(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* cfg);
 
 /**
  * @brief Adds a single bit to a bit message

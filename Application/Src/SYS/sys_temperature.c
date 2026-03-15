@@ -12,7 +12,7 @@
 
 #include "stm32h7xx_hal.h"
 #include "sys_temperature.h"
-#include "mess_adc.h"
+#include "mess_filt_resources.h" // TODO: change ADC dependency to be out of here
 #include "lps22hh-driver.h"
 #include "error_manager.h"
 
@@ -63,6 +63,8 @@ static float tj_max = -1000.0f; // -1000 So the first value always overwrites
 static uint64_t tj_count = 0;
 // Sum of all raw adc temperature values
 static uint64_t accumulated_raw_tj = 0;
+
+extern ADC_HandleTypeDef hadc3;
 
 /* Ambient Temperature Variables ============================================*/
 

@@ -12,7 +12,8 @@
 
 #include "goertzel.h"
 #include "uam_math.h"
-#include "mess_adc.h"
+#include "mess_filt_resources.h"
+#include "filt_main.h"
 #include "math.h"
 
 /* Private typedef -----------------------------------------------------------*/
@@ -22,7 +23,6 @@
 /* Private define ------------------------------------------------------------*/
 
 #define WINDOW_PRECISION                8
-#define SLIDING_CALLS_BEFORE_RESET      64
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -30,8 +30,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-#define MAX_SLIDING_INDEX 32
-static uint16_t sliding_goertzel_index = 0;
+
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -40,7 +39,7 @@ static uint16_t sliding_goertzel_index = 0;
 
 void goertzel_1(GoertzelInfo_t* goertzel_info)
 {
-  float omega_f0 = 2.0 * goertzel_info->f[0] / ADC_SAMPLING_RATE;
+  float omega_f0 = ((float) FILT_PassbandToBaseband(goertzel_info->f[0])) / FILT_GetBandwidth();
 
   float coeff_f0 = 2.0 * uam_cosf(omega_f0);
 
@@ -55,7 +54,7 @@ void goertzel_1(GoertzelInfo_t* goertzel_info)
   for (uint16_t i = 0; i < goertzel_info->data_len; i++) {
     float window_value = goertzel_info->window[(window_index >> WINDOW_PRECISION)];
     uint16_t index = (i + goertzel_info->start_pos) & mask;
-    float data_value = ADC_InputGetDataAbsolute(index) * window_value;
+    float data_value = MessFiltResources_GetInputDataAbsolute(index) * window_value;
 
     q0_f0 = coeff_f0 * q1_f0 - q2_f0 + data_value;
     q2_f0 = q1_f0;
@@ -74,8 +73,8 @@ void goertzel_1(GoertzelInfo_t* goertzel_info)
 // operations required. Uses 10/32 floating-point registers in the main loop
 void goertzel_2(GoertzelInfo_t* goertzel_info)
 {
-  float omega_f0 = 2.0 * goertzel_info->f[0] / ADC_SAMPLING_RATE;
-  float omega_f1 = 2.0 * goertzel_info->f[1] / ADC_SAMPLING_RATE;
+  float omega_f0 = ((float) FILT_PassbandToBaseband(goertzel_info->f[0])) / FILT_GetBandwidth();
+  float omega_f1 = ((float) FILT_PassbandToBaseband(goertzel_info->f[1])) / FILT_GetBandwidth();
 
   float coeff_f0 = 2.0 * uam_cosf(omega_f0);
   float coeff_f1 = 2.0 * uam_cosf(omega_f1);
@@ -92,7 +91,7 @@ void goertzel_2(GoertzelInfo_t* goertzel_info)
   for (uint16_t i = 0; i < goertzel_info->data_len; i++) {
     float window_value = goertzel_info->window[(window_index >> WINDOW_PRECISION)];
     uint16_t index = (i + goertzel_info->start_pos) & mask;
-    float data_value = ADC_InputGetDataAbsolute(index) * window_value;
+    float data_value = MessFiltResources_GetInputDataAbsolute(index) * window_value;
 
     q0_f0 = coeff_f0 * q1_f0 - q2_f0 + data_value;
     q2_f0 = q1_f0;
@@ -117,12 +116,12 @@ void goertzel_2(GoertzelInfo_t* goertzel_info)
 // operations required. Uses 26/32 floating-point registers in the main loop
 void goertzel_6(GoertzelInfo_t* goertzel_info)
 {
-  float omega_f0 = 2.0 * goertzel_info->f[0] / ADC_SAMPLING_RATE;
-  float omega_f1 = 2.0 * goertzel_info->f[1] / ADC_SAMPLING_RATE;
-  float omega_f2 = 2.0 * goertzel_info->f[2] / ADC_SAMPLING_RATE;
-  float omega_f3 = 2.0 * goertzel_info->f[3] / ADC_SAMPLING_RATE;
-  float omega_f4 = 2.0 * goertzel_info->f[4] / ADC_SAMPLING_RATE;
-  float omega_f5 = 2.0 * goertzel_info->f[5] / ADC_SAMPLING_RATE;
+  float omega_f0 = ((float) FILT_PassbandToBaseband(goertzel_info->f[0])) / FILT_GetBandwidth();
+  float omega_f1 = ((float) FILT_PassbandToBaseband(goertzel_info->f[1])) / FILT_GetBandwidth();
+  float omega_f2 = ((float) FILT_PassbandToBaseband(goertzel_info->f[2])) / FILT_GetBandwidth();
+  float omega_f3 = ((float) FILT_PassbandToBaseband(goertzel_info->f[3])) / FILT_GetBandwidth();
+  float omega_f4 = ((float) FILT_PassbandToBaseband(goertzel_info->f[4])) / FILT_GetBandwidth();
+  float omega_f5 = ((float) FILT_PassbandToBaseband(goertzel_info->f[5])) / FILT_GetBandwidth();
 
   float coeff_f0 = 2.0 * uam_cosf(omega_f0);
   float coeff_f1 = 2.0 * uam_cosf(omega_f1);
@@ -147,7 +146,7 @@ void goertzel_6(GoertzelInfo_t* goertzel_info)
   for (uint16_t i = 0; i < goertzel_info->data_len; i++) {
     float window_value = goertzel_info->window[(window_index >> WINDOW_PRECISION)];
     uint16_t index = (i + goertzel_info->start_pos) & mask;
-    float data_value = ADC_InputGetDataAbsolute(index) * window_value;
+    float data_value = MessFiltResources_GetInputDataAbsolute(index) * window_value;
 
     q0_f0 = coeff_f0 * q1_f0 - q2_f0 + data_value;
     q2_f0 = q1_f0;
@@ -192,26 +191,25 @@ void goertzel_6(GoertzelInfo_t* goertzel_info)
   goertzel_info->e_f[5] = energy_f5 * normalization_factor;
 }
 
-void goertzel_SlidingInit(SlidingGoertzelInfo_t* goertzel_info, uint32_t f, uint16_t window_length)
+void goertzel_SlidingInit(SlidingGoertzelInfo_t* goertzel_info, uint32_t f, uint16_t window_length, uint16_t initial_countdown)
 {
   goertzel_info->f = f;
   goertzel_info->x_real = 0.0f;
   goertzel_info->x_imag = 0.0f;
 
-  float omega_normalized = 2.0f * M_PI * (float)f / (float)ADC_SAMPLING_RATE;
+  float omega_normalized = M_PI * (float)FILT_PassbandToBaseband(f) / (float)FILT_GetBandwidth();
   
   // No CORDIC acceleration since high accuracy required for stability
   goertzel_info->cos_omega = cosf(omega_normalized);
   goertzel_info->sin_omega = sinf(omega_normalized);
   goertzel_info->coeff = 2.0f * goertzel_info->cos_omega;
+  goertzel_info->omega = omega_normalized;
 
   goertzel_info->normalization_factor = 1.0f / (float)window_length;
-
   goertzel_info->window_length = window_length;
   
   // Stagger resets across filters to spread computational load
-  goertzel_info->calls_before_reset = sliding_goertzel_index * SLIDING_CALLS_BEFORE_RESET / MAX_SLIDING_INDEX;
-  sliding_goertzel_index = (sliding_goertzel_index + 1) % MAX_SLIDING_INDEX;
+  goertzel_info->calls_before_reset = initial_countdown;
 }
 
 void goertzel_SlidingPerform(SlidingGoertzelInfo_t* goertzel_info, uint16_t start_index, uint16_t samples, uint16_t buf_len)
@@ -222,7 +220,7 @@ void goertzel_SlidingPerform(SlidingGoertzelInfo_t* goertzel_info, uint16_t star
   if (goertzel_info->calls_before_reset == 0) {
     uint16_t window_start = (start_index + samples - goertzel_info->window_length) & mask;
     
-    goertzel_info->calls_before_reset = SLIDING_CALLS_BEFORE_RESET;
+    goertzel_info->calls_before_reset = SLIDING_GOERTZEL_CALLS_BEFORE_RESET;
     goertzel_SlidingReset(goertzel_info, window_start, buf_len);
     return;
   }
@@ -240,8 +238,8 @@ void goertzel_SlidingPerform(SlidingGoertzelInfo_t* goertzel_info, uint16_t star
     uint16_t new_index = (start_index + i) & mask;
     uint16_t old_index = (new_index - win_len) & mask;
     
-    float new_sample = ADC_InputGetDataAbsolute(new_index);
-    float old_sample = ADC_InputGetDataAbsolute(old_index);
+    float new_sample = MessFiltResources_GetInputDataAbsolute(new_index);
+    float old_sample = MessFiltResources_GetInputDataAbsolute(old_index);
 
     float delta = new_sample - old_sample;
     float temp_real = x_real + delta;
@@ -272,18 +270,18 @@ void goertzel_SlidingReset(SlidingGoertzelInfo_t* goertzel_info, uint16_t start_
   
   for (uint16_t i = 0; i < goertzel_info->window_length; i++) {
     uint16_t index = (start_index + i) & mask;
-    float sample = ADC_InputGetDataAbsolute(index);
+    float sample = MessFiltResources_GetInputDataAbsolute(index);
 
     q0 = sample + coeff * q1 - q2;
     q2 = q1;
     q1 = q0;
   }
 
-  // X[k] = s[N-1] - e^(-jω)·s[N-2]
-  //      = s[N-1] - (cos(ω) - j·sin(ω))·s[N-2]
-  //      = (s[N-1] - cos(ω)·s[N-2]) + j·(sin(ω)·s[N-2])
-  goertzel_info->x_real = q1 - goertzel_info->cos_omega * q2;
-  goertzel_info->x_imag = goertzel_info->sin_omega * q2;
+  // X[k] = e^(jω) * s[N-1] - s[N-2]
+  //      = (cos(ω) + j * sin(ω)) * s[N-1] - s[N-2]
+  //      = (cos(ω) * s[N-1] - s[N-2]) + j * (sin(ω) * s[N-1])
+  goertzel_info->x_real = goertzel_info->cos_omega * q1 - q2;
+  goertzel_info->x_imag = goertzel_info->sin_omega * q1;
 
   float x_real = goertzel_info->x_real;
   float x_imag = goertzel_info->x_imag;

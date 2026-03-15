@@ -27,7 +27,7 @@
 
 typedef struct {
   ParamIds_t id;
-  char name[32];
+  const char* name;
   ParamType_t type;
   void* value_ptr;
   size_t value_size;
@@ -37,7 +37,7 @@ typedef struct {
     struct {float min; float max;} f;
   } limits;
   void (*callback)(void);
-  char** descriptors;
+  const char** descriptors;
   bool is_modified;
 } Parameter_t;
 
@@ -160,7 +160,7 @@ void Param_LoadInit(void)
 // Note: min and max MUST be 32 bits for uint16, int16, int8 and uint8
 bool Param_Register(ParamIds_t id, const char* name, ParamType_t type,
                     void* value_ptr, size_t value_size, void* min, void* max,
-                    void (*callback)(void), char** descriptors)
+                    void (*callback)(void), const char** descriptors)
 {
   if ((min == NULL) || (max == NULL) || (name == NULL) || (value_ptr == NULL)) {
     return false;
@@ -178,7 +178,7 @@ bool Param_Register(ParamIds_t id, const char* name, ParamType_t type,
     return false;
   }
   param->id = id;
-  strncpy(param->name, name, sizeof(param->name) - 1);
+  param->name = name;
   param->type = type;
   param->value_ptr = value_ptr;
   param->value_size = value_size;
@@ -205,6 +205,7 @@ bool Param_Register(ParamIds_t id, const char* name, ParamType_t type,
       param->limits.f.max = *(float*) max;
       break;
     default:
+      osMutexRelease(param_mutex);
       return false;
   }
 
@@ -266,17 +267,17 @@ bool Param_GetEnum(ParamIds_t id, uint8_t* value)
   return Param_GetValue(id, value);
 }
 
-char* Param_GetName(ParamIds_t id)
+const char* Param_GetName(ParamIds_t id)
 {
-  char* param_name = NULL;
   if (osMutexAcquire(param_mutex, osWaitForever) == osOK) {
     Parameter_t* param = findParamById(id);
     if (isParamInitialized(id) == true) {
-      param_name = param->name;
+      osMutexRelease(param_mutex);
+      return param->name;
     }
     osMutexRelease(param_mutex);
   }
-  return param_name;
+  return NULL;
 }
 
 bool Param_GetLimits(ParamIds_t id, void* min, void* max)
@@ -477,23 +478,22 @@ bool Param_GetParamType(ParamIds_t id, ParamType_t* param_type)
   if (osMutexAcquire(param_mutex, osWaitForever) == osOK) {
     Parameter_t* param = findParamById(id);
     if (isParamInitialized(id) == true) {
+      osMutexRelease(param_mutex);
       *param_type = param->type;
       return true;
     }
+    osMutexRelease(param_mutex);
   }
   return false;
 }
 
-char** Param_GetDescriptors(ParamIds_t id)
+const char** Param_GetDescriptors(ParamIds_t id)
 {
   ParamType_t type;
   if (Param_GetParamType(id, &type) == false) return NULL;
   if (type != PARAM_TYPE_ENUM) return false;
   
-  if (osMutexAcquire(param_mutex, osWaitForever) != osOK) return NULL;
-  char** descriptors = parameters[id].descriptors;
-  osMutexRelease(param_mutex);
-  return descriptors;
+  return parameters[id].descriptors;
 }
 
 void Param_SaveToFlash(void)
