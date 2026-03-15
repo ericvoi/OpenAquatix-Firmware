@@ -36,7 +36,6 @@ typedef enum {
 } PnTrackerState_t;
 
 typedef struct {
-  // TODO: change to track cyccnt on successful sync
   uint32_t start_cyccnt;
   uint16_t start_buffer_index;
   uint8_t symbols_exceeding_threshold;
@@ -45,6 +44,9 @@ typedef struct {
   float capped_snr;
   float uncapped_snr;
   float ambient_snr;
+
+  float doppler_alpha_sum;
+  float doppler_alpha_weight;
 } PnSynchronizationCandidate_t;
 
 typedef struct {
@@ -70,13 +72,14 @@ typedef struct {
 #define REQUIRED_CANDIDATES_AFTER_BEST  8
 
 // Frequency bank: all unique FHBFSK tones
-#define MAX_FHBFSK_BANK_SIZE            (MAX_FHBFSK_NUM_TONES * 2)
+#define MAX_FHBFSK_BANK_SIZE            (MAX_FHBFSK_NUM_TONES)
+
+// Goertzel reset staggering
+#define RESET_BLOCK_SIZE                8
 
 // Doppler estimation via phase tracking
-#define DOPPLER_BLOCK_SIZE              8
 #define DOPPLER_PHASE_LOOKBACK          8
 #define DOPPLER_ENERGY_THRESHOLD        3.0f
-#define MIN_DOPPLER_ACCUMULATIONS       20
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -107,22 +110,14 @@ static SlidingGoertzelInfo_t sliding_goertzel_bank[MAX_FHBFSK_BANK_SIZE];
 static uint32_t bank_frequencies[MAX_FHBFSK_BANK_SIZE];
 static uint16_t bank_size;
 static int8_t sync_to_bank_map[NUM_SYNC_FREQUENCIES];
-static int8_t sync_to_noise_map[NUM_SYNC_FREQUENCIES];
 
-/*--- Doppler estimation variables (global accumulator) ---*/
+/*--- Doppler phase tracking variables ---*/
 static float doppler_phase_buf_real[MAX_FHBFSK_BANK_SIZE][DOPPLER_PHASE_LOOKBACK];
 static float doppler_phase_buf_imag[MAX_FHBFSK_BANK_SIZE][DOPPLER_PHASE_LOOKBACK];
 static uint16_t doppler_sample_buf[DOPPLER_PHASE_LOOKBACK];
 static uint16_t doppler_total_lookback_samples;
 static uint8_t doppler_phase_buf_idx;
 static uint8_t doppler_since_reset[MAX_FHBFSK_BANK_SIZE];
-static float doppler_alpha_sum;
-static float doppler_alpha_weight;
-static uint16_t doppler_accumulation_count;
-
-static float doppler_bias_alpha = 0.0f;
-static bool  doppler_bias_calibrated = false;
-#define BIAS_CALIBRATION_COUNT  200  // accumulations before locking bias
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -134,9 +129,8 @@ static SyncState_t janusPnSynchronize(Message_t* msg);
 static bool resetPnSynchronization(void);
 static void fillWindowOffsets(const DspConfig_t* cfg);
 static bool updateSlidingGoertzel(uint16_t new_samples);
-static void accumulateGlobalDoppler(uint16_t new_samples);
 static SyncState_t evaluateSlidingPnWindows(Message_t* msg);
-static void finalizeDopplerEstimate(Message_t* msg);
+static void finalizeDopplerEstimate(Message_t* msg, uint16_t best_idx);
 static float computeFineSyncOffset(uint16_t best_idx);
 
 /* Exported function definitions ---------------------------------------------*/
@@ -204,9 +198,6 @@ static void updateParameters(const DspConfig_t* cfg)
   buildFrequencyBank(cfg);
   fillWindowOffsets(cfg);
   resetPnSynchronization();
-
-  doppler_bias_alpha = 0;
-  doppler_bias_calibrated = false;
 }
 
 static bool janusPnStep(bool* bit, uint16_t step)
@@ -282,19 +273,16 @@ static void buildFrequencyBank(const DspConfig_t* cfg)
     bank_frequencies[bank_size++] = all_freqs[count - 1] + min_spacing;
   }
 
-  /* Map each sync symbol to its bank index and noise-reference bank index */
+  /* Map each sync symbol to its bank index */
   for (uint16_t i = 0; i < NUM_SYNC_FREQUENCIES; i++) {
     bool bit;
     janusPnStep(&bit, i);
     uint32_t f_active = Modulate_GetFhbfskFrequency(bit, i, cfg);
-    uint32_t f_noise  = Modulate_GetFhbfskFrequency(!bit, i, cfg);
 
     sync_to_bank_map[i] = -1;
-    sync_to_noise_map[i] = -1;
 
     for (uint16_t j = 0; j < bank_size; j++) {
       if (bank_frequencies[j] == f_active) sync_to_bank_map[i] = (int8_t)j;
-      if (bank_frequencies[j] == f_noise)  sync_to_noise_map[i] = (int8_t)j;
     }
   }
 }
@@ -323,10 +311,10 @@ static bool resetPnSynchronization(void)
   /* Compute grouped-reset countdowns.
    * All filters within the same block share one countdown value.
    * Blocks are staggered so resets don't all land on the same sub-step. */
-  uint16_t num_groups = (bank_size + DOPPLER_BLOCK_SIZE - 1) / DOPPLER_BLOCK_SIZE;
+  uint16_t num_groups = (bank_size + RESET_BLOCK_SIZE - 1) / RESET_BLOCK_SIZE;
 
   for (uint16_t b = 0; b < bank_size; b++) {
-    uint16_t group = b / DOPPLER_BLOCK_SIZE;
+    uint16_t group = b / RESET_BLOCK_SIZE;
     uint16_t countdown = (num_groups > 1)
         ? (group * SLIDING_GOERTZEL_CALLS_BEFORE_RESET / num_groups)
         : 0;
@@ -337,16 +325,13 @@ static bool resetPnSynchronization(void)
                           MessFiltResources_GetProcessingTail(), PROCESSING_BUFFER_SIZE);
   }
 
-  /* Clear Doppler estimation state */
+  /* Clear Doppler phase tracking state */
   memset(doppler_phase_buf_real, 0, sizeof(doppler_phase_buf_real));
   memset(doppler_phase_buf_imag, 0, sizeof(doppler_phase_buf_imag));
   memset(doppler_sample_buf, 0, sizeof(doppler_sample_buf));
   memset(doppler_since_reset, 0, sizeof(doppler_since_reset));
   doppler_total_lookback_samples = 0;
   doppler_phase_buf_idx = 0;
-  doppler_alpha_sum = 0.0f;
-  doppler_alpha_weight = 0.0f;
-  doppler_accumulation_count = 0;
 
   memset(&pn_sync_candidates, 0, sizeof(pn_sync_candidates));
   MessFiltResources_ProcessingTailAdvance(samples_per_symbol);
@@ -392,7 +377,7 @@ static SyncState_t janusPnSynchronize(Message_t* msg)
 
 static bool updateSlidingGoertzel(uint16_t new_samples)
 {
-  /* --- Phase 1: Record pre-update state for Doppler, detect resets --- */
+  /* --- Phase 1: Record pre-update state, detect resets --- */
   for (uint16_t b = 0; b < bank_size; b++) {
     if (sliding_goertzel_bank[b].calls_before_reset == 0) {
       doppler_since_reset[b] = 0;
@@ -406,19 +391,13 @@ static bool updateSlidingGoertzel(uint16_t new_samples)
                             PROCESSING_BUFFER_SIZE);
   }
 
-  /* --- Phase 3: Accumulate global Doppler estimate --- */
-  accumulateGlobalDoppler(new_samples);
+  /* --- Phase 3: Update lookback sample tracking for Doppler --- */
+  doppler_total_lookback_samples -= doppler_sample_buf[doppler_phase_buf_idx];
+  doppler_total_lookback_samples += new_samples;
 
-  /* --- Phase 4: Increment since-reset counters (after Doppler uses them) --- */
-  for (uint16_t b = 0; b < bank_size; b++) {
-    if (doppler_since_reset[b] < UINT8_MAX) {
-      doppler_since_reset[b]++;
-    }
-  }
-
-  /* --- Phase 5: Initialize this candidate slot --- */
+  /* --- Phase 4: Initialize this candidate slot --- */
   uint64_t absolute_starting_index = MessFiltResources_TailRolloverCount(false)
-                                      << PROCESSING_BUFFER_POWER;
+                                     << PROCESSING_BUFFER_POWER;
   absolute_starting_index += MessFiltResources_GetProcessingTail() + new_samples;
   absolute_starting_index -= samples_per_symbol;
   pn_sync_candidates[candidate_index].start_buffer_index =
@@ -427,14 +406,20 @@ static bool updateSlidingGoertzel(uint16_t new_samples)
   pn_sync_candidates[candidate_index].capped_snr = 0;
   pn_sync_candidates[candidate_index].uncapped_snr = 0;
   pn_sync_candidates[candidate_index].symbols_exceeding_threshold = 0;
+  pn_sync_candidates[candidate_index].doppler_alpha_sum = 0.0f;
+  pn_sync_candidates[candidate_index].doppler_alpha_weight = 0.0f;
   pn_sync_candidates[candidate_index].start_cyccnt = MessFiltResources_AssociatedCyccnt(
       pn_sync_candidates[candidate_index].start_buffer_index, 
       absolute_starting_index >> PROCESSING_BUFFER_POWER);
 
-  /* --- Phase 6: Evaluate each sync symbol's contribution to its candidate --- */
+  /* --- Phase 5: Evaluate each sync symbol's contribution to its candidate --- */
+  float energy_threshold = DOPPLER_ENERGY_THRESHOLD * background_noise;
+
   for (uint16_t i = 0; i < NUM_SYNC_FREQUENCIES; i++) {
-    int8_t k       = sync_to_bank_map[i];
-    int8_t k_noise = sync_to_noise_map[i];
+    int8_t k = sync_to_bank_map[i];
+
+    /* Noise reference: next symbol's active frequency, or background for last */
+    int8_t k_noise = (i < NUM_SYNC_FREQUENCIES - 1) ? sync_to_bank_map[i + 1] : -1;
 
     /* Fallback to background noise if mapping failed */
     float signal_e = (k >= 0) ? sliding_goertzel_bank[k].e_f : 0.0f;
@@ -477,7 +462,73 @@ static bool updateSlidingGoertzel(uint16_t new_samples)
     if (pn_sync_candidates[sliding_index].frequencies_added > NUM_SYNC_FREQUENCIES) {
       return false;
     }
+
+    /* --- Per-symbol Doppler estimation via phase tracking --- */
+    if (k >= 0 &&
+        signal_e >= energy_threshold &&
+        doppler_since_reset[k] >= DOPPLER_PHASE_LOOKBACK &&
+        doppler_total_lookback_samples > 0) {
+
+      /* Retrieve lookback complex value (oldest in circular buffer) */
+      float old_real = doppler_phase_buf_real[k][doppler_phase_buf_idx];
+      float old_imag = doppler_phase_buf_imag[k][doppler_phase_buf_idx];
+
+      /* Check that lookback energy was also sufficient */
+      float old_mag_sq = old_real * old_real + old_imag * old_imag;
+      float threshold_unnorm = energy_threshold
+                               / sliding_goertzel_bank[k].normalization_factor;
+
+      if (old_mag_sq >= threshold_unnorm) {
+        float new_real = sliding_goertzel_bank[k].x_real;
+        float new_imag = sliding_goertzel_bank[k].x_imag;
+
+        /* Z = X_new × conj(X_old): total phase rotation */
+        float z_real = new_real * old_real + new_imag * old_imag;
+        float z_imag = new_imag * old_real - new_real * old_imag;
+
+        /* Expected rotation for nominal frequency over lookback span */
+        float omega = sliding_goertzel_bank[k].omega;
+        float total_samples_f = (float)doppler_total_lookback_samples;
+        float expected_phase = omega * total_samples_f;
+        float exp_r = cosf(expected_phase);
+        float exp_i = sinf(expected_phase);
+
+        /* Excess rotation = Z × conj(expected) */
+        float exc_real = z_real * exp_r + z_imag * exp_i;
+        float exc_imag = z_imag * exp_r - z_real * exp_i;
+
+        if (exc_real > 0.0f) {
+          float excess_phase = atan2f(exc_imag, exc_real);
+
+          /* alpha = excess_phase / (omega × N)
+           * Doppler causes f_rx = f_tx·(1+alpha) */
+          float denom = omega * total_samples_f;
+          if (fabsf(denom) > 1e-6f) {
+            float alpha  = excess_phase / denom;
+            float weight = signal_e;
+
+            pn_sync_candidates[sliding_index].doppler_alpha_sum    += weight * alpha;
+            pn_sync_candidates[sliding_index].doppler_alpha_weight += weight;
+          }
+        }
+      }
+    }
   }
+
+  /* --- Phase 6: Increment since-reset counters --- */
+  for (uint16_t b = 0; b < bank_size; b++) {
+    if (doppler_since_reset[b] < UINT8_MAX) {
+      doppler_since_reset[b]++;
+    }
+  }
+
+  /* --- Phase 7: Save current complex values into phase circular buffer --- */
+  for (uint16_t b = 0; b < bank_size; b++) {
+    doppler_phase_buf_real[b][doppler_phase_buf_idx] = sliding_goertzel_bank[b].x_real;
+    doppler_phase_buf_imag[b][doppler_phase_buf_idx] = sliding_goertzel_bank[b].x_imag;
+  }
+  doppler_sample_buf[doppler_phase_buf_idx] = new_samples;
+  doppler_phase_buf_idx = (doppler_phase_buf_idx + 1) % DOPPLER_PHASE_LOOKBACK;
 
   offset_index = (offset_index + 1) % PN_SYNC_SUBDIVIDE;
   candidate_index = (candidate_index + 1) % NUM_PN_SYNC_CANDIDATES;
@@ -487,111 +538,20 @@ static bool updateSlidingGoertzel(uint16_t new_samples)
 }
 
 /**
- * Phase-based global Doppler accumulation.
- *
- * For each bank filter with sufficient energy and no recent reset, compute
- * the phase difference between the current complex output and the output from
- * DOPPLER_PHASE_LOOKBACK sub-steps ago.  The excess phase (beyond what is
- * expected for the nominal frequency) yields a fractional Doppler estimate
- * alpha = delta_v / c.  Estimates are energy-weighted and accumulated globally.
+ * Finalize Doppler estimate from the best candidate's accumulated
+ * per-symbol phase measurements.
  */
-static void accumulateGlobalDoppler(uint16_t new_samples)
+static void finalizeDopplerEstimate(Message_t* msg, uint16_t best_idx)
 {
-  /* Update running total of lookback samples:
-   * Remove the sample count that is about to be overwritten,
-   * add the current sub-step's sample count. */
-  doppler_total_lookback_samples -= doppler_sample_buf[doppler_phase_buf_idx];
-  doppler_total_lookback_samples += new_samples;
+  PnSynchronizationCandidate_t* best = &pn_sync_candidates[best_idx];
 
-  if (doppler_total_lookback_samples == 0 || background_noise == 0.0f) {
-    goto save_and_advance;
-  }
-
-  float energy_threshold = DOPPLER_ENERGY_THRESHOLD * background_noise;
-  float total_samples_f  = (float)doppler_total_lookback_samples;
-
-  for (uint16_t b = 0; b < bank_size; b++) {
-    /* Skip if filter reset within the lookback window */
-    if (doppler_since_reset[b] < DOPPLER_PHASE_LOOKBACK) continue;
-
-    /* Skip if current energy is below threshold */
-    if (sliding_goertzel_bank[b].e_f < energy_threshold) continue;
-
-    /* Retrieve lookback complex value (about to be overwritten) */
-    float old_real = doppler_phase_buf_real[b][doppler_phase_buf_idx];
-    float old_imag = doppler_phase_buf_imag[b][doppler_phase_buf_idx];
-
-    /* Skip if lookback energy was low (approximate check using raw magnitude) */
-    float old_mag_sq = old_real * old_real + old_imag * old_imag;
-    float threshold_unnorm = energy_threshold / sliding_goertzel_bank[b].normalization_factor;
-    if (old_mag_sq < threshold_unnorm) continue;
-
-    float new_real = sliding_goertzel_bank[b].x_real;
-    float new_imag = sliding_goertzel_bank[b].x_imag;
-
-    /* Z = X_new × conj(X_old):  captures the total phase rotation */
-    float z_real = new_real * old_real + new_imag * old_imag;
-    float z_imag = new_imag * old_real - new_real * old_imag;
-
-    /* Expected rotation for the nominal frequency over the lookback window */
-    float omega = sliding_goertzel_bank[b].omega;
-    float expected_phase = omega * total_samples_f;
-    float exp_r = cosf(expected_phase);
-    float exp_i = sinf(expected_phase);
-
-    /* Excess rotation = Z × conj(expected).
-     * For small Doppler the excess angle is small, so
-     * atan2(excess_imag, excess_real) ≈ excess_imag / excess_real. */
-    float exc_real = z_real * exp_r + z_imag * exp_i;
-    float exc_imag = z_imag * exp_r - z_real * exp_i;
-
-    /* Guard against degenerate cases */
-    if (exc_real <= 0.0f) continue;
-
-    float excess_phase = atan2f(exc_imag, exc_real);
-
-    /* alpha = excess_phase / (omega × N).
-     * Doppler causes f_rx = f_tx·(1+alpha), so the per-sample excess
-     * angular rate is omega·alpha, accumulated over N samples. */
-    float denom = omega * total_samples_f;
-    if (fabsf(denom) < 1e-6f) continue;
-
-    float alpha   = excess_phase / denom;
-    float weight  = sliding_goertzel_bank[b].e_f;
-
-    doppler_alpha_sum    += alpha * weight;
-    doppler_alpha_weight += weight;
-    doppler_accumulation_count++;
-  }
-
-save_and_advance:
-  /* Save current (post-update) complex values into the circular buffer */
-  for (uint16_t b = 0; b < bank_size; b++) {
-    doppler_phase_buf_real[b][doppler_phase_buf_idx] = sliding_goertzel_bank[b].x_real;
-    doppler_phase_buf_imag[b][doppler_phase_buf_idx] = sliding_goertzel_bank[b].x_imag;
-  }
-  doppler_sample_buf[doppler_phase_buf_idx] = new_samples;
-  doppler_phase_buf_idx = (doppler_phase_buf_idx + 1) % DOPPLER_PHASE_LOOKBACK;
-}
-
-static void finalizeDopplerEstimate(Message_t* msg)
-{
-  if (doppler_accumulation_count < MIN_DOPPLER_ACCUMULATIONS ||
-      doppler_alpha_weight == 0.0f) {
-        msg->doppler_mps = 0.0f;
+  if (best->doppler_alpha_weight == 0.0f) {
+    msg->doppler_mps = 0.0f;
     return;
   }
-  float raw_alpha = doppler_alpha_sum / doppler_alpha_weight;
 
-  /* On the very first sync (known zero-Doppler calibration tone),
-   * record the bias. For subsequent real traffic, subtract it. */
-  if (!doppler_bias_calibrated &&
-      doppler_accumulation_count >= BIAS_CALIBRATION_COUNT) {
-    doppler_bias_alpha = raw_alpha;
-    doppler_bias_calibrated = true;
-  }
-
-  msg->doppler_mps = (raw_alpha - doppler_bias_alpha) * SPEED_OF_SOUND_MPS;
+  float alpha = best->doppler_alpha_sum / best->doppler_alpha_weight;
+  msg->doppler_mps = alpha * SPEED_OF_SOUND_MPS;
 }
 
 /**
@@ -673,7 +633,7 @@ static SyncState_t evaluateSlidingPnWindows(Message_t* msg)
           candidate_tracker.candidates_after_best++;
           if (candidate_tracker.candidates_after_best >= REQUIRED_CANDIDATES_AFTER_BEST) {
             /* --- Finalize Doppler estimate --- */
-            finalizeDopplerEstimate(msg);
+            finalizeDopplerEstimate(msg, candidate_tracker.best_index);
 
             /* --- Fine synchronization offset --- */
             float fine_offset = computeFineSyncOffset(candidate_tracker.best_index);
