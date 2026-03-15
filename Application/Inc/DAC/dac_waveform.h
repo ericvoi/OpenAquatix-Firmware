@@ -91,7 +91,25 @@ bool Waveform_SetWaveformSequence(uint16_t num_steps, bool is_message);
  *
  * @pre Waveform_SetWaveformSequence must be called successfully before this function
  */
-bool Waveform_StartWaveformOutput(uint32_t channel);
+bool Waveform_PrepareWaveformOutput(uint32_t channel);
+
+/**
+ * @brief Starts waveform output with optional delay if configured
+ * 
+ * @pre Waveform_SetWaveformSequence must be called successfully before this function
+ * @pre Waveform_PrepareWaveformOutput must be called successfully before this function
+ */
+void Waveform_StartOutput(void);
+
+/**
+ * @brief Starts output for a ranging request and logs the CYCCNT it started
+ * 
+ * Analogous to Waveform_StartOutput for ranging requests
+ * 
+ * @pre Waveform_SetWaveformSequence must be called successfully before this function
+ * @pre Waveform_PrepareWaveformOutput must be called successfully before this function
+ */
+void Waveform_SendRangingRequest(void);
 
 /**
  * @brief Stops all DAC waveform output
