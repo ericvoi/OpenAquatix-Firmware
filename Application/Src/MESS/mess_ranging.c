@@ -32,6 +32,8 @@
 #define RANGING_RESPONSE_DELAY        2000
 #define AFE_TURNAROUND_TIME           500
 
+#define RANGE_FIXED_OFFSET            (-0.7f)
+
 /* Private macro -------------------------------------------------------------*/
 
 
@@ -129,7 +131,7 @@ void Ranging_LogResponse(const Message_t* msg)
   memcpy(&ranging_msg, msg, sizeof(Message_t));
   ranging_msg.protocol = PROTOCOL_CUSTOM;
   ranging_msg.data_type = RANGING_RESPONSE;
-  ranging_msg.range_m = one_way_range_m;
+  ranging_msg.range_m = one_way_range_m + RANGE_FIXED_OFFSET;
 
   if (osMessageQueuePut(mac_rx_queue, &ranging_msg, 0, 0) != osOK) {
     osEventFlagsSet(print_event_handle, MESS_RECEIVED_RANGING_RESPONSE_BAD);

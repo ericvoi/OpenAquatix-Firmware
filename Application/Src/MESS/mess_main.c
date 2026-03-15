@@ -576,7 +576,6 @@ bool handlePreambleOnlyMessage()
         case FLOAT:
           return false; // Should drop/abort instead
         case RANGING_REQUEST:
-          // Ranging_LogRequest();
           Ranging_Respond(rx_msg.rx_cyccnt, rx_msg.type == MSG_RECEIVED_FEEDBACK);
           return true;
         case RANGING_RESPONSE:

@@ -692,7 +692,8 @@ static SyncState_t evaluateSlidingPnWindows(Message_t* msg)
 
             msg->snr = candidate_tracker.best_snr;
             msg->rx_cyccnt = 
-                pn_sync_candidates[candidate_tracker.best_index].start_cyccnt;
+                pn_sync_candidates[candidate_tracker.best_index].start_cyccnt +
+                (uint32_t)((int64_t)fine_offset_int * SystemCoreClock / FILT_GetSamplingRate());
             MessFiltResources_SetProcessingTail(new_tail);
             return SYNC_SUCCESS;
           }
