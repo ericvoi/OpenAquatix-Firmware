@@ -18,8 +18,10 @@
 #include "cfg_defaults.h"
 #include "cfg_parameters.h"
 #include "sleep/wakeup_tones.h"
+#include "mess_ranging.h"
 #include "FreeRTOS.h"
 #include "cmsis_os.h"
+#include "core_cm7.h"
 #include <stdbool.h>
 #include <string.h>
 #include <math.h>
@@ -74,6 +76,9 @@ static uint32_t current_symbol_duration_us = 0;
 // Flag that indicates that the next time this function is called it should terminate the DAC output
 static bool last_fill = false;
 
+static bool delay_next_message = false;
+static uint32_t delay_cyccnt = 0;
+
 static volatile uint32_t callback_count = 0;
 
 static uint16_t tukey_window[TUKEY_POINTS];
@@ -113,9 +118,15 @@ bool Waveform_InitWaveformGenerator(void)
   return true;
 }
 
-bool Waveform_SetWaveformSequence(uint16_t num_steps, bool is_message)
+bool Waveform_SetWaveformSequence(uint16_t num_steps, bool is_message, bool delay, uint32_t cyccnt)
 {
   if (num_steps == 0) return false;
+  if (dac_running == true) return false;
+
+  if (delay == true) {
+    delay_next_message = true;
+    delay_cyccnt = cyccnt;
+  }
 
   uint16_t extra_steps = is_message ? MessDacResource_SyncWakeupSteps() : 0;
 
@@ -125,7 +136,7 @@ bool Waveform_SetWaveformSequence(uint16_t num_steps, bool is_message)
   return true;
 }
 
-bool Waveform_StartWaveformOutput(uint32_t channel)
+bool Waveform_PrepareWaveformOutput(uint32_t channel)
 {
   if (HAL_DAC_Stop_DMA(&hdac1, channel) != HAL_OK) return false;
   wave_ctrl.phase_accumulator = 0;
@@ -140,6 +151,31 @@ bool Waveform_StartWaveformOutput(uint32_t channel)
                     DAC_BUFFER_SIZE, DAC_ALIGN_12B_R);
 
   return ret == HAL_OK;
+}
+
+void Waveform_StartOutput(void)
+{
+  if (delay_next_message == false) {
+    HAL_TIM_Base_Start(&htim6);
+    return;
+  }
+  delay_next_message = false;
+
+  uint32_t current_cyccnt = DWT->CYCCNT;
+  uint32_t ms_to_wait = (delay_cyccnt - current_cyccnt) / (SystemCoreClock / 1000);
+  if (ms_to_wait > 6) ms_to_wait -= 3; // Wait 3ms for CYCCNT condition
+  osDelay(ms_to_wait);
+  uint32_t start_difference = delay_cyccnt - DWT->CYCCNT;
+  while (start_difference > (delay_cyccnt - DWT->CYCCNT)) { ;}
+  HAL_TIM_Base_Start(&htim6);
+}
+
+void Waveform_SendRangingRequest(void)
+{
+  taskENTER_CRITICAL();
+  Ranging_LogRequest();
+  HAL_TIM_Base_Start(&htim6);
+  taskEXIT_CRITICAL();
 }
 
 bool Waveform_StopWaveformOutput()
@@ -167,7 +203,7 @@ bool Waveform_RegisterParams()
 
 void Waveform_Flush()
 {
-  Waveform_SetWaveformSequence(1, false);
+  Waveform_SetWaveformSequence(1, false, false, 0);
   HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
   wave_ctrl.phase_accumulator = 0;
 

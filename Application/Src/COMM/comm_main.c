@@ -351,6 +351,18 @@ void printNotifications(void)
     COMM_TransmitData("Dropped a packet with an invalid cargo\r\n", CALC_LEN, menu_context.interface);
     osEventFlagsClear(print_event_handle, MESS_DROPPED_PACKET_CARGO);
   }
+  if (flags & MESS_FAILED_RANGING_REQUEST) {
+    COMM_TransmitData("Failed to send ranging request\r\n", CALC_LEN, menu_context.interface);
+    osEventFlagsClear(print_event_handle, MESS_FAILED_RANGING_REQUEST);
+  }
+  if (flags & MESS_FAILED_RANGING_RESPONSE) {
+    COMM_TransmitData("Received ranging request, but could not respond\r\n", CALC_LEN, menu_context.interface);
+    osEventFlagsClear(print_event_handle, MESS_FAILED_RANGING_RESPONSE);
+  }
+  if (flags & MESS_RECEIVED_RANGING_RESPONSE_BAD) {
+    COMM_TransmitData("Received valid ranging response, but could not add to queue\r\n", CALC_LEN, menu_context.interface);
+    osEventFlagsClear(print_event_handle, MESS_RECEIVED_RANGING_RESPONSE_BAD);
+  }
 }
 
 bool registerCommParams(void)

@@ -57,7 +57,8 @@ float Modulate_GetAmplitude(uint32_t freq_hz);
  */
 bool Modulate_StartTransducerOutput(uint16_t num_steps, 
                                     const DspConfig_t* new_cfg, 
-                                    BitMessage_t* new_bit_msg);
+                                    BitMessage_t* new_bit_msg,
+                                    const Message_t* tx_msg);
 
 /**
  * @brief Implements all processes needed to start modulating via feedback
@@ -68,20 +69,14 @@ bool Modulate_StartTransducerOutput(uint16_t num_steps,
  * @param num_steps The number of steps in the bit message sequence
  * @param new_cfg The configuration to use for the next modulation
  * @param new_bit_msg The bit message to send out through the feedback network
+ * @param tx_msg The message being sent. Incudes information on message type and delays
  * 
  * @return true if all peripherals successfully started, false otherwise
  */
 bool Modulate_StartFeedbackOutput(uint16_t num_steps, 
                                   const DspConfig_t* new_cfg, 
-                                  BitMessage_t* new_bit_msg);
-
-/**
- * @brief Generates a simple two-frequency test sequence for transducer testing
- *
- * Creates a test pattern alternating between 30kHz and 33kHz with 1ms durations.
- * Uses the currently configured output amplitude.
- */
-void Modulate_TestOutput();
+                                  BitMessage_t* new_bit_msg,
+                                  const Message_t* tx_msg);
 
 /**
  * @brief Generates a single-frequency test signal for frequency response analysis

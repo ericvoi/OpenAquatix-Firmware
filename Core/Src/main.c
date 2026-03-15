@@ -45,6 +45,7 @@
 #include "cfg_parameters.h"
 #include "stm32h7xx_ll_cordic.h"
 #include "pwr_domains.h"
+#include "core_cm7.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -306,7 +307,9 @@ int main(void)
   PeriphCommonClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
+  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk; /* Enable trace */
+  DWT->CYCCNT = 0;                                /* Reset counter */
+  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;            /* Enable CYCCNT */
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
