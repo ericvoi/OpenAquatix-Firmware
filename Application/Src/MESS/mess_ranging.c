@@ -132,6 +132,7 @@ void Ranging_LogResponse(const Message_t* msg)
   ranging_msg.protocol = PROTOCOL_CUSTOM;
   ranging_msg.data_type = RANGING_RESPONSE;
   ranging_msg.range_m = one_way_range_m + RANGE_FIXED_OFFSET;
+  ranging_msg.length_bits = 0;
 
   if (osMessageQueuePut(mac_rx_queue, &ranging_msg, 0, 0) != osOK) {
     osEventFlagsSet(print_event_handle, MESS_RECEIVED_RANGING_RESPONSE_BAD);
