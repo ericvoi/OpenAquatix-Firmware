@@ -35,9 +35,9 @@ typedef struct {
 
 /* Private define ------------------------------------------------------------*/
 
-#define ERROR_TIMEOUT_MS          15
-#define ABORT_TIMEOUT_MS          10
-#define WARNING_TIMEOUT_MS        6
+#define ERROR_TIMEOUT_MS          15000
+#define ABORT_TIMEOUT_MS          1000
+#define WARNING_TIMEOUT_MS        600
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -137,7 +137,7 @@ void Error_RegisterError(OpenAquatixErrors_t error_code, const char* file, uint1
       last_error_timestamp = current_timestamp;
       task_info->pending_reset = true;
       break;
-    case ERROR_SEVERITY_RESET_SUBSYS:\
+    case ERROR_SEVERITY_RESET_SUBSYS:
       last_abort_timestamp = current_timestamp;
       ErrorSubsys_RequestReset(subsys);
       break;

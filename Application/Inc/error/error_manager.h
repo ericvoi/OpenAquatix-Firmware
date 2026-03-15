@@ -102,7 +102,9 @@ typedef struct {
   X(ERROR_JUNCTION_TEMPERATURE,           ERROR_SEVERITY_DISABLE_SUBSYS,  "Error in obtaining junction temp",         SUBSYS_TJ)        \
   X(ERROR_MUTEX_TIMEOUT,                  ERROR_SEVERITY_ABORT,           "Timed out while waiting for mutex",        SUBSYS_NONE)      \
   X(ERROR_WAVEFORM_STEP,                  ERROR_SEVERITY_UNRECOVERABLE,   "Error in waveform step generation",        SUBSYS_NONE)      \
-  X(ERROR_DAC_FLUSH,                      ERROR_SEVERITY_UNRECOVERABLE,   "Error flushing DAC",                       SUBSYS_NONE)
+  X(ERROR_DAC_FLUSH,                      ERROR_SEVERITY_UNRECOVERABLE,   "Error flushing DAC",                       SUBSYS_NONE)      \
+  X(ERROR_RANGING_REQUEST_OVERWRITTEN,    ERROR_SEVERITY_WARN,            "Overwrote existing ranging request",       SUBSYS_NONE)      \
+  X(ERROR_FILT_EVENTS,                    ERROR_SEVERITY_TASK_RESET,      "Multiple unexpected FILT events",          SUBSYS_NONE)      \
 
 #define XERROR_ENUM(error, severity, description, subsystem) error,
 

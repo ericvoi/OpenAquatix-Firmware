@@ -75,10 +75,10 @@ void Input_Init();
  * to determine if a valid message transmission has begun.
  * 
  * @param cfg DSP configuration defining how to detect message start
- *
- * @return SYNC_SUCCESS if detected message start
+ * @param msg Message to add synchronization info to
+ * @param sync_state (Modified) SYNC_SUCCESS if synchronized, SYNC_OK otherwise
  */
-SyncState_t Input_DetectMessageStart(const DspConfig_t* cfg);
+void Input_DetectMessageStart(const DspConfig_t* cfg, Message_t* msg, SyncState_t* sync_state);
 
 /**
  * @brief Segments input buffer into analysis blocks for demodulation

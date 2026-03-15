@@ -193,7 +193,7 @@ void Modulate_StartFeedbackOutput(uint16_t num_steps,
   if (Waveform_SetWaveformSequence(num_steps, true, tx_msg->delay, tx_msg->delay_cyccnt) == false) 
     REGISTER_ERROR(ERROR_TRANSDUCER_FB_INITIALIZATION);
 
-  if (Waveform_StartWaveformOutput(DAC_CHANNEL_1) == false) 
+  if (Waveform_PrepareWaveformOutput(DAC_CHANNEL_1) == false) 
     REGISTER_ERROR(ERROR_TRANSDUCER_FB_INITIALIZATION);
 
   if (HAL_TIM_Base_Start(&htim6) != HAL_OK)
@@ -203,7 +203,6 @@ void Modulate_StartFeedbackOutput(uint16_t num_steps,
     osThreadFlagsSet(dacTaskHandle, DAC_START_RANGING_REQUEST);
   else
     osThreadFlagsSet(dacTaskHandle, DAC_START_OUTPUT);
-  return true;
 }
 
 // TODO: properly deprecate

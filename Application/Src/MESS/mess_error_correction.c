@@ -167,14 +167,14 @@ void ErrorCorrection_CheckCorrection(BitMessage_t* bit_msg,
   else {
     switch (cfg->cargo_ecc_method) {
       case NO_ECC:
-        decodeNoEcc(bit_msg, true, error_detected, error_corrected);
+        decodeNoEcc(bit_msg, false, error_detected, error_corrected);
         return;
       case HAMMING_CODE:
-        RETURN_IF_ERROR_PRESENT(decodeHamming(bit_msg, true, error_detected,
+        RETURN_IF_ERROR_PRESENT(decodeHamming(bit_msg, false, error_detected,
             error_corrected));
         return;
       case JANUS_CONVOLUTIONAL:
-        RETURN_IF_ERROR_PRESENT(decodeJanusConvolutional(bit_msg, true, 
+        RETURN_IF_ERROR_PRESENT(decodeJanusConvolutional(bit_msg, false, 
             error_detected, error_corrected));
         return;
       default:
@@ -432,7 +432,7 @@ void addJanusConvolutional(BitMessage_t* bit_msg,
   bool output_bits[2];
   uint16_t output_index = section_info.ecc_start_index;
 
-  if (section_info.raw_len == 0) return true;
+  if (section_info.raw_len == 0) return;
 
   // First add the actual message bits
   for (uint16_t i = 0; i < section_info.raw_len; i++) {

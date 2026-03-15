@@ -32,6 +32,7 @@
 #include "cmsis_os.h"
 #include "main.h"
 #include "error_manager.h"
+#include "error_log.h"
 
 #include <ctype.h>
 #include <stdbool.h>
@@ -53,18 +54,18 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-void getGpioStatus(FunctionContext_t* context);
-void setLedColourHandler(FunctionContext_t* context);
-void printWaveformHandler(FunctionContext_t* context);
-void dumpAdcData(FunctionContext_t* context);
-void noiseSpectralAnalysis(FunctionContext_t* context);
-void printCurrentTemp(FunctionContext_t* context);
-void printCurrentErrors(FunctionContext_t* context);
-void printCurrentPowerConsumption(FunctionContext_t* context);
-void printBackgroundNoise(FunctionContext_t* context);
-void enterDfuMode(FunctionContext_t* context);
-void resetSavedValues(FunctionContext_t* context);
-void deepSleep(FunctionContext_t* context);
+static void getGpioStatus(FunctionContext_t* context);
+static void setLedColourHandler(FunctionContext_t* context);
+static void printWaveformHandler(FunctionContext_t* context);
+static void dumpAdcData(FunctionContext_t* context);
+static void noiseSpectralAnalysis(FunctionContext_t* context);
+static void printCurrentTemp(FunctionContext_t* context);
+static void printErrorLog(FunctionContext_t* context);
+static void printCurrentPowerConsumption(FunctionContext_t* context);
+static void printBackgroundNoise(FunctionContext_t* context);
+static void enterDfuMode(FunctionContext_t* context);
+static void resetSavedValues(FunctionContext_t* context);
+static void deepSleep(FunctionContext_t* context);
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -183,8 +184,8 @@ static ParamContext_t debug_menu_err_param = {
 };
 static const MenuNode_t debug_menu_err = {
   .id = MENU_ID_DBG_ERR,
-  .description = "Get current errors",
-  .handler = printCurrentErrors,
+  .description = "Print error log",
+  .handler = printErrorLog,
   .parent_id = MENU_ID_DBG,
   .children_ids = NULL,
   .num_children = 0,
@@ -286,12 +287,12 @@ void COMM_RegisterDebugMenu(void)
 /* Private function definitions ----------------------------------------------*/
 
 // TODO: implement
-void getGpioStatus(FunctionContext_t* context)
+static void getGpioStatus(FunctionContext_t* context)
 {
   COMMLoops_NotImplemented(context);
 }
 
-void setLedColourHandler(FunctionContext_t* context)
+static void setLedColourHandler(FunctionContext_t* context)
 {
   static uint8_t red = 0;
   static uint8_t green = 0;
@@ -356,7 +357,7 @@ void setLedColourHandler(FunctionContext_t* context)
   } while (old_state > context->state->state); // Continues looping if the state has regressed
 }
 
-void printWaveformHandler(FunctionContext_t* context)
+static void printWaveformHandler(FunctionContext_t* context)
 {
   if (print_event_handle == NULL) {
     return;
@@ -370,7 +371,7 @@ void printWaveformHandler(FunctionContext_t* context)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void dumpAdcData(FunctionContext_t* context)
+static void dumpAdcData(FunctionContext_t* context)
 {
   if (print_event_handle == NULL) {
     return;
@@ -391,7 +392,7 @@ void dumpAdcData(FunctionContext_t* context)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void noiseSpectralAnalysis(FunctionContext_t* context)
+static void noiseSpectralAnalysis(FunctionContext_t* context)
 {
   if (print_event_handle == NULL) {
     return;
@@ -411,7 +412,7 @@ void noiseSpectralAnalysis(FunctionContext_t* context)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void printCurrentTemp(FunctionContext_t* context)
+static void printCurrentTemp(FunctionContext_t* context)
 {
   float temp = Temperature_GetCurrentTj();
 
@@ -421,14 +422,13 @@ void printCurrentTemp(FunctionContext_t* context)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-// TODO: implement
-void printCurrentErrors(FunctionContext_t* context)
+static void printErrorLog(FunctionContext_t* context)
 {
-  COMMLoops_NotImplemented(context);
+  ErrorLog_PrintLog(context->comm_interface);
+  context->state->state = PARAM_STATE_COMPLETE;
 }
 
-// TODO: implement
-void printCurrentPowerConsumption(FunctionContext_t* context)
+static void printCurrentPowerConsumption(FunctionContext_t* context)
 {
   float power = Power_LatestPower();
 
@@ -438,7 +438,7 @@ void printCurrentPowerConsumption(FunctionContext_t* context)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void printBackgroundNoise(FunctionContext_t* context)
+static void printBackgroundNoise(FunctionContext_t* context)
 {
   if (BackgroundNoise_Ready() == false) {
     COMM_TransmitData("\r\nBackground noise not available yet\r\n", CALC_LEN, context->comm_interface);
@@ -453,7 +453,7 @@ void printBackgroundNoise(FunctionContext_t* context)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void resetSavedValues(FunctionContext_t* context)
+static void resetSavedValues(FunctionContext_t* context)
 {
   ParamState_t old_state = context->state->state;
 
@@ -494,7 +494,7 @@ void resetSavedValues(FunctionContext_t* context)
 }
 
 // TODO: add confirmation similar to above
-void enterDfuMode(FunctionContext_t* context)
+static void enterDfuMode(FunctionContext_t* context)
 {
   __HAL_RCC_BKPRAM_CLK_ENABLE();
 
@@ -521,7 +521,7 @@ void enterDfuMode(FunctionContext_t* context)
 }
 
 // TODO: add confirmation
-void deepSleep(FunctionContext_t* context)
+static void deepSleep(FunctionContext_t* context)
 {
   osEventFlagsSet(sleep_events, SLEEP_REQUEST_DEEP);
 

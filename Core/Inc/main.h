@@ -50,7 +50,6 @@ typedef enum {
 } TaskIds_t;
 
 typedef enum {
-  SUBSYS_POWER,
   SUBSYS_PGA,
   SUBSYS_FBK_TESTS,
   SUBSYS_LPS,

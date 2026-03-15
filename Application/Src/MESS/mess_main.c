@@ -204,7 +204,7 @@ void MESS_StartTask(void* argument)
           sendMessage();
         }
 
-        SyncState_t sync_state = Sync_Synchronize(cfg);
+        SyncState_t sync_state = Sync_Synchronize(cfg, &rx_msg);
         handleSync(sync_state);
 
         BackgroundNoise_Calculate(cfg);
@@ -506,10 +506,9 @@ void handleFlags()
     osEventFlagsClear(print_event_handle, MESS_REQUEST_RANGE_TRANSDUCER);
     Ranging_Request(cfg, false);
   }
-  return true;
 }
 
-bool handlePreambleOnlyMessage()
+void handlePreambleOnlyMessage()
 {
   switch (cfg->protocol) {
     case PROTOCOL_CUSTOM:
@@ -518,20 +517,24 @@ bool handlePreambleOnlyMessage()
         case BITS:
         case INTEGER:
         case FLOAT:
-          return false; // Should drop/abort instead
+          REGISTER_ERROR(ERROR_UNKNOWN_MESSAGE);
+          return;
         case RANGING_REQUEST:
           Ranging_Respond(rx_msg.rx_cyccnt, rx_msg.type == MSG_RECEIVED_FEEDBACK);
-          return true;
+          return;
         case RANGING_RESPONSE:
           Ranging_LogResponse(&rx_msg);
-          return true;
+          return;
         default:
-          return false;
+          REGISTER_ERROR(ERROR_UNKNOWN_MESSAGE);
+          return;
       }
     case PROTOCOL_JANUS:
-      return false;
+      REGISTER_ERROR(ERROR_UNKNOWN_JANUS);
+      return;
     default:
-      return false;
+      REGISTER_ERROR(ERROR_UNKNOWN_JANUS);
+      return;
   }
 }
 
@@ -544,7 +547,7 @@ void sendMessage()
       break;
     case MSG_TRANSMIT_FEEDBACK:
       AFE_SetMode(AFE_MODE_RX_FEEDBACK);
-      Modulate_StartFeedbackOutput(message_length, cfg, &bit_msg);
+      Modulate_StartFeedbackOutput(message_length, cfg, &bit_msg, &tx_msg);
       // Should automatically go to processing once waveform being received without intervention
       // TODO: what if above unsuccessful?
       break;
@@ -573,7 +576,7 @@ void resetTask()
   Pga113_Init();
   osDelay(1);
   Pga113_SetGain(PGA_GAIN_1);
-  ADC_Init();
+  MessFiltResources_Init();
   Input_Init();
   Feedback_Init();
   FeedbackTests_Init();
@@ -583,7 +586,7 @@ void resetTask()
 
   osDelay(10);
   Waveform_Flush();
-  ADC_StartInput();
+  MessFiltResources_StartInputAdc();
 }
 
 void registerMessParams()

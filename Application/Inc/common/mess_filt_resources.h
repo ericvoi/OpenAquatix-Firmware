@@ -61,20 +61,16 @@ extern uint16_t* feedback_buffer;
  *
  * Configures and starts Timer 8 which is used for ADC triggering,
  * resets buffer indices, and clears the ADC buffer.
- *
- * @return true if initialization succeeds, false otherwise
  */
-bool MessFiltResources_Init();
+void MessFiltResources_Init();
 
 /**
  * @brief Starts ADC conversions on the input channel using DMA
  *
  * Resets the input buffer index, starts Timer 8, and initiates DMA-based
  * ADC conversions for the input channel.
- *
- * @return true if operation starts successfully, false otherwise
  */
-bool MessFiltResources_StartInputAdc();
+void MessFiltResources_StartInputAdc();
 
 /**
  * @brief Starts ADC conversions on the feedback channel using DMA
@@ -82,11 +78,9 @@ bool MessFiltResources_StartInputAdc();
  * Resets the feedback buffer index and initiates DMA-based ADC conversions
  * for the feedback channel. Requires a feedback buffer to be registered first.
  *
- * @return true if operation starts successfully, false if feedback buffer is NULL or DMA fails
- *
  * @pre Feedback buffer must be registered with MessFiltResources_RegisterFeedbackBuffer()
  */
-bool MessFiltResources_StartFeedbackAdc();
+void MessFiltResources_StartFeedbackAdc();
 
 /**
  * @brief Stops ADC conversions on the feedback channel

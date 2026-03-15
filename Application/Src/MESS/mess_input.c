@@ -174,20 +174,20 @@ void Input_Init()
     REGISTER_ERROR(ERROR_FFT_INITIALIZATION);
 }
 
-SyncState_t Input_DetectMessageStart(const DspConfig_t* cfg, Message_t* msg)
+void Input_DetectMessageStart(const DspConfig_t* cfg, Message_t* msg, SyncState_t* sync_state)
 {
   static bool message_detected = false;
   static uint32_t samples_waited = 0;
   if (message_detected == false) {
     switch (message_start_function) {
       case MSG_START_AMPLITUDE:
-        RETURN_IF_ERROR_PRESENT_NON_VOID(messageStartWithThreshold(msg, &message_detected), SYNC_OK);
+        RETURN_IF_ERROR_PRESENT(messageStartWithThreshold(msg, &message_detected));
         break;
       case MSG_START_FREQUENCY:
-        RETURN_IF_ERROR_PRESENT_NON_VOID(messageStartWithFrequency(cfg, msg, &message_detected), SYNC_OK);
+        RETURN_IF_ERROR_PRESENT(messageStartWithFrequency(cfg, msg, &message_detected));
         break;
       default:
-        REGISTER_ERROR_NON_VOID(ERROR_UNHANDLED_CASE, SYNC_OK);
+        REGISTER_ERROR(ERROR_UNHANDLED_CASE);
     }
   }
   if (message_detected == true) {
@@ -195,19 +195,19 @@ SyncState_t Input_DetectMessageStart(const DspConfig_t* cfg, Message_t* msg)
     if (samples_to_wait == 0) {
       message_detected = false;
       samples_waited = 0;
-      return SYNC_SUCCESS;
+      *sync_state = SYNC_SUCCESS;
     }
     uint16_t new_samples = MessFiltResources_AvailableProcessingSamples();
     if (new_samples + samples_waited >= samples_to_wait) {
       MessFiltResources_ProcessingTailAdvance((uint16_t) (samples_to_wait - samples_waited));
       message_detected = false;
       samples_waited = 0;
-      return SYNC_SUCCESS;
+      *sync_state = SYNC_SUCCESS;
     }
     MessFiltResources_ProcessingTailAdvance(new_samples);
     samples_waited += new_samples;
   }
-  return SYNC_OK;
+  *sync_state = SYNC_OK;
 }
 
 // Segments blocks and adds them to array of blocks to be processed
@@ -344,7 +344,7 @@ void Input_PrintWaveform(bool* print_next_waveform, bool fully_received)
   static bool previous_fully_received = false;
   static uint32_t message_end_time;
 
-  uint16_t new_length = (MessFiltResources_GetInputAdcHead() - print_waveform_start_index) & mask;
+  uint16_t new_length = (MessFiltResources_GetInputAdcHead() - print_waveform_start_index) & PROCESSING_BUFFER_MASK;
   if (new_length > 8000)
     REGISTER_ERROR(ERROR_PRINT_WAVEFORM_OVERFLOW);
   
@@ -483,12 +483,13 @@ void Input_RegisterParams()
 
 /* Private function definitions ----------------------------------------------*/
 
-bool messageStartWithThreshold(Message_t* msg)
+void messageStartWithThreshold(Message_t* msg, bool* msg_detected)
 {
-  if (MessFiltResources_AvailableProcessingSamples() == 0) return false; // no new data to process
+  if (MessFiltResources_AvailableProcessingSamples() == 0) return; // no new data to process
 
   while (MessFiltResources_AvailableProcessingSamples() != 0) {
     if (MessFiltResources_GetProcessingData(0) > AMPLITUDE_THRESHOLD) {
+      *msg_detected = true;
       msg->doppler_mps = 0.0f;
       msg->snr = 0.0f;
       msg->rx_cyccnt = MessFiltResources_AssociatedCyccnt(

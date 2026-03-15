@@ -101,7 +101,7 @@ void ErrorLog_PrintLog(CommInterface_t interface)
                           formatted_timestamp);
 
   char out_buf[ERROR_LOG_LINE_SIZE];
-  snprintf(out_buf, ERROR_LOG_LINE_SIZE, "Error log as of %s\r\n\r\n", 
+  snprintf(out_buf, ERROR_LOG_LINE_SIZE, "\r\nError log as of %s\r\n\r\n", 
            formatted_timestamp);
   COMM_TransmitData(out_buf, CALC_LEN, interface);
 

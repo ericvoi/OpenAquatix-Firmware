@@ -64,6 +64,8 @@ void Packet_PrepareRx(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* 
 {
   RETURN_IF_ERROR_PRESENT();
   initPacket(bit_msg, cfg);
+
+  msg->error_detected = false;
 }
 
 bool Packet_AddBit(BitMessage_t* bit_msg, bool bit)

@@ -25,7 +25,7 @@
 
 /* Private define ------------------------------------------------------------*/
 
-#define ALL_FLAGS         0x000000FF
+
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -60,7 +60,7 @@ void DAC_StartTask(void* argument)
   for (;;)
   {
     uint32_t flags;
-    flags = osThreadFlagsWait(ALL_FLAGS, osFlagsWaitAny, osWaitForever);
+    flags = osThreadFlagsWait(0xFF, osFlagsWaitAny, osWaitForever);
 
     if (flags & DAC_FILL_FIRST_HALF) {
       Waveform_FillBuffer(FILL_FIRST_HALF);

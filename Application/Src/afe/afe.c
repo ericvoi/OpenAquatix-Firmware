@@ -220,9 +220,7 @@ void restartADCs()
     REGISTER_ERROR(ERROR_AFE_GENERAL);
   }
   Input_Reset();
-  if (MessFiltResources_StartInputAdc() == false) {
-    REGISTER_ERROR(ERROR_AFE_GENERAL);
-  }
+  MessFiltResources_StartInputAdc();
   // If receiving prior, then the sync state is fine, but not if transmitting prior
   // Reset not used if not needed since computationally expensive
   if (AFE_IsTransmitting()) 
