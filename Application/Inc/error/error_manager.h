@@ -105,6 +105,7 @@ typedef struct {
   X(ERROR_DAC_FLUSH,                      ERROR_SEVERITY_UNRECOVERABLE,   "Error flushing DAC",                       SUBSYS_NONE)      \
   X(ERROR_RANGING_REQUEST_OVERWRITTEN,    ERROR_SEVERITY_WARN,            "Overwrote existing ranging request",       SUBSYS_NONE)      \
   X(ERROR_FILT_EVENTS,                    ERROR_SEVERITY_TASK_RESET,      "Multiple unexpected FILT events",          SUBSYS_NONE)      \
+  X(ERROR_INA_READ,                       ERROR_SEVERITY_RESET_SUBSYS,    "Failed read of INA219 registers",          SUBSYS_INA)
 
 #define XERROR_ENUM(error, severity, description, subsystem) error,
 

@@ -194,6 +194,7 @@ void LPS_RegisterTemperatureBuf(uint16_t* t_buf, uint16_t buf_len, uint16_t* buf
 
 void LPS_PowerDown()
 {
+  if (powered_down == true) return;
   if (regWrite(REG_CTRL_REG1, 0U) == false) REGISTER_ERROR(ERROR_PRESSURE_SENSOR);
 
   powered_down = true;
@@ -201,6 +202,7 @@ void LPS_PowerDown()
 
 void LPS_PowerUp()
 {
+  if (powered_down == false) return;
   if (regWrite(REG_CTRL_REG1, last_ctrl_reg1) == false) REGISTER_ERROR(ERROR_PRESSURE_SENSOR);
 
   powered_down = false;
@@ -215,6 +217,7 @@ bool LPS_CheckInterface()
 
 void LPS_ReadData()
 {
+  LPS_PowerUp();
   if ((p_buf_info.buf != NULL) && (p_buf_info.len != 0) && (p_buf_info.head != NULL)) {
     if (readPressure() == false) REGISTER_ERROR(ERROR_PRESSURE_SENSOR);
   }
