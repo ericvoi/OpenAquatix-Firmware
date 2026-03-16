@@ -660,6 +660,8 @@ void FeedbackTests_GetNext()
     return;
   } 
 
+  if (last_action == DECODED_MESSAGE) return;
+
   MESS_AddMessageToTxQ(&feedback_tests[test_index].reference_message->test_msg);
   call_count++;
   last_action = SENT_MESSAGE;
@@ -770,6 +772,11 @@ bool FeedbackTests_GetConfig(DspConfig_t** cfg)
   if (getTestIndex(&test_index) == false) {
     REGISTER_ERROR_NON_VOID(ERROR_FBK_TEST_INDEX, false);
     return false;
+  }
+
+  if (last_action == UPDATED_CFG) {
+    *cfg = &feedback_tests[test_index].cfg;
+    return true;
   }
 
   CFG_IncrementVersionNumber();

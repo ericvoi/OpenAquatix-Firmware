@@ -446,7 +446,6 @@ void switchState(ProcessingState_t newState)
     case LISTENING:
       Sync_Reset();
       cfg = &custom_config;
-      CFG_IncrementVersionNumber();
       if (Waveform_StopWaveformOutput() == false) 
         REGISTER_ERROR(ERROR_STOPPING_TRANSDUCER_OUTPUT);
       

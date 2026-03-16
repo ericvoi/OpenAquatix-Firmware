@@ -500,6 +500,7 @@ void messageStartWithThreshold(Message_t* msg, bool* msg_detected)
   }
 }
 
+// Broken: runs out of analysis buffer size very quickly
 void messageStartWithFrequency(const DspConfig_t* cfg, Message_t* msg, bool* msg_detected)
 {
   static const uint16_t analysis_mask = FFT_ANALYSIS_BUFF_SIZE - 1;
@@ -709,6 +710,7 @@ void updateFrequencyIndices(const DspConfig_t* cfg)
       return;
     }
   }
+  updateThresholdSamples();
 }
 
 static uint32_t totalWaitSamples(const DspConfig_t* cfg)
@@ -728,7 +730,8 @@ void updateThresholdSamples(void)
 
   for (uint16_t i = 0; i < unique_frequency_conditions; i++) {
     frequency_thresholds[i].energy_threshold = (float) frequency_thresholds[i].raw_amplitude_threshold *
-        frequency_thresholds[i].raw_amplitude_threshold * MSG_START_FFT_SIZE / 2.0f;
+        frequency_thresholds[i].raw_amplitude_threshold * MSG_START_FFT_SIZE / 2.0f /
+        (1 << (ADC_BITS - 1)) / (1 << (ADC_BITS - 1));
 
     uint32_t ns_per_sample = 1000000000 / (FILT_GetSamplingRate());
     frequency_thresholds[i].num_samples = frequency_thresholds[i].length_us * 1000 / ns_per_sample * FFT_OVERLAP / MSG_START_FFT_SIZE + 1;

@@ -253,8 +253,8 @@ extern HAL_TickFreqTypeDef uwTickFreq;
 static uint32_t tick_rollover_count = 0;
 void HAL_IncTick(void)
 {
-  uwTick += (uint32_t)uwTickFreq;
   if (uwTick == 0xFFFFFFFF) tick_rollover_count++;
+  uwTick += (uint32_t)uwTickFreq;
 }
 
 uint32_t HAL_TickRolloverCount(void)
@@ -264,7 +264,7 @@ uint32_t HAL_TickRolloverCount(void)
 
 uint64_t HAL_AbsoluteTimestamp(void)
 {
-  return HAL_GetTick() | (((uint64_t) HAL_TickRolloverCount()) << 32);
+  return uwTick | (((uint64_t) HAL_TickRolloverCount()) << 32);
 }
 
 /* USER CODE END 0 */

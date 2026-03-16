@@ -135,7 +135,6 @@ void FILT_StartTask(void* argument)
       resetTask();
     }
     Error_ResetAbortFlag();
-    osDelay(1);
   }
 }
 
@@ -222,7 +221,15 @@ inline void dcEstimateUpdate(DcEstimate_t *estimator, int32_t x)
 
 void handleEvents(void)
 {
-  uint32_t events = osEventFlagsGet(filt_events);
+  uint32_t events = osEventFlagsWait(filt_events, 0x07, osFlagsWaitAny, 1);
+
+  if (events == osFlagsErrorResource || events == osFlagsErrorTimeout) {
+    return;
+  }
+
+  if (events & 0x80000000U) {
+    REGISTER_ERROR(ERROR_FLAGS_RUNNING);
+  }
 
   bool raw_first_half_ready   = events & FILT_FIRST_HALF_RDY_RAW;
   bool raw_second_half_ready  = events & FILT_SECOND_HALF_RDY_RAW;
