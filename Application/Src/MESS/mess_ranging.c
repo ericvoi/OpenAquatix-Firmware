@@ -32,7 +32,8 @@
 #define RANGING_RESPONSE_DELAY        2000
 #define AFE_TURNAROUND_TIME           500
 
-#define RANGE_FIXED_OFFSET            (-0.7f)
+// A fixed offset is required for ranging calibration. Uncertain on reason why TODO
+#define RANGE_FIXED_OFFSET            (0.3f)
 
 /* Private macro -------------------------------------------------------------*/
 
