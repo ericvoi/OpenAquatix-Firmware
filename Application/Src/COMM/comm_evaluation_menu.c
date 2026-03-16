@@ -164,7 +164,7 @@ void sendEvalTransducer(FunctionContext_t* context)
 
 void startFeedbackTests(FunctionContext_t* context) 
 {
-  osEventFlagsSet(print_event_handle, MESS_FEEDBACK_TESTS);
+  osEventFlagsSet(print_event_handle, MESS_PERFORM_FEEDBACK_TESTS);
 
   context->state->state = PARAM_STATE_COMPLETE;
 }

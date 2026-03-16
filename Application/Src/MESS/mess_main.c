@@ -488,8 +488,8 @@ void handleFlags()
     osEventFlagsClear(print_event_handle, MESS_PRINT_WAVEFORM);
     print_next_waveform = true;
   }
-  else if (flags & MESS_FEEDBACK_TESTS) {
-    osEventFlagsClear(print_event_handle, MESS_FEEDBACK_TESTS);
+  else if (flags & MESS_PERFORM_FEEDBACK_TESTS) {
+    osEventFlagsClear(print_event_handle, MESS_PERFORM_FEEDBACK_TESTS);
     FeedbackTests_Start();
   }
   else if (flags & MESS_INPUT_FFT) {
