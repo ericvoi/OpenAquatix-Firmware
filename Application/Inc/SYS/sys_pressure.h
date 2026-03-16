@@ -39,10 +39,8 @@ extern "C" {
 
 /**
  * @brief Sets up pressure module by initializing buffer and registering it
- * 
- * @return true if successfully regsitered, false otherwise
  */
-bool Pressure_Init(void);
+void Pressure_Init(void);
 
 /**
  * @brief Processes all unprocessed raw temperature readings and updates most

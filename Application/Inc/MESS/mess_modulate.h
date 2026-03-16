@@ -53,9 +53,9 @@ float Modulate_GetAmplitude(uint32_t freq_hz);
  * starting ADC feedback, enabling DAC waveform output, and starting
  * the timer. Includes necessary delays for peripheral stabilization.
  *
- * @return true if all peripherals started successfully, false otherwise
+ * @note can cause a blocking error
  */
-bool Modulate_StartTransducerOutput(uint16_t num_steps, 
+void Modulate_StartTransducerOutput(uint16_t num_steps, 
                                     const DspConfig_t* new_cfg, 
                                     BitMessage_t* new_bit_msg,
                                     const Message_t* tx_msg);
@@ -70,10 +70,8 @@ bool Modulate_StartTransducerOutput(uint16_t num_steps,
  * @param new_cfg The configuration to use for the next modulation
  * @param new_bit_msg The bit message to send out through the feedback network
  * @param tx_msg The message being sent. Incudes information on message type and delays
- * 
- * @return true if all peripherals successfully started, false otherwise
  */
-bool Modulate_StartFeedbackOutput(uint16_t num_steps, 
+void Modulate_StartFeedbackOutput(uint16_t num_steps, 
                                   const DspConfig_t* new_cfg, 
                                   BitMessage_t* new_bit_msg,
                                   const Message_t* tx_msg);
@@ -123,9 +121,8 @@ uint32_t Modulate_GetFskFrequency(bool bit, const DspConfig_t* cfg);
  * @param bit_msg Bit message to take the bits from
  * @param waveform_step Waveform step to populate with symbol information
  * @param transmission_step Step in transmission, corresponds to bit index
- * @return true if successful, false otherwise
  */
-bool Modulate_DataStep(const DspConfig_t* cfg, BitMessage_t* bit_msg, WaveformStep_t* waveform_step, uint16_t bit_index, uint16_t symbol_index);
+void Modulate_DataStep(const DspConfig_t* cfg, BitMessage_t* bit_msg, WaveformStep_t* waveform_step, uint16_t bit_index, uint16_t symbol_index);
 
 /**
  * @brief Registers modulation parameters with the parameter system for HMI access
@@ -133,9 +130,9 @@ bool Modulate_DataStep(const DspConfig_t* cfg, BitMessage_t* bit_msg, WaveformSt
  * Registers output amplitude with appropriate min/max constraints to make
  * it available for configuration through the system's HMI.
  *
- * @return true if all parameters registered successfully, false otherwise
+ * @note Logs an error in the event of a failure
  */
-bool Modulate_RegisterParams();
+void Modulate_RegisterParams();
 
 /* Private defines -----------------------------------------------------------*/
 

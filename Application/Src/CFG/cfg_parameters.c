@@ -18,6 +18,7 @@
 
 #include "main.h"
 #include "cmsis_os.h"
+#include "error_manager.h"
 
 #include <stdbool.h>
 #include <string.h>
@@ -131,7 +132,7 @@ bool Param_Init(void)
   return true;
 }
 
-bool Param_LoadInit(void)
+void Param_LoadInit(void)
 {
   // Load parameters from flash to overwrite defaults set by registration
   for (; next_write_addr < FLASH_PARAM_ADDR_END; next_write_addr += FLASH_WORD_SIZE) {
@@ -140,13 +141,12 @@ bool Param_LoadInit(void)
       break;
     }
     if (entry->signature == PARAM_SIGNATURE) {
-      if (entry->version != 1) {
-        return false;
-      }
+      if (entry->version != 1) 
+        REGISTER_ERROR(ERROR_INVALID_PARAMETER_VERSION);
+      
       ParamSetResult_t result = Param_SetValue(entry->param_id, (void*) &entry->value);
-      if ((result == PARAM_SET_ERROR_ID) || (result == PARAM_SET_ERROR_OTHER)) {
-        return false;
-      }
+      if ((result == PARAM_SET_ERROR_ID) || (result == PARAM_SET_ERROR_OTHER)) 
+        REGISTER_ERROR(ERROR_SETTING_PARAMETER);
     }
   }
 
@@ -155,8 +155,6 @@ bool Param_LoadInit(void)
   }
 
   flash_load_complete = true;
-
-  return true;
 }
 
 // Note: min and max MUST be 32 bits for uint16, int16, int8 and uint8
@@ -498,31 +496,29 @@ const char** Param_GetDescriptors(ParamIds_t id)
   return parameters[id].descriptors;
 }
 
-bool Param_SaveToFlash(void)
+void Param_SaveToFlash(void)
 {
+  RETURN_IF_ERROR_PRESENT();
   for (uint16_t i = 0; i < NUM_PARAM; i++) {
     if (parameters[i].is_modified != true) continue;
     // save the parameter
-    if (writeParameterToFlash(i) == false) {
-      return false;
-    }
+    if (writeParameterToFlash(i) == false) 
+      REGISTER_ERROR(ERROR_PARAMETER_FLASH_WRITE);
+    
     if (next_write_addr >= FLASH_PARAM_ADDR_END) {
       // clear flash, update num erases, add parameters back to flash
-      if (Param_FlashReset() == false) {
-        return false;
-      }
-      if (updateNumErases() == false) {
-        return false;
-      }
+      if (Param_FlashReset() == false) 
+        REGISTER_ERROR(ERROR_FAILED_PARAM_FLASH_RESET);
+      
+      if (updateNumErases() == false) 
+        REGISTER_ERROR(ERROR_FAILED_PARAM_NUM_ERASES);
 
       for (uint16_t i = 0; i < NUM_PARAM; i++) {
-        if (writeParameterToFlash(i) == false) {
-          return false;
-        }
+        if (writeParameterToFlash(i) == false) 
+          REGISTER_ERROR(ERROR_PARAMETER_FLASH_WRITE);
       }
     }
   }
-  return true;
 }
 
 bool Param_RegisterTask(TaskIds_t task_id, const char* task_name)

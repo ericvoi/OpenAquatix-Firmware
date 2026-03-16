@@ -10,6 +10,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 
+#include "stm32h7xx_hal.h"
 #include "dac_waveform.h"
 #include "dac_main.h"
 #include "mess_filt_resources.h"
@@ -21,6 +22,7 @@
 #include "mess_ranging.h"
 #include "FreeRTOS.h"
 #include "cmsis_os.h"
+#include "error_manager.h"
 #include "core_cm7.h"
 #include <stdbool.h>
 #include <string.h>
@@ -99,7 +101,7 @@ static void updateWaveformParameters(void);
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool Waveform_InitWaveformGenerator(void)
+void Waveform_InitWaveformGenerator(void)
 {
   generateSineTable();
   generateTukeyWindow();
@@ -114,8 +116,6 @@ bool Waveform_InitWaveformGenerator(void)
 
   // Configure DAC and DMA here
   HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
-
-  return true;
 }
 
 bool Waveform_SetWaveformSequence(uint16_t num_steps, bool is_message, bool delay, uint32_t cyccnt)
@@ -195,16 +195,18 @@ bool Waveform_IsRunning()
   return dac_running;
 }
 
-bool Waveform_RegisterParams()
+void Waveform_RegisterParams()
 {
 
-  return true;
 }
 
 void Waveform_Flush()
 {
-  Waveform_SetWaveformSequence(1, false, false, 0);
-  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+  RETURN_IF_ERROR_PRESENT();
+  if (Waveform_SetWaveformSequence(1, false, false, 0) == false)
+    REGISTER_ERROR(ERROR_DAC_FLUSH);
+  if (HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1) != HAL_OK)
+    REGISTER_ERROR(ERROR_DAC_FLUSH);
   wave_ctrl.phase_accumulator = 0;
 
   dac_running = true;
@@ -220,15 +222,18 @@ void Waveform_Flush()
   Waveform_FillBuffer(FILL_FIRST_HALF);
   Waveform_FillBuffer(FILL_LAST_HALF);
 
-  HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t*) dac_buffer,
-      DAC_BUFFER_SIZE, DAC_ALIGN_12B_R);
+  if (HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t*) dac_buffer,
+      DAC_BUFFER_SIZE, DAC_ALIGN_12B_R) != HAL_OK)
+    REGISTER_ERROR(ERROR_DAC_FLUSH);
 
-  HAL_TIM_Base_Start(&htim6);
+  if (HAL_TIM_Base_Start(&htim6) != HAL_OK)
+    REGISTER_ERROR(ERROR_DAC_FLUSH);
 
-  while (dac_running == true) {
+  while (dac_running == true)
     osDelay(1);
-  }
-  HAL_TIM_Base_Stop(&htim6);
+  
+  if (HAL_TIM_Base_Stop(&htim6) != HAL_OK)
+    REGISTER_ERROR(ERROR_DAC_FLUSH);
 }
 
 void Waveform_FillBuffer(FillType_t type)

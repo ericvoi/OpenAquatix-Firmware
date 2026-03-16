@@ -12,7 +12,7 @@
 #include "dac_main.h"
 #include "dac_waveform.h"
 #include "cfg_parameters.h"
-#include "sys_error.h"
+#include "error_manager.h"
 #include "cfg_main.h"
 #include "main.h"
 #include "cmsis_os.h"
@@ -25,7 +25,7 @@
 
 /* Private define ------------------------------------------------------------*/
 
-#define ALL_FLAGS         0x000000FF
+
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -37,35 +37,30 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-bool registerDacParams(void);
+static void registerDacParams(void);
+static void resetTask(void);
 
 /* Exported function definitions ---------------------------------------------*/
 
 void DAC_StartTask(void* argument)
 {
   (void)(argument);
-  if (Param_RegisterTask(DAC_TASK, "DAC") == false) {
-    Error_Routine(ERROR_DAC_INIT);
-  }
-
-  if (registerDacParams() == false) {
-    Error_Routine(ERROR_DAC_INIT);
-  }
-
-  if (Param_TaskRegistrationComplete(DAC_TASK) == false) {
-    Error_Routine(ERROR_DAC_INIT);
-  }
-
+  Error_RegisterTask("DAC");
+  registerDacParams();
+  Error_ParameterRegistrationComplete();
   CFG_WaitLoadComplete();
 
   Waveform_InitWaveformGenerator();
 
+  // TODO: address why this is needed twice
   Waveform_Flush();
+
+  resetTask();
 
   for (;;)
   {
     uint32_t flags;
-    flags = osThreadFlagsWait(ALL_FLAGS, osFlagsWaitAny, osWaitForever);
+    flags = osThreadFlagsWait(0xFF, osFlagsWaitAny, osWaitForever);
 
     if (flags & DAC_FILL_FIRST_HALF) {
       Waveform_FillBuffer(FILL_FIRST_HALF);
@@ -82,15 +77,22 @@ void DAC_StartTask(void* argument)
     if (flags & DAC_START_RANGING_REQUEST) {
       Waveform_SendRangingRequest();
     }
+
+    if (Error_CheckModuleReset() == TASK_RESET) {
+      resetTask();
+    }
+    Error_ResetAbortFlag();
   }
 }
 
 /* Private function definitions ----------------------------------------------*/
 
-bool registerDacParams()
+void registerDacParams()
 {
-  if (Waveform_RegisterParams() == false) {
-    return false;
-  }
-  return true;
+  Waveform_RegisterParams();
+}
+
+void resetTask()
+{
+
 }

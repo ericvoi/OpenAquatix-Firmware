@@ -23,6 +23,7 @@
 #include "check_inputs.h"
 #include "usb_comm.h"
 #include "cmsis_os.h"
+#include "error_manager.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
@@ -130,12 +131,13 @@ static const MenuNode_t feedback_tests = {
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool COMM_RegisterEvalMenu(void)
+void COMM_RegisterEvalMenu(void)
 {
   bool ret = MenuSystem_RegisterMenu(&eval_menu) && 
              MenuSystem_RegisterMenu(&eval_set_msg_len) && MenuSystem_RegisterMenu(&eval_feedback) &&
              MenuSystem_RegisterMenu(&eval_transducer) && MenuSystem_RegisterMenu(&feedback_tests);
-  return ret;
+  
+  if (ret == false) REGISTER_ERROR(ERROR_MENU_REGISTRATION);
 }
 
 

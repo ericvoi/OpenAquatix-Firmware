@@ -19,6 +19,8 @@
 
 #include "cfg_main.h"
 
+#include "error_manager.h"
+
 #include "cmsis_os.h"
 
 #include "main.h"
@@ -589,15 +591,16 @@ uint64_t last_cfg_update_timestamp = 0;
 /* Private function prototypes -----------------------------------------------*/
 
 static bool getTestIndex(uint16_t* index);
-static bool compareHeaders(const Message_t* msg1, const Message_t* msg2, bool* identical);
-static bool generateUniqueIndices(uint16_t* indices, uint16_t num_indices, uint16_t min_index, uint16_t max_index);
+static void compareHeaders(const Message_t* msg1, const Message_t* msg2, bool* identical);
+static void generateUniqueIndices(uint16_t* indices, uint16_t num_indices, uint16_t min_index, uint16_t max_index);
 static bool testFailed(ExpectedResult_t expected_result, Message_t* msg, bool bit_error);
 static void printStatistics(void);
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool FeedbackTests_Init()
+void FeedbackTests_Init()
 {
+  RETURN_IF_ERROR_PRESENT();
   total_tests = 0;
 
   for (uint8_t i = 0; i < unique_tests; i++) {
@@ -606,13 +609,11 @@ bool FeedbackTests_Init()
 
     // If there are no errors added then there is no point in having multiple repetitions
     if (errors_added == 0 && repetitions != 1) {
-      return false;
+      REGISTER_ERROR(ERROR_FEEDBACK_TEST_INITIALIZATION);
     }
 
     total_tests += repetitions;
   }
-
-  return true;
 }
 
 void FeedbackTests_Start()
@@ -659,82 +660,73 @@ void FeedbackTests_GetNext()
     return;
   } 
 
+  if (last_action == DECODED_MESSAGE) return;
+
   MESS_AddMessageToTxQ(&feedback_tests[test_index].reference_message->test_msg);
   call_count++;
   last_action = SENT_MESSAGE;
 }
 
-bool FeedbackTests_CorruptMessage(BitMessage_t* bit_msg)
+void FeedbackTests_CorruptMessage(BitMessage_t* bit_msg)
 {
-  if (bit_msg == NULL) {
-    return false;
-  }
-  if (performing_test == false) {
-    return true;
-  }
+  RETURN_IF_ERROR_PRESENT();
+  if (bit_msg == NULL) 
+    REGISTER_ERROR(ERROR_NULL_PTR);
+  
+  if (performing_test == false) return;
 
   uint16_t test_index;
-
-  if (getTestIndex(&test_index) == false) {
-    return false;
-  }
+  if (getTestIndex(&test_index) == false) 
+    REGISTER_ERROR(ERROR_FBK_TEST_INDEX);
+  
 
   uint16_t num_errors = feedback_tests[test_index].errors_added;
 
-  if (num_errors == 0) {
-    return true;
-  }
+  if (num_errors == 0) return;
 
   uint16_t error_indices[num_errors];
 
-  if (generateUniqueIndices(error_indices, num_errors, 
+  generateUniqueIndices(error_indices, num_errors, 
       bit_msg->preamble.ecc_start_index, 
-      bit_msg->preamble.ecc_start_index + bit_msg->final_length - 1) == false) {
-    return false;
-  }
+      bit_msg->preamble.ecc_start_index + bit_msg->final_length - 1);
 
   for (uint16_t i = 0; i < num_errors; i++) {
-    if (Packet_FlipBit(bit_msg, error_indices[i]) == false) {
-      return false;
-    }
+    if (Packet_FlipBit(bit_msg, error_indices[i]) == false)
+      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
   }
-  return true;
 }
 
 bool FeedbackTests_Check(Message_t* received_msg, BitMessage_t* received_bit_msg)
 {
+  RETURN_IF_ERROR_PRESENT_NON_VOID(,false);
   if (performing_test == false) {
     return false;
   }
 
   uint16_t test_index;
   if (getTestIndex(&test_index) == false) {
-    return false;
+    REGISTER_ERROR_NON_VOID(ERROR_FBK_TEST_INDEX, true);
+    return true;
   }
 
   BitMessage_t bit_msg;
 
-  if (Packet_PrepareTx(&feedback_tests[test_index].reference_message->test_msg,
-      &bit_msg, &feedback_tests[test_index].cfg) == false) {
-    return false;
-  }
+  RETURN_IF_ERROR_PRESENT_NON_VOID(Packet_PrepareTx(&feedback_tests[test_index].reference_message->test_msg,
+      &bit_msg, &feedback_tests[test_index].cfg), true);
 
   // Compares the bit messages to see if the bits match up
   bool identical_bits;
-  if (Packet_Compare(&bit_msg,
-      received_bit_msg, &identical_bits) == false) {
-    return false;
-  }
+  RETURN_IF_ERROR_PRESENT_NON_VOID(Packet_Compare(&bit_msg,
+      received_bit_msg, &identical_bits), true);
   if (identical_bits == false) {
     feedback_tests[test_index].messages_with_any_errors++;
   }
 
   // Compare headers
   bool identical_headers;
-  if (compareHeaders(&feedback_tests[test_index].reference_message->test_msg,
-      received_msg, &identical_headers) == false) {
-    return false;
-  }
+  RETURN_IF_ERROR_PRESENT_NON_VOID(compareHeaders(&feedback_tests[test_index].reference_message->test_msg,
+      received_msg, &identical_headers), true);
+
   if (identical_headers == false) {
     feedback_tests[test_index].messages_with_header_errors++;
   }
@@ -767,7 +759,6 @@ bool FeedbackTests_Check(Message_t* received_msg, BitMessage_t* received_bit_msg
 
     printStatistics();
   }
-
   return true;
 }
 
@@ -779,7 +770,13 @@ bool FeedbackTests_GetConfig(DspConfig_t** cfg)
 
   uint16_t test_index;
   if (getTestIndex(&test_index) == false) {
+    REGISTER_ERROR_NON_VOID(ERROR_FBK_TEST_INDEX, false);
     return false;
+  }
+
+  if (last_action == UPDATED_CFG) {
+    *cfg = &feedback_tests[test_index].cfg;
+    return true;
   }
 
   CFG_IncrementVersionNumber();
@@ -811,10 +808,10 @@ bool getTestIndex(uint16_t* index)
   }
 }
 
-bool compareHeaders(const Message_t* msg1, const Message_t* msg2, bool* identical)
+void compareHeaders(const Message_t* msg1, const Message_t* msg2, bool* identical)
 {
   if (msg1 == NULL || msg2 == NULL || identical == NULL) {
-    return false;
+    REGISTER_ERROR(ERROR_NULL_PTR);
   }
 
   *identical = true;
@@ -824,15 +821,13 @@ bool compareHeaders(const Message_t* msg1, const Message_t* msg2, bool* identica
   else if (msg1->length_bits != msg2->length_bits) {
     *identical = false;
   }
-
-  return true;
 }
 
-bool generateUniqueIndices(uint16_t* indices, uint16_t num_indices, uint16_t min_index, uint16_t max_index) {
+void generateUniqueIndices(uint16_t* indices, uint16_t num_indices, uint16_t min_index, uint16_t max_index) {
 
-  if (min_index > max_index || num_indices <= 0 || num_indices > 5) {
-    return false;
-  }
+  if (min_index > max_index || num_indices <= 0 || num_indices > 5)
+    REGISTER_ERROR(ERROR_INVALID_FUNCTION_PARAMETERS);
+  
 
   uint16_t range_size = max_index - min_index + 1;
 
@@ -863,8 +858,6 @@ bool generateUniqueIndices(uint16_t* indices, uint16_t num_indices, uint16_t min
 
     indices[i] = index;
   }
-
-  return true;
 }
 
 bool testFailed(ExpectedResult_t expected_result, Message_t* msg, bool bit_error)

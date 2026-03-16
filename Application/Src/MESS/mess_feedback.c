@@ -14,6 +14,7 @@
 #include "mess_feedback.h"
 #include "usb_comm.h"
 #include "dac_waveform.h"
+#include "error_manager.h"
 #include <stdbool.h>
 
 /* Private typedef -----------------------------------------------------------*/
@@ -38,10 +39,10 @@
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool Feedback_Init()
+void Feedback_Init()
 {
+  RETURN_IF_ERROR_PRESENT();
   MessFiltResources_FeedbackAdcClear();
-  return true;
 }
 
 void Feedback_DumpData()

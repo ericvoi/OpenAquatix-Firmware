@@ -52,12 +52,11 @@ extern "C" {
  * @param cfg DSP Configuration
  * @param is_preamble Where to add the error detection
  *
- * @return true if correction data was successfully added,
- *         false if calculation failed or correction method is invalid
+ * @note Can cause unrecoverable and abort errors
  *
  * @see ErrorDetection_CheckDetection
  */
-bool ErrorDetection_AddDetection(BitMessage_t* bit_msg, const DspConfig_t* cfg, bool is_preamble);
+void ErrorDetection_AddDetection(BitMessage_t* bit_msg, const DspConfig_t* cfg, bool is_preamble);
 
 /**
  * @brief Verifies error correction data in a bit message
@@ -70,10 +69,9 @@ bool ErrorDetection_AddDetection(BitMessage_t* bit_msg, const DspConfig_t* cfg, 
  * @param cfg DSP Configuration
  * @param is_preamble Where to check error detection
  *
- * @return true if verification was performed successfully,
- *         false if verification failed or correction method is invalid
+ * @note Can cause unrecoverable and abort errors
  */
-bool ErrorDetection_CheckDetection(BitMessage_t* bit_msg, bool* error, const DspConfig_t* cfg, bool is_preamble);
+void ErrorDetection_CheckDetection(BitMessage_t* bit_msg, bool* error, const DspConfig_t* cfg, bool is_preamble);
 
 /**
  * @brief Gets the bit length of the current error correction method
@@ -82,19 +80,18 @@ bool ErrorDetection_CheckDetection(BitMessage_t* bit_msg, bool* error, const Dsp
  *               current error correction method
  * @param method Error detection method to check
  *
- * @return true if length was set successfully,
- *         false if the current correction method is invalid
+ * @note Can set an unrecoverable error if error detection method not handled
  */
-bool ErrorDetection_CheckLength(uint16_t* length, ErrorDetectionMethod_t method);
+void ErrorDetection_CheckLength(uint16_t* length, ErrorDetectionMethod_t method);
 
 /**
  * @brief Registers error correction parameters with the system
  *
  * Registers the error correction method parameter for HMI access.
  *
- * @return true if registration was successful, false otherwise
+ * @note Logs an error in the event of a failure
  */
-bool ErrorDetection_RegisterParams(void);
+void ErrorDetection_RegisterParams(void);
 
 /* Private defines -----------------------------------------------------------*/
 

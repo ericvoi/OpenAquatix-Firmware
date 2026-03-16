@@ -15,7 +15,7 @@
 #include "mess_modulate.h"
 #include "mess_sync.h"
 #include "dac_waveform.h"
-#include "sys_error.h"
+#include "error_manager.h"
 #include "sleep/wakeup_tones.h"
 #include "cmsis_os.h"
 #include <string.h>
@@ -58,14 +58,19 @@ TransmissionPhase_t getPhase(uint16_t current_step, uint16_t* transmission_step,
 
 void MessDacResource_Init()
 {
+  if (mess_dac_resource_mutex != NULL) 
+    REGISTER_ERROR(ERROR_MUTEX_INITIALIZATION);
   mess_dac_resource_mutex = osMutexNew(NULL);
+  if (mess_dac_resource_mutex == NULL) 
+    REGISTER_ERROR(ERROR_MUTEX_INITIALIZATION);
 }
 
 void MessDacResource_RegisterMessageConfiguration(const DspConfig_t* new_cfg,
     BitMessage_t* new_bit_msg)
 {
+  RETURN_IF_ERROR_PRESENT();
   if (osMutexAcquire(mess_dac_resource_mutex, MUTEX_TIMEOUT) != osOK) {
-    Error_Routine(ERROR_MESS_DAC_RESOURCE);
+    REGISTER_ERROR(ERROR_MUTEX_TIMEOUT);
     return;
   }
   memcpy(&cfg, new_cfg, sizeof(DspConfig_t));
@@ -82,7 +87,7 @@ WaveformStep_t MessDacResource_GetStep(uint16_t current_step)
   WaveformStep_t waveform_step = {0};
 
   if (osMutexAcquire(mess_dac_resource_mutex, MUTEX_TIMEOUT) != osOK) {
-    Error_Routine(ERROR_MESS_DAC_RESOURCE);
+    REGISTER_ERROR_NON_VOID(ERROR_MUTEX_TIMEOUT, waveform_step);
     return waveform_step;
   }
 
@@ -90,26 +95,21 @@ WaveformStep_t MessDacResource_GetStep(uint16_t current_step)
   uint16_t symbol_step;
   TransmissionPhase_t transmission_phase = getPhase(current_step, &transmission_step, &symbol_step);
 
-  bool success = false;
   switch (transmission_phase) {
     case PACKET_PHASE_WAKEUP:
-      success = WakeupTones_GetStep(&cfg, &waveform_step, transmission_step);
+      WakeupTones_GetStep(&cfg, &waveform_step, transmission_step);
       break;
     case PACKET_PHASE_SYNC:
-      success = Sync_GetStep(&cfg, &waveform_step, transmission_step);
+      Sync_GetStep(&cfg, &waveform_step, transmission_step);
       break;
     case PACKET_PHASE_DATA:
-      success = Modulate_DataStep(&cfg, &bit_msg, &waveform_step, transmission_step, symbol_step);
+      Modulate_DataStep(&cfg, &bit_msg, &waveform_step, transmission_step, symbol_step);
       break;
     default:
-      success = false;
+      REGISTER_ERROR_NON_VOID(ERROR_UNHANDLED_CASE, waveform_step);
       break;
   }
   osMutexRelease(mess_dac_resource_mutex);
-  if (success == false) {
-    Error_Routine(ERROR_DAC_PROCESSING);
-    return waveform_step;
-  }
   return waveform_step;
 }
 

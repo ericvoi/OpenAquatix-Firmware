@@ -1,17 +1,18 @@
 /*
- * sys_error.c
+ * error_reset.c
  *
- *  Created on: Mar 11, 2025
+ *  Created on: Feb 25, 2026
  *      Author: ericv
- * 
- * Copyright (c) 2025 OpenAquatix Contributors
+ *
+ * Copyright (c) 2026 OpenAquatix Contributors
  * SPDX-License-Identifier: MIT
  */
 
 /* Private includes ----------------------------------------------------------*/
 
-#include "sys_error.h"
-#include <stdbool.h>
+#include "stm32h7xx_hal.h"
+#include "bkpsram_layout.h"
+#include "error_reset.h"
 
 /* Private typedef -----------------------------------------------------------*/
 
@@ -27,7 +28,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-static bool error = false;
+
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -35,28 +36,16 @@ static bool error = false;
 
 /* Exported function definitions ---------------------------------------------*/
 
-void Error_Routine(ErrorCodes_t error_code)
+void ErrorReset_WarmReset()
 {
-  switch (error_code) {
-    case ERROR_CFG_INIT:
-    case ERROR_COMM_INIT:
-    case ERROR_MESS_INIT:
-    case ERROR_SYS_INIT:
-    case ERROR_MESS_PROCESSING:
-    case ERROR_DAC_INIT:
-    case ERROR_DAC_PROCESSING:
-    case ERROR_MESS_DAC_RESOURCE:
-      break;
-    default:
-      break;
-  }
-
-  error = true;
+  bkpsram.error_reset_flag = ERROR_RESET_MAGIC_NUMBER;
+  __DSB();
+  HAL_NVIC_SystemReset();
 }
 
-bool Error_Exists()
+void ErrorReset_NotifyErrorReset()
 {
-  return error;
+  Error_LogWarmReset();
 }
 
 /* Private function definitions ----------------------------------------------*/

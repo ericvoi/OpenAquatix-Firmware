@@ -60,12 +60,10 @@ extern TIM_HandleTypeDef htim6;  // Timer for sequence timing
  *
  * Sets up the sine lookup table, initializes the waveform control structure,
  * and configures the timer needed for DAC operation.
- *
- * @return true if initialization was successful, false if timer initialization failed
- *
+ * 
  * @note Must be called before any other DAC waveform functions
  */
-bool Waveform_InitWaveformGenerator(void);
+void Waveform_InitWaveformGenerator(void);
 
 /**
  * @brief Configures the maximum number of waveform steps for the output
@@ -132,11 +130,9 @@ bool Waveform_IsRunning(void);
 /**
  * @brief Registers module parameters with the parameter system
  *
- * Makes the DAC transition length accessible via the HMI.
- *
- * @return true if parameter registration succeeds, false otherwise
+ * @note Logs an error in the event of a failure
  */
-bool Waveform_RegisterParams(void);
+void Waveform_RegisterParams(void);
 
 /**
  * @brief Sends a flushing message through the dac

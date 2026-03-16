@@ -31,6 +31,8 @@
 
 #include "cmsis_os.h"
 #include "main.h"
+#include "error_manager.h"
+#include "error_log.h"
 
 #include <ctype.h>
 #include <stdbool.h>
@@ -44,7 +46,7 @@
 
 /* Private define ------------------------------------------------------------*/
 
-
+#define MAGIC_RESET_NUMBER            0xABCDABCD
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -52,18 +54,18 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-void getGpioStatus(FunctionContext_t* context);
-void setLedColourHandler(FunctionContext_t* context);
-void printWaveformHandler(FunctionContext_t* context);
-void dumpAdcData(FunctionContext_t* context);
-void noiseSpectralAnalysis(FunctionContext_t* context);
-void printCurrentTemp(FunctionContext_t* context);
-void printCurrentErrors(FunctionContext_t* context);
-void printCurrentPowerConsumption(FunctionContext_t* context);
-void printBackgroundNoise(FunctionContext_t* context);
-void enterDfuMode(FunctionContext_t* context);
-void resetSavedValues(FunctionContext_t* context);
-void deepSleep(FunctionContext_t* context);
+static void getGpioStatus(FunctionContext_t* context);
+static void setLedColourHandler(FunctionContext_t* context);
+static void printWaveformHandler(FunctionContext_t* context);
+static void dumpAdcData(FunctionContext_t* context);
+static void noiseSpectralAnalysis(FunctionContext_t* context);
+static void printCurrentTemp(FunctionContext_t* context);
+static void printErrorLog(FunctionContext_t* context);
+static void printCurrentPowerConsumption(FunctionContext_t* context);
+static void printBackgroundNoise(FunctionContext_t* context);
+static void enterDfuMode(FunctionContext_t* context);
+static void resetSavedValues(FunctionContext_t* context);
+static void deepSleep(FunctionContext_t* context);
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -182,8 +184,8 @@ static ParamContext_t debug_menu_err_param = {
 };
 static const MenuNode_t debug_menu_err = {
   .id = MENU_ID_DBG_ERR,
-  .description = "Get current errors",
-  .handler = printCurrentErrors,
+  .description = "Print error log",
+  .handler = printErrorLog,
   .parent_id = MENU_ID_DBG,
   .children_ids = NULL,
   .num_children = 0,
@@ -269,7 +271,7 @@ static const MenuNode_t debug_menu_deep_sleep = {
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool COMM_RegisterDebugMenu(void)
+void COMM_RegisterDebugMenu(void)
 {
   bool ret = MenuSystem_RegisterMenu(&debug_menu) && MenuSystem_RegisterMenu(&debug_menu_gpio) &&
              MenuSystem_RegisterMenu(&debug_menu_set_led) && MenuSystem_RegisterMenu(&debug_menu_print) &&
@@ -278,18 +280,19 @@ bool COMM_RegisterDebugMenu(void)
              MenuSystem_RegisterMenu(&debug_menu_dfu) && MenuSystem_RegisterMenu(&debug_menu_reset) &&
              MenuSystem_RegisterMenu(&debug_menu_noise_f) && MenuSystem_RegisterMenu(&debug_menu_noise_level) &&
              MenuSystem_RegisterMenu(&debug_menu_deep_sleep);
-  return ret;
+
+  if (ret == false) REGISTER_ERROR(ERROR_MENU_REGISTRATION);
 }
 
 /* Private function definitions ----------------------------------------------*/
 
 // TODO: implement
-void getGpioStatus(FunctionContext_t* context)
+static void getGpioStatus(FunctionContext_t* context)
 {
   COMMLoops_NotImplemented(context);
 }
 
-void setLedColourHandler(FunctionContext_t* context)
+static void setLedColourHandler(FunctionContext_t* context)
 {
   static uint8_t red = 0;
   static uint8_t green = 0;
@@ -354,7 +357,7 @@ void setLedColourHandler(FunctionContext_t* context)
   } while (old_state > context->state->state); // Continues looping if the state has regressed
 }
 
-void printWaveformHandler(FunctionContext_t* context)
+static void printWaveformHandler(FunctionContext_t* context)
 {
   if (print_event_handle == NULL) {
     return;
@@ -368,7 +371,7 @@ void printWaveformHandler(FunctionContext_t* context)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void dumpAdcData(FunctionContext_t* context)
+static void dumpAdcData(FunctionContext_t* context)
 {
   if (print_event_handle == NULL) {
     return;
@@ -389,7 +392,7 @@ void dumpAdcData(FunctionContext_t* context)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void noiseSpectralAnalysis(FunctionContext_t* context)
+static void noiseSpectralAnalysis(FunctionContext_t* context)
 {
   if (print_event_handle == NULL) {
     return;
@@ -409,7 +412,7 @@ void noiseSpectralAnalysis(FunctionContext_t* context)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void printCurrentTemp(FunctionContext_t* context)
+static void printCurrentTemp(FunctionContext_t* context)
 {
   float temp = Temperature_GetCurrentTj();
 
@@ -419,14 +422,13 @@ void printCurrentTemp(FunctionContext_t* context)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-// TODO: implement
-void printCurrentErrors(FunctionContext_t* context)
+static void printErrorLog(FunctionContext_t* context)
 {
-  COMMLoops_NotImplemented(context);
+  ErrorLog_PrintLog(context->comm_interface);
+  context->state->state = PARAM_STATE_COMPLETE;
 }
 
-// TODO: implement
-void printCurrentPowerConsumption(FunctionContext_t* context)
+static void printCurrentPowerConsumption(FunctionContext_t* context)
 {
   float power = Power_LatestPower();
 
@@ -436,7 +438,7 @@ void printCurrentPowerConsumption(FunctionContext_t* context)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void printBackgroundNoise(FunctionContext_t* context)
+static void printBackgroundNoise(FunctionContext_t* context)
 {
   if (BackgroundNoise_Ready() == false) {
     COMM_TransmitData("\r\nBackground noise not available yet\r\n", CALC_LEN, context->comm_interface);
@@ -451,7 +453,7 @@ void printBackgroundNoise(FunctionContext_t* context)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void resetSavedValues(FunctionContext_t* context)
+static void resetSavedValues(FunctionContext_t* context)
 {
   ParamState_t old_state = context->state->state;
 
@@ -492,11 +494,26 @@ void resetSavedValues(FunctionContext_t* context)
 }
 
 // TODO: add confirmation similar to above
-void enterDfuMode(FunctionContext_t* context)
+static void enterDfuMode(FunctionContext_t* context)
 {
-  (void)(context);
+  __HAL_RCC_BKPRAM_CLK_ENABLE();
+
+  HAL_PWR_EnableBkUpAccess();
+
+  if (HAL_PWREx_EnableBkUpReg() != HAL_OK) {
+    COMM_TransmitData("Could not set backup flag. Aborted action\r\n", CALC_LEN, context->comm_interface);
+    context->state->state = PARAM_STATE_COMPLETE;
+    return;
+  }
   // write magic number to magic address. See startup code for corresponding check
-  *((uint32_t*) 0x38000000) = 0xABCDABCD;
+  *((uint32_t*) 0x38800000) = MAGIC_RESET_NUMBER;
+  volatile uint32_t check_value = *((uint32_t*) 0x38800000);
+
+  if (check_value != MAGIC_RESET_NUMBER) {
+    COMM_TransmitData("Error setting DFU flag. Aborting action\r\n", CALC_LEN, context->comm_interface);
+    context->state->state = PARAM_STATE_COMPLETE;
+    return;
+  }
 
   osDelay(10);
 
@@ -504,7 +521,7 @@ void enterDfuMode(FunctionContext_t* context)
 }
 
 // TODO: add confirmation
-void deepSleep(FunctionContext_t* context)
+static void deepSleep(FunctionContext_t* context)
 {
   osEventFlagsSet(sleep_events, SLEEP_REQUEST_DEEP);
 

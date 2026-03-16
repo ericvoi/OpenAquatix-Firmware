@@ -14,12 +14,12 @@
 #include "cfg_parameters.h"
 #include "cfg_main.h"
 #include "cfg_defaults.h"
-#include "sys_error.h"
 #include "mess_filt_resources.h"
 #include "mess_dsp_config.h"
 #include "mess_background_noise.h"
 #include "main.h"
 #include "cmsis_os.h"
+#include "error_manager.h"
 #include "arm_math.h"
 #include <stdbool.h>
 
@@ -99,8 +99,9 @@ DEFINE_DESC_TABLE(DIGITAL_FILTER_TABLE, digital_filter_descriptors)
 
 /* Private function prototypes -----------------------------------------------*/
 
-static bool registerFiltParams(void);
-static bool createFiltEvents(void);
+static void resetTask(void);
+static void registerFiltParams(void);
+static void createFiltEvents(void);
 static void dcEstimateInit(DcEstimate_t *estimator, uint8_t shift, int32_t seed);
 static inline int32_t dcEstimateValue(const DcEstimate_t *estimator);
 static inline void dcEstimateUpdate(DcEstimate_t *estimator, int32_t x);
@@ -117,30 +118,23 @@ void FILT_StartTask(void* argument)
 {
   (void)(argument);
 
-  if (Param_RegisterTask(FILT_TASK, "FILT") == false) {
-    Error_Routine(ERROR_FILT_INIT);
-  }
+  Error_RegisterTask("FILT");
+  registerFiltParams();
+  Error_ParameterRegistrationComplete();
 
-  if (registerFiltParams() == false) {
-    Error_Routine(ERROR_FILT_INIT);
-  }
-
-  if (Param_TaskRegistrationComplete(FILT_TASK) == false) {
-    Error_Routine(ERROR_FILT_INIT);
-  }
+  createFiltEvents();
 
   CFG_WaitLoadComplete();
-
-  if (createFiltEvents() == false) {
-    Error_Routine(ERROR_FILT_INIT);
-  }
-  dcEstimateInit(&dc_tracker, DC_SHIFT, ADC_MIDPOINT);
   // Init FMAC (later) TODO
 
+  resetTask();
   for (;;) {
     checkFilterChange();
     handleEvents();
-    osDelay(1);
+    if (Error_CheckModuleReset() == TASK_RESET) {
+      resetTask();
+    }
+    Error_ResetAbortFlag();
   }
 }
 
@@ -171,19 +165,25 @@ uint32_t FILT_GetSamplingRate(void)
 
 /* Private function definitions ----------------------------------------------*/
 
-bool registerFiltParams(void)
+void resetTask(void)
+{
+  dcEstimateInit(&dc_tracker, DC_SHIFT, ADC_MIDPOINT);
+  osEventFlagsClear(filt_events, 0xFF);
+}
+
+void registerFiltParams(void)
 {
   uint32_t min_u32 = MIN_FILTER;
   uint32_t max_u32 = MAX_FILTER;
   if (Param_Register(PARAM_FSK_FILTER, "FSK filter", PARAM_TYPE_ENUM,
                      &fsk_filter, sizeof(DigitalFilter_t), &min_u32, &max_u32,
                      NULL, digital_filter_descriptors) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
   if (Param_Register(PARAM_FHBFSK_FILTER, "FH-BFSK filter", PARAM_TYPE_ENUM,
                      &fhbfsk_filter, sizeof(DigitalFilter_t), &min_u32, &max_u32,
                      NULL, digital_filter_descriptors) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
   min_u32 = MIN_DECIMATION_FACTOR;
   max_u32 = MAX_DECIMATION_FACTOR;
@@ -191,17 +191,16 @@ bool registerFiltParams(void)
                      "Decimation filter decimation factor", PARAM_TYPE_UINT8,
                      &filter_infos[DIGITAL_FILTER_DEC].decimation_factor, 
                      sizeof(uint8_t), &min_u32, &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
-  return true;
 }
 
-bool createFiltEvents(void)
+void createFiltEvents(void)
 {
-  if (filt_events != NULL) return false;
+  if (filt_events != NULL) REGISTER_ERROR(ERROR_FLAGS_INITIALIZATION);
 
   filt_events = osEventFlagsNew(NULL);
-  return filt_events != NULL;
+  if (filt_events == NULL) REGISTER_ERROR(ERROR_FLAGS_INITIALIZATION);
 }
 
 void dcEstimateInit(DcEstimate_t* estimator, uint8_t shift, int32_t seed)
@@ -222,15 +221,23 @@ inline void dcEstimateUpdate(DcEstimate_t *estimator, int32_t x)
 
 void handleEvents(void)
 {
-  uint32_t events = osEventFlagsGet(filt_events);
+  uint32_t events = osEventFlagsWait(filt_events, 0x07, osFlagsWaitAny, 1);
+
+  if (events == osFlagsErrorResource || events == osFlagsErrorTimeout) {
+    return;
+  }
+
+  if (events & 0x80000000U) {
+    REGISTER_ERROR(ERROR_FLAGS_RUNNING);
+  }
 
   bool raw_first_half_ready   = events & FILT_FIRST_HALF_RDY_RAW;
   bool raw_second_half_ready  = events & FILT_SECOND_HALF_RDY_RAW;
   bool fmac_ready             = events & FILT_FMAC_RDY;
 
-  if (raw_first_half_ready && raw_second_half_ready) {
-    // TODO: handle error
-  }
+  if (raw_first_half_ready && raw_second_half_ready)
+    REGISTER_ERROR(ERROR_FILT_EVENTS);
+  
 
   if (fmac_ready == true) decimateFilteredData();
 
@@ -255,7 +262,8 @@ void checkFilterChange(void)
 
   uint8_t mod_method;
   DigitalFilter_t new_filter;
-  if (Param_GetEnum(PARAM_MOD_DEMOD_METHOD, &mod_method) == false) return;
+  if (Param_GetEnum(PARAM_MOD_DEMOD_METHOD, &mod_method) == false)
+    REGISTER_ERROR(ERROR_PARAMETER_ACCESS);
 
   switch (mod_method) {
     case MOD_DEMOD_FSK:
@@ -265,6 +273,7 @@ void checkFilterChange(void)
       new_filter = fhbfsk_filter;
       break;
     default:
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
       return;
   }
 

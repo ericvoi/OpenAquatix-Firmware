@@ -12,6 +12,7 @@
 
 #include "sys_pressure.h"
 #include "lps22hh-driver.h"
+#include "error_manager.h"
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -41,14 +42,12 @@ static float current_pressure_hpa = 0.0f;
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool Pressure_Init(void)
+void Pressure_Init(void)
 {
+  RETURN_IF_ERROR_PRESENT();
   p_buf_head = 0;
   p_buf_tail = 0;
-  if (LPS_RegisterPressureBuf(p_buf, PRESSURE_BUFFER_SIZE, &p_buf_head) == false) {
-    return false;
-  }
-  return true;
+  LPS_RegisterPressureBuf(p_buf, PRESSURE_BUFFER_SIZE, &p_buf_head);
 }
 
 void Pressure_Process(void)

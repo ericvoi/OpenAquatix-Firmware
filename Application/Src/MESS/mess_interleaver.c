@@ -12,6 +12,7 @@
 
 #include "mess_interleaver.h"
 #include "mess_packet.h"
+#include "error_manager.h"
 #include <stdbool.h>
 
 /* Private typedef -----------------------------------------------------------*/
@@ -41,108 +42,92 @@ static const uint16_t num_primes = sizeof(primes) / sizeof(primes[0]);
 
 // These functions directly modify the input bit message. Both functions are
 // nearly identical besides changing the original/destination indices
-static bool interleave(uint16_t start_index, uint16_t length,
+static void interleave(uint16_t start_index, uint16_t length,
     BitMessage_t* input_bit_msg, BitMessage_t* buffer_bit_msg);
-static bool deinterleave(uint16_t start_index, uint16_t length,
+static void deinterleave(uint16_t start_index, uint16_t length,
     BitMessage_t* input_bit_msg, BitMessage_t* buffer_bit_msg);
 static uint16_t findInterleavingDepth(uint16_t length);
 
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool Interleaver_Apply(BitMessage_t* bit_msg, const DspConfig_t* cfg)
+void Interleaver_Apply(BitMessage_t* bit_msg, const DspConfig_t* cfg)
 {
-  if (cfg->use_interleaver == false) {
-    return true;
-  }
+  RETURN_IF_ERROR_PRESENT();
+  if (cfg->use_interleaver == false) return;
   // First interleave the preamble separately following the JANUS standard
   BitMessage_t buffer_bit_msg;
   buffer_bit_msg.bit_count = bit_msg->bit_count;
-  if (interleave(bit_msg->preamble.ecc_start_index, bit_msg->preamble.ecc_len,
-                 bit_msg, &buffer_bit_msg) == false) {
-    return false;
-  }
+  RETURN_IF_ERROR_PRESENT(interleave(bit_msg->preamble.ecc_start_index, 
+      bit_msg->preamble.ecc_len, bit_msg, &buffer_bit_msg));
 
   // Then interleave the message cargo separately
-  if (interleave(bit_msg->cargo.ecc_start_index, bit_msg->cargo.ecc_len,
-                 bit_msg, &buffer_bit_msg) == false) {
-    return false;
-  }
-  return true;
+  RETURN_IF_ERROR_PRESENT(interleave(bit_msg->cargo.ecc_start_index, 
+      bit_msg->cargo.ecc_len, bit_msg, &buffer_bit_msg));
 }
 
-bool Interleaver_Undo(BitMessage_t* bit_msg, const DspConfig_t* cfg, bool is_preamble)
+void Interleaver_Undo(BitMessage_t* bit_msg, const DspConfig_t* cfg, bool is_preamble)
 {
-  if (cfg->use_interleaver == false) {
-    return true;
-  }
+  RETURN_IF_ERROR_PRESENT();
+  if (cfg->use_interleaver == false) return;
   BitMessage_t buffer_bit_msg;
   buffer_bit_msg.bit_count = bit_msg->bit_count;
   SectionInfo_t section_info = is_preamble ? bit_msg->preamble : bit_msg->cargo;
 
-  return deinterleave(section_info.ecc_start_index, section_info.ecc_len,
-      bit_msg, &buffer_bit_msg);
+  RETURN_IF_ERROR_PRESENT(deinterleave(section_info.ecc_start_index, section_info.ecc_len,
+      bit_msg, &buffer_bit_msg));
 }
 
 /* Private function definitions ----------------------------------------------*/
 
-bool interleave(uint16_t start_index, uint16_t length,
+void interleave(uint16_t start_index, uint16_t length,
     BitMessage_t* input_bit_msg, BitMessage_t* buffer_bit_msg)
 {
   // If the length and the interleaver depth have a common denominator other
   // than 1, the interleaver will result in duplicate entries and lost data
   uint16_t interleaver_depth = findInterleavingDepth(length);
-  if ((length % interleaver_depth) == 0) {
-    return false;
-  }
-
+  if ((length % interleaver_depth) == 0) 
+    REGISTER_ERROR(ERROR_INTERLEAVING_DEPTH);
+  
   for (uint16_t i = 0; i < length; i++) {
     // Values are 32 bits to handle intermediate results
     uint32_t original_index = start_index + i;
     uint32_t new_index = (i * interleaver_depth) % length + start_index;
     bool bit;
-    if (Packet_GetBit(input_bit_msg, (uint16_t) original_index, &bit) == false) {
-      return false;
-    }
-    if (Packet_SetBit(buffer_bit_msg, (uint16_t) new_index, bit) == false) {
-      return false;
-    }
+    if (Packet_GetBit(input_bit_msg, (uint16_t) original_index, &bit) == false) 
+      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
+    
+    if (Packet_SetBit(buffer_bit_msg, (uint16_t) new_index, bit) == false)
+      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
   }
 
-  if (Packet_Copy(buffer_bit_msg, input_bit_msg, start_index, length) == false) {
-    return false;
-  }
-  return true;
+  RETURN_IF_ERROR_PRESENT(Packet_Copy(buffer_bit_msg, input_bit_msg, start_index, length));
 }
 
-bool deinterleave(uint16_t start_index, uint16_t length,
+void deinterleave(uint16_t start_index, uint16_t length,
     BitMessage_t* input_bit_msg, BitMessage_t* buffer_bit_msg)
 {
   // If the length and the interleaver depth have a common denominator other
   // than 1, the interleaver will result in duplicate entries and lost data
   uint16_t interleaver_depth = findInterleavingDepth(length);
-  if ((length % interleaver_depth) == 0) {
-    return false;
-  }
+  if ((length % interleaver_depth) == 0) 
+    REGISTER_ERROR(ERROR_INTERLEAVING_DEPTH);
+  
 
   for (uint16_t i = 0; i < length; i++) {
     // Values are 32 bits to handle intermediate results
     uint32_t original_index = (i * interleaver_depth) % length + start_index;
     uint32_t new_index = start_index + i;
     bool bit;
-    if (Packet_GetBit(input_bit_msg, (uint16_t) original_index, &bit) == false) {
-      return false;
-    }
-    if (Packet_SetBit(buffer_bit_msg, (uint16_t) new_index, bit) == false) {
-      return false;
-    }
+    if (Packet_GetBit(input_bit_msg, (uint16_t) original_index, &bit) == false)
+      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
+    
+    if (Packet_SetBit(buffer_bit_msg, (uint16_t) new_index, bit) == false)
+      REGISTER_ERROR(ERROR_EXCEED_BIT_MSG_LEN);
+    
   }
 
-  if (Packet_Copy(buffer_bit_msg, input_bit_msg, start_index, length) == false) {
-    return false;
-  }
-
-  return true;
+  RETURN_IF_ERROR_PRESENT(Packet_Copy(buffer_bit_msg, input_bit_msg, start_index, length));
 }
 
 /**

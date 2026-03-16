@@ -18,6 +18,7 @@
 #include "cfg_defaults.h"
 #include "cfg_parameters.h"
 
+#include "error_manager.h"
 #include "uam_math.h"
 #include "goertzel.h"
 
@@ -64,7 +65,7 @@ DEFINE_DESC_TABLE(WINDOW_FUNCTION_TABLE, window_function_descriptors)
 
 /* Private function prototypes -----------------------------------------------*/
 
-static void GoertzelInfoCopy(GoertzelInfo_t* goertzel_info, DemodulationInfo_t* data);
+static void goertzelInfoCopy(GoertzelInfo_t* goertzel_info, DemodulationInfo_t* data);
 static void updateWindow();
 static void setWindowRectangular();
 static void setWindowHann();
@@ -74,15 +75,16 @@ static void setWindowHamming();
 
 void Demodulate_Init()
 {
+  RETURN_IF_ERROR_PRESENT();
   updateWindow();
 }
 
-bool Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg)
+void Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg)
 {
   switch (cfg->mod_demod_method) {
     case MOD_DEMOD_FSK:
       GoertzelInfo_t goertzel_info;
-      GoertzelInfoCopy(&goertzel_info, data);
+      goertzelInfoCopy(&goertzel_info, data);
       uint32_t f[2] = {cfg->fsk_f0, cfg->fsk_f1};
       float e_f[2];
       goertzel_info.f = f;
@@ -98,7 +100,7 @@ bool Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg)
       data->f0 = Modulate_GetFhbfskFrequency(false, data->chip_index, cfg);
       data->f1 = Modulate_GetFhbfskFrequency(true, data->chip_index, cfg);
       GoertzelInfo_t goertzel_info;
-      GoertzelInfoCopy(&goertzel_info, data);
+      goertzelInfoCopy(&goertzel_info, data);
       uint32_t f[2] = {data->f0, data->f1};
       float e_f[2];
       goertzel_info.f = f;
@@ -112,12 +114,13 @@ bool Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg)
       break;
     }
     default:
-      return false;
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
+      break;
   }
 
   switch (decision_method) {
     case AMPLITUDE_COMPARISON:
-      return true;
+      return;
     /* In the HISTORICAL_COMPARISON method:
      * The algorithm uses prior demodulation results to handle cases where
      * there are significant energy shifts between f0 and f1 frequencies.
@@ -181,9 +184,8 @@ bool Demodulate_Perform(DemodulationInfo_t* data, const DspConfig_t* cfg)
       demodulation_history[buffer_index][frequency_index].energy_f1 = data->energy_f1;
       break;
     default:
-      return false;
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
   }
-  return true;
 }
 
 float Demodulate_PowerNormalization()
@@ -200,7 +202,7 @@ float Demodulate_PowerNormalization()
   }
 }
 
-bool Demodulate_RegisterParams()
+void Demodulate_RegisterParams()
 {
   uint32_t min_u32 = MIN_DEMOD_DECISION;
   uint32_t max_u32 = MAX_DEMOD_DECISION;
@@ -208,7 +210,7 @@ bool Demodulate_RegisterParams()
                      PARAM_TYPE_ENUM, &decision_method, sizeof(uint8_t), 
                      &min_u32, &max_u32, NULL, 
                      demodulation_decision_descriptors) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_DEMOD_CAL_LOWER_F;
@@ -216,7 +218,7 @@ bool Demodulate_RegisterParams()
   if (Param_Register(PARAM_DEMOD_CAL_LOWER_FREQ, "demod cal lower frequency", 
                      PARAM_TYPE_UINT32, &lower_calibration_frequency, 
                      sizeof(uint32_t), &min_u32, &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_DEMOD_CAL_LOWER_F;
@@ -224,7 +226,7 @@ bool Demodulate_RegisterParams()
   if (Param_Register(PARAM_DEMOD_CAL_UPPER_FREQ, "demod cal upper frequency", 
                      PARAM_TYPE_UINT32, &upper_calibration_frequency, 
                      sizeof(uint32_t), &min_u32, &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   float min_f = MIN_HIST_CMP_THRESH;
@@ -233,7 +235,7 @@ bool Demodulate_RegisterParams()
                      "significant shift threshold", PARAM_TYPE_FLOAT,
                      &significant_shift_threshold, sizeof(float), &min_f, 
                      &max_f, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_WINDOW_FUNCTION;
@@ -242,15 +244,13 @@ bool Demodulate_RegisterParams()
                      PARAM_TYPE_ENUM, &window_function, sizeof(uint8_t), 
                      &min_u32, &max_u32, updateWindow, 
                      window_function_descriptors) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
-
-  return true;
 }
 
 /* Private function definitions ----------------------------------------------*/
 
-void GoertzelInfoCopy(GoertzelInfo_t* goertzel_info, DemodulationInfo_t* data)
+void goertzelInfoCopy(GoertzelInfo_t* goertzel_info, DemodulationInfo_t* data)
 {
   goertzel_info->buf_len = data->buf_len;
   goertzel_info->data_len = data->data_len;
@@ -272,6 +272,7 @@ void updateWindow()
       setWindowHamming();
       break;
     default:
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
       break;
   }
 }

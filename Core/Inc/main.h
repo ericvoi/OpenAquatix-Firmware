@@ -36,6 +36,7 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
+
 // Whenever a new task is added, an enum must be added here
 typedef enum {
   CFG_TASK,
@@ -47,6 +48,17 @@ typedef enum {
   FILT_TASK,
   NUM_TASKS
 } TaskIds_t;
+
+typedef enum {
+  SUBSYS_PGA,
+  SUBSYS_FBK_TESTS,
+  SUBSYS_LPS,
+  SUBSYS_INA,
+  SUBSYS_TJ,          // Junction temperature
+  NUM_SUBSYS,
+  SUBSYS_NONE // Used for error manager when an error is not tied to a subsystem
+} SubSystemId_t;
+
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/

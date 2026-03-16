@@ -15,6 +15,8 @@
 #include "comm_function_loops.h"
 #include "sys_temperature.h"
 #include "sys_power.h"
+#include "error_manager.h"
+#include "error_log.h"
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -32,16 +34,16 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-void printReceivedMessages(FunctionContext_t* context);
-void printSentMessages(FunctionContext_t* context);
-void printErrorLog(FunctionContext_t* context);
-void printPeakPwr(FunctionContext_t* context);
-void printPwrSinceBoot(FunctionContext_t* context);
-void printAvgPwr(FunctionContext_t* context);
-void printCurrPwr(FunctionContext_t* context);
-void printCurrTemp(FunctionContext_t* context);
-void printPeakTemp(FunctionContext_t* context);
-void printAvgTemp(FunctionContext_t* context);
+static void printReceivedMessages(FunctionContext_t* context);
+static void printSentMessages(FunctionContext_t* context);
+static void printErrorLog(FunctionContext_t* context);
+static void printPeakPwr(FunctionContext_t* context);
+static void printPwrSinceBoot(FunctionContext_t* context);
+static void printAvgPwr(FunctionContext_t* context);
+static void printCurrPwr(FunctionContext_t* context);
+static void printCurrTemp(FunctionContext_t* context);
+static void printPeakTemp(FunctionContext_t* context);
+static void printAvgTemp(FunctionContext_t* context);
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -243,7 +245,7 @@ static const MenuNode_t avg_temp_hist = {
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool COMM_RegisterHistoryMenu()
+void COMM_RegisterHistoryMenu()
 {
   bool ret = MenuSystem_RegisterMenu(&hist_menu) && MenuSystem_RegisterMenu(&pwr_hist_menu) &&
              MenuSystem_RegisterMenu(&temp_hist_menu) && MenuSystem_RegisterMenu(&received_hist) &&
@@ -252,30 +254,31 @@ bool COMM_RegisterHistoryMenu()
              MenuSystem_RegisterMenu(&avg_pwr_hist) && MenuSystem_RegisterMenu(&curr_pwr_hist) &&
              MenuSystem_RegisterMenu(&curr_temp_hist) && MenuSystem_RegisterMenu(&peak_temp_hist) &&
              MenuSystem_RegisterMenu(&avg_temp_hist);
-  return ret;
+  
+  if (ret == false) REGISTER_ERROR(ERROR_MENU_REGISTRATION);
 }
 
 /* Private function definitions ----------------------------------------------*/
 
 // TODO: implement
-void printReceivedMessages(FunctionContext_t* context)
+static void printReceivedMessages(FunctionContext_t* context)
 {
   COMMLoops_NotImplemented(context);
 }
 
 // TODO: implement
-void printSentMessages(FunctionContext_t* context)
+static void printSentMessages(FunctionContext_t* context)
 {
   COMMLoops_NotImplemented(context);
 }
 
-// TODO: implement
-void printErrorLog(FunctionContext_t* context)
+static void printErrorLog(FunctionContext_t* context)
 {
-  COMMLoops_NotImplemented(context);
+  ErrorLog_PrintLog(context->comm_interface);
+  context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void printPeakPwr(FunctionContext_t* context)
+static void printPeakPwr(FunctionContext_t* context)
 {
   float power = Power_MaxPower();
 
@@ -285,7 +288,7 @@ void printPeakPwr(FunctionContext_t* context)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void printPwrSinceBoot(FunctionContext_t* context)
+static void printPwrSinceBoot(FunctionContext_t* context)
 {
   float power = Power_AveragePower();
   float energy = power * (HAL_AbsoluteTimestamp() / 1000.0f);
@@ -297,7 +300,7 @@ void printPwrSinceBoot(FunctionContext_t* context)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void printAvgPwr(FunctionContext_t* context)
+static void printAvgPwr(FunctionContext_t* context)
 {
   float power = Power_AveragePower();
 
@@ -307,7 +310,7 @@ void printAvgPwr(FunctionContext_t* context)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void printCurrPwr(FunctionContext_t* context)
+static void printCurrPwr(FunctionContext_t* context)
 {
   float power = Power_LatestPower();
 
@@ -317,7 +320,7 @@ void printCurrPwr(FunctionContext_t* context)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void printCurrTemp(FunctionContext_t* context)
+static void printCurrTemp(FunctionContext_t* context)
 {
   float temp = Temperature_GetCurrentTj();
 
@@ -327,7 +330,7 @@ void printCurrTemp(FunctionContext_t* context)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void printPeakTemp(FunctionContext_t* context)
+static void printPeakTemp(FunctionContext_t* context)
 {
   float temp = Temperature_GetPeakTj();
 
@@ -337,7 +340,7 @@ void printPeakTemp(FunctionContext_t* context)
   context->state->state = PARAM_STATE_COMPLETE;
 }
 
-void printAvgTemp(FunctionContext_t* context)
+static void printAvgTemp(FunctionContext_t* context)
 {
   float temp = Temperature_GetAverageTj();
 

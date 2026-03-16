@@ -11,7 +11,6 @@
 /* Private includes ----------------------------------------------------------*/
 
 #include "sys_led.h"
-#include "sys_error.h"
 
 #include "mess_main.h"
 
@@ -21,6 +20,7 @@
 #include "ws2812b-driver.h"
 #include "power_leds.h"
 #include "cmsis_os.h"
+#include "error_manager.h"
 #include <stdbool.h>
 
 /* Private typedef -----------------------------------------------------------*/
@@ -29,14 +29,15 @@
 
 /* Private define ------------------------------------------------------------*/
 
-#define RGB_RED       255,0,0
-#define RGB_GREEN     0,255,0
-#define RGB_BLUE      0,0,255
+#define RGB_RED       255,0,  0
+#define RGB_GREEN     0,  255,0
+#define RGB_BLUE      0,  0,  255
 #define RGB_WHITE     255,255,255
 #define RGB_YELLOW    255,255,0
-#define RGB_MAGENTA   255,0,255
-#define RGB_CYAN      0,255,255
-#define RGB_OFF       0,0,0
+#define RGB_MAGENTA   255,0,  255
+#define RGB_CYAN      0,  255,255
+#define RGB_OFF       0,  0,  0
+#define RGB_ORANGE    255,100,0
 
 #define LISTENING_COLOUR      RGB_GREEN
 #define DRIVING_COLOUR        RGB_BLUE
@@ -44,7 +45,8 @@
 #define CHANGING_COLOUR       RGB_OFF
 
 #define ERROR_COLOUR          RGB_RED
-#define WARNING_COLOUR        RGB_YELLOW // TODO: add warning system
+#define ABORT_COLOUR          RGB_ORANGE
+#define WARNING_COLOUR        RGB_YELLOW
 
 #define OVERRIDE_DURATION_MS 10000
 
@@ -71,7 +73,7 @@ static const uint8_t power_led_state = 0x0F;
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool LED_Update()
+void LED_Update()
 {
   PWRLED_Update(power_led_state); // TODO: change to be updatable
 
@@ -83,41 +85,54 @@ bool LED_Update()
     }
     else {
       Ws2812b_SetColour(manual_r, manual_g, manual_b);
-      Ws2812b_Update(brightness);
-      return true;
+      if (Ws2812b_Update(brightness) == false) REGISTER_ERROR(ERROR_RGB_LED);
+      return;
     }
   }
 
-  // check for errors. If errors exist, set to red
-  if (Error_Exists()) {
-    Ws2812b_SetColour(ERROR_COLOUR);
-    Ws2812b_Update(brightness);
-    return true;
+  OpenAquatixStatus_t status = Error_GetStatus();
+  switch (status) {
+    case OA_STATUS_ERROR:
+      Ws2812b_SetColour(ERROR_COLOUR);
+      if (Ws2812b_Update(brightness) == false) REGISTER_ERROR(ERROR_RGB_LED);
+      return;
+    case OA_STATUS_ABORT:
+      Ws2812b_SetColour(ABORT_COLOUR);
+      if (Ws2812b_Update(brightness) == false) REGISTER_ERROR(ERROR_RGB_LED);
+      return;
+    case OA_STATUS_WARN:
+      Ws2812b_SetColour(WARNING_COLOUR);
+      if (Ws2812b_Update(brightness) == false) REGISTER_ERROR(ERROR_RGB_LED);
+      return;
+    case OA_STATUS_OK:
+      break;
+    default:
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
   }
 
-  // check mess task state
+  // No warnings or errors -> show MESS task state
   ProcessingState_t state = MESS_GetState();
 
   switch (state) {
     case LISTENING:
       // set led to default if no warnings
       Ws2812b_SetColour(LISTENING_COLOUR);
-      Ws2812b_Update(brightness);
-      return true;
+      if (Ws2812b_Update(brightness) == false) REGISTER_ERROR(ERROR_RGB_LED);
+      return;
     case DRIVING_TRANSDUCER:
       Ws2812b_SetColour(DRIVING_COLOUR);
-      Ws2812b_Update(brightness);
-      return true;
+      if (Ws2812b_Update(brightness) == false) REGISTER_ERROR(ERROR_RGB_LED);
+      return;
     case PROCESSING:
       Ws2812b_SetColour(PROCESSING_COLOUR);
-      Ws2812b_Update(brightness);
-      return true;
+      if (Ws2812b_Update(brightness) == false) REGISTER_ERROR(ERROR_RGB_LED);
+      return;
     case CHANGING:
       Ws2812b_SetColour(CHANGING_COLOUR);
-      Ws2812b_Update(brightness);
-      return true;
+      if (Ws2812b_Update(brightness) == false) REGISTER_ERROR(ERROR_RGB_LED);
+      return;
     default:
-      return false;
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
   }
 }
 
@@ -132,23 +147,21 @@ void LED_ManualOverride(uint8_t r, uint8_t g, uint8_t b)
   manual_override_start_time = osKernelGetTickCount();
 }
 
-bool LED_RegisterParams()
+void LED_RegisterParams()
 {
   uint32_t min = MIN_LED_BRIGHTNESS;
   uint32_t max = MAX_LED_BRIGHTNESS;
   if (Param_Register(PARAM_LED_BRIGHTNESS, "RGB LED brightness", PARAM_TYPE_UINT8,
                      &led_brightness, sizeof(uint8_t), &min, &max, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min = MIN_LED_STATE;
   max = MAX_LED_STATE;
   if (Param_Register(PARAM_LED_ENABLE, "the onboard RGB LED", PARAM_TYPE_UINT8,
                      &led_enable, sizeof(bool), &min, &max, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
-
-  return true;
 }
 
 /* Private function definitions ----------------------------------------------*/

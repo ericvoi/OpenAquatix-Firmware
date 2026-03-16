@@ -14,6 +14,7 @@
 #include "mess_dsp_config.h"
 #include "dac_waveform.h"
 #include "mess_modulate.h"
+#include "error_manager.h"
 #include <string.h>
 
 /* Private typedef -----------------------------------------------------------*/
@@ -35,19 +36,18 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-void fhbfskWakeupStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step_index);
-uint32_t fhbfskWakeupTone(const DspConfig_t* cfg, uint16_t step_index);
-void fixedWakeupStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step_index);
-uint32_t fixedWakeupTone(const DspConfig_t* cfg, uint16_t step_index);
+static void fhbfskWakeupStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step_index);
+static uint32_t fhbfskWakeupTone(const DspConfig_t* cfg, uint16_t step_index);
+static void fixedWakeupStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step_index);
+static uint32_t fixedWakeupTone(const DspConfig_t* cfg, uint16_t step_index);
 
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool WakeupTones_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step_index)
+void WakeupTones_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step_index)
 {
-  if (cfg->wakeup_tones == false || (step_index > NUM_WAKEUP_TONES)) {
-    return false;
-  }
+  if (cfg->wakeup_tones == false || (step_index > NUM_WAKEUP_TONES))
+    REGISTER_ERROR(ERROR_WAVEFORM_STEP);
 
   if (cfg->mod_demod_method == MOD_DEMOD_FHBFSK) {
     fhbfskWakeupStep(cfg, waveform_step, step_index);
@@ -55,7 +55,6 @@ bool WakeupTones_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, 
   else {
     fixedWakeupStep(cfg, waveform_step, step_index);
   }
-  return true;
 }
 
 uint16_t WakeupTones_NumSteps(const DspConfig_t* cfg)

@@ -73,7 +73,6 @@ typedef struct {
  * @param argument Task parameter (unused, required by RTOS task signature)
  *
  * @note This function never returns and should be started as an RTOS task
- * @warning Calls Error_Routine() if any initialization step fails
  */
 void COMM_StartTask(void *argument);
 

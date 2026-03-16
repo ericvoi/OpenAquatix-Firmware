@@ -39,7 +39,12 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-bool Calibrate_RegisterParams(void);
+/**
+ * @brief Registers parameters for the calibration module
+ * 
+ * @note Logs an error in the event of a failure
+ */
+void Calibrate_RegisterParams(void);
 
 /* Private defines -----------------------------------------------------------*/
 

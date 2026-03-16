@@ -45,9 +45,10 @@ extern "C" {
  * @param bit_msg Bit message to add the preamble bits to 
  * @param msg Message defining what is inside the preamble
  * @param cfg Configuration values defining error detection method
- * @return true if successfully added preamble, false otherwise
+ * 
+ * @note Can cause unrecoverable and blocking errors
  */
-bool Preamble_Add(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
+void Preamble_Add(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
 
 /**
  * @brief Extracts bits from preamble and adds meaning to them according to the
@@ -56,18 +57,18 @@ bool Preamble_Add(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg)
  * @param bit_msg Bit message to take the preamble bits from (must be unencoded)
  * @param msg Message to add the preamble information to
  * @param cfg Configuration values for decoding
- * @return true if successfully decoded preamble, false otherwise.
+ * 
+ * @note can cause unrecoverable and blocking errors
  */
-bool Preamble_Decode(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
+void Preamble_Decode(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cfg);
 
 /**
  * @brief Updates the number of bits in the bit message preamble
  * 
  * @param bit_msg Bit message to update the preamble of
  * @param cfg Configuration values that define error detection and correction
- * @return true if successful, false otherwise
  */
-bool Preamble_UpdateNumBits(BitMessage_t* bit_msg, const DspConfig_t* cfg);
+void Preamble_UpdateNumBits(BitMessage_t* bit_msg, const DspConfig_t* cfg);
 
 /* Private defines -----------------------------------------------------------*/
 

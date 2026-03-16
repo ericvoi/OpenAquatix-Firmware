@@ -47,7 +47,7 @@ extern "C" {
  * 
  * @see Interleaver_Undo()
  */
-bool Interleaver_Apply(BitMessage_t* bit_msg, const DspConfig_t* cfg);
+void Interleaver_Apply(BitMessage_t* bit_msg, const DspConfig_t* cfg);
 
 /**
  * @brief Deinterleaves a message following the JANUS standard
@@ -55,11 +55,10 @@ bool Interleaver_Apply(BitMessage_t* bit_msg, const DspConfig_t* cfg);
  * @param bit_msg Message with interleaving applied (modified)
  * @param cfg Configuration values (decides whether interleaving should occur)
  * @param is_preamble Which part of the message to deinterleave
- * @return true if successful, false otherwise
  * 
  * @see Interleaver_Apply()
  */
-bool Interleaver_Undo(BitMessage_t* bit_msg, const DspConfig_t* cfg, bool is_preamble);
+void Interleaver_Undo(BitMessage_t* bit_msg, const DspConfig_t* cfg, bool is_preamble);
 
 /* Private defines -----------------------------------------------------------*/
 

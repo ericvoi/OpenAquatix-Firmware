@@ -14,6 +14,7 @@
 #include "mess_main.h"
 #include "mac_protocol.h"
 #include "cmsis_os.h"
+#include "error_manager.h"
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -82,6 +83,7 @@ static MacState_t NoMac_ProcessRxMessage(void* protocol_data, const Message_t* m
 
   if (message->preamble.reservation_time_10ms.valid == true) {
     if (message->preamble.reservation_time_10ms.value > MAXIMUM_RESERVATION_TIME_MS / 10) {
+      REGISTER_ERROR_NON_VOID(ERROR_INVALID_RESERVATION_TIME, MAC_STATE_ERROR);
       ret = MAC_STATE_ERROR;
     }
     uint32_t reserved_until = message->timestamp + message->preamble.reservation_time_10ms.value * 10;
@@ -95,17 +97,13 @@ static MacState_t NoMac_ProcessRxMessage(void* protocol_data, const Message_t* m
     }
   }
 
-  if (MESS_AddMessageToRxQ(message) == false) {
-    ret = MAC_STATE_ERROR;
-  }
-
   return ret;
 }
 
 static MacState_t NoMac_EmergencyTx(void* protocol_data, const Message_t* message)
 {
   (void) (protocol_data);
-  if (MESS_AddMessageToTxQ(message) == false) {
+  if (MESS_PriorityTransmission(message) == false) {
     return MAC_STATE_ERROR;
   }
 

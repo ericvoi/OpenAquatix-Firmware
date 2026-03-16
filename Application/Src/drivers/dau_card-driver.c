@@ -60,6 +60,8 @@ void DAU_Init(void)
 
   __HAL_UART_ENABLE_IT(&hlpuart1, UART_IT_IDLE);
 
+  HAL_UART_DMAStop(&hlpuart1);
+
   HAL_UART_Receive_DMA(&hlpuart1, rx_buffer, DAU_RX_BUFFER_SIZE);
 }
 

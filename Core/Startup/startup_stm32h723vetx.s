@@ -59,27 +59,64 @@ defined in linker script */
   .type  Reset_Handler, %function
 Reset_Handler:
 
-  ldr r0, =0x38000000
-  ldr r1, =0xABCDABCD     /* Magic value */
-  ldr r2, [r0, #0x00]     /* Read from SRAM4 */
-  mov r3, #0              /* Load zero */
-  str r3, [r0, #0x00]     /* Clear the flag */
-  cmp r2, r1              /* Compare with magic value */
-  beq Reboot_Loader
+  ldr   sp, =_estack              /* Set stack pointer           */
 
-  ldr   sp, =_estack      /* set stack pointer */
+  /* ---- Enable backup domain access ---- */
+  /* Set DBP (bit 8) in PWR->CR1                                */
+  ldr   r0, =0x58024800          /* PWR->CR1                    */
+  ldr   r1, [r0]
+  orr   r1, r1, #(1 << 8)        /* DBP = 1                    */
+  str   r1, [r0]
 
+  /* ---- Enable backup regulator ---- */
+  /* Set BREN (bit 0) in PWR->CR2                               */
+  ldr   r0, =0x58024808          /* PWR->CR2                    */
+  ldr   r1, [r0]
+  orr   r1, r1, #(1 << 0)        /* BREN = 1                   */
+  str   r1, [r0]
+
+  /* ---- Wait for backup regulator ready ---- */
+  /* Poll BRR (bit 16) in PWR->CR2                              */
+  /* r0 still points to PWR->CR2                                */
+  ldr   r2, =500000              /* Timeout counter             */
+.Lwait_brr:
+  ldr   r1, [r0]
+  tst   r1, #(1 << 16)           /* BRR set?                   */
+  bne   .Lbrr_ready
+  subs  r2, r2, #1
+  bne   .Lwait_brr
+  /* Timeout — regulator not ready, skip backup SRAM check      */
+  b     .Lnormal_boot
+
+.Lbrr_ready:
+  /* ---- Enable backup SRAM clock ---- */
+  /* Set BKPRAMEN (bit 28) in RCC_AHB4ENR                       */
+  ldr   r0, =0x580244E0          /* RCC_AHB4ENR                 */
+  ldr   r1, [r0]
+  orr   r1, r1, #(1 << 28)       /* BKPRAMEN = 1               */
+  str   r1, [r0]
+
+  /* ---- Check magic number in backup SRAM ---- */
+  ldr   r0, =bkpsram
+  ldr   r1, =0xABCDABCD          /* Magic value                 */
+  ldr   r2, [r0, #0x00]          /* Read from backup SRAM       */
+  mov   r3, #0
+  str   r3, [r0, #0x00]          /* Clear the flag              */
+  cmp   r2, r1
+  beq   Reboot_Loader
+
+.Lnormal_boot:
 /* Call the ExitRun0Mode function to configure the power supply */
-  bl  ExitRun0Mode
+  bl    ExitRun0Mode
 /* Call the clock system initialization function.*/
-  bl  SystemInit
+  bl    SystemInit
 
 /* Copy the data segment initializers from flash to SRAM */
-  ldr r0, =_sdata
-  ldr r1, =_edata
-  ldr r2, =_sidata
-  movs r3, #0
-  b LoopCopyDataInit
+  ldr   r0, =_sdata
+  ldr   r1, =_edata
+  ldr   r2, =_sidata
+  movs  r3, #0
+  b     LoopCopyDataInit
 
 /* begin jump to DFU */
 Reboot_Loader:
@@ -115,6 +152,8 @@ LoopFillZerobss:
 /* Call static constructors */
     bl __libc_init_array
 /* Call the application's entry point.*/
+/* Clear the backup SRAM if the rest condition is POR */
+  bl    Bkpsram_Init
   bl  main
   bx  lr
 .size  Reset_Handler, .-Reset_Handler

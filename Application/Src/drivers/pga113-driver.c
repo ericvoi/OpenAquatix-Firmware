@@ -12,6 +12,7 @@
 
 #include "stm32h7xx_hal.h"
 #include "pga113-driver.h"
+#include "error_manager.h"
 #include "cmsis_os.h"
 #include <stdbool.h>
 
@@ -50,18 +51,20 @@ static uint16_t rx_buffer __attribute__((section(".dma_buf")));
 
 /* Private function prototypes -----------------------------------------------*/
 
-static bool transmitData(uint16_t *pData, uint16_t size);
-static bool sendCommandReceiveResponse(uint16_t *pTxData, uint16_t *pRxData, uint16_t size);
+static void transmitData(uint16_t *pData, uint16_t size);
+static void sendCommandReceiveResponse(uint16_t *pTxData, uint16_t *pRxData, uint16_t size);
 
-bool Pga113_Init()
+/* Exported function definitions ---------------------------------------------*/
+
+void Pga113_Init()
 {
-  pga_is_shutdown = false;
-
-  return true;
+  RETURN_IF_ERROR_PRESENT();
+  Pga113_Enable();
 }
 
 void Pga113_SetGain(PgaGain_t gain)
 {
+  RETURN_IF_ERROR_PRESENT();
   tx_buffer = PGA_CMD_WRITE;
   tx_buffer |= PGA_CHANNEL;
   tx_buffer |= (gain << 4);
@@ -71,64 +74,66 @@ void Pga113_SetGain(PgaGain_t gain)
   transmitData(&tx_buffer, 1);
 }
 
-bool Pga113_Read()
+void Pga113_Read()
 {
   tx_buffer = PGA_CMD_READ;
 
-  return sendCommandReceiveResponse(&tx_buffer, &rx_buffer, 2);
+  sendCommandReceiveResponse(&tx_buffer, &rx_buffer, 2);
 }
 
-bool Pga113_Shutdown()
+void Pga113_Shutdown()
 {
   tx_buffer = PGA_CMD_SDN_EN;
 
-  if (transmitData(&tx_buffer, 1) == true) {
-    pga_is_shutdown = true;
-    return true;
-  }
-  return false;
+  transmitData(&tx_buffer, 1);
+
+  pga_is_shutdown = true;
 }
 
-bool Pga113_Enable()
+void Pga113_Enable()
 {
   tx_buffer = PGA_CMD_SDN_DIS;
 
-  if (transmitData(&tx_buffer, 1) == true) {
-    pga_is_shutdown = false;
-    return true;
-  }
-  return false;
-}
+  transmitData(&tx_buffer, 1);
 
-bool transmitData(uint16_t *pData, uint16_t size)
-{
-  uint16_t timeout = 0;
-  while (HAL_SPI_GetState(&hspi4) != HAL_SPI_STATE_READY) {
-    if (timeout >= MAX_TIMEOUT_MS) {
-      return false;
-    }
-    osDelay(1);
-    timeout++;
-  }
-
-  return HAL_SPI_Transmit_DMA(&hspi4, (uint8_t*) pData, size) == HAL_OK;
-}
-
-bool sendCommandReceiveResponse(uint16_t *pTxData, uint16_t *pRxData, uint16_t size)
-{
-  uint16_t timeout = 0;
-  while (HAL_SPI_GetState(&hspi4) != HAL_SPI_STATE_READY) {
-    if (timeout >= MAX_TIMEOUT_MS) {
-      return false;
-    }
-    osDelay(1);
-    timeout++;
-  }
-
-  return HAL_SPI_TransmitReceive_DMA(&hspi4, (uint8_t*) pTxData, (uint8_t*) pRxData, size) == HAL_OK;
+  pga_is_shutdown = false;
 }
 
 PgaGain_t Pga113_GetGain()
 {
   return current_gain;
+}
+
+/* Private function definitions ----------------------------------------------*/
+
+void transmitData(uint16_t *pData, uint16_t size)
+{
+  uint16_t timeout = 0;
+  while (HAL_SPI_GetState(&hspi4) != HAL_SPI_STATE_READY) {
+    if (timeout >= MAX_TIMEOUT_MS) {
+      REGISTER_ERROR(ERROR_PGA_COMMAND);
+    }
+    osDelay(1);
+    timeout++;
+  }
+
+  if (HAL_SPI_Transmit_DMA(&hspi4, (uint8_t*) pData, size) != HAL_OK) {
+    REGISTER_ERROR(ERROR_PGA_COMMAND);
+  }
+}
+
+void sendCommandReceiveResponse(uint16_t *pTxData, uint16_t *pRxData, uint16_t size)
+{
+  uint16_t timeout = 0;
+  while (HAL_SPI_GetState(&hspi4) != HAL_SPI_STATE_READY) {
+    if (timeout >= MAX_TIMEOUT_MS) {
+      REGISTER_ERROR(ERROR_PGA_COMMAND);
+    }
+    osDelay(1);
+    timeout++;
+  }
+
+  if (HAL_SPI_TransmitReceive_DMA(&hspi4, (uint8_t*) pTxData, (uint8_t*) pRxData, size) != HAL_OK) {
+    REGISTER_ERROR(ERROR_PGA_COMMAND);
+  }
 }

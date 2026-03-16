@@ -20,8 +20,8 @@
 #include "mess_background_noise.h"
 #include "cfg_main.h"
 #include "filt_main.h"
-#include "sys_error.h"
 #include "dac_waveform.h"
+#include "error_manager.h"
 #include "goertzel.h"
 #include "cfg_defaults.h"
 #include <string.h>
@@ -122,33 +122,30 @@ static uint8_t doppler_since_reset[MAX_FHBFSK_BANK_SIZE];
 /* Private function prototypes -----------------------------------------------*/
 
 static void updateParameters(const DspConfig_t* cfg);
-static bool janusPnStep(bool* bit, uint16_t step);
+static void janusPnStep(bool* bit, uint16_t step);
 static void fillJanusFrequencies(const DspConfig_t* cfg);
 static void buildFrequencyBank(const DspConfig_t* cfg);
 static SyncState_t janusPnSynchronize(Message_t* msg);
-static bool resetPnSynchronization(void);
+static void resetPnSynchronization(void);
 static void fillWindowOffsets(const DspConfig_t* cfg);
-static bool updateSlidingGoertzel(uint16_t new_samples);
+static void updateSlidingGoertzel(uint16_t new_samples);
 static SyncState_t evaluateSlidingPnWindows(Message_t* msg);
 static void finalizeDopplerEstimate(Message_t* msg, uint16_t best_idx);
 static float computeFineSyncOffset(uint16_t best_idx);
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool Sync_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step)
+void Sync_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step)
 {
   switch (cfg->sync_method) {
-    case NO_SYNC:
-      return false;
     case SYNC_PN_32_JANUS:
       waveform_step->freq_hz = janus_frequencies[step];
       waveform_step->duration_us = (uint32_t) roundf(1000000.0f / cfg->baud_rate);
       waveform_step->relative_amplitude = Modulate_GetAmplitude(waveform_step->freq_hz);
-      return true;
+      break;
     default:
-      return false;
+      REGISTER_ERROR(ERROR_WAVEFORM_STEP);
   }
-  return true;
 }
 
 uint16_t Sync_NumSteps(const DspConfig_t* cfg)
@@ -165,16 +162,17 @@ uint16_t Sync_NumSteps(const DspConfig_t* cfg)
 
 SyncState_t Sync_Synchronize(const DspConfig_t* cfg, Message_t* msg)
 {
+  SyncState_t sync_state = SYNC_OK;
   switch (cfg->sync_method) {
-    case NO_SYNC: {
-      bool ret = Input_DetectMessageStart(cfg, msg);
-      return (ret == true) ? (SYNC_SUCCESS) : (SYNC_OK);
-    }
+    case NO_SYNC:
+      RETURN_IF_ERROR_PRESENT_NON_VOID(Input_DetectMessageStart(cfg, msg, &sync_state), SYNC_OK);
+      return sync_state;
     case SYNC_PN_32_JANUS:
       updateParameters(cfg);
       return janusPnSynchronize(msg);
     default:
-      return SYNC_ERROR;
+      REGISTER_ERROR_NON_VOID(ERROR_UNHANDLED_CASE, SYNC_OK);
+      return SYNC_OK;
   }
 }
 
@@ -200,11 +198,10 @@ static void updateParameters(const DspConfig_t* cfg)
   resetPnSynchronization();
 }
 
-static bool janusPnStep(bool* bit, uint16_t step)
+static void janusPnStep(bool* bit, uint16_t step)
 {
-  if (step >= 32) return false;
+  if (step >= 32) REGISTER_ERROR(ERROR_INVALID_FUNCTION_PARAMETERS);
   *bit = (janus_pn_32 >> (31 - step)) & 1;
-  return true;
 }
 
 static void fillJanusFrequencies(const DspConfig_t* cfg)
@@ -297,7 +294,7 @@ static void fillWindowOffsets(const DspConfig_t* cfg)
   }
 }
 
-static bool resetPnSynchronization(void)
+static void resetPnSynchronization(void)
 {
   offset_index = 0;
   candidate_index = 0;
@@ -335,7 +332,6 @@ static bool resetPnSynchronization(void)
 
   memset(&pn_sync_candidates, 0, sizeof(pn_sync_candidates));
   MessFiltResources_ProcessingTailAdvance(samples_per_symbol);
-  return true;
 }
 
 static SyncState_t janusPnSynchronize(Message_t* msg)
@@ -356,14 +352,13 @@ static SyncState_t janusPnSynchronize(Message_t* msg)
   uint16_t required_samples;
   if (next_idx == 0) {
     required_samples = samples_per_symbol - window_offsets[offset_index];
-  } else {
+  } 
+  else {
     required_samples = window_offsets[next_idx] - window_offsets[offset_index];
   }
 
   while (MessFiltResources_AvailableProcessingSamples() >= required_samples) {
-    if (updateSlidingGoertzel(required_samples) == false) {
-      return SYNC_ERROR;
-    }
+    RETURN_IF_ERROR_PRESENT_NON_VOID(updateSlidingGoertzel(required_samples), SYNC_OK);
     next_idx = (offset_index + 1) % PN_SYNC_SUBDIVIDE;
     if (next_idx == 0) {
       required_samples = samples_per_symbol - window_offsets[offset_index];
@@ -375,7 +370,7 @@ static SyncState_t janusPnSynchronize(Message_t* msg)
   return evaluateSlidingPnWindows(msg);
 }
 
-static bool updateSlidingGoertzel(uint16_t new_samples)
+static void updateSlidingGoertzel(uint16_t new_samples)
 {
   /* --- Phase 1: Record pre-update state, detect resets --- */
   for (uint16_t b = 0; b < bank_size; b++) {
@@ -459,9 +454,8 @@ static bool updateSlidingGoertzel(uint16_t new_samples)
       pn_sync_candidates[sliding_index].ambient_snr =
           (average_energy - background_noise) / background_noise;
     }
-    if (pn_sync_candidates[sliding_index].frequencies_added > NUM_SYNC_FREQUENCIES) {
-      return false;
-    }
+    if (pn_sync_candidates[sliding_index].frequencies_added > NUM_SYNC_FREQUENCIES)
+      REGISTER_ERROR(ERROR_OVERFLOW_SYNC);
 
     /* --- Per-symbol Doppler estimation via phase tracking --- */
     if (k >= 0 &&
@@ -534,7 +528,6 @@ static bool updateSlidingGoertzel(uint16_t new_samples)
   candidate_index = (candidate_index + 1) % NUM_PN_SYNC_CANDIDATES;
   candidate_tracker.num_candidates++;
   MessFiltResources_ProcessingTailAdvance(new_samples);
-  return true;
 }
 
 /**
@@ -601,7 +594,8 @@ static SyncState_t evaluateSlidingPnWindows(Message_t* msg)
 
     PnSynchronizationCandidate_t* candidate = &pn_sync_candidates[idx];
     if (candidate->frequencies_added != NUM_SYNC_FREQUENCIES) {
-      return SYNC_ERROR;
+      REGISTER_ERROR_NON_VOID(ERROR_OVERFLOW_SYNC, SYNC_OK);
+      return SYNC_OK;
     }
 
     bool exceeds_capped_snr   = candidate->capped_snr > TARGET_SNR;
@@ -661,7 +655,8 @@ static SyncState_t evaluateSlidingPnWindows(Message_t* msg)
         break;
 
       default:
-        return SYNC_ERROR;
+        REGISTER_ERROR_NON_VOID(ERROR_UNHANDLED_CASE, SYNC_OK);
+        return SYNC_OK;
     }
 
     candidate_tracker.num_candidates--;

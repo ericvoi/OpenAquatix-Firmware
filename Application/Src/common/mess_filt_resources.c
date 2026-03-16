@@ -13,6 +13,7 @@
 #include "mess_filt_resources.h"
 #include "main.h"
 #include "filt_main.h"
+#include "error_manager.h"
 #include "stm32h7xx_hal.h"
 #include <string.h>
 
@@ -76,9 +77,11 @@ static void incrementRollover(void);
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool MessFiltResources_Init()
+void MessFiltResources_Init()
 {
-  HAL_StatusTypeDef ret1 = HAL_TIM_Base_Start(&htim8);
+  RETURN_IF_ERROR_PRESENT();
+  HAL_TIM_Base_Stop(&htim8);
+  HAL_TIM_Base_Start(&htim8);
 
   input_head_pos = 0;
   input_processing_tail_pos = 0;
@@ -87,26 +90,30 @@ bool MessFiltResources_Init()
   feedback_tail_pos = 0;
 
   memset((void*) adc_buffer, 0, ADC_BUFFER_SIZE * sizeof(uint16_t));
-
-  return ret1 == HAL_OK;
 }
 
-bool MessFiltResources_StartInputAdc()
+void MessFiltResources_StartInputAdc()
 {
+  RETURN_IF_ERROR_PRESENT();
   input_head_pos = 0;
   input_processing_tail_pos = 0;
   input_noise_tail_pos = 0;
+  HAL_TIM_Base_Stop(&htim8);
+  HAL_ADC_Stop_DMA(&INPUT_ADC);
+  osDelay(1);
   HAL_TIM_Base_Start(&htim8);
   HAL_StatusTypeDef ret = HAL_ADC_Start_DMA(&INPUT_ADC, (uint32_t*) adc_buffer, ADC_BUFFER_SIZE);
-  return ret == HAL_OK;
+  if (ret != HAL_OK) 
+    REGISTER_ERROR(ERROR_INPUT_ADC_INITIALIZATION);
 }
 
-bool MessFiltResources_StartFeedbackAdc()
+void MessFiltResources_StartFeedbackAdc()
 {
   feedback_head_pos = 0;
   feedback_tail_pos = 0;
   HAL_StatusTypeDef ret = HAL_ADC_Start_DMA(&FEEDBACK_ADC, (uint32_t*) adc_buffer, ADC_BUFFER_SIZE);
-  return ret == HAL_OK;
+  if (ret != HAL_OK) 
+    REGISTER_ERROR(ERROR_FEEDBACK_ADC_INITIALIZATION);
 }
 
 bool MessFiltResources_StopFeedbackAdc()

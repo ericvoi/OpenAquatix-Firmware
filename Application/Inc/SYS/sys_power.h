@@ -40,10 +40,8 @@ extern "C" {
 
 /**
  * @brief Initializes the power module by initializing the TPA and registering the buffer
- * 
- * @return true if successful initialization, false otherwise
  */
-bool Power_Init(void);
+void Power_Init(void);
 
 /**
  * @brief Processes new datapoints for averages, mins, and maxes

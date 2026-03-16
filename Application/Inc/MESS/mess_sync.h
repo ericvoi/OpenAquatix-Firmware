@@ -30,7 +30,6 @@ extern "C" {
 
 typedef enum {
   SYNC_OK,
-  SYNC_ERROR,
   SYNC_SUCCESS
 } SyncState_t;
 
@@ -51,9 +50,8 @@ typedef enum {
  * @param cfg Configuration struct to use
  * @param waveform_step Parameters of the waveform to use for modulation (modified)
  * @param step current step
- * @return true if successful, false otherwise
  */
-bool Sync_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step);
+void Sync_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step);
 
 /**
  * @brief Returns number of steps in the synchronization sequence
@@ -70,8 +68,7 @@ uint16_t Sync_NumSteps(const DspConfig_t* cfg);
  * @param cfg 
  * @param msg Message the synchronization is for. Adds doppler and snr on success
  * 
- * @return SYNC_OK if no errors and no synchronization yet 
- * @return SYNC_ERROR if error occurred
+ * @return SYNC_OK if no errors and no synchronization yet
  * @return SYNC_SUCCESS if successfully synchronized
  */
 SyncState_t Sync_Synchronize(const DspConfig_t* cfg, Message_t* msg);

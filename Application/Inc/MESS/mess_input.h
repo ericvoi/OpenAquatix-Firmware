@@ -20,6 +20,7 @@ extern "C" {
 
 #include "mess_packet.h"
 #include "mess_main.h"
+#include "mess_sync.h"
 #include "mess_dsp_config.h"
 #include "mess_sync.h"
 #include "cfg_parameters.h"
@@ -65,7 +66,7 @@ DECLARE_ENUM(PREAMBLE_ERROR_BEHAVIOR_TABLE, NUM_PREAMBLE_ERROR_BEHAVIORS, Preamb
  *
  * @note Must be called before any other Input_* functions
  */
-bool Input_Init();
+void Input_Init();
 
 /**
  * @brief Detects the start of an acoustic message in the input stream
@@ -74,10 +75,10 @@ bool Input_Init();
  * to determine if a valid message transmission has begun.
  * 
  * @param cfg DSP configuration defining how to detect message start
- *
- * @return true if a message start is detected, false otherwise
+ * @param msg Message to add synchronization info to
+ * @param sync_state (Modified) SYNC_SUCCESS if synchronized, SYNC_OK otherwise
  */
-bool Input_DetectMessageStart(const DspConfig_t* cfg, Message_t* msg);
+void Input_DetectMessageStart(const DspConfig_t* cfg, Message_t* msg, SyncState_t* sync_state);
 
 /**
  * @brief Segments input buffer into analysis blocks for demodulation
@@ -86,10 +87,8 @@ bool Input_DetectMessageStart(const DspConfig_t* cfg, Message_t* msg);
  * Each block contains data needed to demodulate one bit of the message.
  * 
  * @param cfg DSP configuration defining how to segment blocks
- *
- * @return true if segmentation succeeds, false if analysis buffer capacity is exceeded
  */
-bool Input_SegmentBlocks(const DspConfig_t* cfg);
+void Input_SegmentBlocks(const DspConfig_t* cfg);
 
 /**
  * @brief Processes analysis blocks to extract bits from the received signal
@@ -100,11 +99,9 @@ bool Input_SegmentBlocks(const DspConfig_t* cfg);
  * @param bit_msg Pointer to the bit message structure where decoded bits are stored
  * @param eval_info Pointer to evaluation metrics structure to record signal quality data
  *
- * @return true if processing succeeds, false on parameter error or processing failure
- *
  * @warning Potential for eval_info overflow - needs to be addressed
  */
-bool Input_ProcessBlocks(BitMessage_t* bit_msg, const DspConfig_t* cfg);
+void Input_ProcessBlocks(BitMessage_t* bit_msg, const DspConfig_t* cfg);
 
 /**
  * @brief Decodes header information from accumulated bits
@@ -115,11 +112,9 @@ bool Input_ProcessBlocks(BitMessage_t* bit_msg, const DspConfig_t* cfg);
  * @param bit_msg Pointer to the bit message structure containing received bits
  * @param cfg Pointer to configuration data
  * @param msg Message to add extracted bits to
- * @param proceed Whether to continue decoding message or not
- *
- * @return true if decoding succeeds or is not yet needed, false on decoding failure
+ * @param proceed Whether to continue decoding message or not failure
  */
-bool Input_DecodeBits(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* msg, bool* proceed);
+void Input_DecodeBits(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* msg, bool* proceed);
 
 /**
  * @brief Resets the input module to initial state
@@ -149,9 +144,8 @@ void Input_PrintNoise();
  * @param print_next_waveform Whether the next waveform shoould be printed.
  * Note that the function changes this to false to terminate when it is done
  * @param fully_received Whether the message being decoded has been fully received
- * @return true if processing
  */
-bool Input_PrintWaveform(bool* print_next_waveform, bool fully_received);
+void Input_PrintWaveform(bool* print_next_waveform, bool fully_received);
 
 /**
  * @brief Performs noise analysis on the input with 128-point FFTs. Averages
@@ -161,19 +155,17 @@ void Input_NoiseFft();
 
 /**
  * @brief Dummy function for AGC
- * 
- * @return true always
  */
-bool Input_UpdatePgaGain();
+void Input_UpdatePgaGain();
 
 /**
  * @brief Registers module parameters with the parameter system
  *
  * Makes the message start function parameter accessible via the HMI interface.
  *
- * @return true if parameter registration succeeds, false otherwise
+ * @note Logs an error in the event of a failure
  */
-bool Input_RegisterParams();
+void Input_RegisterParams();
 
 /* Private defines -----------------------------------------------------------*/
 

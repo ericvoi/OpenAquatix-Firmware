@@ -39,10 +39,8 @@ extern "C" {
 
 /**
  * @brief Changes the colour of the LED as needed
- *
- * @return true if successful, false otherwise
  */
-bool LED_Update(void);
+void LED_Update(void);
 
 /**
  * @brief Sets a flag to manually override LED colour for 10s
@@ -60,9 +58,9 @@ void LED_ManualOverride(uint8_t r, uint8_t g, uint8_t b);
  *
  * Register LED brightness and LED enable parameters
  *
- * @return true if successful and false otherwise
+ * @note Logs an error in the event of a failure
  */
-bool LED_RegisterParams(void);
+void LED_RegisterParams(void);
 
 /* Private defines -----------------------------------------------------------*/
 

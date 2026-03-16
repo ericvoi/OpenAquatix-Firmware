@@ -30,15 +30,7 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 
-#define SENSOR_TIMER_SOURCE             htim16
 
-#define SENSOR_TIMER_TICK_RATE_HZ       1000
-// Trigger a temeprature sensor reading every 200ms
-#define TEMPERATURE_SENSOR_PERIOD_MS    200
-// Power reading every 1ms
-#define INA_PERIOD_MS                   1
-
-extern TIM_HandleTypeDef SENSOR_TIMER_SOURCE;
 
 /* Exported macro ------------------------------------------------------------*/
 
@@ -50,10 +42,8 @@ extern TIM_HandleTypeDef SENSOR_TIMER_SOURCE;
  * temperature sensor and power monitor are triggered.
  * 
  * Starts the timer that updates the tick count
- * 
- * @return true if initialization of timer is successful, false otherwise
  */
-bool SensorTimer_Init(void);
+void SensorTimer_Init(void);
 
 /**
  * @brief Updates tick count. If the tick count is a multiple of a value then

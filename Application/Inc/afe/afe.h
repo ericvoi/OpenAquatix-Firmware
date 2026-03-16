@@ -33,13 +33,6 @@ typedef enum {
   AFE_MODE_TX_FEEDBACK
 } AfeMode_t;
 
-typedef enum {
-  AFE_OK,
-  AFE_INVALID_TRANSITION,
-  AFE_TRANSITION_TIMEOUT,
-  AFE_ERROR
-} AfeStatus_t;
-
 /* Exported constants --------------------------------------------------------*/
 
 
@@ -50,10 +43,42 @@ typedef enum {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
+/**
+ * @brief Sets the AFE to known state (idle)
+ */
 void AFE_Init(void);
-AfeStatus_t AFE_SetMode(AfeMode_t new_mode);
+
+/**
+ * @brief Set the AFE mode
+ * 
+ * @param new_mode New mode
+ *        - AFE_MODE_IDLE Not receiving or sending (low-power)
+ *        - AFE_MODE_RX Receiving a message from transducer
+ *        - AFE_MODE_RX_FEEDBACK Receiving a message from feedback
+ *        - AFE_MODE_TX Sending a message through transducer
+ *        - AFE_MODE_TX_FEEDBACK Sending a message through transducer and listening to feedback
+ */
+void AFE_SetMode(AfeMode_t new_mode);
+
+/**
+ * @brief Returns current AFE mode
+ * 
+ * @return AfeMode_t current AFE mode
+ */
 AfeMode_t AFE_GetMode(void);
+
+/**
+ * @brief Check if AFE is set to transmit on transducer
+ * 
+ * @return true if transmitting on transducer, false otherwise
+ */
 bool AFE_IsTransmitting(void);
+
+/**
+ * @brief Check if AFE is set to receive feedback or transducer messages
+ * 
+ * @return true if a message can be received, false otherwise
+ */
 bool AFE_IsReceiving(void);
 
 /* Private defines -----------------------------------------------------------*/

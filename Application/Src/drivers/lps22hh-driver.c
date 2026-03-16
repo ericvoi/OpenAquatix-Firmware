@@ -15,6 +15,7 @@
 #include "stm32h7xx_hal.h"
 #include "lps22hh-driver.h"
 #include "cmsis_os.h"
+#include "error_manager.h"
 #include <stdbool.h>
 
 /* Private typedef -----------------------------------------------------------*/
@@ -118,20 +119,28 @@ static bool regWrite(uint8_t address, uint8_t data);
 static bool regRead(uint8_t address);
 
 static bool waitForMutex(void);
-static bool setSpiClearFlag(void);
+static void setSpiClearFlag(void);
 static bool waitForSpiClearFlag(void);
 
 /* Exported function definitions ---------------------------------------------*/
 
-bool LPS_Init(LpsOdr_t odr)
+void LPS_CreateResources(void)
 {
+  if (lps_spi_mutex != NULL) REGISTER_ERROR(ERROR_MUTEX_INITIALIZATION);
+  if (lps_events != NULL) REGISTER_ERROR(ERROR_FLAGS_INITIALIZATION);
+
   lps_spi_mutex = osMutexNew(NULL);
-  if (lps_spi_mutex == NULL) return false;
+  if (lps_spi_mutex == NULL) REGISTER_ERROR(ERROR_MUTEX_INITIALIZATION);
 
   lps_events = osEventFlagsNew(NULL);
-  if (lps_events == NULL) return false;
+  if (lps_events == NULL) REGISTER_ERROR(ERROR_FLAGS_INITIALIZATION);
+}
 
-  if (regWrite(REG_INTERRUPT_CFG, 0x00) == false) return false;
+void LPS_Init(LpsOdr_t odr)
+{
+  RETURN_IF_ERROR_PRESENT();
+  if (regWrite(REG_INTERRUPT_CFG, 0x00) == false) 
+    REGISTER_ERROR(ERROR_PRESSURE_SENSOR);
 
   uint8_t data = 0;
   data |= odr << 4;
@@ -140,7 +149,8 @@ bool LPS_Init(LpsOdr_t odr)
   // data |= 1 << 1; // BDU: Ensures samples read correspond to the same physical sample
   // data |= 1 << 0; // SIM: To use SPI 3 wire
   last_ctrl_reg1 = data;
-  if (regWrite(REG_CTRL_REG1, data) == false) return false;
+  if (regWrite(REG_CTRL_REG1, data) == false) 
+    REGISTER_ERROR(ERROR_PRESSURE_SENSOR);
 
   data = 0;
   data |= 0 << 6; // Active high interrupt
@@ -148,70 +158,69 @@ bool LPS_Init(LpsOdr_t odr)
   data |= 1 << 4; // IF_ADD_INC: Auto increment addres during multi-byte read (not used)
   data |= 1 << 1; // LOW_NOISE_EN: Prioritize less noise over low current since current consumption difference is relatively negligible
   data |= 0 << 0; // ONE_SHOT: Disable one shot mode
-  if (regWrite(REG_CTRL_REG2, data) == false) return false;
+  if (regWrite(REG_CTRL_REG2, data) == false) 
+    REGISTER_ERROR(ERROR_PRESSURE_SENSOR);
 
   data = 0;
   // Do not care about FIFO registers since BYPASS mode used
   data |= 1 << 2; // DRDY: Enables the DRDY signal to be used as an interrupt
   data |= 0b00 << 0; // INT_S: Use DRDY as a signal on INT_DRDY
-  if (regWrite(REG_CTRL_REG3, data) == false) return false;
+  if (regWrite(REG_CTRL_REG3, data) == false) 
+    REGISTER_ERROR(ERROR_PRESSURE_SENSOR);
 
   powered_down = false;
-
-  return true;
 }
-bool LPS_RegisterPressureBuf(uint32_t* p_buf, uint16_t buf_len, uint16_t* buf_head)
+
+void LPS_RegisterPressureBuf(uint32_t* p_buf, uint16_t buf_len, uint16_t* buf_head)
 {
-  if ((p_buf == NULL) || (buf_len == 0) || (buf_head == 0)) return false;
+  if ((p_buf == NULL) || (buf_len == 0) || (buf_head == 0)) 
+    REGISTER_ERROR(ERROR_INVALID_FUNCTION_PARAMETERS);
   p_buf_info.buf = (RawPressureData_t*) p_buf;
   p_buf_info.len = buf_len;
   p_buf_info.head = buf_head;
   *buf_head = 0;
-  return true;
 }
-bool LPS_RegisterTemperatureBuf(uint16_t* t_buf, uint16_t buf_len, uint16_t* buf_head)
+
+void LPS_RegisterTemperatureBuf(uint16_t* t_buf, uint16_t buf_len, uint16_t* buf_head)
 {
-  if ((t_buf == NULL) || (buf_len == 0) || (buf_head == 0)) return false;
+  if ((t_buf == NULL) || (buf_len == 0) || (buf_head == 0)) 
+    REGISTER_ERROR(ERROR_INVALID_FUNCTION_PARAMETERS);
   t_buf_info.buf = (RawTemperatureData_t*) t_buf;
   t_buf_info.len = buf_len;
   t_buf_info.head = buf_head;
   *buf_head = 0;
-  return true;
 }
 
-bool LPS_PowerDown()
+void LPS_PowerDown()
 {
-  if (regWrite(REG_CTRL_REG1, 0U) == false) return false;
+  if (regWrite(REG_CTRL_REG1, 0U) == false) REGISTER_ERROR(ERROR_PRESSURE_SENSOR);
 
   powered_down = true;
-  return true;
 }
 
-bool LPS_PowerUp()
+void LPS_PowerUp()
 {
-  if (regWrite(REG_CTRL_REG1, last_ctrl_reg1) == false) return false;
+  if (regWrite(REG_CTRL_REG1, last_ctrl_reg1) == false) REGISTER_ERROR(ERROR_PRESSURE_SENSOR);
 
   powered_down = false;
-  return true;
 }
 
 bool LPS_CheckInterface()
 {
-  if (regRead(REG_WHO_AM_I) == false) return false;
+  if (regRead(REG_WHO_AM_I) == false) REGISTER_ERROR_NON_VOID(ERROR_PRESSURE_SENSOR, false);
 
   return rx_data == 0xD3;
 }
 
-bool LPS_ReadData()
+void LPS_ReadData()
 {
   if ((p_buf_info.buf != NULL) && (p_buf_info.len != 0) && (p_buf_info.head != NULL)) {
-    if (readPressure() == false) return false;
+    if (readPressure() == false) REGISTER_ERROR(ERROR_PRESSURE_SENSOR);
   }
 
   if ((t_buf_info.buf != NULL) && (t_buf_info.len != 0) && (t_buf_info.head != NULL)) {
-    if (readTemperature() == false) return false;
+    if (readTemperature() == false) REGISTER_ERROR(ERROR_PRESSURE_SENSOR);
   }
-  return true;
 }
 
 float LPS_ConvertRawPressure(uint32_t raw_reading)
@@ -238,7 +247,7 @@ void LPS_RxComplete()
 
 void LPS_IntDrdy()
 {
-  if (lps_events == NULL) return;
+  if (lps_events == NULL) {REGISTER_ERROR(ERROR_GENERAL_WARN_ISR); return;}
   osEventFlagsSet(lps_events, LPS_DATA_READY);
 }
 
@@ -320,12 +329,10 @@ bool waitForMutex()
   return true;
 }
 
-bool setSpiClearFlag(void)
+void setSpiClearFlag(void)
 {
-  if (lps_events == NULL) return false;
-  if (osEventFlagsSet(lps_events, LPS_SPI_CLEAR) & 0x80000000) return false;
-
-  return true;
+  if (lps_events == NULL) {REGISTER_ERROR(ERROR_GENERAL_WARN_ISR); return;}
+  osEventFlagsSet(lps_events, LPS_SPI_CLEAR);
 }
 
 bool waitForSpiClearFlag(void)

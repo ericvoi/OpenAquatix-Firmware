@@ -171,11 +171,14 @@ typedef enum {
   MESS_INPUT_FFT = 1 << 6,
   MESS_DROPPED_PACKET_PREAMBLE = 1 << 7,
   MESS_DROPPED_PACKET_CARGO = 1 << 8,
-  MESS_REQUEST_RANGE_FEEDBACK = 1 << 9,
-  MESS_REQUEST_RANGE_TRANSDUCER = 1 << 10,
-  MESS_FAILED_RANGING_REQUEST = 1 << 11,
-  MESS_FAILED_RANGING_RESPONSE = 1 << 12,
-  MESS_RECEIVED_RANGING_RESPONSE_BAD = 1 << 13
+  MESS_MAC_LOST_MESSAGE = 1 << 9,
+  MESS_MAC_TX_SPACE = 1 << 10,
+  MESS_MAC_DROPPED_MESSAGE = 1 << 11,
+  MESS_REQUEST_RANGE_FEEDBACK = 1 << 12,
+  MESS_REQUEST_RANGE_TRANSDUCER = 1 << 13,
+  MESS_FAILED_RANGING_REQUEST = 1 << 14,
+  MESS_FAILED_RANGING_RESPONSE = 1 << 15,
+  MESS_RECEIVED_RANGING_RESPONSE_BAD = 1 << 16
 } MessageFlags_t;
 
 /* Exported macro ------------------------------------------------------------*/
@@ -283,7 +286,7 @@ void MESS_RoundBaud(float* baud);
  * @param lower_freq Pointer to uint32 containing lowest used frequency (modified)
  * @param upper_freq Pointer to uint32 containing highest used frequency (modified)
  *
- * @return true unless an internal parameter like frequency was set incorrectly
+ * @return true unless modulation method not handled
  */
 bool MESS_GetBandwidth(uint32_t* bandwidth, uint32_t* lower_freq, uint32_t* upper_freq);
 
@@ -293,10 +296,8 @@ bool MESS_GetBandwidth(uint32_t* bandwidth, uint32_t* lower_freq, uint32_t* uppe
  * Returns the bit period in ms as a float
  *
  * @param bit_period_ms Pointer to float containing the bit period (modified)
- *
- * @return true always
  */
-bool MESS_GetBitPeriod(float* bit_period_ms);
+void MESS_GetBitPeriod(float* bit_period_ms);
 
 /**
  * @brief State of the MESS task

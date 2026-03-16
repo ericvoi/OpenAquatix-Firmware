@@ -1,23 +1,22 @@
 /*
- * sys_error.h
+ * error_reset.h
  *
- *  Created on: Mar 11, 2025
+ *  Created on: Feb 25, 2026
  *      Author: ericv
- * 
- * Copyright (c) 2025 OpenAquatix Contributors
+ *
+ * Copyright (c) 2026 OpenAquatix Contributors
  * SPDX-License-Identifier: MIT
  */
 
-#ifndef SYS_SYS_ERROR_H_
-#define SYS_SYS_ERROR_H_
+#ifndef ERROR_ERROR_RESET_H_
+#define ERROR_ERROR_RESET_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32h7xx_hal.h"
-#include <Stdbool.h>
+
 
 
 /* Private includes ----------------------------------------------------------*/
@@ -26,21 +25,7 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
-typedef enum {
-  ERROR_CFG_INIT,
-  ERROR_COMM_INIT,
-  ERROR_MESS_INIT,
-  ERROR_SYS_INIT,
-  ERROR_FILT_INIT,
-  ERROR_MESS_PROCESSING,
-  ERROR_FLASH,
-  ERROR_DAC_INIT,
-  ERROR_DAC_PROCESSING,
-  ERROR_MESS_DAC_RESOURCE,
-  ERROR_MAC_INIT,
-  ERROR_MAC_PROCESSING,
-  ERROR_OTHER
-} ErrorCodes_t;
+
 
 /* Exported constants --------------------------------------------------------*/
 
@@ -52,8 +37,15 @@ typedef enum {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-void Error_Routine(ErrorCodes_t error_code);
-bool Error_Exists(void);
+/**
+ * @brief Resets the device without clearing the log by setting a flag
+ */
+void ErrorReset_WarmReset(void);
+
+/**
+ * @brief Notifies error manager that the reset condition was error-induced
+ */
+void ErrorReset_NotifyErrorReset(void);
 
 /* Private defines -----------------------------------------------------------*/
 
@@ -61,4 +53,4 @@ bool Error_Exists(void);
 }
 #endif
 
-#endif /* SYS_SYS_ERROR_H_ */
+#endif /* ERROR_ERROR_RESET_H_ */

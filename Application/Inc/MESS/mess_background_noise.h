@@ -40,11 +40,11 @@ extern "C" {
 /* Exported functions prototypes ---------------------------------------------*/
 
 /**
- * @brief Initializes events and queues in background noise module
+ * @brief Initializes events and queues for background noise
  * 
- * @return true if successfully made os structures, false otherwise
+ * @note Can register a fatal error if initialization failed
  */
-bool BackgroundNoise_Init();
+void BackgroundNoise_CreateShared();
 
 /**
  * @brief Restarts the background noise and invalidates the current background
@@ -54,10 +54,8 @@ void BackgroundNoise_Reset();
 
 /**
  * @brief Calculates the background noise in band on the most recent data
- * 
- * @return true if successfully updated/processed background noise, false otherwise
  */
-bool BackgroundNoise_Calculate(const DspConfig_t* cfg);
+void BackgroundNoise_Calculate(const DspConfig_t* cfg);
 
 /**
  * @brief Returns the calculated background noise

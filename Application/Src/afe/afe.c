@@ -23,6 +23,7 @@
 #include "mess_filt_resources.h"
 #include "mess_input.h"
 #include "mess_sync.h"
+#include "error_manager.h"
 #include <stdbool.h>
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,13 +48,13 @@ extern DAC_HandleTypeDef hdac1;
 
 /* Private function prototypes -----------------------------------------------*/
 
-static AfeStatus_t enterIdle(void);
-static AfeStatus_t enterRx(void);
-static AfeStatus_t enterRxFeedback(void);
-static AfeStatus_t enterTx(bool with_feedback);
+static void enterIdle(void);
+static void enterRx(void);
+static void enterRxFeedback(void);
+static void enterTx(bool with_feedback);
 
 static bool isTimedOut(uint64_t start_time);
-static bool restartADCs(void);
+static void restartADCs(void);
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -62,22 +63,27 @@ void AFE_Init()
   enterIdle();
 }
 
-AfeStatus_t AFE_SetMode(AfeMode_t new_mode)
+void AFE_SetMode(AfeMode_t new_mode)
 {
   Feedback_ChangeInputAttenuation(ATTENUATION_63DB);
   switch (new_mode) {
     case AFE_MODE_IDLE:
-      return enterIdle();
+      enterIdle();
+      break;
     case AFE_MODE_RX:
-      return enterRx();
+      enterRx();
+      break;
     case AFE_MODE_RX_FEEDBACK:
-      return enterRxFeedback();
+      enterRxFeedback();
+      break;
     case AFE_MODE_TX:
-      return enterTx(false);
+      enterTx(false);
+      break;
     case AFE_MODE_TX_FEEDBACK:
-      return enterTx(true);
+      enterTx(true);
+      break;
     default:
-      return AFE_ERROR;
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
   }
 }
 
@@ -98,7 +104,7 @@ bool AFE_IsReceiving(void)
 
 /* Private function definitions ----------------------------------------------*/
 
-AfeStatus_t enterIdle(void)
+void enterIdle(void)
 {
   uint64_t start_timestamp = HAL_AbsoluteTimestamp();
   Feedback_SwitchInput(false);
@@ -109,16 +115,15 @@ AfeStatus_t enterIdle(void)
   // No need to change anything with the dac switch or the tpa since they are
   // powered off and I/Os protected
   while (PWR_State30V() != PWR_OFF && PWR_StateAnalog() != PWR_OFF) {
-    if (isTimedOut(start_timestamp)) {
-      return AFE_TRANSITION_TIMEOUT;
-    }
+    if (isTimedOut(start_timestamp)) 
+      REGISTER_ERROR(ERROR_AFE_TIMEOUT);
+    
     osDelay(1);
   }
   afe_mode = AFE_MODE_IDLE;
-  return AFE_OK;
 }
 
-AfeStatus_t enterRx(void)
+void enterRx(void)
 {
   uint64_t start_timestamp = HAL_AbsoluteTimestamp();
   HAL_TIM_Base_Stop(&htim6);
@@ -132,22 +137,20 @@ AfeStatus_t enterRx(void)
   }
   osDelay(1); // Small delay for the TR switch
   while (PWR_State30V() != PWR_OFF && PWR_StateAnalog() != PWR_READY) {
-    if (isTimedOut(start_timestamp)) {
-      return AFE_TRANSITION_TIMEOUT;
-    }
+    if (isTimedOut(start_timestamp)) 
+      REGISTER_ERROR(ERROR_AFE_TIMEOUT);
+    
     osDelay(1);
   }
   TR_Change(TR_INPUT_MODE);
   // DAC switch does not matter since no modulation
   // TPA not configured since powered off by no 30V
-  if (restartADCs() == false) {
-    return AFE_ERROR;
-  }
+  RETURN_IF_ERROR_PRESENT(restartADCs());
+  
   afe_mode = AFE_MODE_RX;
-  return AFE_OK;
 }
 
-AfeStatus_t enterRxFeedback(void)
+void enterRxFeedback(void)
 {
   uint64_t start_timestamp = HAL_AbsoluteTimestamp();
   Feedback_SwitchInput(true);
@@ -159,23 +162,20 @@ AfeStatus_t enterRxFeedback(void)
   osDelay(1); // Small delay to ensure TR switch has changed
   // TPA configuration does not matter since powered off
   while (PWR_State30V() != PWR_OFF && PWR_StateAnalog() != PWR_READY) {
-    if (isTimedOut(start_timestamp)) {
-      return AFE_TRANSITION_TIMEOUT;
-    }
+    if (isTimedOut(start_timestamp)) 
+      REGISTER_ERROR(ERROR_AFE_TIMEOUT);
+    
     osDelay(1);
   }
-  if (restartADCs() == false) {
-    return AFE_ERROR;
-  }
+  RETURN_IF_ERROR_PRESENT(restartADCs());
   afe_mode = AFE_MODE_RX_FEEDBACK;
-  return AFE_OK;
 }
 
-AfeStatus_t enterTx(bool with_feedback)
+void enterTx(bool with_feedback)
 {
   uint64_t start_timestamp = HAL_AbsoluteTimestamp();
   if (MessFiltResources_StopAllAdcs() == false) {
-    return AFE_ERROR;
+    REGISTER_ERROR(ERROR_AFE_GENERAL);
   }
   Feedback_SwitchInput(false);
   Feedback_SwitchOutput(with_feedback);
@@ -191,9 +191,9 @@ AfeStatus_t enterTx(bool with_feedback)
   osDelay(1);
   HAL_TIM_Base_Stop(&htim6);
   while (PWR_State30V() != PWR_READY && PWR_StateAnalog() != PWR_READY) {
-    if (isTimedOut(start_timestamp)) {
-      return AFE_TRANSITION_TIMEOUT;
-    }
+    if (isTimedOut(start_timestamp))
+      REGISTER_ERROR(ERROR_AFE_TIMEOUT);
+    
     osDelay(1);
   }
   TPA_Unmute();
@@ -206,7 +206,6 @@ AfeStatus_t enterTx(bool with_feedback)
   else {
     afe_mode = AFE_MODE_TX;
   }
-  return AFE_OK;
 }
 
 bool isTimedOut(uint64_t start_time)
@@ -215,19 +214,15 @@ bool isTimedOut(uint64_t start_time)
 }
 
 // Function only called when transitioning to receiving state
-bool restartADCs()
+void restartADCs()
 {
   if (MessFiltResources_StopAllAdcs() == false) {
-    return false;
+    REGISTER_ERROR(ERROR_AFE_GENERAL);
   }
   Input_Reset();
-  if (MessFiltResources_StartInputAdc() == false) {
-    return false;
-  }
+  MessFiltResources_StartInputAdc();
   // If receiving prior, then the sync state is fine, but not if transmitting prior
   // Reset not used if not needed since computationally expensive
-  if (AFE_IsTransmitting()) {
+  if (AFE_IsTransmitting()) 
     Sync_Reset();
-  }
-  return true;
 }

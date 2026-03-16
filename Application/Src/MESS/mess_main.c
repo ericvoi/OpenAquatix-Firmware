@@ -34,12 +34,12 @@
 #include "mess_error_detection.h"
 #include "mess_ranging.h"
 
-#include "sys_error.h"
-
 #include "cfg_main.h"
 #include "cfg_parameters.h"
 #include "cfg_defaults.h"
 #include "cfg_callbacks.h"
+
+#include "error_manager.h"
 
 #include "afe.h"
 #include "dac_waveform.h"
@@ -145,10 +145,13 @@ DEFINE_DESC_TABLE(ENCRYPTION_TABLE, encryption_descriptors)
 /* Private function prototypes -----------------------------------------------*/
 
 static void switchState(ProcessingState_t newState);
-static bool handleFlags();
-static bool handlePreambleOnlyMessage();
-static bool registerMessParams();
-static bool registerMessMainParams();
+static void handleFlags();
+static void sendMessage();
+static void handleSync(SyncState_t sync_state);
+static void resetTask();
+static void registerMessParams();
+static void registerMessMainParams();
+static void handlePreambleOnlyMessage();
 static void getConfig();
 
 /* Exported function definitions ---------------------------------------------*/
@@ -156,39 +159,18 @@ static void getConfig();
 void MESS_StartTask(void* argument)
 {
   (void)(argument);
+
+  Error_RegisterTask("MESS");
+  registerMessParams();
+  Error_ParameterRegistrationComplete();
+
   osEventFlagsClear(print_event_handle, 0xFFFFFFFF);
   MessDacResource_Init();
-
-  if (Param_RegisterTask(MESS_TASK, "MESS") == false) {
-    Error_Routine(ERROR_MESS_INIT);
-  }
-
-  if (registerMessParams() == false) {
-    Error_Routine(ERROR_MESS_INIT);
-  }
-
-  if (Param_TaskRegistrationComplete(MESS_TASK) == false) {
-    Error_Routine(ERROR_MESS_INIT);
-  }
+  BackgroundNoise_CreateShared();
 
   CFG_WaitLoadComplete();
 
-
-  Pga113_Init();
-  Pga113_Enable();
-  osDelay(1);
-  Pga113_SetGain(PGA_GAIN_1);
-  MessFiltResources_Init();
-  Input_Init();
-  Feedback_Init();
-  FeedbackTests_Init();
-  Demodulate_Init();
-  BackgroundNoise_Init();
-  switchState(LISTENING);
-
-  osDelay(10);
-  Waveform_Flush();
-  MessFiltResources_StartInputAdc();
+  resetTask();
   for (;;) {
     switch (task_state) {
       case DRIVING_TRANSDUCER:
@@ -205,14 +187,8 @@ void MESS_StartTask(void* argument)
         break;
       case LISTENING:
 
-        if (Input_UpdatePgaGain() == false) {
-          Error_Routine(ERROR_MESS_PROCESSING);
-          break;
-        }
-
-        if (handleFlags() == false) {
-          Error_Routine(ERROR_MESS_PROCESSING);
-        }
+        Input_UpdatePgaGain();
+        handleFlags();
 
         FeedbackTests_GetNext();
         getConfig();
@@ -220,56 +196,18 @@ void MESS_StartTask(void* argument)
         if (MESS_GetMessageFromTxQ(&tx_msg) == true) {
           getConfig();
 
-          if (Packet_PrepareTx(&tx_msg, &bit_msg, cfg) == false) {
-            Error_Routine(ERROR_MESS_PROCESSING);
-            break;
-          }
-          // Add ECC
-          if (ErrorCorrection_AddCorrection(&bit_msg, cfg) == false) {
-            Error_Routine(ERROR_MESS_PROCESSING);
-          }
-          // Add feedback network test false bits
-          if (FeedbackTests_CorruptMessage(&bit_msg) == false) {
-            Error_Routine(ERROR_MESS_PROCESSING);
-            break;
-          }
-          if (Interleaver_Apply(&bit_msg, cfg) == false) {
-            Error_Routine(ERROR_MESS_PROCESSING);
-          }
+          Packet_PrepareTx(&tx_msg, &bit_msg, cfg);
+          ErrorCorrection_AddCorrection(&bit_msg, cfg);
+          FeedbackTests_CorruptMessage(&bit_msg); // if applicable
+          Interleaver_Apply(&bit_msg, cfg);
           message_length = bit_msg.bit_count;
-          switch (tx_msg.type) {
-            case MSG_TRANSMIT_TRANSDUCER:
-              switchState(DRIVING_TRANSDUCER);
-              break;
-            case MSG_TRANSMIT_FEEDBACK:
-              if (AFE_SetMode(AFE_MODE_RX_FEEDBACK) != AFE_OK) {
-                Error_Routine(ERROR_MESS_PROCESSING);
-              }
-              Modulate_StartFeedbackOutput(message_length, cfg, &bit_msg, &tx_msg);
-              // Should automatically go to processing once waveform being received without intervention
-              break;
-            default:
-              break;
-          }
+          sendMessage();
         }
 
         SyncState_t sync_state = Sync_Synchronize(cfg, &rx_msg);
-        switch (sync_state) {
-          case SYNC_SUCCESS:
-            switchState(PROCESSING);
-            break;
-          case SYNC_OK:
-            break; // Do nothing, still synchronizing
-          case SYNC_ERROR:
-          default:
-            Error_Routine(ERROR_MESS_PROCESSING);
-            break;
-        }
+        handleSync(sync_state);
 
-        if (BackgroundNoise_Calculate(cfg) == false) {
-          Error_Routine(ERROR_MESS_PROCESSING);
-          break;
-        }
+        BackgroundNoise_Calculate(cfg);
         break;
       case PROCESSING:
         // Process ADC input data only
@@ -277,26 +215,14 @@ void MESS_StartTask(void* argument)
             (input_bit_msg.bit_count >= input_bit_msg.final_length) &&
             (input_bit_msg.preamble_received == true);
 
-        if (Input_UpdatePgaGain() == false) {
-          Error_Routine(ERROR_MESS_PROCESSING);
-          break;
-        }
+        Input_UpdatePgaGain();
         if (input_bit_msg.fully_received == false) {
-          if (Input_SegmentBlocks(cfg) == false) {
-            Error_Routine(ERROR_MESS_PROCESSING);
-            break;
-          }
+          Input_SegmentBlocks(cfg);
         }
-        if (Input_ProcessBlocks(&input_bit_msg, cfg) == false) {
-          Error_Routine(ERROR_MESS_PROCESSING);
-          break;
-        }
+        Input_ProcessBlocks(&input_bit_msg, cfg);
 
         bool proceed = true;
-        if (Input_DecodeBits(&input_bit_msg, cfg, &rx_msg, &proceed) == false) {
-          Error_Routine(ERROR_MESS_PROCESSING);
-          break;
-        }
+        Input_DecodeBits(&input_bit_msg, cfg, &rx_msg, &proceed);
         if (proceed == false) {switchState(LISTENING); break;};
 
         if (input_bit_msg.fully_received == true && input_bit_msg.added_to_queue == false) {
@@ -313,34 +239,22 @@ void MESS_StartTask(void* argument)
             break;
           }
 
-          if (Interleaver_Undo(&input_bit_msg, cfg, false) == false) {
-            Error_Routine(ERROR_MESS_PROCESSING);
-          }
+          Interleaver_Undo(&input_bit_msg, cfg, false);
 
           // TODO: change to also require message to be custom
           if (rx_msg.preamble.message_type.value == EVAL && (rx_msg.preamble.message_type.valid == true)) {
-            if (Evaluate_UncodedBer(&rx_msg.eval_info, &input_bit_msg, cfg) == false) {
-              Error_Routine(ERROR_MESS_PROCESSING);
-            }
+            Evaluate_UncodedBer(&rx_msg.eval_info, &input_bit_msg, cfg);
           }
 
           // undo fec
-          if (ErrorCorrection_CheckCorrection(&input_bit_msg, cfg, false,
-              &input_bit_msg.error_message,
-              &input_bit_msg.corrected_error_message) == false) {
-            Error_Routine(ERROR_MESS_PROCESSING);
-          }
+          ErrorCorrection_CheckCorrection(&input_bit_msg, cfg, false,
+              &input_bit_msg.error_message, 
+              &input_bit_msg.corrected_error_message);
           // decode message
-          if (Cargo_Decode(&input_bit_msg, &rx_msg, cfg) == false) {
-            Error_Routine(ERROR_MESS_PROCESSING);
-            break;
-          }
+          Cargo_Decode(&input_bit_msg, &rx_msg, cfg);
 
-          if (ErrorDetection_CheckDetection(&input_bit_msg,
-              &rx_msg.error_detected, cfg, false) == false) {
-            Error_Routine(ERROR_MESS_PROCESSING);
-            break;
-          }
+          ErrorDetection_CheckDetection(&input_bit_msg,
+              &rx_msg.error_detected, cfg, false);
           rx_msg.error_detected |= input_bit_msg.error_preamble;
           // send it via queue
           if (FeedbackTests_Check(&rx_msg, &input_bit_msg) == false) {
@@ -348,10 +262,7 @@ void MESS_StartTask(void* argument)
           }
           input_bit_msg.added_to_queue = true;
         }
-        if (Input_PrintWaveform(&print_next_waveform, input_bit_msg.fully_received) == false) {
-          Error_Routine(ERROR_MESS_PROCESSING);
-          break;
-        }
+        Input_PrintWaveform(&print_next_waveform, input_bit_msg.fully_received);
 
         if (input_bit_msg.fully_received == true && print_next_waveform == false) {
           switchState(LISTENING);
@@ -360,6 +271,12 @@ void MESS_StartTask(void* argument)
       default:
         break;
     }
+    ErrorCheck_t status = Error_CheckStatus();
+    TaskResetStatus_t reset_required = Error_CheckModuleReset();
+    bool reset_cond1 = (status == ERROR_QUIT) && (task_state != LISTENING);
+    bool reset_cond2 = reset_required == TASK_RESET;
+    Error_ResetAbortFlag();
+    if (reset_cond1 || reset_cond2) resetTask();
     osDelay(1);
   }
 }
@@ -369,19 +286,24 @@ void MESS_InitializeQueues(void)
   tx_queue = osMessageQueueNew(MSG_QUEUE_SIZE, sizeof(Message_t), NULL);
   rx_queue = osMessageQueueNew(MSG_QUEUE_SIZE, sizeof(Message_t), NULL);
 
-  if (tx_queue == NULL || rx_queue == NULL) {
-    // TODO: Handle error
-  }
+  if (tx_queue == NULL || rx_queue == NULL) 
+    REGISTER_ERROR(ERROR_QUEUE_INITIALIZATION);
 }
 
 bool MESS_GetMessageFromTxQ(Message_t* msg)
 {
+  RETURN_IF_ERROR_PRESENT_NON_VOID(,false);
   if (tx_queue == NULL || msg == NULL) {
+    REGISTER_ERROR_NON_VOID(ERROR_NULL_PTR, false);
     return false;
   }
 
   if (osMessageQueueGetCount(tx_queue) > 0) {
-    return osMessageQueueGet(tx_queue, (void*) msg, NULL, 0) == osOK;
+    if (osMessageQueueGet(tx_queue, (void*) msg, NULL, 0) != osOK) {
+      REGISTER_ERROR_NON_VOID(ERROR_QUEUE_RUNNING, false);
+      return false;
+    }
+    return true;
   }
 
   return false;
@@ -389,21 +311,33 @@ bool MESS_GetMessageFromTxQ(Message_t* msg)
 
 bool MESS_AddMessageToTxQ(const Message_t* msg)
 {
+  RETURN_IF_ERROR_PRESENT_NON_VOID(,false);
   if (tx_queue == NULL || msg == NULL) {
+    REGISTER_ERROR_NON_VOID(ERROR_NULL_PTR, false);
     return false;
   }
 
-  return osMessageQueuePut(tx_queue, msg, 0, 0) == osOK;
+  if (osMessageQueuePut(tx_queue, msg, 0, 0) != osOK) {
+    REGISTER_ERROR_NON_VOID(ERROR_QUEUE_RUNNING, false);
+    return false;
+  }
+  return true;
 }
 
 bool MESS_GetMessageFromRxQ(Message_t* msg)
 {
+  RETURN_IF_ERROR_PRESENT_NON_VOID(, false);
   if (rx_queue == NULL || msg == NULL) {
+    REGISTER_ERROR_NON_VOID(ERROR_NULL_PTR, false);
     return false;
   }
 
   if (osMessageQueueGetCount(rx_queue) > 0) {
-    return osMessageQueueGet(rx_queue, (void*) msg, NULL, 0) == osOK;
+    if (osMessageQueueGet(rx_queue, (void*) msg, NULL, 0) != osOK) {
+      REGISTER_ERROR_NON_VOID(ERROR_QUEUE_RUNNING, false);
+      return false;
+    }
+    return true;
   }
 
   return false;
@@ -411,24 +345,37 @@ bool MESS_GetMessageFromRxQ(Message_t* msg)
 
 bool MESS_AddMessageToRxQ(const Message_t* msg)
 {
-  if (rx_queue == NULL || msg == NULL) {
+  RETURN_IF_ERROR_PRESENT_NON_VOID(,false);
+  if (tx_queue == NULL || msg == NULL) {
+    REGISTER_ERROR_NON_VOID(ERROR_NULL_PTR, false);
     return false;
   }
 
-  return osMessageQueuePut(rx_queue, msg, 0, 0) == osOK;
+  if (osMessageQueuePut(rx_queue, msg, 0, 0) != osOK) {
+    REGISTER_ERROR_NON_VOID(ERROR_QUEUE_RUNNING, false);
+    return false;
+  }
+  return true;
 }
 
 bool MESS_PriorityTransmission(const Message_t* msg)
 {
+  RETURN_IF_ERROR_PRESENT_NON_VOID(,false);
   if (tx_queue == NULL || msg == NULL) {
+    REGISTER_ERROR_NON_VOID(ERROR_NULL_PTR, false);
     return false;
   }
 
   if (osMessageQueueReset(tx_queue) != osOK) {
+    REGISTER_ERROR_NON_VOID(ERROR_QUEUE_RUNNING, false);
     return false;
   }
 
-  return osMessageQueuePut(tx_queue, msg, 0, 0) == osOK;
+  if (osMessageQueuePut(tx_queue, msg, 0, 0) != osOK) {
+    REGISTER_ERROR_NON_VOID(ERROR_QUEUE_RUNNING, false);
+    return false;
+  }
+  return true;
 }
 
 void MESS_RoundBaud(float* baud)
@@ -445,9 +392,6 @@ void MESS_RoundBaud(float* baud)
 bool MESS_GetBandwidth(uint32_t* bandwidth, uint32_t* lower_freq, uint32_t* upper_freq)
 {
   if (custom_config.mod_demod_method == MOD_DEMOD_FSK) {
-    if (custom_config.fsk_f0 == custom_config.fsk_f1) {
-      return false;
-    }
     if (custom_config.fsk_f0 < custom_config.fsk_f1) {
       *lower_freq = custom_config.fsk_f0;
       *upper_freq = custom_config.fsk_f1;
@@ -472,13 +416,13 @@ bool MESS_GetBandwidth(uint32_t* bandwidth, uint32_t* lower_freq, uint32_t* uppe
     *bandwidth = *upper_freq - *lower_freq;
     return true;
   }
+  REGISTER_ERROR_NON_VOID(ERROR_UNHANDLED_CASE, false);
   return false;
 }
 
-bool MESS_GetBitPeriod(float* bit_period_ms)
+void MESS_GetBitPeriod(float* bit_period_ms)
 {
-  *bit_period_ms =  (1.0f / custom_config.baud_rate) * 1000;
-  return true;
+  *bit_period_ms = (1.0f / custom_config.baud_rate) * 1000;
 }
 
 ProcessingState_t MESS_GetState()
@@ -490,23 +434,22 @@ ProcessingState_t MESS_GetState()
 
 void switchState(ProcessingState_t newState)
 {
+  RETURN_IF_ERROR_PRESENT();
   // First deactivate and clear all adcs, dacs, and all buffers except for the input buffer when transitioning from listening to processing
   task_state = CHANGING;
   switch (newState) {
     case DRIVING_TRANSDUCER:
-      if (AFE_SetMode(AFE_MODE_TX) != AFE_OK) { // TODO: change to include feedback for input and output
-        Error_Routine(ERROR_MESS_PROCESSING);
-      }
-      Modulate_StartTransducerOutput(message_length, cfg, &bit_msg, &tx_msg);
+      RETURN_IF_ERROR_PRESENT(AFE_SetMode(AFE_MODE_TX)); // TODO: change to include feedback for input and output
+      RETURN_IF_ERROR_PRESENT(Modulate_StartTransducerOutput(message_length, cfg, &bit_msg, &tx_msg));
       task_state = DRIVING_TRANSDUCER;
       break;
     case LISTENING:
       Sync_Reset();
       cfg = &custom_config;
-      Waveform_StopWaveformOutput();
-      if (AFE_SetMode(AFE_MODE_RX) != AFE_OK) {
-        Error_Routine(ERROR_MESS_PROCESSING);
-      }
+      if (Waveform_StopWaveformOutput() == false) 
+        REGISTER_ERROR(ERROR_STOPPING_TRANSDUCER_OUTPUT);
+      
+      RETURN_IF_ERROR_PRESENT(AFE_SetMode(AFE_MODE_RX));
       task_state = LISTENING;
       break;
     case PROCESSING:
@@ -518,16 +461,16 @@ void switchState(ProcessingState_t newState)
   }
 }
 
-bool handleFlags()
+void handleFlags()
 {
   uint32_t flags = osEventFlagsWait(print_event_handle, 0xFFFF, osFlagsWaitAny, 0);
 
   if (flags == osFlagsErrorResource) {
-    return true;
+    return;
   }
 
   if (flags & 0x80000000U) {
-    return false;
+    REGISTER_ERROR(ERROR_FLAGS_RUNNING);
   }
 
   if (flags & MESS_PRINT_REQUEST) {
@@ -562,10 +505,9 @@ bool handleFlags()
     osEventFlagsClear(print_event_handle, MESS_REQUEST_RANGE_TRANSDUCER);
     Ranging_Request(cfg, false);
   }
-  return true;
 }
 
-bool handlePreambleOnlyMessage()
+void handlePreambleOnlyMessage()
 {
   switch (cfg->protocol) {
     case PROTOCOL_CUSTOM:
@@ -574,68 +516,99 @@ bool handlePreambleOnlyMessage()
         case BITS:
         case INTEGER:
         case FLOAT:
-          return false; // Should drop/abort instead
+          REGISTER_ERROR(ERROR_UNKNOWN_MESSAGE);
+          return;
         case RANGING_REQUEST:
           Ranging_Respond(rx_msg.rx_cyccnt, rx_msg.type == MSG_RECEIVED_FEEDBACK);
-          return true;
+          return;
         case RANGING_RESPONSE:
           Ranging_LogResponse(&rx_msg);
-          return true;
+          return;
         default:
-          return false;
+          REGISTER_ERROR(ERROR_UNKNOWN_MESSAGE);
+          return;
       }
     case PROTOCOL_JANUS:
-      return false;
+      REGISTER_ERROR(ERROR_UNKNOWN_JANUS);
+      return;
     default:
-      return false;
+      REGISTER_ERROR(ERROR_UNKNOWN_JANUS);
+      return;
   }
 }
 
-bool registerMessParams()
+void sendMessage()
+{
+  RETURN_IF_ERROR_PRESENT();
+  switch (tx_msg.type) {
+    case MSG_TRANSMIT_TRANSDUCER:
+      switchState(DRIVING_TRANSDUCER);
+      break;
+    case MSG_TRANSMIT_FEEDBACK:
+      AFE_SetMode(AFE_MODE_RX_FEEDBACK);
+      Modulate_StartFeedbackOutput(message_length, cfg, &bit_msg, &tx_msg);
+      // Should automatically go to processing once waveform being received without intervention
+      // TODO: what if above unsuccessful?
+      break;
+    default:
+      break;
+  }
+}
+
+void handleSync(SyncState_t sync_state)
+{
+  RETURN_IF_ERROR_PRESENT();
+  switch (sync_state) {
+    case SYNC_SUCCESS:
+      switchState(PROCESSING);
+      break;
+    case SYNC_OK:
+      break; // Do nothing, still synchronizing
+    default:
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
+      break;
+  }
+}
+
+void resetTask()
+{
+  Pga113_Init();
+  osDelay(1);
+  Pga113_SetGain(PGA_GAIN_1);
+  MessFiltResources_Init();
+  Input_Init();
+  Feedback_Init();
+  FeedbackTests_Init();
+  Demodulate_Init();
+  BackgroundNoise_Reset();
+  switchState(LISTENING);
+
+  osDelay(10);
+  Waveform_Flush();
+  MessFiltResources_StartInputAdc();
+}
+
+void registerMessParams()
 {
   // register all parameters from all files
-  if (Modulate_RegisterParams() == false) {
-    return false;
-  }
-
-  if (registerMessMainParams() == false) {
-    return false;
-  }
-
-  if (Input_RegisterParams() == false) {
-    return false;
-  }
-
-  if (Packet_RegisterParams() == false) {
-    return false;
-  }
-
-  if (ErrorDetection_RegisterParams() == false) {
-    return false;
-  }
-
-  if (Demodulate_RegisterParams() == false) {
-    return false;
-  } 
-
-  if (Calibrate_RegisterParams() == false) {
-    return false;
-  }
-
-  if (Evaluate_RegisterParams() == false) {
-    return false;
-  }
-  return true;
+  Modulate_RegisterParams();
+  registerMessMainParams();
+  Input_RegisterParams();
+  Packet_RegisterParams();
+  ErrorDetection_RegisterParams();
+  Demodulate_RegisterParams();
+  Calibrate_RegisterParams();
+  Evaluate_RegisterParams();
 }
 
-bool registerMessMainParams()
+void registerMessMainParams()
 {
   float min_f = MIN_BAUD_RATE;
   float max_f = MAX_BAUD_RATE;
   if (Param_Register(PARAM_BAUD, "baud rate", PARAM_TYPE_FLOAT,
                      &custom_config.baud_rate, sizeof(float),
                      &min_f, &max_f, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   uint32_t min_u32 = MIN_FSK_FREQUENCY;
@@ -643,12 +616,12 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_FSK_F0, "FSK 0 frequency", PARAM_TYPE_UINT32,
                      &custom_config.fsk_f0, sizeof(uint32_t),
                      &min_u32, &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
   if (Param_Register(PARAM_FSK_F1, "FSK 1 frequency", PARAM_TYPE_UINT32,
                      &custom_config.fsk_f1, sizeof(uint32_t),
                      &min_u32, &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_MOD_DEMOD_METHOD;
@@ -656,7 +629,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_MOD_DEMOD_METHOD, "mod/demod method", PARAM_TYPE_ENUM,
                      &custom_config.mod_demod_method, sizeof(uint8_t),
                      &min_u32, &max_u32, NULL, mod_demod_descriptors) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_FC;
@@ -664,7 +637,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_FC, "center frequency", PARAM_TYPE_UINT32,
                      &custom_config.fc, sizeof(uint32_t),
                      &min_u32, &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_FHBFSK_FREQ_SPACING;
@@ -672,7 +645,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_FHBFSK_FREQ_SPACING, "frequency spacing", PARAM_TYPE_UINT8,
                      &custom_config.fhbfsk_freq_spacing, sizeof(uint8_t),
                      &min_u32, &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_FHBFSK_DWELL_TIME;
@@ -680,7 +653,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_FHBFSK_DWELL_TIME, "dwell time", PARAM_TYPE_UINT8,
                      &custom_config.fhbfsk_dwell_time, sizeof(uint8_t),
                      &min_u32, &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_FHBFSK_NUM_TONES;
@@ -688,7 +661,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_FHBFSK_NUM_TONES, "number of tones", 
                      PARAM_TYPE_UINT8, &custom_config.fhbfsk_num_tones, 
                      sizeof(uint8_t), &min_u32, &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_ERROR_DETECTION;
@@ -698,7 +671,7 @@ bool registerMessMainParams()
                      &custom_config.preamble_validation, sizeof(uint8_t),
                      &min_u32, &max_u32, NULL, error_detection_descriptors
                      ) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   if (Param_Register(PARAM_CARGO_ERROR_DETECTION, 
@@ -706,7 +679,7 @@ bool registerMessMainParams()
                      &custom_config.cargo_validation, sizeof(uint8_t),
                      &min_u32, &max_u32, NULL, error_detection_descriptors
                      ) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_ECC_METHOD;
@@ -715,7 +688,7 @@ bool registerMessMainParams()
                      &custom_config.preamble_ecc_method, sizeof(uint8_t),
                      &min_u32, &max_u32, NULL, error_correction_descriptors
                      ) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   // Using the same bounds as ^
@@ -723,7 +696,7 @@ bool registerMessMainParams()
                      &custom_config.cargo_ecc_method, sizeof(uint8_t),
                      &min_u32, &max_u32, NULL, error_correction_descriptors
                      ) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_INTERLEAVER_STATE;
@@ -731,7 +704,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_USE_INTERLEAVER, "message interleaving", PARAM_TYPE_UINT8,
                      &custom_config.use_interleaver, sizeof(bool),
                      &min_u32, &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_FHBFSK_HOPPER;
@@ -740,7 +713,7 @@ bool registerMessMainParams()
                      &custom_config.fhbfsk_hopper, sizeof(uint8_t), 
                      &min_u32, &max_u32, NULL, fhbfsk_hopper_descriptors
                      ) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_SYNC_METHOD;
@@ -749,7 +722,7 @@ bool registerMessMainParams()
                      &custom_config.sync_method, sizeof(uint8_t),
                      &min_u32, &max_u32, NULL, synchronization_descriptors
                      ) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_ID;
@@ -757,7 +730,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_ID, "the modem identifier", PARAM_TYPE_UINT8,
                      &custom_id, sizeof(uint8_t), &min_u32, 
                      &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_STATIONARY_FLAG;
@@ -765,7 +738,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_STATIONARY_FLAG, "stationary flag", PARAM_TYPE_UINT8,
                      &is_mobile, sizeof(uint8_t), &min_u32, 
                      &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_WAKEUP_TONES_STATE;
@@ -773,7 +746,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_WAKEUP_TONES_STATE, "wakeup tones", PARAM_TYPE_UINT8,
                      &custom_config.wakeup_tones, sizeof(bool), &min_u32, 
                      &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_WAKEUP_TONE_FREQ;
@@ -781,17 +754,17 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_WAKEUP_TONE1, "wakeup tone 1", PARAM_TYPE_UINT32,
                      &custom_config.wakeup_tone1, sizeof(uint32_t), &min_u32, 
                      &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
   if (Param_Register(PARAM_WAKEUP_TONE2, "wakeup tone 2", PARAM_TYPE_UINT32,
                      &custom_config.wakeup_tone2, sizeof(uint32_t), &min_u32, 
                      &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
   if (Param_Register(PARAM_WAKEUP_TONE3, "wakeup tone 3", PARAM_TYPE_UINT32,
                      &custom_config.wakeup_tone3, sizeof(uint32_t), &min_u32, 
                      &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_MESSAGING_PROTOCOL;
@@ -799,7 +772,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_PROTOCOL, "the messaging protocol", PARAM_TYPE_UINT8,
                      &messaging_protocol, sizeof(uint8_t), &min_u32, 
                      &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_TX_RX_CAPABLE;
@@ -807,7 +780,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_TX_RX_ABILITY, "Tx/Rx ability flag", PARAM_TYPE_ENUM,
                      &tx_rx_capable, sizeof(bool), &min_u32,
                      &max_u32, NULL, messaging_protocol_descriptors) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_FORWARD_CAPABILITY;
@@ -815,7 +788,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_FORWARD_CAPABILITY, "packet forward ability flag", 
                      PARAM_TYPE_UINT8, &forwarding_capability, sizeof(bool),
                      &min_u32, &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_JANUS_ID;
@@ -823,7 +796,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_JANUS_ID, "JANUS ID", PARAM_TYPE_UINT8,
                      &janus_id, sizeof(uint8_t), &min_u32, &max_u32, 
                      NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_JANUS_DESTINATION;
@@ -831,7 +804,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_JANUS_DESTINATION, "JANUS destination ID",
                      PARAM_TYPE_UINT8, &janus_destination_id, sizeof(uint8_t),
                      &min_u32, &max_u32, NULL, NULL) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_CODING;
@@ -839,7 +812,7 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_CODING, "string coding", PARAM_TYPE_ENUM,
                      &coding, sizeof(uint8_t), &min_u32, &max_u32, 
                      NULL, coding_descriptors) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_ENCRYPTION;
@@ -847,14 +820,13 @@ bool registerMessMainParams()
   if (Param_Register(PARAM_ENCRYPTION, "cargo encryption", PARAM_TYPE_ENUM,
                      &encryption, sizeof(uint8_t), &min_u32, &max_u32, 
                      NULL, encryption_descriptors) == false) {
-    return false;
+    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
-
-  return true;
 }
 
 void getConfig()
 {
+  RETURN_IF_ERROR_PRESENT();
   if (FeedbackTests_GetConfig(&cfg) == true) return;
 
   switch (messaging_protocol) {

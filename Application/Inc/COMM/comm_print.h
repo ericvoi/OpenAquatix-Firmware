@@ -53,9 +53,9 @@ void Print_DisplayReceivedMessage(Message_t* msg, uint8_t* out_buffer, CommInter
 /**
  * @brief Registers parameters used for printing messages
  * 
- * @return true if all parameters successfully registered, false otherwise
+ * @note Logs an error in the event of a failure
  */
-bool Print_RegisterParams(void);
+void Print_RegisterParams(void);
 
 #ifdef __cplusplus
 }

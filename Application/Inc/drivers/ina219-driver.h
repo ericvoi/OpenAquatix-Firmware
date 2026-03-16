@@ -47,11 +47,11 @@ typedef struct {
  * @brief Initializes the INA219 power monitor by writing to the configuration
  * register with fixed values (12b, no averaging, continuous)
  * 
- * @return true if initialization succeeded, false otherwise
+ * @note Can cause unrecoverable errors
  * 
  * @note This must be called before using the module
  */
-bool INA_Init(void);
+void INA_Init(void);
 
 /**
  * @brief Registers buffer to store INA power values
@@ -60,18 +60,16 @@ bool INA_Init(void);
  * @param buf_len Length of the above buffer
  * @param buf_head Pointer to head of buffer. Updated when there is a new sample
  * 
- * @return true if none of the values are NULL or 0
- * 
  * @note This must be called before using the module
  */
-bool INA_RegisterBuffer(InaPowerValues_t* buf, uint16_t buf_len, volatile uint16_t* buf_head);
+void INA_RegisterBuffer(InaPowerValues_t* buf, uint16_t buf_len, volatile uint16_t* buf_head);
 
 /**
  * @brief Initiates a read of the bus voltage, and shunt voltage registers on the INA219
  * 
  * @return true if state correct (INA_IDLE) and driver returns HAL_OK, false otherwise
  */
-bool INA_StartRead(void);
+void INA_StartRead(void);
 
 /**
  * @brief Callback called when memory tx complete

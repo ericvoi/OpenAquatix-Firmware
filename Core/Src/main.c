@@ -253,8 +253,8 @@ extern HAL_TickFreqTypeDef uwTickFreq;
 static uint32_t tick_rollover_count = 0;
 void HAL_IncTick(void)
 {
-  uwTick += (uint32_t)uwTickFreq;
   if (uwTick == 0xFFFFFFFF) tick_rollover_count++;
+  uwTick += (uint32_t)uwTickFreq;
 }
 
 uint32_t HAL_TickRolloverCount(void)
@@ -264,7 +264,7 @@ uint32_t HAL_TickRolloverCount(void)
 
 uint64_t HAL_AbsoluteTimestamp(void)
 {
-  return HAL_GetTick() | (((uint64_t) HAL_TickRolloverCount()) << 32);
+  return uwTick | (((uint64_t) HAL_TickRolloverCount()) << 32);
 }
 
 /* USER CODE END 0 */
@@ -1664,6 +1664,14 @@ void MPU_Config(void)
   MPU_InitStruct.Size = MPU_REGION_SIZE_16KB;
   MPU_InitStruct.SubRegionDisable = 0x0;
   MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
+
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+
+  /** Initializes and configures the Region and the memory to be protected
+  */
+  MPU_InitStruct.Number = MPU_REGION_NUMBER2;
+  MPU_InitStruct.BaseAddress = 0x38800000;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_4KB;
 
   HAL_MPU_ConfigRegion(&MPU_InitStruct);
   /* Enables the MPU */
