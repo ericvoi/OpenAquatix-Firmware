@@ -106,7 +106,7 @@ void COMM_StartTask(void *argument)
 
   menu_context.current_menu = MenuSystem_GetMenu(MENU_ID_MAIN);
   displaySubMenus();
-  // Main task loop - processes messages and handles menu navigation
+  resetTask();
   for(;;) {
     Message_t rx_msg;
     if (MESS_GetMessageFromRxQ(&rx_msg) == true) {
