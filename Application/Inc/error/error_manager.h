@@ -45,67 +45,85 @@ typedef struct {
  * 
  * @note the error description must be less than ERROR_DESCRIPTION_WIDTH characters
  */
-#define ERROR_MANAGEMENT_TABLE(X) \
-  X(ERROR_ERROR_MANAGEMENT_INTERNAL,      ERROR_SEVERITY_WARN,            "Internal error management error",          SUBSYS_NONE)      \
-  X(ERROR_ADC_BUFFER_OVERFLOW,            ERROR_SEVERITY_TASK_RESET,      "A signal processing buffer",               SUBSYS_NONE)      \
-  X(ERROR_PGA_COMMAND,                    ERROR_SEVERITY_DISABLE_SUBSYS,  "Error sending PGA command",                SUBSYS_PGA)       \
-  X(ERROR_PARAMETER_REGISTRATION,         ERROR_SEVERITY_UNRECOVERABLE,   "Error registering parameters",             SUBSYS_NONE)      \
-  X(ERROR_FFT_INITIALIZATION,             ERROR_SEVERITY_UNRECOVERABLE,   "Error initializing FFT",                   SUBSYS_NONE)      \
-  X(ERROR_FEEDBACK_TEST_INITIALIZATION,   ERROR_SEVERITY_DISABLE_SUBSYS,  "Error initializing feedback tests",        SUBSYS_FBK_TESTS) \
-  X(ERROR_UNHANDLED_CASE,                 ERROR_SEVERITY_UNRECOVERABLE,   "Unexpected case in switch statement",      SUBSYS_NONE)      \
+#define ERROR_MANAGEMENT_TABLE(X)                                                                                                       \
+                                                                                                                                        \
+  /* --- RTOS Infrastructure --- */                                                                                                     \
+  X(ERROR_QUEUE_RUNNING,                  ERROR_SEVERITY_WARN,            "Error adding message to queue",            SUBSYS_NONE)      \
+  X(ERROR_FLAGS_RUNNING,                  ERROR_SEVERITY_ABORT,           "Error while reading flags",                SUBSYS_NONE)      \
+  X(ERROR_MUTEX_TIMEOUT,                  ERROR_SEVERITY_ABORT,           "Timed out while waiting for mutex",        SUBSYS_NONE)      \
   X(ERROR_FLAGS_INITIALIZATION,           ERROR_SEVERITY_UNRECOVERABLE,   "Error initializing flags",                 SUBSYS_NONE)      \
   X(ERROR_QUEUE_INITIALIZATION,           ERROR_SEVERITY_UNRECOVERABLE,   "Error initializing queue",                 SUBSYS_NONE)      \
-  X(ERROR_INPUT_ADC_INITIALIZATION,       ERROR_SEVERITY_TASK_RESET,      "Error starting input ADC",                 SUBSYS_NONE)      \
+  X(ERROR_MUTEX_INITIALIZATION,           ERROR_SEVERITY_UNRECOVERABLE,   "Failed to initialize mutex",               SUBSYS_NONE)      \
+  X(ERROR_TIMER_INITIALIZATION,           ERROR_SEVERITY_UNRECOVERABLE,   "Error timer initialization",               SUBSYS_NONE)      \
+                                                                                                                                        \
+  /* --- Hardware Peripherals & AFE --- */                                                                                              \
   X(ERROR_FEEDBACK_ADC_INITIALIZATION,    ERROR_SEVERITY_ABORT,           "Error starting feedback ADC",              SUBSYS_NONE)      \
+  X(ERROR_STARTING_TRANSDUCER_OUTPUT,     ERROR_SEVERITY_ABORT,           "Error starting transducer output",         SUBSYS_NONE)      \
+  X(ERROR_TRANSDUCER_FB_INITIALIZATION,   ERROR_SEVERITY_ABORT,           "Error starting transducer feedback",       SUBSYS_NONE)      \
+  X(ERROR_INPUT_ADC_INITIALIZATION,       ERROR_SEVERITY_TASK_RESET,      "Error starting input ADC",                 SUBSYS_NONE)      \
+  X(ERROR_STOPPING_TRANSDUCER_OUTPUT,     ERROR_SEVERITY_TASK_RESET,      "Error stopping transducer output",         SUBSYS_NONE)      \
+  X(ERROR_PGA_COMMAND,                    ERROR_SEVERITY_DISABLE_SUBSYS,  "Error sending PGA command",                SUBSYS_PGA)       \
+  X(ERROR_AFE_TIMEOUT,                    ERROR_SEVERITY_FULL_RESET,      "AFE power rail transition timed out",      SUBSYS_NONE)      \
+  X(ERROR_AFE_GENERAL,                    ERROR_SEVERITY_FULL_RESET,      "Misc. AFE error",                          SUBSYS_NONE)      \
+  X(ERROR_WAVEFORM_STEP,                  ERROR_SEVERITY_UNRECOVERABLE,   "Error in waveform step generation",        SUBSYS_NONE)      \
+  X(ERROR_DAC_FLUSH,                      ERROR_SEVERITY_UNRECOVERABLE,   "Error flushing DAC",                       SUBSYS_NONE)      \
+                                                                                                                                        \
+  /* --- Monitoring --- */                                                                                                              \
+  X(ERROR_RGB_LED,                        ERROR_SEVERITY_WARN,            "Error updating RGB LED colour",            SUBSYS_NONE)      \
+  X(ERROR_INA_READ,                       ERROR_SEVERITY_RESET_SUBSYS,    "Failed read of INA219 registers",          SUBSYS_INA)       \
+  X(ERROR_POWER_MONITOR,                  ERROR_SEVERITY_DISABLE_SUBSYS,  "Error in power monitor",                   SUBSYS_INA)       \
+  X(ERROR_PRESSURE_SENSOR,                ERROR_SEVERITY_DISABLE_SUBSYS,  "Error in pressure sensor",                 SUBSYS_LPS)       \
+  X(ERROR_JUNCTION_TEMPERATURE,           ERROR_SEVERITY_DISABLE_SUBSYS,  "Error in obtaining junction temp",         SUBSYS_TJ)        \
+                                                                                                                                        \
+  /* --- Signal Processing --- */                                                                                                       \
+  X(ERROR_INTERLEAVING_DEPTH,             ERROR_SEVERITY_WARN,            "No valid interleaving depth",              SUBSYS_NONE)      \
+  X(ERROR_ADC_BUFFER_OVERFLOW,            ERROR_SEVERITY_TASK_RESET,      "A signal processing buffer",               SUBSYS_NONE)      \
+  X(ERROR_OVERFLOW_SYNC,                  ERROR_SEVERITY_TASK_RESET,      "Overflow in synchronization buffers",      SUBSYS_NONE)      \
+  X(ERROR_ANALYSIS_BUFFER_OVERFLOW,       ERROR_SEVERITY_TASK_RESET,      "Analysis buffer overflowed",               SUBSYS_NONE)      \
+  X(ERROR_VITERBI_TRACEBACK,              ERROR_SEVERITY_TASK_RESET,      "Viterbi traceback error",                  SUBSYS_NONE)      \
+  X(ERROR_FILT_EVENTS,                    ERROR_SEVERITY_TASK_RESET,      "Multiple unexpected FILT events",          SUBSYS_NONE)      \
   X(ERROR_AGC,                            ERROR_SEVERITY_DISABLE_SUBSYS,  "Error in AGC subsystem",                   SUBSYS_PGA)       \
-  X(ERROR_FLAGS_RUNNING,                  ERROR_SEVERITY_ABORT,           "Error while reading flags",                SUBSYS_NONE)      \
-  X(ERROR_NULL_PTR,                       ERROR_SEVERITY_ABORT,           "NULL pointer",                             SUBSYS_NONE)      \
-  X(ERROR_PARAMETER_ACCESS,               ERROR_SEVERITY_UNRECOVERABLE,   "Cannot access parameter",                  SUBSYS_NONE)      \
+  X(ERROR_FFT_INITIALIZATION,             ERROR_SEVERITY_UNRECOVERABLE,   "Error initializing FFT",                   SUBSYS_NONE)      \
+  X(ERROR_INVALID_NOISE_BIN,              ERROR_SEVERITY_UNRECOVERABLE,   "Invalid noise bin range",                  SUBSYS_NONE)      \
+                                                                                                                                        \
+  /* --- Acoustic Protocol & MAC --- */                                                                                                 \
+  X(ERROR_UNKNOWN_MESSAGE,                ERROR_SEVERITY_WARN,            "Invalid message type received",            SUBSYS_NONE)      \
+  X(ERROR_RANGING_REQUEST_OVERWRITTEN,    ERROR_SEVERITY_WARN,            "Overwrote existing ranging request",       SUBSYS_NONE)      \
   X(ERROR_INVALID_CARGO_LENGTH,           ERROR_SEVERITY_ABORT,           "Invalid cargo length in message",          SUBSYS_NONE)      \
   X(ERROR_INVALID_PREAMBLE_FIELD,         ERROR_SEVERITY_ABORT,           "Invalid preamble field in message",        SUBSYS_NONE)      \
   X(ERROR_EXCEED_BIT_MSG_LEN,             ERROR_SEVERITY_ABORT,           "Attempted write outside bit array",        SUBSYS_NONE)      \
   X(ERROR_INVALID_RESERVATION_TIME,       ERROR_SEVERITY_ABORT,           "Invalid reservation time",                 SUBSYS_NONE)      \
-  X(ERROR_UNKNOWN_MESSAGE,                ERROR_SEVERITY_WARN,            "Invalid message type received",            SUBSYS_NONE)      \
   X(ERROR_UNKNOWN_JANUS,                  ERROR_SEVERITY_ABORT,           "Received unsupported JANUS message",       SUBSYS_NONE)      \
   X(ERROR_INVALID_CHARACTER,              ERROR_SEVERITY_ABORT,           "Message contained an invalid character",   SUBSYS_NONE)      \
   X(ERROR_SEND_UNKNOWN_JANUS,             ERROR_SEVERITY_ABORT,           "Attempted JANUS message not supported",    SUBSYS_NONE)      \
-  X(ERROR_EXCEED_TEMP_BUFFER_LEN,         ERROR_SEVERITY_ABORT,           "Attempted write outside buffer bounds",    SUBSYS_NONE)      \
-  X(ERROR_SANITY_CHECK,                   ERROR_SEVERITY_ABORT,           "Failed sanity check",                      SUBSYS_NONE)      \
-  X(ERROR_FBK_TEST_INDEX,                 ERROR_SEVERITY_DISABLE_SUBSYS,  "Invalid feedback test index",              SUBSYS_FBK_TESTS) \
-  X(ERROR_INVALID_FUNCTION_PARAMETERS,    ERROR_SEVERITY_UNRECOVERABLE,   "Invalid function parameters (not NULL)",   SUBSYS_NONE)      \
-  X(ERROR_INTERLEAVING_DEPTH,             ERROR_SEVERITY_WARN,            "No valid interleaving depth",              SUBSYS_NONE)      \
-  X(ERROR_AFE_TIMEOUT,                    ERROR_SEVERITY_FULL_RESET,      "AFE power rail transition timed out",      SUBSYS_NONE)      \
-  X(ERROR_AFE_GENERAL,                    ERROR_SEVERITY_FULL_RESET,      "Misc. AFE error",                          SUBSYS_NONE)      \
-  X(ERROR_STARTING_TRANSDUCER_OUTPUT,     ERROR_SEVERITY_ABORT,           "Error starting transducer output",         SUBSYS_NONE)      \
-  X(ERROR_STOPPING_TRANSDUCER_OUTPUT,     ERROR_SEVERITY_TASK_RESET,      "Error stopping transducer output",         SUBSYS_NONE)      \
-  X(ERROR_OVERFLOW_SYNC,                  ERROR_SEVERITY_TASK_RESET,      "Overflow in synchronization buffers",      SUBSYS_NONE)      \
-  X(ERROR_INVALID_NOISE_BIN,              ERROR_SEVERITY_UNRECOVERABLE,   "Invalid noise bin range",                  SUBSYS_NONE)      \
-  X(ERROR_QUEUE_RUNNING,                  ERROR_SEVERITY_WARN,            "Error adding message to queue",            SUBSYS_NONE)      \
-  X(ERROR_ANALYSIS_BUFFER_OVERFLOW,       ERROR_SEVERITY_TASK_RESET,      "Analysis buffer overflowed",               SUBSYS_NONE)      \
-  X(ERROR_VITERBI_TRACEBACK,              ERROR_SEVERITY_TASK_RESET,      "Viterbi traceback error",                  SUBSYS_NONE)      \
-  X(ERROR_FBK_TEST_COMPARE,               ERROR_SEVERITY_WARN,            "Error creating reference message",         SUBSYS_NONE)      \
-  X(ERROR_PRINT_WAVEFORM_OVERFLOW,        ERROR_SEVERITY_ABORT,           "Overflow in print waveform buffer",        SUBSYS_NONE)      \
-  X(ERROR_TRANSDUCER_FB_INITIALIZATION,   ERROR_SEVERITY_ABORT,           "Error starting transducer feedback",       SUBSYS_NONE)      \
+  X(ERROR_CSMA_BEB_TIMEOUT,               ERROR_SEVERITY_TASK_RESET,      "CSMA with BEB background noise timeout",   SUBSYS_NONE)      \
+                                                                                                                                        \
+  /* --- Configuration & Parameters --- */                                                                                              \
+  X(ERROR_FAILED_PARAM_NUM_ERASES,        ERROR_SEVERITY_WARN,            "Failed to update flash erase count",       SUBSYS_NONE)      \
+  X(ERROR_PARAMETER_REGISTRATION,         ERROR_SEVERITY_UNRECOVERABLE,   "Error registering parameters",             SUBSYS_NONE)      \
+  X(ERROR_PARAMETER_ACCESS,               ERROR_SEVERITY_UNRECOVERABLE,   "Cannot access parameter",                  SUBSYS_NONE)      \
   X(ERROR_INVALID_PARAMETER_VERSION,      ERROR_SEVERITY_UNRECOVERABLE,   "Invalid parameter version number",         SUBSYS_NONE)      \
   X(ERROR_SETTING_PARAMETER,              ERROR_SEVERITY_UNRECOVERABLE,   "Failed to set parameter",                  SUBSYS_NONE)      \
   X(ERROR_PARAMETER_FLASH_WRITE,          ERROR_SEVERITY_UNRECOVERABLE,   "Failed to write a parameter to flash",     SUBSYS_NONE)      \
   X(ERROR_FAILED_PARAM_FLASH_RESET,       ERROR_SEVERITY_UNRECOVERABLE,   "Failed to reset parameter flash",          SUBSYS_NONE)      \
-  X(ERROR_FAILED_PARAM_NUM_ERASES,        ERROR_SEVERITY_WARN,            "Failed to update flash erase count",       SUBSYS_NONE)      \
+                                                                                                                                        \
+  /* --- HMI & COMM --- */                                                                                                              \
+  X(ERROR_PRINT_WAVEFORM_OVERFLOW,        ERROR_SEVERITY_ABORT,           "Overflow in print waveform buffer",        SUBSYS_NONE)      \
   X(ERROR_MENU_REGISTRATION,              ERROR_SEVERITY_UNRECOVERABLE,   "Failed to register menu",                  SUBSYS_NONE)      \
-  X(ERROR_MUTEX_INITIALIZATION,           ERROR_SEVERITY_UNRECOVERABLE,   "Failed to initialize mutex",               SUBSYS_NONE)      \
-  X(ERROR_CSMA_BEB_TIMEOUT,               ERROR_SEVERITY_TASK_RESET,      "CSMA with BEB background noise timeout",   SUBSYS_NONE)      \
-  X(ERROR_PRESSURE_SENSOR,                ERROR_SEVERITY_DISABLE_SUBSYS,  "Error in pressure sensor",                 SUBSYS_LPS)       \
+                                                                                                                                        \
+  /* --- General Software Errors --- */                                                                                                 \
+  X(ERROR_ERROR_MANAGEMENT_INTERNAL,      ERROR_SEVERITY_WARN,            "Internal error management error",          SUBSYS_NONE)      \
   X(ERROR_GENERAL_WARN_ISR,               ERROR_SEVERITY_WARN,            "Unexpected error in an ISR",               SUBSYS_NONE)      \
-  X(ERROR_TIMER_INITIALIZATION,           ERROR_SEVERITY_UNRECOVERABLE,   "Error timer initialization",               SUBSYS_NONE)      \
-  X(ERROR_POWER_MONITOR,                  ERROR_SEVERITY_DISABLE_SUBSYS,  "Error in power monitor",                   SUBSYS_INA)       \
-  X(ERROR_RGB_LED,                        ERROR_SEVERITY_WARN,            "Error updating RGB LED colour",            SUBSYS_NONE)      \
-  X(ERROR_JUNCTION_TEMPERATURE,           ERROR_SEVERITY_DISABLE_SUBSYS,  "Error in obtaining junction temp",         SUBSYS_TJ)        \
-  X(ERROR_MUTEX_TIMEOUT,                  ERROR_SEVERITY_ABORT,           "Timed out while waiting for mutex",        SUBSYS_NONE)      \
-  X(ERROR_WAVEFORM_STEP,                  ERROR_SEVERITY_UNRECOVERABLE,   "Error in waveform step generation",        SUBSYS_NONE)      \
-  X(ERROR_DAC_FLUSH,                      ERROR_SEVERITY_UNRECOVERABLE,   "Error flushing DAC",                       SUBSYS_NONE)      \
-  X(ERROR_RANGING_REQUEST_OVERWRITTEN,    ERROR_SEVERITY_WARN,            "Overwrote existing ranging request",       SUBSYS_NONE)      \
-  X(ERROR_FILT_EVENTS,                    ERROR_SEVERITY_TASK_RESET,      "Multiple unexpected FILT events",          SUBSYS_NONE)      \
-  X(ERROR_INA_READ,                       ERROR_SEVERITY_RESET_SUBSYS,    "Failed read of INA219 registers",          SUBSYS_INA)
+  X(ERROR_NULL_PTR,                       ERROR_SEVERITY_ABORT,           "NULL pointer",                             SUBSYS_NONE)      \
+  X(ERROR_EXCEED_TEMP_BUFFER_LEN,         ERROR_SEVERITY_ABORT,           "Attempted write outside buffer bounds",    SUBSYS_NONE)      \
+  X(ERROR_SANITY_CHECK,                   ERROR_SEVERITY_ABORT,           "Failed sanity check",                      SUBSYS_NONE)      \
+  X(ERROR_UNHANDLED_CASE,                 ERROR_SEVERITY_UNRECOVERABLE,   "Unexpected case in switch statement",      SUBSYS_NONE)      \
+  X(ERROR_INVALID_FUNCTION_PARAMETERS,    ERROR_SEVERITY_UNRECOVERABLE,   "Invalid function parameters (not NULL)",   SUBSYS_NONE)      \
+                                                                                                                                        \
+  /* --- Feedback Tests --- */                                                                                                          \
+  X(ERROR_FBK_TEST_COMPARE,               ERROR_SEVERITY_WARN,            "Error creating reference message",         SUBSYS_NONE)      \
+  X(ERROR_FEEDBACK_TEST_INITIALIZATION,   ERROR_SEVERITY_DISABLE_SUBSYS,  "Error initializing feedback tests",        SUBSYS_FBK_TESTS) \
+  X(ERROR_FBK_TEST_INDEX,                 ERROR_SEVERITY_DISABLE_SUBSYS,  "Invalid feedback test index",              SUBSYS_FBK_TESTS)
 
 #define XERROR_ENUM(error, severity, description, subsystem) error,
 
