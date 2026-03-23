@@ -85,7 +85,7 @@ void LPS_RegisterPressureBuf(uint32_t* p_buf, uint16_t buf_len, uint16_t* buf_he
  * 
  * @note If this function is not called, temperature readings will not be read
  */
-void LPS_RegisterTemperatureBuf(uint16_t* t_buf, uint16_t buf_len, uint16_t* buf_head);
+void LPS_RegisterTemperatureBuf(int16_t* t_buf, uint16_t buf_len, uint16_t* buf_head);
 
 /**
  * @brief Powers down the LPS22HH to reduce power consumption
@@ -130,7 +130,7 @@ float LPS_ConvertRawPressure(uint32_t raw_reading);
  * @param raw_reading Raw digital temperature data obtained from LPS22HH
  * @return float Temperature in Celsius
  */
-float LPS_ConvertRawTemperature(uint16_t raw_reading);
+float LPS_ConvertRawTemperature(int16_t raw_reading);
 
 // SPI callbacks
 

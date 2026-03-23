@@ -135,7 +135,7 @@ void readLps(void)
     return;
   }
 
-  if (current_timestamp - last_lps_read < LPS_READ_INTERVAL_MS) {
+  if (current_timestamp - last_lps_read > LPS_READ_INTERVAL_MS) {
     LPS_ReadData();
     last_lps_read = current_timestamp;
   }

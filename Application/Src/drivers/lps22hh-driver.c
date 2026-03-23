@@ -27,20 +27,20 @@ typedef enum {
 
 typedef union {
   struct {
-    uint8_t blank;
-    uint8_t h;
-    uint8_t l;
     uint8_t xl;
+    uint8_t l;
+    uint8_t h;
+    uint8_t blank;
   } registers;
   uint32_t raw_pressure;
 } RawPressureData_t;
 
 typedef union {
   struct {
-    uint8_t h;
     uint8_t l;
+    uint8_t h;
   } registers;
-  uint16_t raw_temperature;
+  int16_t raw_temperature;
 } RawTemperatureData_t;
 
 typedef struct {
@@ -182,7 +182,7 @@ void LPS_RegisterPressureBuf(uint32_t* p_buf, uint16_t buf_len, uint16_t* buf_he
   *buf_head = 0;
 }
 
-void LPS_RegisterTemperatureBuf(uint16_t* t_buf, uint16_t buf_len, uint16_t* buf_head)
+void LPS_RegisterTemperatureBuf(int16_t* t_buf, uint16_t buf_len, uint16_t* buf_head)
 {
   if ((t_buf == NULL) || (buf_len == 0) || (buf_head == 0)) 
     REGISTER_ERROR(ERROR_INVALID_FUNCTION_PARAMETERS);
@@ -232,7 +232,7 @@ float LPS_ConvertRawPressure(uint32_t raw_reading)
   return ((float) raw_reading) / ((float) LPS_LSB_PER_hPA);
 }
 
-float LPS_ConvertRawTemperature(uint16_t raw_reading)
+float LPS_ConvertRawTemperature(int16_t raw_reading)
 {
   return ((float) raw_reading) / ((float) LPS_LSB_PER_C);
 }
