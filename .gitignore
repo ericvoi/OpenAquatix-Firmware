@@ -2,6 +2,7 @@
 .settings/
 Debug/
 Release/
+build/
 .launches/
 .vscode/
 
