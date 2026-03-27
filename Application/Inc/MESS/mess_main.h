@@ -166,7 +166,7 @@ typedef enum {
   MESS_PRINT_COMPLETE = 1 << 1,
   MESS_FREQ_RESP = 1 << 2,
   MESS_PRINT_WAVEFORM = 1 << 3,
-  MESS_FEEDBACK_TESTS = 1 << 4,
+  MESS_PERFORM_FEEDBACK_TESTS = 1 << 4,
   MESS_DAC_READY = 1 << 5,
   MESS_INPUT_FFT = 1 << 6,
   MESS_DROPPED_PACKET_PREAMBLE = 1 << 7,
@@ -178,7 +178,8 @@ typedef enum {
   MESS_REQUEST_RANGE_TRANSDUCER = 1 << 13,
   MESS_FAILED_RANGING_REQUEST = 1 << 14,
   MESS_FAILED_RANGING_RESPONSE = 1 << 15,
-  MESS_RECEIVED_RANGING_RESPONSE_BAD = 1 << 16
+  MESS_RECEIVED_RANGING_RESPONSE_BAD = 1 << 16,
+  MESS_FBK_TEST_DISABLED = 1 << 17
 } MessageFlags_t;
 
 /* Exported macro ------------------------------------------------------------*/

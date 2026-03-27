@@ -21,6 +21,7 @@
 #include "sys_power.h"
 #include "sleep/sleep_manager.h"
 #include "error_manager.h"
+#include "error_subsys.h"
 #include "cfg_main.h"
 #include "cfg_parameters.h"
 #include "cfg_defaults.h"
@@ -35,7 +36,8 @@
 
 /* Private define ------------------------------------------------------------*/
 
-
+#define LPS_READ_INTERVAL_MS        (100)
+#define DEFAULT_LPS_ODR             (LPS_ODR_1)
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -45,13 +47,15 @@
 
 osEventFlagsId_t sleep_events = NULL;
 static volatile uint8_t hardware_id = 255;
+static uint32_t last_lps_read = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 
-static void registerSysParams();
-static void createSleepEvents();
-static void readHardwareId();
-static void resetTask();
+static void registerSysParams(void);
+static void createSleepEvents(void);
+static void readHardwareId(void);
+static void readLps(void);
+static void resetTask(void);
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -74,24 +78,26 @@ void SYS_StartTask(void* argument)
     LED_Update();
     Temperature_Process();
     Power_Process();
+    readLps();
+    Pressure_Process();
     SleepManager_Enter();
 
     if (Error_CheckModuleReset() == TASK_RESET) {
       resetTask();
     }
     Error_ResetAbortFlag();
-    osDelay(10);
+    osDelay(5);
   }
 }
 
 /* Private function definitions ----------------------------------------------*/
 
-void registerSysParams()
+void registerSysParams(void)
 {
   LED_RegisterParams();
 }
 
-void createSleepEvents()
+void createSleepEvents(void)
 {
   if (sleep_events != NULL) REGISTER_ERROR(ERROR_FLAGS_INITIALIZATION);
 
@@ -100,7 +106,7 @@ void createSleepEvents()
   if (sleep_events == NULL) REGISTER_ERROR(ERROR_FLAGS_INITIALIZATION);
 }
 
-void readHardwareId()
+void readHardwareId(void)
 {
   hardware_id = 0;
   uint8_t bit = HAL_GPIO_ReadPin(HW_ID_PIN0_GPIO_Port, HW_ID_PIN0_Pin);
@@ -113,9 +119,31 @@ void readHardwareId()
   hardware_id |= bit << 3;
 }
 
-void resetTask()
+void readLps(void)
 {
-  LPS_Init(LPS_ODR_1);
+  RETURN_IF_ERROR_PRESENT();
+  SubSystemStatus_t lps_status = ErrorSubsys_CurrentStatus(SUBSYS_LPS);
+  uint32_t current_timestamp = HAL_GetTick();
+
+  if (lps_status == SUBSYS_DISABLE) {
+    LPS_PowerDown();
+    return;
+  }
+  if (lps_status == SUBSYS_RESET) {
+    LPS_Init(DEFAULT_LPS_ODR);
+    ErrorSubsys_ClearReset(SUBSYS_LPS);
+    return;
+  }
+
+  if (current_timestamp - last_lps_read > LPS_READ_INTERVAL_MS) {
+    LPS_ReadData();
+    last_lps_read = current_timestamp;
+  }
+}
+
+void resetTask(void)
+{
+  LPS_Init(DEFAULT_LPS_ODR);
   SensorTimer_Init();
   Pressure_Init();
   Temperature_Init();

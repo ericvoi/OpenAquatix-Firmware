@@ -27,20 +27,20 @@ typedef enum {
 
 typedef union {
   struct {
-    uint8_t blank;
-    uint8_t h;
-    uint8_t l;
     uint8_t xl;
+    uint8_t l;
+    uint8_t h;
+    uint8_t blank;
   } registers;
   uint32_t raw_pressure;
 } RawPressureData_t;
 
 typedef union {
   struct {
-    uint8_t h;
     uint8_t l;
+    uint8_t h;
   } registers;
-  uint16_t raw_temperature;
+  int16_t raw_temperature;
 } RawTemperatureData_t;
 
 typedef struct {
@@ -117,6 +117,7 @@ static bool readTemperature(void);
 
 static bool regWrite(uint8_t address, uint8_t data);
 static bool regRead(uint8_t address);
+static bool regReadMulti(uint8_t address, uint8_t* out, uint8_t len);
 
 static bool waitForMutex(void);
 static void setSpiClearFlag(void);
@@ -155,7 +156,7 @@ void LPS_Init(LpsOdr_t odr)
   data = 0;
   data |= 0 << 6; // Active high interrupt
   data |= 0 << 5; // Push-pull interrupt
-  data |= 1 << 4; // IF_ADD_INC: Auto increment addres during multi-byte read (not used)
+  data |= 1 << 4; // IF_ADD_INC: Auto increment addres during multi-byte read
   data |= 1 << 1; // LOW_NOISE_EN: Prioritize less noise over low current since current consumption difference is relatively negligible
   data |= 0 << 0; // ONE_SHOT: Disable one shot mode
   if (regWrite(REG_CTRL_REG2, data) == false) 
@@ -181,7 +182,7 @@ void LPS_RegisterPressureBuf(uint32_t* p_buf, uint16_t buf_len, uint16_t* buf_he
   *buf_head = 0;
 }
 
-void LPS_RegisterTemperatureBuf(uint16_t* t_buf, uint16_t buf_len, uint16_t* buf_head)
+void LPS_RegisterTemperatureBuf(int16_t* t_buf, uint16_t buf_len, uint16_t* buf_head)
 {
   if ((t_buf == NULL) || (buf_len == 0) || (buf_head == 0)) 
     REGISTER_ERROR(ERROR_INVALID_FUNCTION_PARAMETERS);
@@ -193,6 +194,7 @@ void LPS_RegisterTemperatureBuf(uint16_t* t_buf, uint16_t buf_len, uint16_t* buf
 
 void LPS_PowerDown()
 {
+  if (powered_down == true) return;
   if (regWrite(REG_CTRL_REG1, 0U) == false) REGISTER_ERROR(ERROR_PRESSURE_SENSOR);
 
   powered_down = true;
@@ -200,6 +202,7 @@ void LPS_PowerDown()
 
 void LPS_PowerUp()
 {
+  if (powered_down == false) return;
   if (regWrite(REG_CTRL_REG1, last_ctrl_reg1) == false) REGISTER_ERROR(ERROR_PRESSURE_SENSOR);
 
   powered_down = false;
@@ -214,6 +217,7 @@ bool LPS_CheckInterface()
 
 void LPS_ReadData()
 {
+  LPS_PowerUp();
   if ((p_buf_info.buf != NULL) && (p_buf_info.len != 0) && (p_buf_info.head != NULL)) {
     if (readPressure() == false) REGISTER_ERROR(ERROR_PRESSURE_SENSOR);
   }
@@ -228,7 +232,7 @@ float LPS_ConvertRawPressure(uint32_t raw_reading)
   return ((float) raw_reading) / ((float) LPS_LSB_PER_hPA);
 }
 
-float LPS_ConvertRawTemperature(uint16_t raw_reading)
+float LPS_ConvertRawTemperature(int16_t raw_reading)
 {
   return ((float) raw_reading) / ((float) LPS_LSB_PER_C);
 }
@@ -255,29 +259,28 @@ void LPS_IntDrdy()
 
 bool readPressure(void)
 {
+  uint8_t data[3];
+  if (regReadMulti(REG_PRESS_OUT_XL, data, 3) == false) return false;
+
   RawPressureData_t pressure_data;
   pressure_data.raw_pressure = 0;
-  if (regRead(REG_PRESS_OUT_XL) == false) return false;
-  pressure_data.registers.xl = rx_data;
-  if (regRead(REG_PRESS_OUT_L) == false) return false;
-  pressure_data.registers.l = rx_data;
-  if (regRead(REG_PRESS_OUT_H) == false) return false;
-  pressure_data.registers.h = rx_data;
+  pressure_data.registers.xl = data[0];
+  pressure_data.registers.l  = data[1];
+  pressure_data.registers.h  = data[2];
 
   p_buf_info.buf[*p_buf_info.head] = pressure_data;
   *p_buf_info.head = (*p_buf_info.head + 1) % p_buf_info.len;
-
   return true;
 }
 
 bool readTemperature(void)
 {
+  uint8_t data[2];
+  if (regReadMulti(REG_TEMP_OUT_L, data, 2) == false) return false;
+
   RawTemperatureData_t temperature_data;
-  temperature_data.raw_temperature = 0;
-  if (regRead(REG_TEMP_OUT_L) == false) return false;
-  temperature_data.registers.l = rx_data;
-  if (regRead(REG_TEMP_OUT_H) == false) return false;
-  temperature_data.registers.h = rx_data;
+  temperature_data.registers.l = data[0];
+  temperature_data.registers.h = data[1];
 
   t_buf_info.buf[*t_buf_info.head] = temperature_data;
   *t_buf_info.head = (*t_buf_info.head + 1) % t_buf_info.len;
@@ -285,7 +288,7 @@ bool readTemperature(void)
   return true;
 }
 
-uint8_t full_command[2];
+static uint8_t full_command[2];
 bool regWrite(uint8_t address, uint8_t data)
 {
   bool ret = true;
@@ -303,17 +306,42 @@ bool regWrite(uint8_t address, uint8_t data)
   return ret;
 }
 
+static uint8_t spi_tx_buf[4];
+static uint8_t spi_rx_buf[4];
 bool regRead(uint8_t address)
 {
   bool ret = true;
   if (waitForMutex() == false) return false;
 
-  address |= 0x80; // Set MSB to 1 for R
-  if (HAL_SPI_TransmitReceive_IT(&LPS22HH_SPI_BUS, &address, &rx_data, 2) != HAL_OK) {
+  spi_tx_buf[0] = address | 0x80; // Set MSB to 1 for R
+  spi_tx_buf[1] = 0x00;
+  if (HAL_SPI_TransmitReceive_IT(&LPS22HH_SPI_BUS, spi_rx_buf, spi_rx_buf, 2) != HAL_OK) {
     ret = false;
   }
 
   if (waitForSpiClearFlag() == false) ret = false;
+  if (ret == true) rx_data = spi_rx_buf[1];
+  if (osMutexRelease(lps_spi_mutex) != osOK) ret = false;
+  return ret;
+}
+
+bool regReadMulti(uint8_t address, uint8_t* out, uint8_t len)
+{
+  bool ret = true;
+  if (len > sizeof(spi_tx_buf) - 1) return false;
+  if (waitForMutex() == false) return false;
+
+  spi_tx_buf[0] = address | 0x80;
+  for (uint8_t i = 1; i <= len; i++) spi_tx_buf[i] = 0x00;
+
+  if (HAL_SPI_TransmitReceive_IT(&LPS22HH_SPI_BUS, spi_tx_buf, spi_rx_buf, len + 1) != HAL_OK) {
+    ret = false;
+  }
+
+  if (waitForSpiClearFlag() == false) ret = false;
+  if (ret) {
+    for (uint8_t i = 0; i < len; i++) out[i] = spi_rx_buf[i + 1];
+  }
   if (osMutexRelease(lps_spi_mutex) != osOK) ret = false;
   return ret;
 }

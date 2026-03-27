@@ -143,6 +143,14 @@ bool ImportExport_ExportConfiguration(FunctionContext_t* context)
         buffer_index += sprintf((char*) &context->output_buffer[buffer_index], "%f", value);
         break;
       }
+      case PARAM_TYPE_ENUM: {
+        uint8_t value;
+        if (Param_GetEnum(id, &value) == false) {
+          return false;
+        }
+        buffer_index += sprintf((char*) &context->output_buffer[buffer_index], "%hu", value);
+        break;
+      }
       default:
         return false;
     }
@@ -252,6 +260,11 @@ bool ImportExport_ImportConfiguration(FunctionContext_t* context)
           case PARAM_TYPE_FLOAT: {
             float value = strtof(curr, &end_ptr);
             set_result = Param_SetFloat(id, &value);
+            break;
+          }
+          case PARAM_TYPE_ENUM: {
+            uint8_t value = (uint8_t) strtoul(curr, &end_ptr, 10);
+            set_result = Param_SetEnum(id, &value);
             break;
           }
           default:

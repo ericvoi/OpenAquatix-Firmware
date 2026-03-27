@@ -19,10 +19,10 @@
 /* Private typedef -----------------------------------------------------------*/
 
 typedef enum {
+  INA_POWER_DOWN,
   INA_IDLE,
   INA_READING_SHUNT_VOLTAGE,
-  INA_READING_BUS_VOLTAGE,
-  INA_ERROR
+  INA_READING_BUS_VOLTAGE
 } InaState_t;
 
 // Configuration Bits for INA219:
@@ -137,6 +137,12 @@ static volatile bool ina_ready = false;
 
 extern I2C_HandleTypeDef hi2c1; // I2C handle for communication
 
+static uint16_t config = CONFIG_VOLTAGE_RANGE |
+                         CONFIG_GAIN |
+                         CONFIG_SHUNT_ADC |
+                         CONFIG_BUS_ADC |
+                         CONFIG_MODE;
+
 /* Private function prototypes -----------------------------------------------*/
 
 static bool memWrite(uint16_t address, uint16_t data);
@@ -149,21 +155,22 @@ static float convertRawBusVoltage(uint16_t raw_reading);
 
 /* Exported functions Definitions ---------------------------------------------*/
 
-void INA_Init() // Set configuration register
+void INA_Init(void)
+{
+  INA_Reset();
+
+  osDelay(1); // Small delay to ensure transaction goes through. Flags not used since only one register written to
+  
+  if (ina_ready == false) REGISTER_ERROR(ERROR_POWER_MONITOR); 
+}
+
+void INA_Reset(void)
 {
   ina_state = INA_IDLE;
   ina_ready = false;
 
-  uint16_t config = CONFIG_VOLTAGE_RANGE |
-                    CONFIG_GAIN |
-                    CONFIG_SHUNT_ADC |
-                    CONFIG_BUS_ADC |
-                    CONFIG_MODE;
-
   if (memWrite(CONFIGURATION_ADDRESS, config) == false) 
     REGISTER_ERROR(ERROR_POWER_MONITOR);
-  
-  if (ina_ready == false) REGISTER_ERROR(ERROR_POWER_MONITOR); 
 }
 
 void INA_RegisterBuffer(InaPowerValues_t* buf, uint16_t buf_len, volatile uint16_t* buf_head)
@@ -186,6 +193,18 @@ void INA_StartRead(void)
   readIna();
 }
 
+void INA_PowerDown(void)
+{
+  if (ina_state == INA_POWER_DOWN) return;
+  ina_ready = false;
+  uint16_t power_down_config = config & 0xFFF8; // MODE -> 000
+
+  if (memWrite(CONFIGURATION_ADDRESS, power_down_config) == false) 
+    REGISTER_ERROR(ERROR_POWER_MONITOR);
+
+  ina_state = INA_POWER_DOWN;
+}
+
 void INA_RxComplete(void)
 {
   if (ina_state != INA_IDLE) readIna();
@@ -203,8 +222,7 @@ bool memWrite(uint16_t address, uint16_t data)
   tx_data = __REV16(data);
   if (HAL_I2C_Mem_Write_IT(&INA_I2C_BUS, INA219_ADDRESS << 1, address, I2C_MEMADD_SIZE_8BIT, (uint8_t*) &tx_data, 2) != HAL_OK) {
     return false;
-  }
-  osDelay(1); // Small delay to ensure transaction goes through. Flags not used since only one register written to
+  } 
   return true;
 }
 
@@ -218,18 +236,23 @@ bool memRead(uint16_t address)
 
 void readIna(void)
 {
+  if (ina_ready == false) REGISTER_ERROR(ERROR_INA_READ);
   if (power_buffer_info.buf == NULL) return;
   InaPowerValues_t* entry = &power_buffer_info.buf[*power_buffer_info.buf_head];
   switch (ina_state) {
+    case INA_POWER_DOWN:
+      INA_Reset();
+      ina_state = INA_IDLE;
+      break;
     case INA_IDLE:
       if (memRead(SHUNT_VOLTAGE_ADDRESS) == false) 
-        REGISTER_ERROR(ERROR_POWER_MONITOR);
+        REGISTER_ERROR(ERROR_INA_READ);
       ina_state = INA_READING_SHUNT_VOLTAGE;
       break;
     case INA_READING_SHUNT_VOLTAGE:
       entry->current_A = convertRawShuntVoltage(__REV16(rx_data));
       if (memRead(BUS_VOLTAGE_ADDRESS) == false) 
-        REGISTER_ERROR(ERROR_POWER_MONITOR);
+        REGISTER_ERROR(ERROR_INA_READ);
       ina_state = INA_READING_BUS_VOLTAGE;
       break;
     case INA_READING_BUS_VOLTAGE:
@@ -238,9 +261,6 @@ void readIna(void)
       entry->timestamp = HAL_GetTick();
       *power_buffer_info.buf_head = (*power_buffer_info.buf_head + 1) % power_buffer_info.buf_len;
       ina_state = INA_IDLE;
-      break;
-    case INA_ERROR:
-      REGISTER_ERROR(ERROR_POWER_MONITOR);
       break;
     default:
       REGISTER_ERROR(ERROR_POWER_MONITOR);

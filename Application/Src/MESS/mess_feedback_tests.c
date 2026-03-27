@@ -20,6 +20,7 @@
 #include "cfg_main.h"
 
 #include "error_manager.h"
+#include "error_subsys.h"
 
 #include "cmsis_os.h"
 
@@ -618,6 +619,10 @@ void FeedbackTests_Init()
 
 void FeedbackTests_Start()
 {
+  SubSystemStatus_t subsys_status = ErrorSubsys_CurrentStatus(SUBSYS_FBK_TESTS);
+  if (subsys_status == SUBSYS_DISABLE) {
+    osEventFlagsSet(print_event_handle, MESS_FBK_TEST_DISABLED);
+  }
   current_test = 0;
   performing_test = true;
   last_action = DECODED_MESSAGE;

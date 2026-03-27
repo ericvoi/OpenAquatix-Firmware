@@ -374,6 +374,10 @@ void printNotifications(void)
     COMM_TransmitData("Received valid ranging response, but could not add to queue\r\n", CALC_LEN, menu_context.interface);
     osEventFlagsClear(print_event_handle, MESS_RECEIVED_RANGING_RESPONSE_BAD);
   }
+  if (flags & MESS_FBK_TEST_DISABLED) {
+    COMM_TransmitData("Cannot complete feedback tests as subsytem is disabled\r\n", CALC_LEN, menu_context.interface);
+    osEventFlagsClear(print_event_handle, MESS_FBK_TEST_DISABLED);
+  }
 }
 
 void registerCommParams(void)
