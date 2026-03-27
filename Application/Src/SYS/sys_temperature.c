@@ -68,7 +68,7 @@ extern ADC_HandleTypeDef hadc3;
 
 /* Ambient Temperature Variables ============================================*/
 
-static uint16_t ta_buf[TEMPERATURE_BUFFER_SIZE];
+static int16_t ta_buf[TEMPERATURE_BUFFER_SIZE];
 static uint16_t ta_buf_head = 0;
 static uint16_t ta_buf_tail = 0;
 
