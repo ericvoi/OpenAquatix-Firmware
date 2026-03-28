@@ -16,6 +16,7 @@
 #include "comm_main.h"
 
 #include "cfg_parameters.h"
+#include "cfg_import_export.h"
 
 #include "sys_temperature.h"
 #include "sys_led.h"
@@ -66,17 +67,20 @@ static void printBackgroundNoise(FunctionContext_t* context);
 static void enterDfuMode(FunctionContext_t* context);
 static void resetSavedValues(FunctionContext_t* context);
 static void deepSleep(FunctionContext_t* context);
+static void exportAllParameters(FunctionContext_t* context);
+static void importAllParameters(FunctionContext_t* context);
 
 /* Private variables ---------------------------------------------------------*/
 
 extern osEventFlagsId_t sleep_events;
 
 static MenuID_t debug_menu_children[] = {MENU_ID_DBG_GPIO, MENU_ID_DBG_SETLED,
-                                       MENU_ID_DBG_PRINT, MENU_ID_DBG_BGDUMP,
-                                       MENU_ID_DBG_BGFREQ, MENU_ID_DBG_TEMP, 
-                                       MENU_ID_DBG_ERR, MENU_ID_DBG_PWR, 
-                                       MENU_ID_DBG_NOISE, MENU_ID_DBG_DFU, 
-                                       MENU_ID_DBG_RESETCONFIG, MENU_ID_DBG_DEEPSLEEP};
+                                         MENU_ID_DBG_PRINT, MENU_ID_DBG_BGDUMP,
+                                         MENU_ID_DBG_BGFREQ, MENU_ID_DBG_TEMP, 
+                                         MENU_ID_DBG_ERR, MENU_ID_DBG_PWR, 
+                                         MENU_ID_DBG_NOISE, MENU_ID_DBG_DFU, 
+                                         MENU_ID_DBG_RESETCONFIG, MENU_ID_DBG_DEEPSLEEP,
+                                         MENU_ID_DBG_EXPALL, MENU_ID_DBG_IMPALL};
 static const MenuNode_t debug_menu = {
   .id = MENU_ID_DBG,
   .description = "Debug Menu",
@@ -268,6 +272,36 @@ static const MenuNode_t debug_menu_deep_sleep = {
   .parameters = &debug_menu_deep_sleep_param
 };
 
+static ParamContext_t debug_menu_expall_param = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_DBG_EXPALL
+};
+static const MenuNode_t debug_menu_expall = {
+  .id = MENU_ID_DBG_EXPALL,
+  .description = "Export all parameters",
+  .handler = exportAllParameters,
+  .parent_id = MENU_ID_DBG,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &debug_menu_expall_param
+};
+
+static ParamContext_t debug_menu_impall_param = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_DBG_IMPALL
+};
+static const MenuNode_t debug_menu_impall = {
+  .id = MENU_ID_DBG_IMPALL,
+  .description = "Import all parameters",
+  .handler = importAllParameters,
+  .parent_id = MENU_ID_DBG,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &debug_menu_impall_param
+};
+
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -279,7 +313,8 @@ void COMM_RegisterDebugMenu(void)
              MenuSystem_RegisterMenu(&debug_menu_err) && MenuSystem_RegisterMenu(&debug_menu_pwr) &&
              MenuSystem_RegisterMenu(&debug_menu_dfu) && MenuSystem_RegisterMenu(&debug_menu_reset) &&
              MenuSystem_RegisterMenu(&debug_menu_noise_f) && MenuSystem_RegisterMenu(&debug_menu_noise_level) &&
-             MenuSystem_RegisterMenu(&debug_menu_deep_sleep);
+             MenuSystem_RegisterMenu(&debug_menu_deep_sleep) && MenuSystem_RegisterMenu(&debug_menu_expall) &&
+             MenuSystem_RegisterMenu(&debug_menu_impall);
 
   if (ret == false) REGISTER_ERROR(ERROR_MENU_REGISTRATION);
 }
@@ -526,4 +561,14 @@ static void deepSleep(FunctionContext_t* context)
   osEventFlagsSet(sleep_events, SLEEP_REQUEST_DEEP);
 
   context->state->state = PARAM_STATE_COMPLETE;
+}
+
+static void exportAllParameters(FunctionContext_t* context)
+{
+  ImportExport_ExportAllParameters(context);
+}
+
+static void importAllParameters(FunctionContext_t* context)
+{
+  ImportExport_ImportAllParameters(context);
 }
