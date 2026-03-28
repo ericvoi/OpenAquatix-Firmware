@@ -625,6 +625,14 @@ bool Param_GetParamType(ParamIds_t id, ParamType_t* param_type);
 const char** Param_GetDescriptors(ParamIds_t id);
 
 /**
+ * @brief Checks if a parameter has been initialized yet
+ * 
+ * @param id parameter id to check
+ * @return true if initialized, false otherwise
+ */
+bool Param_IsInitialized(ParamIds_t id);
+
+/**
  * @brief Saves parameters to flash (non-volatile) memory
  *
  * Loops through the parameters and checks if one has changed. If a parameter
@@ -634,39 +642,6 @@ const char** Param_GetDescriptors(ParamIds_t id);
  * @note can cause unrecoverable errors
  */
 void Param_SaveToFlash(void);
-
-/**
- * @brief Registers a task in the parameter management system
- *
- * Adds a task to the registry if space is available and the task ID is unique.
- * The task is initially marked as not fully registered.
- *
- * @param task_id Unique identifier for the task
- * @param task_name Name of the task (will be truncated if longer than TASK_NAME_LEN-1)
- *
- * @return true if registration successful, false if registry is full or task_id already exists
- *
- * @note Blocks indefinitely while waiting for mutex acquisition
- * @see Param_TaskRegistrationComplete
- */
-bool Param_RegisterTask(TaskIds_t task_id, const char* task_name);
-
-/**
- * @brief Completes the registration process for a task
- *
- * Marks a previously registered task as fully registered. When all tasks
- * (NUM_TASKS) complete registration, this function triggers the
- * EVENT_ALL_TASKS_REGISTERED event.
- *
- * @param task_id The task ID to mark as fully registered
- *
- * @return true if task was found and successfully marked as registered,
- *         false if task ID not found or already registered
- *
- * @note Blocks indefinitely while waiting for mutex acquisition
- * @see Param_RegisterTask
- */
-bool Param_TaskRegistrationComplete(TaskIds_t task_id);
 
 /**
  * @brief Resets the flash memory for parameters
