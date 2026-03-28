@@ -144,8 +144,8 @@ void readLps(void)
 void resetTask(void)
 {
   LPS_Init(DEFAULT_LPS_ODR);
-  SensorTimer_Init();
   Pressure_Init();
   Temperature_Init();
   Power_Init();
+  SensorTimer_Init();
 }
