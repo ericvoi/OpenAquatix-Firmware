@@ -41,14 +41,6 @@ typedef struct {
   bool is_modified;
 } Parameter_t;
 
-#define TASK_NAME_LEN 8
-
-typedef struct {
-  TaskIds_t id;
-  char name[TASK_NAME_LEN];
-  bool is_registered;
-} TaskRegistration_t;
-
 typedef struct {
   uint32_t signature;
   uint16_t version;
@@ -74,10 +66,6 @@ typedef struct {
 
 /* Private variables ---------------------------------------------------------*/
 
-static TaskRegistration_t registered_tasks[NUM_TASKS];
-static uint8_t registered_tasks_count = 0;
-static uint8_t complete_registrations_count = 0;
-
 static Parameter_t parameters[NUM_PARAM] = {0};
 
 static osMutexId_t param_mutex = NULL;
@@ -90,7 +78,6 @@ static bool flash_load_complete = false;
 /* Private function prototypes -----------------------------------------------*/
 
 static Parameter_t* findParamById(ParamIds_t id);
-static bool isParamInitialized(ParamIds_t id);
 
 static bool getNumErases();
 static bool updateNumErases();
@@ -123,10 +110,6 @@ bool Param_Init(void)
 
   if (NUM_PARAM > MAX_PARAMETERS) {
     return false;
-  }
-
-  for (uint8_t i = 0; i < NUM_TASKS; i++) {
-    registered_tasks[i].id = NUM_TASKS; // indicates that the spot has not been filed yet
   }
 
   return true;
@@ -219,7 +202,7 @@ bool Param_GetValue(ParamIds_t id, void* value)
 
   if (osMutexAcquire(param_mutex, osWaitForever) == osOK) {
     Parameter_t* param = findParamById(id);
-    if (isParamInitialized(id) == true) {
+    if (Param_IsInitialized(id) == true) {
       memcpy(value, param->value_ptr, param->value_size);
       success = true;
     }
@@ -271,7 +254,7 @@ const char* Param_GetName(ParamIds_t id)
 {
   if (osMutexAcquire(param_mutex, osWaitForever) == osOK) {
     Parameter_t* param = findParamById(id);
-    if (isParamInitialized(id) == true) {
+    if (Param_IsInitialized(id) == true) {
       osMutexRelease(param_mutex);
       return param->name;
     }
@@ -286,7 +269,7 @@ bool Param_GetLimits(ParamIds_t id, void* min, void* max)
 
   if (osMutexAcquire(param_mutex, osWaitForever) == osOK) {
     Parameter_t* param = findParamById(id);
-    if (isParamInitialized(id) == true) {
+    if (Param_IsInitialized(id) == true) {
       // Always copies fixed-size data regardless of actual parameter type
       memcpy(min, &param->limits.u32.min, sizeof(uint32_t));
       memcpy(max, &param->limits.u32.max, sizeof(uint32_t));
@@ -367,7 +350,7 @@ ParamSetResult_t Param_SetValue(ParamIds_t id, const void* value)
     return PARAM_SET_ERROR_OTHER;
   }
   Parameter_t* param = findParamById(id);
-  if (isParamInitialized(id) != true || param == NULL) {
+  if (Param_IsInitialized(id) != true || param == NULL) {
     osMutexRelease(param_mutex);
     return PARAM_SET_ERROR_ID;
   }
@@ -477,7 +460,7 @@ bool Param_GetParamType(ParamIds_t id, ParamType_t* param_type)
 {
   if (osMutexAcquire(param_mutex, osWaitForever) == osOK) {
     Parameter_t* param = findParamById(id);
-    if (isParamInitialized(id) == true) {
+    if (Param_IsInitialized(id) == true) {
       osMutexRelease(param_mutex);
       *param_type = param->type;
       return true;
@@ -494,6 +477,20 @@ const char** Param_GetDescriptors(ParamIds_t id)
   if (type != PARAM_TYPE_ENUM) return false;
   
   return parameters[id].descriptors;
+}
+
+bool Param_IsInitialized(ParamIds_t id)
+{
+  Parameter_t* param = findParamById(id);
+  if (param == NULL) {
+    return false;
+  }
+
+  if (param->value_ptr == NULL) {
+    return false;
+  }
+
+  return true;
 }
 
 void Param_SaveToFlash(void)
@@ -519,58 +516,6 @@ void Param_SaveToFlash(void)
       }
     }
   }
-}
-
-bool Param_RegisterTask(TaskIds_t task_id, const char* task_name)
-{
-  if (registered_tasks_count >= NUM_TASKS) {
-    return false;
-  }
-
-  if (osMutexAcquire(param_mutex, osWaitForever) == osOK) {
-    for (uint8_t i = 0; i < registered_tasks_count; i++) {
-      if (registered_tasks[i].id == task_id) {
-        osMutexRelease(param_mutex);
-        return false;
-      }
-    }
-    registered_tasks[registered_tasks_count].id = task_id;
-
-    strncpy(registered_tasks[registered_tasks_count].name, task_name,
-            TASK_NAME_LEN - 1);
-    registered_tasks[registered_tasks_count].name[TASK_NAME_LEN - 1] = '\0';
-
-    registered_tasks[registered_tasks_count].is_registered = false;
-
-    registered_tasks_count++;
-    osMutexRelease(param_mutex);
-    return true;
-  }
-  return false;
-}
-
-bool Param_TaskRegistrationComplete(TaskIds_t task_id)
-{
-  if (osMutexAcquire(param_mutex, osWaitForever) == osOK) {
-    for (uint8_t i = 0; i < registered_tasks_count; i++) {
-      if (registered_tasks[i].id == task_id) {
-        if (registered_tasks[i].is_registered == false) {
-          registered_tasks[i].is_registered = true;
-          complete_registrations_count++;
-
-          if (complete_registrations_count == NUM_TASKS) {
-            osEventFlagsSet(param_events, EVENT_ALL_TASKS_REGISTERED);
-          }
-
-          osMutexRelease(param_mutex);
-          return true;
-        }
-        break;
-      }
-    }
-    osMutexRelease(param_mutex);
-  }
-  return false;
 }
 
 bool Param_FlashReset()
@@ -608,20 +553,6 @@ Parameter_t* findParamById(ParamIds_t id)
 {
   if (id >= NUM_PARAM) return NULL;
   return &parameters[id];
-}
-
-bool isParamInitialized(ParamIds_t id)
-{
-  Parameter_t* param = findParamById(id);
-  if (param == NULL) {
-    return false;
-  }
-
-  if (param->value_ptr == NULL) {
-    return false;
-  }
-
-  return true;
 }
 
 static bool getNumErases()

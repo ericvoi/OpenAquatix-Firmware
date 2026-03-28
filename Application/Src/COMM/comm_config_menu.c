@@ -1593,14 +1593,14 @@ void setSynchronizer(FunctionContext_t* context)
 
 void printConfigOptions(FunctionContext_t* context)
 {
-  if (ImportExport_ExportConfiguration(context) == false) {
+  if (ImportExport_ExportSomeParameters(context) == false) {
     COMM_TransmitData("\r\nInternal Error!\r\n", CALC_LEN, context->comm_interface);
   }
 }
 
 void importConfigOptions(FunctionContext_t* context)
 {
-  ImportExport_ImportConfiguration(context);
+  ImportExport_ImportSomeParameters(context);
 }
 
 void setDacTransitionDuration(FunctionContext_t* context)
