@@ -30,7 +30,7 @@ typedef struct {
 #define STABILIZATION_DELAY_3V3A            5
 #define STABILIZATION_DELAY_NEGATIVE_3V3    5
 #define STABILIZATION_DELAY_30V             200
-#define STABILIZATION_DELAY_WS_5V           1
+#define STABILIZATION_DELAY_WS_5V           5
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -108,7 +108,7 @@ PowerDomainState_t PWR_State30V(void)
   return info_30V.state;
 }
 
-PowerDomainState_t PWR_State_Ws5V(void)
+PowerDomainState_t PWR_StateWs5V(void)
 {
   updateStates();
   return info_Ws5V.state;

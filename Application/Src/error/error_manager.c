@@ -64,9 +64,10 @@ static uint64_t last_warning_timestamp = 0x7FFFFFFFFFFFFFFF;
 /* Private function prototypes -----------------------------------------------*/
 
 static void taskDeathLoop(void);
-static void systemDeathLoop(void);
+static void systemDeathLoop(OpenAquatixErrors_t reason);
 static TaskInfo_t* getTaskInfo(void);
 static void performSystemReset(OpenAquatixErrors_t reason);
+static void fatalSequence(OpenAquatixErrors_t reason);
 static bool isIsr(void);
 
 /* Exported function definitions ---------------------------------------------*/
@@ -149,7 +150,7 @@ void Error_RegisterError(OpenAquatixErrors_t error_code, const char* file, uint1
       performSystemReset(error_code);
       break;
     case ERROR_SEVERITY_UNRECOVERABLE:
-      systemDeathLoop();
+      systemDeathLoop(error_code);
       break;
     default:
       break;
@@ -231,17 +232,16 @@ TaskResetStatus_t Error_CheckModuleReset(void)
 void taskDeathLoop(void)
 {
   for (;;) {
-    osDelay(300);
+    osDelay(500);
     Ws2812b_SetColour(255, 0, 0);
-    Ws2812b_Update(255);
-    osDelay(300);
-    Ws2812b_SetColour(0, 0, 0);
-    Ws2812b_Update(255);
+    Ws2812b_Update(125);
+    osDelay(500);
+    Ws2812b_Update(0);
   }
 }
 
 // Disable all other running tasks and enter death loop
-void systemDeathLoop(void)
+void systemDeathLoop(OpenAquatixErrors_t reason)
 {
   TaskInfo_t* task_info = getTaskInfo();
   for (uint16_t i = 0; i < NUM_TASKS; i++) {
@@ -249,6 +249,7 @@ void systemDeathLoop(void)
 
     osThreadTerminate(registered_tasks[i].task_id);
   }
+  fatalSequence(reason);
   // TODO: Disable all interrupts besides the WS ones
   taskDeathLoop();
 }
@@ -272,12 +273,17 @@ TaskInfo_t* getTaskInfo(void)
 // receive notifications or the COMM task caused the error
 void performSystemReset(OpenAquatixErrors_t reason)
 {
+  fatalSequence(reason);
+  ErrorReset_WarmReset();
+}
+
+void fatalSequence(OpenAquatixErrors_t reason)
+{
   char buf[100];
   snprintf(buf, 100, "Encountered a fatal error (%u), resetting now\r\n", reason);
   COMM_TransmitData(buf, CALC_LEN, COMM_BOTH);
   ErrorLog_PrintLog(COMM_BOTH);
   osDelay(50);
-  ErrorReset_WarmReset();
 }
 
 bool isIsr(void)
