@@ -59,3 +59,13 @@ This task facilitates access to the transmission medium with either no MAC metho
 ## DAC (DAC)
 This task's only purpose is to fill the DAC DMA buffers when notified by the DMA callback. Task functions:
 - Modulating the DAC with DMA to generate an input signal for the power amplifier
+
+# Third-Party Libraries
+
+| Library | License | Version/Commit |
+|---------|---------|----------------|
+| TinyUSB | MIT | v0.20.0 |
+| STM32 HAL | BSD-3 | v1.11.5 |
+| CMSIS RTOS | Apache-2.0 | v2.1.0 |
+| FreeRTOS Kernel | MIT | v10.3.1 |
+| CMSIS DSP | Apache-2.0 | v1.6.0 |
