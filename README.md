@@ -67,5 +67,5 @@ This task's only purpose is to fill the DAC DMA buffers when notified by the DMA
 | TinyUSB | MIT | v0.20.0 |
 | STM32 HAL | BSD-3 | v1.11.5 |
 | CMSIS RTOS | Apache-2.0 | v2.1.0 |
-| FreeRTOS Kernel | MIT | v10.3.1 |
+| FreeRTOS Kernel | MIT | v10.6.2 |
 | CMSIS DSP | Apache-2.0 | v1.6.0 |

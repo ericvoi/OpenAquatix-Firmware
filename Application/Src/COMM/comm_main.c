@@ -14,7 +14,7 @@
 #include "cmsis_os.h"
 #include "arm_math.h"
 
-#include "usb_comm.h"
+#include "hmi_usb.h"
 #include "dau_card-driver.h"
 #include "error_manager.h"
 
@@ -30,6 +30,8 @@
 #include "cfg_defaults.h"
 
 #include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 /* Private typedef -----------------------------------------------------------*/
 
@@ -90,7 +92,6 @@ static void resetTask(void);
 void COMM_StartTask(void *argument)
 {
   (void)(argument);
-  USB_CreateShared();
   menu_context.interface = COMM_BOTH;
 
   Error_RegisterTask("COMM");

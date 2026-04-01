@@ -26,15 +26,15 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "cmsis_os.h"
-#include "usb_device.h"
+#include "FreeRTOS.h"
+#include "cmsis_os2.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "ws2812b-driver.h"
 #include "pga113-driver.h"
 #include "power_leds.h"
-#include "usb_comm.h"
+#include "hmi_usb.h"
 #include "comm_main.h"
 #include "mess_main.h"
 #include "cfg_main.h"
@@ -46,6 +46,8 @@
 #include "stm32h7xx_ll_cordic.h"
 #include "pwr_domains.h"
 #include "core_cm7.h"
+#include "tusb.h"
+#include "usb_main.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -102,9 +104,11 @@ TIM_HandleTypeDef htim16;
 TIM_HandleTypeDef htim17;
 DMA_HandleTypeDef hdma_tim3_ch1;
 
+PCD_HandleTypeDef hpcd_USB_OTG_HS;
+
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
-uint32_t defaultTaskBuffer[ 200 ];
+uint32_t defaultTaskBuffer[ 4000 ];
 osStaticThreadDef_t defaultTaskControlBlock;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
@@ -112,7 +116,7 @@ const osThreadAttr_t defaultTask_attributes = {
   .cb_size = sizeof(defaultTaskControlBlock),
   .stack_mem = &defaultTaskBuffer[0],
   .stack_size = sizeof(defaultTaskBuffer),
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityHigh7,
 };
 /* Definitions for messageTask */
 osThreadId_t messageTaskHandle;
@@ -124,7 +128,7 @@ const osThreadAttr_t messageTask_attributes = {
   .cb_size = sizeof(messageTaskControlBlock),
   .stack_mem = &messageTaskBuffer[0],
   .stack_size = sizeof(messageTaskBuffer),
-  .priority = (osPriority_t) osPriorityHigh6,
+  .priority = (osPriority_t) osPriorityHigh4,
 };
 /* Definitions for sysTask */
 osThreadId_t sysTaskHandle;
@@ -172,7 +176,7 @@ const osThreadAttr_t dacTask_attributes = {
   .cb_size = sizeof(dacTaskControlBlock),
   .stack_mem = &dacTaskBuffer[0],
   .stack_size = sizeof(dacTaskBuffer),
-  .priority = (osPriority_t) osPriorityHigh7,
+  .priority = (osPriority_t) osPriorityHigh6,
 };
 /* Definitions for macTask */
 osThreadId_t macTaskHandle;
@@ -196,7 +200,7 @@ const osThreadAttr_t filtTask_attributes = {
   .cb_size = sizeof(filtTaskControlBlock),
   .stack_mem = &filtTaskBuffer[0],
   .stack_size = sizeof(filtTaskBuffer),
-  .priority = (osPriority_t) osPriorityRealtime,
+  .priority = (osPriority_t) osPriorityHigh5,
 };
 /* Definitions for dau_uart_mutex */
 osMutexId_t dau_uart_mutexHandle;
@@ -233,6 +237,7 @@ static void MX_OCTOSPI1_Init(void);
 static void MX_RTC_Init(void);
 static void MX_SPI3_Init(void);
 static void MX_FMAC_Init(void);
+static void MX_USB_OTG_HS_PCD_Init(void);
 void StartDefaultTask(void *argument);
 void startMessageProcessingTask(void *argument);
 void startSystemManagementTask(void *argument);
@@ -334,9 +339,9 @@ int main(void)
   MX_RTC_Init();
   MX_SPI3_Init();
   MX_FMAC_Init();
+  MX_USB_OTG_HS_PCD_Init();
   /* USER CODE BEGIN 2 */
   PWRLED_Update(0x0F);
-  HAL_GPIO_WritePin(ULPI_RST__GPIO_Port, ULPI_RST__Pin, GPIO_PIN_SET);
   PWR_Analog(true);
   HAL_Delay(20);
   Ws2812b_Init();
@@ -814,7 +819,7 @@ static void MX_DTS_Init(void)
   hdts.Init.RefClock = DTS_REFCLKSEL_PCLK;
   hdts.Init.TriggerInput = DTS_TRIGGER_HW_NONE;
   hdts.Init.SamplingTime = DTS_SMP_TIME_1_CYCLE;
-  hdts.Init.Divider = 0;
+  hdts.Init.Divider = 1;
   hdts.Init.HighThreshold = 0x0;
   hdts.Init.LowThreshold = 0x0;
   if (HAL_DTS_Init(&hdts) != HAL_OK)
@@ -1341,6 +1346,42 @@ static void MX_TIM17_Init(void)
 }
 
 /**
+  * @brief USB_OTG_HS Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USB_OTG_HS_PCD_Init(void)
+{
+
+  /* USER CODE BEGIN USB_OTG_HS_PCD_Init 0 */
+
+  /* USER CODE END USB_OTG_HS_PCD_Init 0 */
+
+  /* USER CODE BEGIN USB_OTG_HS_PCD_Init 1 */
+
+  /* USER CODE END USB_OTG_HS_PCD_Init 1 */
+  hpcd_USB_OTG_HS.Instance = USB_OTG_HS;
+  hpcd_USB_OTG_HS.Init.dev_endpoints = 9;
+  hpcd_USB_OTG_HS.Init.speed = PCD_SPEED_HIGH;
+  hpcd_USB_OTG_HS.Init.dma_enable = ENABLE;
+  hpcd_USB_OTG_HS.Init.phy_itface = USB_OTG_ULPI_PHY;
+  hpcd_USB_OTG_HS.Init.Sof_enable = DISABLE;
+  hpcd_USB_OTG_HS.Init.low_power_enable = DISABLE;
+  hpcd_USB_OTG_HS.Init.lpm_enable = DISABLE;
+  hpcd_USB_OTG_HS.Init.vbus_sensing_enable = DISABLE;
+  hpcd_USB_OTG_HS.Init.use_dedicated_ep1 = DISABLE;
+  hpcd_USB_OTG_HS.Init.use_external_vbus = DISABLE;
+  if (HAL_PCD_Init(&hpcd_USB_OTG_HS) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USB_OTG_HS_PCD_Init 2 */
+
+  /* USER CODE END USB_OTG_HS_PCD_Init 2 */
+
+}
+
+/**
   * Enable DMA controller clock
   */
 static void MX_BDMA_Init(void)
@@ -1504,6 +1545,7 @@ static void MX_GPIO_Init(void)
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
   PWR_Analog(true);
+  HAL_GPIO_WritePin(ULPI_RST__GPIO_Port, ULPI_RST__Pin, GPIO_PIN_SET);
   HAL_Delay(100); // Small delay to ensure that voltage rails have stabilized
   /* USER CODE END MX_GPIO_Init_2 */
 }
@@ -1521,15 +1563,8 @@ static void MX_GPIO_Init(void)
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
-  /* init code for USB_DEVICE */
-  MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 5 */
-  (void)(argument);
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+  USB_StartTask(argument);
   /* USER CODE END 5 */
 }
 
@@ -1715,8 +1750,7 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
-
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.

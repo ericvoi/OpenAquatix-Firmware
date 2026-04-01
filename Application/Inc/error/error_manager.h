@@ -110,6 +110,7 @@ typedef struct {
   /* --- HMI & COMM --- */                                                                                                              \
   X(ERROR_PRINT_WAVEFORM_OVERFLOW,        ERROR_SEVERITY_ABORT,           "Overflow in print waveform buffer",        SUBSYS_NONE)      \
   X(ERROR_MENU_REGISTRATION,              ERROR_SEVERITY_UNRECOVERABLE,   "Failed to register menu",                  SUBSYS_NONE)      \
+  X(ERROR_USB_HMI,                        ERROR_SEVERITY_WARN,            "Failed to write data to HMI",              SUBSYS_NONE)      \
                                                                                                                                         \
   /* --- General Software Errors --- */                                                                                                 \
   X(ERROR_ERROR_MANAGEMENT_INTERNAL,      ERROR_SEVERITY_WARN,            "Internal error management error",          SUBSYS_NONE)      \

@@ -11,6 +11,8 @@
 /* Private includes ----------------------------------------------------------*/
 
 #include "usb_main.h"
+#include "hmi_usb.h"
+#include "tusb.h"
 
 /* Private typedef -----------------------------------------------------------*/
 

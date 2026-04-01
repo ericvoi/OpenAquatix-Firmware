@@ -25,13 +25,14 @@
 #include "cfg_defaults.h"
 #include "cfg_parameters.h"
 #include "cfg_main.h"
-#include "usb_comm.h"
+#include "hmi_usb.h"
 #include "pga113-driver.h"
 #include "error_manager.h"
 #include "cmsis_os.h"
 #include "arm_math.h"
 #include "arm_const_structs.h"
 #include <math.h>
+#include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
 

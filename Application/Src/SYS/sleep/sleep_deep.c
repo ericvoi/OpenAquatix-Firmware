@@ -12,7 +12,7 @@
 
 #include "sleep/sleep_deep.h"
 #include "stm32h7xx_hal.h"
-#include "cmsis_os.h"
+#include "cmsis_os2.h"
 #include "ws2812b-driver.h"
 #include "pga113-driver.h"
 #include <stdbool.h>
@@ -76,7 +76,7 @@ void disableInterrupts();
 
 void SleepDeep_Enter()
 {
-  vTaskSuspendAll();
+  osKernelLock();
 
 //  SCB_CleanInvalidateDCache();
 //  SCB_DisableDCache();

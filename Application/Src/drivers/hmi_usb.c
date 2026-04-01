@@ -69,6 +69,8 @@ void USB_TransmitData(uint8_t* data, uint16_t len)
   uint32_t written = tud_cdc_n_write(0, data, len);
   tud_cdc_n_write_flush(0);
   
+  osMutexRelease(usb_mutex);
+
   if (written != len) REGISTER_ERROR(ERROR_USB_HMI);
 }
 

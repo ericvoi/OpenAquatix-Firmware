@@ -23,7 +23,7 @@
 
 #include "check_inputs.h"
 #include "number_utils.h"
-#include "usb_comm.h"
+#include "hmi_usb.h"
 #include "error_manager.h"
 #include "main.h"
 
