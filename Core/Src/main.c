@@ -104,8 +104,6 @@ TIM_HandleTypeDef htim16;
 TIM_HandleTypeDef htim17;
 DMA_HandleTypeDef hdma_tim3_ch1;
 
-PCD_HandleTypeDef hpcd_USB_OTG_HS;
-
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 uint32_t defaultTaskBuffer[ 4000 ];
@@ -120,7 +118,7 @@ const osThreadAttr_t defaultTask_attributes = {
 };
 /* Definitions for messageTask */
 osThreadId_t messageTaskHandle;
-uint32_t messageTaskBuffer[ 8000 ] __attribute__((section(".dtcm")));
+uint32_t messageTaskBuffer[ 8000 ];
 osStaticThreadDef_t messageTaskControlBlock;
 const osThreadAttr_t messageTask_attributes = {
   .name = "messageTask",
@@ -209,7 +207,6 @@ const osMutexAttr_t dau_uart_mutex_attributes = {
 };
 /* USER CODE BEGIN PV */
 osEventFlagsId_t print_event_handle = NULL;
-extern PCD_HandleTypeDef hpcd_USB_OTG_HS;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -237,7 +234,6 @@ static void MX_OCTOSPI1_Init(void);
 static void MX_RTC_Init(void);
 static void MX_SPI3_Init(void);
 static void MX_FMAC_Init(void);
-static void MX_USB_OTG_HS_PCD_Init(void);
 void StartDefaultTask(void *argument);
 void startMessageProcessingTask(void *argument);
 void startSystemManagementTask(void *argument);
@@ -248,7 +244,7 @@ void startMacTask(void *argument);
 void startFiltTask(void *argument);
 
 /* USER CODE BEGIN PFP */
-
+static void usbHsInit(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -270,6 +266,81 @@ uint32_t HAL_TickRolloverCount(void)
 uint64_t HAL_AbsoluteTimestamp(void)
 {
   return uwTick | (((uint64_t) HAL_TickRolloverCount()) << 32);
+}
+
+static void usbHsInit(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
+  
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USB;
+  PeriphClkInitStruct.PLL3.PLL3M = 4;
+  PeriphClkInitStruct.PLL3.PLL3N = 120;
+  PeriphClkInitStruct.PLL3.PLL3P = 2;
+  PeriphClkInitStruct.PLL3.PLL3Q = 5;
+  PeriphClkInitStruct.PLL3.PLL3R = 2;
+  PeriphClkInitStruct.PLL3.PLL3RGE = RCC_PLL3VCIRANGE_1;
+  PeriphClkInitStruct.PLL3.PLL3VCOSEL = RCC_PLL3VCOWIDE;
+  PeriphClkInitStruct.PLL3.PLL3FRACN = 0;
+  PeriphClkInitStruct.UsbClockSelection = RCC_USBCLKSOURCE_PLL3;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+/** Enable USB Voltage detector
+*/
+  HAL_PWREx_EnableUSBVoltageDetector();
+
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+  /**USB_OTG_HS GPIO Configuration
+  PC0     ------> USB_OTG_HS_ULPI_STP
+  PC2_C     ------> USB_OTG_HS_ULPI_DIR
+  PC3_C     ------> USB_OTG_HS_ULPI_NXT
+  PA3     ------> USB_OTG_HS_ULPI_D0
+  PA5     ------> USB_OTG_HS_ULPI_CK
+  PB0     ------> USB_OTG_HS_ULPI_D1
+  PB1     ------> USB_OTG_HS_ULPI_D2
+  PB10     ------> USB_OTG_HS_ULPI_D3
+  PB11     ------> USB_OTG_HS_ULPI_D4
+  PB12     ------> USB_OTG_HS_ULPI_D5
+  PB13     ------> USB_OTG_HS_ULPI_D6
+  PB5     ------> USB_OTG_HS_ULPI_D7
+  */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_2|GPIO_PIN_3;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF10_OTG1_HS;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = GPIO_PIN_3|GPIO_PIN_5;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF10_OTG1_HS;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_10|GPIO_PIN_11
+                        |GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_5;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF10_OTG1_HS;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* Peripheral clock enable */
+  __HAL_RCC_USB_OTG_HS_CLK_ENABLE();
+  __HAL_RCC_USB_OTG_HS_ULPI_CLK_ENABLE();
+  /* USB_OTG_HS interrupt Init */
+  HAL_NVIC_SetPriority(OTG_HS_EP1_OUT_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(OTG_HS_EP1_OUT_IRQn);
+  HAL_NVIC_SetPriority(OTG_HS_EP1_IN_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(OTG_HS_EP1_IN_IRQn);
+  HAL_NVIC_SetPriority(OTG_HS_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(OTG_HS_IRQn);
 }
 
 /* USER CODE END 0 */
@@ -339,8 +410,8 @@ int main(void)
   MX_RTC_Init();
   MX_SPI3_Init();
   MX_FMAC_Init();
-  MX_USB_OTG_HS_PCD_Init();
   /* USER CODE BEGIN 2 */
+  usbHsInit();
   PWRLED_Update(0x0F);
   PWR_Analog(true);
   HAL_Delay(20);
@@ -1342,42 +1413,6 @@ static void MX_TIM17_Init(void)
   /* USER CODE BEGIN TIM17_Init 2 */
 
   /* USER CODE END TIM17_Init 2 */
-
-}
-
-/**
-  * @brief USB_OTG_HS Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USB_OTG_HS_PCD_Init(void)
-{
-
-  /* USER CODE BEGIN USB_OTG_HS_PCD_Init 0 */
-
-  /* USER CODE END USB_OTG_HS_PCD_Init 0 */
-
-  /* USER CODE BEGIN USB_OTG_HS_PCD_Init 1 */
-
-  /* USER CODE END USB_OTG_HS_PCD_Init 1 */
-  hpcd_USB_OTG_HS.Instance = USB_OTG_HS;
-  hpcd_USB_OTG_HS.Init.dev_endpoints = 9;
-  hpcd_USB_OTG_HS.Init.speed = PCD_SPEED_HIGH;
-  hpcd_USB_OTG_HS.Init.dma_enable = ENABLE;
-  hpcd_USB_OTG_HS.Init.phy_itface = USB_OTG_ULPI_PHY;
-  hpcd_USB_OTG_HS.Init.Sof_enable = DISABLE;
-  hpcd_USB_OTG_HS.Init.low_power_enable = DISABLE;
-  hpcd_USB_OTG_HS.Init.lpm_enable = DISABLE;
-  hpcd_USB_OTG_HS.Init.vbus_sensing_enable = DISABLE;
-  hpcd_USB_OTG_HS.Init.use_dedicated_ep1 = DISABLE;
-  hpcd_USB_OTG_HS.Init.use_external_vbus = DISABLE;
-  if (HAL_PCD_Init(&hpcd_USB_OTG_HS) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USB_OTG_HS_PCD_Init 2 */
-
-  /* USER CODE END USB_OTG_HS_PCD_Init 2 */
 
 }
 

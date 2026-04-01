@@ -65,8 +65,6 @@ extern UART_HandleTypeDef hlpuart1;
 extern DMA_HandleTypeDef hdma_uart5_rx;
 extern DMA_HandleTypeDef hdma_uart5_tx;
 
-extern PCD_HandleTypeDef hpcd_USB_OTG_HS;
-
 /* Private function prototypes -----------------------------------------------*/
 
 void disablePeripherals();
@@ -139,7 +137,6 @@ void disablePeripherals()
   
   __HAL_RCC_CORDIC_CLK_DISABLE();
   
-  HAL_PCD_Stop(&hpcd_USB_OTG_HS);
   __HAL_RCC_USB1_OTG_HS_CLK_DISABLE();
   
   __HAL_RCC_DMA1_CLK_DISABLE();

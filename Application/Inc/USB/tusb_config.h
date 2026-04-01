@@ -40,6 +40,7 @@ extern "C" {
 #define CFG_TUD_VENDOR          0
 
 #define CFG_TUSB_DEBUG          0
+#define CFG_TUD_DWC2_DMA_ENABLE 1
 
 #ifdef __cplusplus
 }

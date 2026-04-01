@@ -51,3 +51,18 @@ static void cdcHmiCb(void)
   uint32_t count = tud_cdc_n_read(0, buf, HMI_CDC_BUF_SIZE);
   USB_ProcessRxData(buf, count);
 }
+
+void OTG_HS_EP1_OUT_IRQHandler(void)
+{
+  tud_int_handler(BOARD_TUD_RHPORT);
+}
+
+void OTG_HS_EP1_IN_IRQHandler(void)
+{
+  tud_int_handler(BOARD_TUD_RHPORT);
+}
+
+void OTG_HS_IRQHandler(void)
+{
+  tud_int_handler(BOARD_TUD_RHPORT);
+}
