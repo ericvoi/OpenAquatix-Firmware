@@ -172,10 +172,10 @@ void Waveform_StartOutput(void)
 
 void Waveform_SendRangingRequest(void)
 {
-  taskENTER_CRITICAL();
+  portENTER_CRITICAL();
   Ranging_LogRequest();
   HAL_TIM_Base_Start(&htim6);
-  taskEXIT_CRITICAL();
+  portEXIT_CRITICAL();
 }
 
 bool Waveform_StopWaveformOutput()
