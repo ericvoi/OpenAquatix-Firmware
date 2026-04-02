@@ -65,7 +65,7 @@ static uint8_t out_buffer[MAX_COMM_OUT_BUFFER_SIZE];
 
 static uint8_t msg_buffer[MAX_COMM_IN_BUFFER_SIZE];
 static uint16_t msg_buf_len = 0;
-static uint8_t test_msg[] = "Welcome to the OpenAquatix HMI!\r\n";
+static uint8_t test_msg[] = "\r\nWelcome to the OpenAquatix HMI!\r\n";
 
 static uint16_t pending_input_len = 0;
 

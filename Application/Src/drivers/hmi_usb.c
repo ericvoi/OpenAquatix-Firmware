@@ -24,7 +24,6 @@
 
 /* Private define ------------------------------------------------------------*/
 
-#define USB_OVERFLOW_MESS             "Too many input characters!\r\n"
 #define USB_MUTEX_TIMEOUT             100
 
 /* Private macro -------------------------------------------------------------*/
@@ -33,7 +32,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-static uint16_t usb_overflow_mess_len;
 static CommBuffer_t usb_buffer __attribute__((section(".dma_buf")));
 static osMutexId_t usb_mutex;
 
@@ -53,7 +51,6 @@ void USB_CreateShared(void)
 
 void USB_Init(void)
 {
-  usb_overflow_mess_len = strlen(USB_OVERFLOW_MESS);
   usb_buffer.length = MAX_COMM_IN_BUFFER_SIZE;
   usb_buffer.index = 0;
   usb_buffer.contents_changed = false;
@@ -76,55 +73,40 @@ void USB_TransmitData(uint8_t* data, uint16_t len)
 
 void USB_ProcessRxData(uint8_t* data, uint32_t len)
 {
-  // if a message is ready, do not process any more user input
-  if (usb_buffer.data_ready == true) return;
-  if (len == 0) return;
+  if (usb_buffer.data_ready || len == 0) return;
 
   for (uint16_t i = 0; i < len; i++) {
-    if (usb_buffer.index < sizeof(usb_buffer.buffer) - 1) {
-      if (data[i] == WITHDRAW_CHAR) {
-        usb_buffer.buffer[0] = WITHDRAW_CHAR;
-        usb_buffer.buffer[1] = '\0';
-        usb_buffer.index = 1;
-        usb_buffer.data_ready = true;
-        usb_buffer.contents_changed = true;
-        continue;
-      }
+    uint8_t c = data[i];
+    bool at_capacity = (usb_buffer.index >= sizeof(usb_buffer.buffer) - 1);
 
-      if (data[i] == '\b') {
-        if (usb_buffer.index == 0) {
-          usb_buffer.contents_changed = false;
-          continue;
-        }
-        else {
-          usb_buffer.index--;
-          usb_buffer.contents_changed = true;
-
-        }
-        continue;
-      }
-      if (data[i] == '\r' || data[i] == '\n') {
-
-        if (usb_buffer.index > 0) {
-          // End string
-          usb_buffer.buffer[usb_buffer.index] = '\0';
-
-          usb_buffer.data_ready = true;
-          usb_buffer.contents_changed = true;
-
-        }
-      }
-      else {
-        usb_buffer.buffer[usb_buffer.index++] = data[i];
-        usb_buffer.contents_changed = true;
-
-      }
-    } else {
-      // Buffer overflow occurred - reset index and discard additional characters
-      // An overflow message should be echoed to the user (TODO)
-      usb_buffer.index = 0;
+    if (c == WITHDRAW_CHAR) {
+      usb_buffer.buffer[0] = WITHDRAW_CHAR;
+      usb_buffer.buffer[1] = '\0';
+      usb_buffer.index = 1;
+      usb_buffer.data_ready = true;
       usb_buffer.contents_changed = true;
     }
+    else if (c == '\r' || c == '\n') {
+      if (usb_buffer.index > 0) {
+        usb_buffer.buffer[usb_buffer.index] = '\0';
+        usb_buffer.data_ready = true;
+        usb_buffer.contents_changed = true;
+      }
+    }
+    else if (c == '\b') {
+      if (usb_buffer.index > 0) {
+        usb_buffer.index--;
+        usb_buffer.contents_changed = true;
+      }
+    }
+    // Buffer is not full, so add to buffer
+    else if (at_capacity == false) {
+      usb_buffer.buffer[usb_buffer.index++] = c;
+      usb_buffer.contents_changed = true;
+    }
+    // else: at capacity, printable char -> silently discard
+
+    if (usb_buffer.data_ready) return;
   }
 }
 
