@@ -46,7 +46,7 @@ typedef enum {
   ITF_NUM_CDC = 0,
   ITF_NUM_CDC_DATA,
   ITF_NUM_TOTAL
-} tusbInterfaces_t;
+} TusbInterfaces_t;
 
 #ifdef __cplusplus
 }

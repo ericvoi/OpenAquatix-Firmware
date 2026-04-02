@@ -101,7 +101,6 @@ void USB_ProcessRxData(uint8_t* data, uint32_t len)
           usb_buffer.contents_changed = true;
 
         }
-//        USB_TransmitData((uint8_t*) "\b ", 2);
         continue;
       }
       if (data[i] == '\r' || data[i] == '\n') {
