@@ -9,6 +9,7 @@
  */
 
 #include "tusb.h"
+#include "tusb_config.h"
 
 //--------------------------------------------------------------------
 // Device Descriptor
@@ -43,11 +44,6 @@ uint8_t const* tud_descriptor_device_cb(void) {
 //--------------------------------------------------------------------
 // Configuration Descriptor
 //--------------------------------------------------------------------
-enum {
-  ITF_NUM_CDC = 0,
-  ITF_NUM_CDC_DATA,
-  ITF_NUM_TOTAL
-};
 
 // CDC uses 2 interfaces: control + data
 // Endpoints: 1 notify (interrupt IN), 1 data OUT, 1 data IN

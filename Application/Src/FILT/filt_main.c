@@ -83,8 +83,8 @@ static FilterInfo_t filter_infos[] = {
 
 static DcEstimate_t dc_tracker;
 
-static q15_t filt_in_buffer[SCRATCH_BUFFER_SIZE];
-static q15_t filt_out_buffer[SCRATCH_BUFFER_SIZE];
+// static q15_t filt_in_buffer[SCRATCH_BUFFER_SIZE];
+// static q15_t filt_out_buffer[SCRATCH_BUFFER_SIZE];
 static float dec_buffer[SCRATCH_BUFFER_SIZE];
 
 static uint16_t decimation_index_tracker = 0;

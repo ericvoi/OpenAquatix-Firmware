@@ -63,11 +63,11 @@ void USB_Init(void)
 
 void USB_TransmitData(uint8_t* data, uint16_t len)
 {
-  if (osMutexAcquire(usb_mutex, osWaitForever) != osOK)
+  if (osMutexAcquire(usb_mutex, USB_MUTEX_TIMEOUT) != osOK)
     REGISTER_ERROR(ERROR_USB_HMI);
 
-  uint32_t written = tud_cdc_n_write(0, data, len);
-  tud_cdc_n_write_flush(0);
+  uint32_t written = tud_cdc_n_write(ITF_NUM_CDC, data, len);
+  tud_cdc_n_write_flush(ITF_NUM_CDC);
   
   osMutexRelease(usb_mutex);
 

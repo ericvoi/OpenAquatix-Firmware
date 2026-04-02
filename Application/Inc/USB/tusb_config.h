@@ -42,6 +42,12 @@ extern "C" {
 #define CFG_TUSB_DEBUG          0
 #define CFG_TUD_DWC2_DMA_ENABLE 1
 
+typedef enum {
+  ITF_NUM_CDC = 0,
+  ITF_NUM_CDC_DATA,
+  ITF_NUM_TOTAL
+} tusbInterfaces_t;
+
 #ifdef __cplusplus
 }
 #endif

@@ -38,7 +38,7 @@ static void cdcHmiCb(void);
 
 void tud_cdc_rx_cb(uint8_t itf)
 {
-  if (itf == 0) {
+  if (itf == ITF_NUM_CDC) {
     cdcHmiCb();
   }
 }
@@ -48,7 +48,7 @@ void tud_cdc_rx_cb(uint8_t itf)
 static void cdcHmiCb(void)
 {
   uint8_t buf[HMI_CDC_BUF_SIZE];
-  uint32_t count = tud_cdc_n_read(0, buf, HMI_CDC_BUF_SIZE);
+  uint32_t count = tud_cdc_n_read(ITF_NUM_CDC, buf, HMI_CDC_BUF_SIZE);
   USB_ProcessRxData(buf, count);
 }
 

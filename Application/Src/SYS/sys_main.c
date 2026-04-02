@@ -68,10 +68,10 @@ void SYS_StartTask(void* argument)
 
   LPS_CreateResources();
   createSleepEvents();
+  readHardwareId();
   
   CFG_WaitLoadComplete();
 
-  readHardwareId();
   resetTask();
 
   for (;;) {

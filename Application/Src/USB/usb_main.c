@@ -12,6 +12,8 @@
 
 #include "usb_main.h"
 #include "hmi_usb.h"
+#include "error_manager.h"
+#include "cfg_main.h"
 #include "tusb.h"
 
 /* Private typedef -----------------------------------------------------------*/
@@ -38,10 +40,14 @@
 
 void USB_StartTask(void* argument)
 {
-  // TODO: register with error handler
   (void)(argument);
   USB_CreateShared();
   tusb_init();
+
+  Error_RegisterTask("USB");
+  Error_ParameterRegistrationComplete();
+  
+  CFG_WaitLoadComplete();
 
   for(;;)
   {

@@ -46,6 +46,7 @@ typedef enum {
   DAC_TASK,
   MAC_TASK,
   FILT_TASK,
+  USB_TASK,
   NUM_TASKS
 } TaskIds_t;
 
