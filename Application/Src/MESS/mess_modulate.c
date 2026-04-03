@@ -64,7 +64,7 @@ typedef struct {
 
 /* Private variables ---------------------------------------------------------*/
 
-extern osThreadId_t dacTaskHandle;
+extern osThreadId_t dac_taskHandle;
 
 static float output_amplitude = DEFAULT_OUTPUT_AMPLITUDE;
 
@@ -171,9 +171,9 @@ void Modulate_StartTransducerOutput(uint16_t num_steps,
   
   osDelay(150);
   if ((tx_msg->data_type == RANGING_REQUEST) && (new_cfg->protocol == PROTOCOL_CUSTOM))
-    osThreadFlagsSet(dacTaskHandle, DAC_START_RANGING_REQUEST);
+    osThreadFlagsSet(dac_taskHandle, DAC_START_RANGING_REQUEST);
   else
-    osThreadFlagsSet(dacTaskHandle, DAC_START_OUTPUT);
+    osThreadFlagsSet(dac_taskHandle, DAC_START_OUTPUT);
 }
 
 void Modulate_StartFeedbackOutput(uint16_t num_steps, 
@@ -200,9 +200,9 @@ void Modulate_StartFeedbackOutput(uint16_t num_steps,
     REGISTER_ERROR(ERROR_TRANSDUCER_FB_INITIALIZATION);
 
   if ((tx_msg->data_type == RANGING_REQUEST) && (new_cfg->protocol == PROTOCOL_CUSTOM))
-    osThreadFlagsSet(dacTaskHandle, DAC_START_RANGING_REQUEST);
+    osThreadFlagsSet(dac_taskHandle, DAC_START_RANGING_REQUEST);
   else
-    osThreadFlagsSet(dacTaskHandle, DAC_START_OUTPUT);
+    osThreadFlagsSet(dac_taskHandle, DAC_START_OUTPUT);
 }
 
 // TODO: properly deprecate

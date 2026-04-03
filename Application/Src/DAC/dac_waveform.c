@@ -63,7 +63,7 @@ typedef struct {
 
 /* Private variables ---------------------------------------------------------*/
 
-extern osThreadId_t dacTaskHandle;
+extern osThreadId_t dac_taskHandle;
 
 static uint16_t sine_table[SINE_POINTS];
 static uint16_t dac_buffer[DAC_BUFFER_SIZE] __attribute__((section(".dma_buf")));
@@ -375,7 +375,7 @@ void HAL_DAC_ConvHalfCpltCallbackCh1(DAC_HandleTypeDef *hdac)
 {
   (void)(hdac);
   if (dac_running == true) {
-    osThreadFlagsSet(dacTaskHandle, DAC_FILL_FIRST_HALF);
+    osThreadFlagsSet(dac_taskHandle, DAC_FILL_FIRST_HALF);
   }
 }
 
@@ -383,7 +383,7 @@ void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac)
 {
   (void)(hdac);
   if (dac_running == true) {
-    osThreadFlagsSet(dacTaskHandle, DAC_FILL_LAST_HALF);
+    osThreadFlagsSet(dac_taskHandle, DAC_FILL_LAST_HALF);
   }
 }
 
@@ -391,7 +391,7 @@ void HAL_DACEx_ConvHalfCpltCallbackCh2(DAC_HandleTypeDef *hdac)
 {
   (void)(hdac);
   if (dac_running == true) {
-    osThreadFlagsSet(dacTaskHandle, DAC_FILL_FIRST_HALF);
+    osThreadFlagsSet(dac_taskHandle, DAC_FILL_FIRST_HALF);
   }
 }
 
@@ -399,7 +399,7 @@ void HAL_DACEx_ConvCpltCallbackCh2(DAC_HandleTypeDef *hdac)
 {
   (void)(hdac);
   if (dac_running == true) {
-    osThreadFlagsSet(dacTaskHandle, DAC_FILL_LAST_HALF);
+    osThreadFlagsSet(dac_taskHandle, DAC_FILL_LAST_HALF);
   }
 }
 
