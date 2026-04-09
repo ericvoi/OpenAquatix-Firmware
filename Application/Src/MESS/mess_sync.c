@@ -420,7 +420,7 @@ static void updateSlidingGoertzel(uint16_t new_samples)
     float signal_e = (k >= 0) ? sliding_goertzel_bank[k].e_f : 0.0f;
     float noise_e;
     if (k_noise >= 0) {
-      noise_e = MAX(sliding_goertzel_bank[k_noise].e_f, background_noise);
+      noise_e = MAX(sliding_goertzel_bank[k_noise].e_f * 0.5f, background_noise);
     } else {
       noise_e = background_noise;
     }
