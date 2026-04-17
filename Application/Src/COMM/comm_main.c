@@ -38,6 +38,11 @@ typedef struct {
   CommInterface_t interface;
 } MenuContext_t;
 
+typedef struct {
+  bool tag_mode;
+  HmiInputContext_t input_context;
+} HmiSession_t;
+
 /* Private define ------------------------------------------------------------*/
 
 #define ECHO_USB
@@ -124,10 +129,29 @@ void COMM_StartTask(void *argument)
           break;
         }
 
-        handleHmiNavigation();
-        handleHmiFunction();
+        if (menu_context.current_menu->num_children != 0) {
+          hmi_session.input_context = HMI_INPUT_CONTEXT_MENU;
+          CommandContext_t command_context = {
+            .interface = menu_context.interface,
+            .current_menu = &menu_context.current_menu,
+            .redraw_menu = false
+          };
+
+          if (COMM_Commands_Process((char*) msg_buffer, &command_context) == false) {
+            handleHmiNavigation();
+          }
+          else if (command_context.redraw_menu == true) {
+            displaySubMenus();
+          }
+        }
+        else {
+          hmi_session.input_context = HMI_INPUT_CONTEXT_FUNCTION;
+          handleHmiFunction();
+        }
         break;
       case NEW_CONTENT:
+        hmi_session.input_context = (menu_context.current_menu->num_children == 0) ?
+            HMI_INPUT_CONTEXT_FUNCTION : HMI_INPUT_CONTEXT_MENU;
         echoInput();
         break;
       case NO_CHANGE:

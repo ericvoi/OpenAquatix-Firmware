@@ -44,6 +44,20 @@ typedef enum {
   COMM_BOTH
 } CommInterface_t;
 
+typedef enum {
+  HMI_TAG_MENU,
+  HMI_TAG_PROMPT,
+  HMI_TAG_STATUS,
+  HMI_TAG_ERROR,
+  HMI_TAG_NOTIFY,
+  HMI_TAG_MSG_RX
+} HmiTag_t;
+
+typedef enum {
+  HMI_INPUT_CONTEXT_MENU,
+  HMI_INPUT_CONTEXT_FUNCTION
+} HmiInputContext_t;
+
 typedef struct {
   uint8_t buffer[MAX_COMM_IN_BUFFER_SIZE];
   uint16_t length;
