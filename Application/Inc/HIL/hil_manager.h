@@ -127,16 +127,19 @@ HilState_t HilManager_HilMode(void);
 void HilManager_SetState(HilState_t new_state);
 
 /**
- * @brief Sends status update packet to the host to assist with buffer fill 
- * pacing 
- * 
+ * @brief Sends status update packet to the host to assist with buffer fill
+ * pacing.
+ *
+ * `next_packet_index` is sampled from the ring buffer counter inside this
+ * function (as late as possible before the USB write) so the reported value
+ * reflects state closer to transmission, per spec §3.2 capture-timing note.
+ *
  * @param buffer_fill The number of samples in the buffer
  * @param buffer_size The total buffer capacity (in samples)
- * @param packet_id The packet id when the buffer size was read
- * @param next_packet_index The next packet id expected by the modem from the host
+ * @param packet_id The packet id whose arrival triggered this status (fill_reference_id)
  */
-void HilManager_SendUpdate(uint16_t buffer_fill, uint16_t buffer_size, 
-                           uint16_t packet_id, uint16_t next_packet_index);
+void HilManager_SendUpdate(uint16_t buffer_fill, uint16_t buffer_size,
+                           uint16_t packet_id);
 
 /* Private defines -----------------------------------------------------------*/
 

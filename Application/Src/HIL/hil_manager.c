@@ -115,18 +115,20 @@ void HilManager_SetState(HilState_t new_state)
   sendStateTransitionPacket();
 }
 
-void HilManager_SendUpdate(uint16_t buffer_fill, uint16_t buffer_size, uint16_t packet_id, uint16_t next_packet_index)
+void HilManager_SendUpdate(uint16_t buffer_fill, uint16_t buffer_size, uint16_t packet_id)
 {
-  HilStatus_t status_pkt;
+  HilStatus_t status_pkt = {0};
   status_pkt.response_id = HIL_RESPONSE_STATUS;
   status_pkt.state = hil_state;
   status_pkt.buffer_fill = buffer_fill;
   status_pkt.buffer_capacity = buffer_size;
   status_pkt.attenuation_index = 1;
-  status_pkt.error_flags = 0;
+  status_pkt.error_flags = HilBuf_ReadAndClearErrorFlags();
   status_pkt.timestamp_ms = HAL_GetTick();
   status_pkt.packet_id = packet_id;
-  status_pkt.next_packet_index = next_packet_index;
+  // Sample next_packet_index as late as possible to minimize the gap between
+  // stamp time and EP2 IN transmission time
+  status_pkt.next_packet_index = HilBuf_GetNextPacketIndex();
 
   if (tud_vendor_n_write(VENDOR_ITF_HIL_CONTROL, &status_pkt, RESPONSE_SIZE) != RESPONSE_SIZE)
     REGISTER_ERROR(ERROR_HIL_RESPONSE_SEND_FAIL);
@@ -151,7 +153,10 @@ static void processHilCommand(const HilCommandPacket_t* cmd)
       pingRespond();
       break;
     case HIL_CMD_RESET:
-      resetHil();
+      // Debug-only. resetHil() stops DMA, so we must also drop state to
+      // IDLE to keep hil_state and peripheral state in sync; otherwise the
+      // state-gated callbacks would still expect DMA to be running.
+      exitHilMode();
       break;
     default:
       REGISTER_ERROR(ERROR_HIL_CMD_UNKNOWN);
@@ -160,7 +165,7 @@ static void processHilCommand(const HilCommandPacket_t* cmd)
 
 static void pingRespond(void)
 {
-  HilCalibrationPacket_t response;
+  HilCalibrationPacket_t response = {0};
   response.response_id = HIL_RESPONSE_PING_RESPONSE;
 
   if (tud_vendor_n_write(VENDOR_ITF_HIL_CONTROL, &response, RESPONSE_SIZE) != RESPONSE_SIZE)
@@ -170,11 +175,8 @@ static void pingRespond(void)
 
 static void enterHilMode(void)
 {
-  hil_state = HIL_STATE_RX;
   resetHil();
-  HilStream_StopAdc();
-  HilStream_StopDac();
-
+  hil_state = HIL_STATE_RX;
   HilStream_StartDac();
 
   osEventFlagsSet(print_event_handle, MESS_HIL_START);
@@ -182,61 +184,58 @@ static void enterHilMode(void)
 
 static void exitHilMode(void)
 {
-  hil_state = HIL_STATE_IDLE;
   resetHil();
-  HilStream_StopAdc();
-  HilStream_StopDac();
+  hil_state = HIL_STATE_IDLE;
 
   osEventFlagsSet(print_event_handle, MESS_HIL_STOP);
 }
 
+// Canonical teardown: stop both DMAs (HAL stop is synchronous, so no new DMA
+// callbacks will fire after this returns), flush the USB HIL-stream FIFOs, wipe
+// the ring buffer + sticky error flags + packet counter, and clear any HIL
+// event flags that were raised before or during the stop so stale events from
+// the previous direction don't run against the new state.
 static void resetHil(void)
 {
+  HilStream_StopAdc();
+  HilStream_StopDac();
   HilBuf_Reset();
   tud_vendor_n_read_flush(VENDOR_ITF_HIL_STREAM);
   tud_vendor_n_write_flush(VENDOR_ITF_HIL_STREAM);
+  osThreadFlagsClear(HIL_EVT_ADC_HALF_FULL | HIL_EVT_ADC_FULL |
+                     HIL_EVT_DAC_HALF_FULL | HIL_EVT_DAC_FULL |
+                     HIL_EVT_STREAM_TX_CPLT | HIL_EVT_STREAM_RX_RDY);
 }
 
 static void enterHilRxMode(void)
 {
-  hil_state = HIL_STATE_RX;
   resetHil();
-
-  HilStream_StopAdc();
-  HilStream_StopDac();
-
+  hil_state = HIL_STATE_RX;
   HilStream_StartDac();
 }
 
 static void enterHilTxMode(void)
 {
-  hil_state = HIL_STATE_TX;
   resetHil();
-
-  HilStream_StopAdc();
-  HilStream_StopDac();
-
+  hil_state = HIL_STATE_TX;
   HilStream_StartAdc();
 }
 
 static void enterHilTransitionMode(void)
 {
-  hil_state = HIL_STATE_TRANSITIONING;
   resetHil();
-
-  HilStream_StopAdc();
-  HilStream_StopDac();
+  hil_state = HIL_STATE_TRANSITIONING;
 }
 
 static void sendStateTransitionPacket(void)
 {
-  HilStatus_t status_pkt;
+  // Host only consumes `state` from this packet; everything else is
+  // zero-initialized so no stack garbage is leaked in `reserved[]`.
+  HilStatus_t status_pkt = {0};
   status_pkt.response_id = HIL_RESPONSE_STATUS;
   status_pkt.state = hil_state;
-  status_pkt.buffer_fill = 0;
-  status_pkt.buffer_capacity = 16384; // TODO
-  status_pkt.attenuation_index = 1; // TODO
-  status_pkt.error_flags = 0; // TODO
+  status_pkt.buffer_capacity = 16384;
+  status_pkt.attenuation_index = 1;
   status_pkt.timestamp_ms = HAL_GetTick();
 
   if (tud_vendor_n_write(VENDOR_ITF_HIL_CONTROL, &status_pkt, RESPONSE_SIZE) != RESPONSE_SIZE)

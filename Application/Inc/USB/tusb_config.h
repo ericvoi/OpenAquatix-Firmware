@@ -34,8 +34,10 @@ extern "C" {
 #define CFG_TUD_CDC_RX_BUFSIZE    1024
 #define CFG_TUD_CDC_TX_BUFSIZE    1024
 #define CFG_TUD_VENDOR            2
-#define CFG_TUD_VENDOR_RX_BUFSIZE 2048
-#define CFG_TUD_VENDOR_TX_BUFSIZE 2048
+// 4 KB = 8 × 512 B HS packets. Gives ~2 ms of cushion against HIL-task
+// scheduling latency at the observed 1960 pkt/s rate
+#define CFG_TUD_VENDOR_RX_BUFSIZE 4096
+#define CFG_TUD_VENDOR_TX_BUFSIZE 4096
 
 #define CFG_TUD_VENDOR_EPSIZE     512 // For HS
 

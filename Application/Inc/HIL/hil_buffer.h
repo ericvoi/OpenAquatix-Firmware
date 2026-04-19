@@ -17,6 +17,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 
+#include <stdbool.h>
 #include <stdint.h>
 
 /* Private includes ----------------------------------------------------------*/
@@ -38,15 +39,28 @@ extern "C" {
 /* Exported functions prototypes ---------------------------------------------*/
 
 /**
- * @brief Adds data to the HIL ring buffer
- * 
+ * @brief Adds data to the HIL ring buffer (partial-copy on overrun).
+ *
+ * Intended for the ADC DMA path, where dropping a whole half-buffer would
+ * create audible gaps. On overrun, copies what fits and latches the TX-overrun
+ * sticky error flag.
+ *
  * @param src Source array to take the data from
  * @param src_len Length of the source array
- * 
- * @note This does not handle wrap around so in case of wrap around, the caller
- * must handle this
  */
 void HilBuf_AddData(volatile const uint16_t* src, uint16_t src_len);
+
+/**
+ * @brief Atomically enqueue a whole RX packet, or drop it.
+ *
+ * Intended for the USB RX path. If there is not enough room for @p src_len
+ * samples, nothing is enqueued and the function returns false. The caller
+ * must not advance the RX expected-packet counter when this returns false.
+ *
+ * @return true  iff all samples were enqueued
+ * @return false iff the ring could not fit the packet (TX-overrun flag is set)
+ */
+bool HilBuf_TryAddPacket(const uint16_t* src, uint16_t src_len);
 
 /**
  * @brief Gets data from the HIL ring buffer. Adds a mid-value to fill in gaps
@@ -72,9 +86,23 @@ void HilBuf_SendTxPackets(void);
 
 /**
  * @brief Resets the HIL ring buffer by setting all entries to 0 and resetting
- * head/tail
+ * head/tail. Also clears the sticky error flags and zeroes the RX/TX packet
+ * index counter.
  */
 void HilBuf_Reset(void);
+
+/**
+ * @brief Returns the current RX/TX packet-index counter (rx_expected_id when
+ * in RX; next outgoing packet_id when in TX).
+ */
+uint16_t HilBuf_GetNextPacketIndex(void);
+
+/**
+ * @brief Latch-and-clear the sticky error flags (bit 0 = RX underrun, bit 1 = 
+ * TX overrun). Called from the status-packet emitter so each status report 
+ * covers only the interval since the previous one.
+ */
+uint8_t HilBuf_ReadAndClearErrorFlags(void);
 
 /* Private defines -----------------------------------------------------------*/
 

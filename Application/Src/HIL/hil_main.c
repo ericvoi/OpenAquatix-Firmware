@@ -75,13 +75,13 @@ static void handleThreadFlags(void)
 
   if (flags & HIL_EVT_STREAM_TX_CPLT) HilBuf_SendTxPackets();
 
-  if (flags & HIL_EVT_ADC_HALF_FULL) HilStream_AdcCallback(false);
+  if (flags & HIL_EVT_ADC_HALF_FULL) HilStream_AdcCallback(true);
 
-  if (flags & HIL_EVT_ADC_FULL) HilStream_AdcCallback(true);
+  if (flags & HIL_EVT_ADC_FULL) HilStream_AdcCallback(false);
 
-  if (flags & HIL_EVT_DAC_HALF_FULL) HilStream_DacCallback(false);
+  if (flags & HIL_EVT_DAC_HALF_FULL) HilStream_DacCallback(true);
 
-  if (flags & HIL_EVT_DAC_FULL) HilStream_DacCallback(true);
+  if (flags & HIL_EVT_DAC_FULL) HilStream_DacCallback(false);
 
   if (flags & HIL_EVT_CONTROL_CMD) HilManager_ProcessCommand();
 
