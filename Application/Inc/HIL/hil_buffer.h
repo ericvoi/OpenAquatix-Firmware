@@ -87,9 +87,18 @@ void HilBuf_SendTxPackets(void);
 /**
  * @brief Resets the HIL ring buffer by setting all entries to 0 and resetting
  * head/tail. Also clears the sticky error flags and zeroes the RX/TX packet
- * index counter.
+ * index counter. Cancels any pending deferred DAC start.
  */
 void HilBuf_Reset(void);
+
+/**
+ * @brief Arm the deferred DAC start. Once armed, HilBuf_ReadRxPackets() will
+ * start the DAC (HilStream_StartDac) automatically once the ring fill reaches
+ * the prefill threshold. Use instead of calling HilStream_StartDac() directly
+ * on RX entry — prevents the long startup transient where DAC drains an empty
+ * ring before the host pacer can keep up.
+ */
+void HilBuf_ArmDeferredDacStart(void);
 
 /**
  * @brief Returns the current RX/TX packet-index counter (rx_expected_id when

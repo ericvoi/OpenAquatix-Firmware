@@ -177,7 +177,10 @@ static void enterHilMode(void)
 {
   resetHil();
   hil_state = HIL_STATE_RX;
-  HilStream_StartDac();
+  // Defer the DAC start until the host has prefilled the ring; otherwise the
+  // DAC drains an empty buffer for ~30 s before USB throughput catches up,
+  // producing chronic underruns through the entire startup transient.
+  HilBuf_ArmDeferredDacStart();
 
   osEventFlagsSet(print_event_handle, MESS_HIL_START);
 }
@@ -211,7 +214,7 @@ static void enterHilRxMode(void)
 {
   resetHil();
   hil_state = HIL_STATE_RX;
-  HilStream_StartDac();
+  HilBuf_ArmDeferredDacStart();
 }
 
 static void enterHilTxMode(void)

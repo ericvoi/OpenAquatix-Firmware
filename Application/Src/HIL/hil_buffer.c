@@ -57,6 +57,11 @@ _Static_assert((sizeof(HilTxData_t) == USB_HS_PACKET_SIZE), "Tx data packets mus
 #define RING_BUFFER_SIZE              (1 << 14) // 16384
 #define RING_BUFFER_MASK              (RING_BUFFER_SIZE - 1)
 
+// Defer DAC start until the ring has at least this many samples buffered.
+// Matches the host pacer target_fill (0.5 of capacity) so the system enters
+// steady state immediately rather than ramping up through an underrun zone.
+#define DAC_PREFILL_THRESHOLD         (RING_BUFFER_SIZE / 2)
+
 /* Private macro -------------------------------------------------------------*/
 
 #define MIN(x, y) ((x < y) ? (x) : (y))
@@ -71,6 +76,11 @@ static uint16_t next_packet_index = 0;
 // bit 0 = RX underrun, bit 1 = TX overrun.
 // Latch-and-clear on every status transmission.
 static volatile uint8_t hil_error_flags = 0;
+
+// True between HilBuf_ArmDeferredDacStart() and the moment the ring crosses
+// DAC_PREFILL_THRESHOLD, at which point HilBuf_ReadRxPackets() starts the DAC
+// and clears this flag. Cleared unconditionally by HilBuf_Reset().
+static bool dac_start_pending = false;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -298,6 +308,11 @@ void HilBuf_ReadRxPackets(void)
     WRAP_TRACE_REC(next_packet_index, rx_packet.packet_index, usb_avail, n,
                    availableSamples(), hil_error_flags, WRAP_EV_ACCEPTED);
 
+    if (dac_start_pending && availableSamples() >= DAC_PREFILL_THRESHOLD) {
+      HilStream_StartDac();
+      dac_start_pending = false;
+    }
+
     if ((next_packet_index % STATUS_PACKET_EVERY) == 0) {
       HilManager_SendUpdate(availableSamples(), RING_BUFFER_SIZE, rx_packet.packet_index);
     }
@@ -335,12 +350,18 @@ void HilBuf_Reset(void)
   ring_buf_tail = 0;
   next_packet_index = 0;
   hil_error_flags = 0;
+  dac_start_pending = false;
 #if HIL_WRAP_TRACE
   trace_count = 0;
   trace_prev_in_window = false;
   // Note: trace_seq is intentionally NOT reset, so dumps stay numbered
   // across resets and you can tell whether a resetHil fired between dumps.
 #endif
+}
+
+void HilBuf_ArmDeferredDacStart(void)
+{
+  dac_start_pending = true;
 }
 
 uint16_t HilBuf_GetNextPacketIndex(void)
