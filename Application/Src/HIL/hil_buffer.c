@@ -283,7 +283,7 @@ void HilBuf_ReadRxPackets(void)
     if (n != sizeof(HilRxData_t)) {
       WRAP_TRACE_REC(next_packet_index, rx_packet.packet_index, usb_avail, n,
                      availableSamples(), hil_error_flags, WRAP_EV_SHORT_READ);
-      REGISTER_ERROR(ERROR_HIL_BAD_PACKET_INDEX);
+      REGISTER_ERROR(ERROR_HIL_SHORT_READ);
       break;
     }
 
@@ -298,6 +298,7 @@ void HilBuf_ReadRxPackets(void)
     if (!HilBuf_TryAddPacket(rx_packet.data, SAMPLES_PER_RX_PACKET)) {
       WRAP_TRACE_REC(next_packet_index, rx_packet.packet_index, usb_avail, n,
                      availableSamples(), hil_error_flags, WRAP_EV_RING_FULL);
+      REGISTER_ERROR(ERROR_HIL_RING_FULL);
       // Ring full → drop whole packet, leave counter in place so host sees drift.
       continue;
     }
