@@ -113,10 +113,7 @@ typedef struct {
 static WrapTraceRec_t trace_buf[WRAP_TRACE_CAPACITY];
 static uint16_t trace_count = 0;
 static bool     trace_prev_in_window = false;
-// Suppress the trace until we've seen next_packet_index leave the window at
-// least once. Otherwise boot-time (nPi starts at 0, inside window) produces a
-// spurious startup dump before the first real wrap.
-static bool     trace_armed_ok = false;
+static uint32_t trace_seq = 0;  // dump sequence number; #1 is startup, #2+ are wraps
 
 static inline bool inWrapWindow(uint16_t n_pi)
 {
@@ -127,7 +124,6 @@ static void wrapTraceRecord(uint16_t n_pi, uint16_t rx_pi, uint16_t usb_avail,
                             uint32_t n_read, uint16_t ring_fill, uint8_t errs,
                             WrapTraceEv_t ev)
 {
-  if (!trace_armed_ok) return;
   if (!inWrapWindow(n_pi)) return;
   if (trace_count >= WRAP_TRACE_CAPACITY) return;
   WrapTraceRec_t* r = &trace_buf[trace_count++];
@@ -144,10 +140,11 @@ static void wrapTraceRecord(uint16_t n_pi, uint16_t rx_pi, uint16_t usb_avail,
 static void wrapTraceDump(void)
 {
   char line[96];
+  trace_seq++;
   int n = snprintf(line, sizeof(line),
-                   "\r\n--- HIL wrap trace (%u recs) ---\r\n"
+                   "\r\n--- HIL trace #%lu (%u recs) ---\r\n"
                    "t_ms\tnPi\trxPi\tusbAv\tnRd\tring\terr\tev\r\n",
-                   (unsigned) trace_count);
+                   (unsigned long) trace_seq, (unsigned) trace_count);
   if (n > 0) USB_TransmitData((uint8_t*) line, (uint16_t) n);
 
   for (uint16_t i = 0; i < trace_count; i++) {
@@ -174,11 +171,6 @@ static void wrapTraceDump(void)
 static void wrapTraceStep(uint16_t n_pi_after)
 {
   bool now_in_window = inWrapWindow(n_pi_after);
-  if (!now_in_window && !trace_armed_ok) {
-    // First exit of the window since boot — now subsequent entries are real
-    // wraps, not the startup-at-nPi=0 re-entry.
-    trace_armed_ok = true;
-  }
   if (now_in_window && !trace_prev_in_window) {
     trace_count = 0;  // re-arm on entering window
   }
@@ -346,7 +338,8 @@ void HilBuf_Reset(void)
 #if HIL_WRAP_TRACE
   trace_count = 0;
   trace_prev_in_window = false;
-  trace_armed_ok = false;
+  // Note: trace_seq is intentionally NOT reset, so dumps stay numbered
+  // across resets and you can tell whether a resetHil fired between dumps.
 #endif
 }
 
