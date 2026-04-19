@@ -280,6 +280,7 @@ void MESS_StartTask(void* argument)
       case HIL_CALIBRATION:
         HilCal_Perform(cfg);
         switchState(LISTENING);
+        osThreadFlagsSet(hil_taskHandle, HIL_EVT_CAL_DONE);
         break;
       default:
         break;

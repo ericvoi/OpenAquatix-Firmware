@@ -26,7 +26,7 @@
 #define SAMPLES_PER_RX_PACKET                       (255U)
 #define SAMPLES_PER_TX_PACKET                       (255U)
 
-#define STATUS_PACKET_EVERY                         (5U) // Send a status packet every x packets
+#define STATUS_PACKET_EVERY                         (7U) // Send a status packet every x packets
 
 // From the host to the modem
 typedef struct {

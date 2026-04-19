@@ -101,7 +101,6 @@ void HilCal_Perform(const DspConfig_t* cfg)
   hil_cal.loopback_gain = adc_amplitude / LOOPBACK_TONE_AMPLITUDE;
 
   cal_ready = true;
-  osThreadFlagsSet(hil_taskHandle, HIL_EVT_CAL_DONE);
 }
 
 bool HilCal_Get(HilCalibrationPacket_t* cal_packet)
