@@ -1,31 +1,27 @@
 /*
- * usb_main.h
+ * hil_stream.h
  *
- *  Created on: Mar 31, 2026
+ *  Created on: Apr 5, 2026
  *      Author: ericv
  *
  * Copyright (c) 2026 OpenAquatix Contributors
  * SPDX-License-Identifier: MIT
  */
 
-#ifndef USB_USB_MAIN_H_
-#define USB_USB_MAIN_H_
+#ifndef HIL_HIL_STREAM_H_
+#define HIL_HIL_STREAM_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32h7xx_hal.h"
 
+#include <stdbool.h>
 
 /* Private includes ----------------------------------------------------------*/
 
-// Varies based on the order in which these are initialized in usb_descriptors.c
-#define CDC_ITF_HMI             0
 
-#define VENDOR_ITF_HIL_STREAM   0
-#define VENDOR_ITF_HIL_CONTROL  1
 
 /* Exported types ------------------------------------------------------------*/
 
@@ -41,7 +37,21 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-void USB_StartTask(void* argument);
+/**
+ * @brief Starts the HIL ADC for the TX stream. Does not start the timer as
+ * this is done when transmitting
+ */
+void HilStream_StartAdc(void);
+
+/**
+ * @brief Starts the DAC for rx stream feedback output
+ * 
+ */
+void HilStream_StartDac(void);
+void HilStream_StopAdc(void);
+void HilStream_StopDac(void);
+void HilStream_DacCallback(bool first_half);
+void HilStream_AdcCallback(bool first_half);
 
 /* Private defines -----------------------------------------------------------*/
 
@@ -49,4 +59,4 @@ void USB_StartTask(void* argument);
 }
 #endif
 
-#endif /* USB_USB_MAIN_H_ */
+#endif /* HIL_HIL_STREAM_H_ */

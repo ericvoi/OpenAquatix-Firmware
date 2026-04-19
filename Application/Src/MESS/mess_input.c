@@ -732,7 +732,7 @@ void updateThresholdSamples(void)
   for (uint16_t i = 0; i < unique_frequency_conditions; i++) {
     frequency_thresholds[i].energy_threshold = (float) frequency_thresholds[i].raw_amplitude_threshold *
         frequency_thresholds[i].raw_amplitude_threshold * MSG_START_FFT_SIZE / 2.0f /
-        (1 << (ADC_BITS - 1)) / (1 << (ADC_BITS - 1));
+        (1 << (INPUT_ADC_BITS - 1)) / (1 << (INPUT_ADC_BITS - 1));
 
     uint32_t ns_per_sample = 1000000000 / (FILT_GetSamplingRate());
     frequency_thresholds[i].num_samples = frequency_thresholds[i].length_us * 1000 / ns_per_sample * FFT_OVERLAP / MSG_START_FFT_SIZE + 1;

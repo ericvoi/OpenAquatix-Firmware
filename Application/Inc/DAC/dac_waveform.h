@@ -45,7 +45,8 @@ typedef enum {
 /* Exported constants --------------------------------------------------------*/
 
 #define DAC_BUFFER_SIZE     500
-#define DAC_SAMPLE_RATE     1000000
+#define DAC_SUBSAMPLING     2
+#define DAC_SAMPLE_RATE     (1000000 / DAC_SUBSAMPLING)
 
 /* Exported macro ------------------------------------------------------------*/
 

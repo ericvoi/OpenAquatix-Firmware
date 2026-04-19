@@ -72,6 +72,13 @@ float BackgroundNoise_GetScaleless();
 float BackgroundNoise_GetNsd();
 
 /**
+ * @brief Returns the rms background noise in terms of rms counts
+ * 
+ * @return uint16_t RMS background noise (in ADC counts)
+ */
+uint16_t BackgroundNoise_GetNoiseRmsCounts(void);
+
+/**
  * @brief Whether enough samples have been analyzed for a background noise calculation
  * 
  * @return true if ready, false otherwise

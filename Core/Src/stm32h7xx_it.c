@@ -38,6 +38,8 @@
 #include "sys_temperature.h"
 #include "filt_main.h"
 #include "tusb.h"
+#include "hil_manager.h"
+#include "hil_main.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -99,6 +101,7 @@ extern ADC_HandleTypeDef hadc2;
 extern ADC_HandleTypeDef hadc3;
 extern TIM_HandleTypeDef htim8;
 extern osEventFlagsId_t filt_events;
+extern osThreadId_t hil_taskHandle;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -526,13 +529,17 @@ void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef* hi2c)
   INA_TxComplete();
 }
 
+uint32_t cb_cnt3 = 0;
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc)
 {
   if (hadc == &INPUT_ADC) {
     osEventFlagsSet(filt_events, FILT_FIRST_HALF_RDY_RAW);
   }
   else if (hadc == &FEEDBACK_ADC) {
-    // addToFeedbackBuffer(true); //  TODO Feedback
+    cb_cnt3++;
+    if (HilManager_HilMode() == HIL_STATE_TX) {
+      osThreadFlagsSet(hil_taskHandle, HIL_EVT_ADC_HALF_FULL);
+    }
   }
 }
 
@@ -542,7 +549,9 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
     osEventFlagsSet(filt_events, FILT_SECOND_HALF_RDY_RAW);
   }
   else if (hadc == &FEEDBACK_ADC) {
-    // addToFeedbackBuffer(false); // TODO Feedback
+    if (HilManager_HilMode() == HIL_STATE_TX) {
+      osThreadFlagsSet(hil_taskHandle, HIL_EVT_ADC_FULL);
+    }
   }
   else if (hadc == &TEMPERATURE_ADC) {
     Temperature_AddTjValue();

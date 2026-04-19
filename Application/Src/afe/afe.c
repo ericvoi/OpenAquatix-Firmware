@@ -184,6 +184,7 @@ void enterTx(bool with_feedback)
   PWR_30V(true);
 
   // Setting the DAC to mid-value prevents high frequency spike when DAC starts modulating
+  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
   HAL_TIM_Base_Start(&htim6);
   HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2048);
   HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);

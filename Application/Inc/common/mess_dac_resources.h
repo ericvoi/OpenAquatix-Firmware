@@ -56,6 +56,15 @@ void MessDacResource_RegisterMessageConfiguration(const DspConfig_t* new_cfg,
     BitMessage_t* new_bit_msg);
 
 /**
+ * @brief Registers a tone to send with the DAC through feedback
+ * 
+ * @param freq_hz Frequency of the tone
+ * @param duration_ms Duration of the tone in ms
+ * @param amplitude Amplitude of the signal relative to full-scale
+ */
+void MessDacResource_RegisterTestTone(uint32_t freq_hz, uint32_t duration_ms, float amplitude);
+
+/**
  * @brief Get the next waveform step
  *
  * @param current_step Current step in the bit message

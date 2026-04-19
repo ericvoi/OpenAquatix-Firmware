@@ -23,6 +23,11 @@
 /* Private typedef -----------------------------------------------------------*/
 
 typedef enum {
+  OUTPUT_MESSAGE,
+  OUTPUT_TEST_TONE
+} DacOutputType_t;
+
+typedef enum {
   PACKET_PHASE_WAKEUP,
   PACKET_PHASE_SYNC,
   PACKET_PHASE_DATA
@@ -49,9 +54,13 @@ static DspConfig_t cfg;
 static BitMessage_t bit_msg;
 
 static TransmissionLayout_t transmission_layout;
+static DacOutputType_t output_type;
+static WaveformStep_t test_tone;
 
 /* Private function prototypes -----------------------------------------------*/
 
+WaveformStep_t getMessageStep(uint16_t current_step);
+WaveformStep_t getTestToneStep(uint16_t current_step);
 TransmissionPhase_t getPhase(uint16_t current_step, uint16_t* transmission_step, uint16_t* symbol_index);
 
 /* Exported function definitions ---------------------------------------------*/
@@ -78,11 +87,52 @@ void MessDacResource_RegisterMessageConfiguration(const DspConfig_t* new_cfg,
 
   transmission_layout.wakeup_steps = WakeupTones_NumSteps(new_cfg);
   transmission_layout.sync_steps = Sync_NumSteps(new_cfg);
+  output_type = OUTPUT_MESSAGE;
+
+  osMutexRelease(mess_dac_resource_mutex);
+}
+
+void MessDacResource_RegisterTestTone(uint32_t freq_hz, uint32_t duration_ms, float amplitude)
+{
+  if (osMutexAcquire(mess_dac_resource_mutex, MUTEX_TIMEOUT) != osOK) {
+    REGISTER_ERROR(ERROR_MUTEX_TIMEOUT);
+    return;
+  }
+
+  test_tone.freq_hz = freq_hz;
+  test_tone.duration_us = duration_ms * 1000;
+  test_tone.relative_amplitude = amplitude;
+  test_tone.output_type = OUTPUT_CONSTANT_SQUARE;
+  output_type = OUTPUT_TEST_TONE;
 
   osMutexRelease(mess_dac_resource_mutex);
 }
 
 WaveformStep_t MessDacResource_GetStep(uint16_t current_step)
+{
+  switch (output_type) {
+    case OUTPUT_MESSAGE:
+      return getMessageStep(current_step);
+    case OUTPUT_TEST_TONE:
+      return getTestToneStep(current_step);
+    default: {
+      WaveformStep_t step = {0};
+      REGISTER_ERROR_NON_VOID(ERROR_UNHANDLED_CASE, step);
+      return step;
+    }
+  }
+}
+
+uint16_t MessDacResource_SyncWakeupSteps()
+{
+  uint16_t sync_steps = Sync_NumSteps(&cfg);
+  uint16_t wakeup_steps = WakeupTones_NumSteps(&cfg);
+  return sync_steps + wakeup_steps;
+}
+
+/* Private function definitions ----------------------------------------------*/
+
+WaveformStep_t getMessageStep(uint16_t current_step)
 {
   WaveformStep_t waveform_step = {0};
 
@@ -113,14 +163,13 @@ WaveformStep_t MessDacResource_GetStep(uint16_t current_step)
   return waveform_step;
 }
 
-uint16_t MessDacResource_SyncWakeupSteps()
+WaveformStep_t getTestToneStep(uint16_t current_step)
 {
-  uint16_t sync_steps = Sync_NumSteps(&cfg);
-  uint16_t wakeup_steps = WakeupTones_NumSteps(&cfg);
-  return sync_steps + wakeup_steps;
-}
+  WaveformStep_t waveform_step = {0};
+  if (current_step != 0) return waveform_step;
 
-/* Private function definitions ----------------------------------------------*/
+  return test_tone;
+}
 
 TransmissionPhase_t getPhase(uint16_t current_step, uint16_t* transmission_step, uint16_t* symbol_index)
 {

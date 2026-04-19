@@ -178,9 +178,15 @@ float BackgroundNoise_GetScaleless()
 
 float BackgroundNoise_GetNsd()
 {
-  float psd_two_sided = in_band_noise / FILT_GetBandwidth() / 2.0f;
+  float psd_two_sided = in_band_noise / FILT_GetSamplingRate();
   float psd_one_sided = psd_two_sided * 2.0f * (ADC_V_SCALE * ADC_V_SCALE);
   return sqrtf(psd_one_sided) * 1.0e9f;
+}
+
+uint16_t BackgroundNoise_GetNoiseRmsCounts(void)
+{
+  float full_scale = (float)(1 << (INPUT_ADC_BITS - 1));
+  return (uint16_t)(sqrtf(in_band_noise) * full_scale + 0.5f);
 }
 
 bool BackgroundNoise_Ready()
