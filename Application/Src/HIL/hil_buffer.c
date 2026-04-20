@@ -82,6 +82,12 @@ static volatile uint8_t hil_error_flags = 0;
 // and clears this flag. Cleared unconditionally by HilBuf_Reset().
 static bool dac_start_pending = false;
 
+// Diagnostic: one-shot log of next_packet_index vs first incoming rx_pi at the
+// start of each RX session. Set by HilBuf_Reset, cleared after the dump.
+// Tells us definitively whether the host or firmware starts misaligned when
+// BAD_PACKET_INDEX accumulates ~(2^16 - drift) at startup.
+static bool log_first_rx_packet = false;
+
 /* Private function prototypes -----------------------------------------------*/
 
 static uint16_t availableSamples(void);
@@ -280,6 +286,20 @@ void HilBuf_ReadRxPackets(void)
   while (tud_vendor_n_available(VENDOR_ITF_HIL_STREAM) >= sizeof(HilRxData_t)) {
     uint16_t usb_avail = (uint16_t) tud_vendor_n_available(VENDOR_ITF_HIL_STREAM);
     uint32_t n = tud_vendor_n_read(VENDOR_ITF_HIL_STREAM, &rx_packet, sizeof(HilRxData_t));
+
+#if HIL_WRAP_TRACE
+    if (log_first_rx_packet) {
+      log_first_rx_packet = false;
+      char line[96];
+      int written = snprintf(line, sizeof(line),
+                             "\r\n[HIL] First RX pkt: rx_pi=0x%04X expected=0x%04X usb_av=%u\r\n",
+                             (unsigned) rx_packet.packet_index,
+                             (unsigned) next_packet_index,
+                             (unsigned) usb_avail);
+      if (written > 0) USB_TransmitData((uint8_t*) line, (uint16_t) written);
+    }
+#endif
+
     if (n != sizeof(HilRxData_t)) {
       WRAP_TRACE_REC(next_packet_index, rx_packet.packet_index, usb_avail, n,
                      availableSamples(), hil_error_flags, WRAP_EV_SHORT_READ);
@@ -352,6 +372,7 @@ void HilBuf_Reset(void)
   next_packet_index = 0;
   hil_error_flags = 0;
   dac_start_pending = false;
+  log_first_rx_packet = true;
 #if HIL_WRAP_TRACE
   trace_count = 0;
   trace_prev_in_window = false;
