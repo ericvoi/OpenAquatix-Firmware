@@ -33,6 +33,7 @@
 /* Private define ------------------------------------------------------------*/
 
 #define TRANSDUCER_SETTLE_TIME_MS         200
+#define TPA_STARTUP_TIME_MS               200
 #define TRANSITION_TIMEOUT_MS             750
 
 /* Private macro -------------------------------------------------------------*/
@@ -201,6 +202,7 @@ void enterTx(bool with_feedback)
     osDelay(1);
   }
   TPA_Unmute();
+  osDelay(TPA_STARTUP_TIME_MS); // TPA3244 internal startup after RST_N high
   TR_Change(TR_OUTPUT_MODE);
   DACSwitch_Change(DAC_DIRECTION_TRANSDUCER);
   osDelay(3); // TR relay settle (~3 ms per datasheet)
