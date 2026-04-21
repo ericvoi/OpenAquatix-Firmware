@@ -135,11 +135,11 @@ void enterRx(void)
   if (AFE_IsTransmitting()) {
     osDelay(TRANSDUCER_SETTLE_TIME_MS);
   }
-  osDelay(1); // Small delay for the TR switch
-  while (PWR_State30V() != PWR_OFF && PWR_StateAnalog() != PWR_READY) {
-    if (isTimedOut(start_timestamp)) 
+  osDelay(3); // TR relay settle (~3 ms per datasheet)
+  while (PWR_State30V() != PWR_OFF || PWR_StateAnalog() != PWR_READY) {
+    if (isTimedOut(start_timestamp))
       REGISTER_ERROR(ERROR_AFE_TIMEOUT);
-    
+
     osDelay(1);
   }
   TR_Change(TR_INPUT_MODE);
@@ -159,12 +159,15 @@ void enterRxFeedback(void)
   PWR_30V(false);
   TR_Change(TR_NONE);
   DACSwitch_Change(DAC_DIRECTION_FEEDBACK);
-  osDelay(1); // Small delay to ensure TR switch has changed
+  if (AFE_IsTransmitting()) {
+    osDelay(TRANSDUCER_SETTLE_TIME_MS);
+  }
+  osDelay(3); // TR relay settle (~3 ms per datasheet)
   // TPA configuration does not matter since powered off
-  while (PWR_State30V() != PWR_OFF && PWR_StateAnalog() != PWR_READY) {
-    if (isTimedOut(start_timestamp)) 
+  while (PWR_State30V() != PWR_OFF || PWR_StateAnalog() != PWR_READY) {
+    if (isTimedOut(start_timestamp))
       REGISTER_ERROR(ERROR_AFE_TIMEOUT);
-    
+
     osDelay(1);
   }
   RETURN_IF_ERROR_PRESENT(restartADCs());
@@ -191,16 +194,16 @@ void enterTx(bool with_feedback)
 
   osDelay(1);
   HAL_TIM_Base_Stop(&htim6);
-  while (PWR_State30V() != PWR_READY && PWR_StateAnalog() != PWR_READY) {
+  while (PWR_State30V() != PWR_READY || PWR_StateAnalog() != PWR_READY) {
     if (isTimedOut(start_timestamp))
       REGISTER_ERROR(ERROR_AFE_TIMEOUT);
-    
+
     osDelay(1);
   }
   TPA_Unmute();
   TR_Change(TR_OUTPUT_MODE);
   DACSwitch_Change(DAC_DIRECTION_TRANSDUCER);
-  osDelay(1); // Small delay to ensure TR switch has fully switched
+  osDelay(3); // TR relay settle (~3 ms per datasheet)
   if (with_feedback == true) {
     afe_mode = AFE_MODE_TX_FEEDBACK;
   }
