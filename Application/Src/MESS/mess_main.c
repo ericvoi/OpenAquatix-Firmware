@@ -467,11 +467,20 @@ void switchState(ProcessingState_t new_state)
         notifyHilTransitioning();
       Sync_Reset();
       cfg = &custom_config;
-      if (Waveform_StopWaveformOutput() == false) 
-        REGISTER_ERROR(ERROR_STOPPING_TRANSDUCER_OUTPUT);
+      // PROCESSING → LISTENING comes from finishing a decode while still in
+      // RX feedback mode. The waveform DAC isn't driving anything on this
+      // path — the HIL feedback DAC is. Calling Waveform_StopWaveformOutput()
+      // here would HAL_DAC_Stop_DMA the same channel HIL uses, and without
+      // notifyHilRx() to follow up (skipped on PROCESSING → LISTENING) the
+      // DAC DMA never restarts: the ring fills, all RX packets get dropped,
+      // and status packets stop because they're gated on accept.
+      if (old_state != PROCESSING) {
+        if (Waveform_StopWaveformOutput() == false)
+          REGISTER_ERROR(ERROR_STOPPING_TRANSDUCER_OUTPUT);
+      }
 
       AfeMode_t new_mode = (in_hil) ? (AFE_MODE_RX_FEEDBACK) : (AFE_MODE_RX);
-      
+
       RETURN_IF_ERROR_PRESENT(AFE_SetMode(new_mode));
       if (old_state != PROCESSING)
         notifyHilRx();
