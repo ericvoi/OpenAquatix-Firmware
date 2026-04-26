@@ -109,7 +109,8 @@ static uint16_t availableSamples(void);
 
 typedef enum {
   WRAP_EV_ACCEPTED       = 'A',  // Packet accepted, counter advanced
-  WRAP_EV_INDEX_MISMATCH = 'I',  // rx_packet.packet_index != next_packet_index
+  WRAP_EV_INDEX_MISMATCH = 'I',  // rx_packet.packet_index < next_packet_index (stale/dup)
+  WRAP_EV_INDEX_RESYNC   = 'R',  // rx_packet.packet_index ahead of next_packet_index, jumped forward
   WRAP_EV_RING_FULL      = 'F',  // TryAddPacket failed (ring full)
   WRAP_EV_SHORT_READ     = 'S',  // tud_vendor_n_read returned < 512
   WRAP_EV_UNDERRUN       = 'U',  // GetData found available < requested
@@ -307,12 +308,31 @@ void HilBuf_ReadRxPackets(void)
       break;
     }
 
-    if (rx_packet.packet_index != next_packet_index) {
-      WRAP_TRACE_REC(next_packet_index, rx_packet.packet_index, usb_avail, n,
-                     availableSamples(), hil_error_flags, WRAP_EV_INDEX_MISMATCH);
-      // Spec §3.2: bad index → do not accept, do not advance counter.
-      REGISTER_ERROR(ERROR_HIL_BAD_PACKET_INDEX);
-      continue;
+    // Spec §3.2: ring-full / busy drops leave next_packet_index in place so
+    // the host sees drift. The host can't retransmit the dropped packet, so
+    // strict equality here would deadlock RX permanently after a single drop.
+    // Forward-tolerant resync: if the incoming index is ahead of expected
+    // (within a small window), assume the firmware dropped intermediate
+    // packets and jump next_packet_index forward to match. The standard
+    // increment after the ring-full check then advances past the accepted
+    // packet. Anything outside the forward window is treated as stale or
+    // garbage and rejected without advancing.
+    const uint16_t fwd_dist = (uint16_t)
+        (rx_packet.packet_index - next_packet_index);
+    const uint16_t FORWARD_WINDOW = 1024U;  // ring is 64 packets; this is plenty
+    if (fwd_dist != 0U) {
+      if (fwd_dist <= FORWARD_WINDOW) {
+        WRAP_TRACE_REC(next_packet_index, rx_packet.packet_index, usb_avail, n,
+                       availableSamples(), hil_error_flags, WRAP_EV_INDEX_RESYNC);
+        REGISTER_ERROR(ERROR_HIL_BAD_PACKET_INDEX);
+        next_packet_index = rx_packet.packet_index;
+        // Fall through to ring-full check and accept.
+      } else {
+        WRAP_TRACE_REC(next_packet_index, rx_packet.packet_index, usb_avail, n,
+                       availableSamples(), hil_error_flags, WRAP_EV_INDEX_MISMATCH);
+        REGISTER_ERROR(ERROR_HIL_BAD_PACKET_INDEX);
+        continue;
+      }
     }
 
     if (!HilBuf_TryAddPacket(rx_packet.data, SAMPLES_PER_RX_PACKET)) {
