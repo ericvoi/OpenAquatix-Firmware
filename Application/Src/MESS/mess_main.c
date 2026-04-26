@@ -150,7 +150,7 @@ DEFINE_DESC_TABLE(ENCRYPTION_TABLE, encryption_descriptors)
 
 /* Private function prototypes -----------------------------------------------*/
 
-static void switchState(ProcessingState_t newState);
+static void switchState(ProcessingState_t new_state);
 static void handleFlags();
 static void sendMessage();
 static void handleSync(SyncState_t sync_state);
@@ -446,11 +446,12 @@ ProcessingState_t MESS_GetState()
 
 /* Private function definitions ----------------------------------------------*/
 
-void switchState(ProcessingState_t newState)
+void switchState(ProcessingState_t new_state)
 {
   RETURN_IF_ERROR_PRESENT();
+  ProcessingState_t old_state = task_state;
   task_state = CHANGING;
-  switch (newState) {
+  switch (new_state) {
     case DRIVING_TRANSDUCER: {
       notifyHilTransitioning();
       AfeMode_t new_mode = (in_hil) ? (AFE_MODE_TX_FEEDBACK) : (AFE_MODE_TX);
@@ -462,7 +463,8 @@ void switchState(ProcessingState_t newState)
       break;
     }
     case LISTENING: {
-      notifyHilTransitioning();
+      if (old_state != PROCESSING)
+        notifyHilTransitioning();
       Sync_Reset();
       cfg = &custom_config;
       if (Waveform_StopWaveformOutput() == false) 
@@ -471,7 +473,8 @@ void switchState(ProcessingState_t newState)
       AfeMode_t new_mode = (in_hil) ? (AFE_MODE_RX_FEEDBACK) : (AFE_MODE_RX);
       
       RETURN_IF_ERROR_PRESENT(AFE_SetMode(new_mode));
-      notifyHilRx();
+      if (old_state != PROCESSING)
+        notifyHilRx();
       task_state = LISTENING;
       break;
     }
