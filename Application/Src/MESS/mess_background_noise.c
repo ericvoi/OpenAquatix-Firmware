@@ -183,10 +183,20 @@ float BackgroundNoise_GetNsd()
   return sqrtf(psd_one_sided) * 1.0e9f;
 }
 
-uint16_t BackgroundNoise_GetNoiseRmsCounts(void)
+float BackgroundNoise_GetNoiseFloorPsdCountsPerSqrtHz(void)
 {
-  float full_scale = (float)(1 << (INPUT_ADC_BITS - 1));
-  return (uint16_t)(sqrtf(in_band_noise) * full_scale + 0.5f);
+  // in_band_noise is the smoothed normalized variance estimate (treated as
+  // an estimate of total broadband variance σ²; see GetNsd derivation).
+  //   var per Hz, two-sided  = in_band_noise / sample_rate
+  //   var per Hz, one-sided  = 2 × two-sided
+  //   counts² / Hz one-sided = above × full_scale²
+  //   counts / √Hz           = sqrt(...)
+  if (estimator_state != BG_NOISE_RUNNING) return 0.0f;
+  const float fs = (float)FILT_GetSamplingRate();
+  if (fs <= 0.0f) return 0.0f;
+  const float full_scale = (float)(1U << (INPUT_ADC_BITS - 1));
+  const float one_sided_var_per_hz = in_band_noise * 2.0f / fs;
+  return sqrtf(one_sided_var_per_hz) * full_scale;
 }
 
 bool BackgroundNoise_Ready()

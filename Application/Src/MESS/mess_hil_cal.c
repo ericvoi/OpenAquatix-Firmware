@@ -63,6 +63,11 @@ void HilCal_Perform(const DspConfig_t* cfg)
   hil_cal.input_attenuation[1] = 20.0f * log10f(Feedback_GetAttenuation(1));
   hil_cal.output_attenuation =   20.0f * log10f(OUT_FB_ATTENUATION);
 
+  // Modem operating center frequency. Authoritative source for both the host's
+  // path-loss frequency (when this modem is the source) and noise-PSD reference
+  // frequency (when this modem is the receiver).
+  hil_cal.center_freq_hz = (float)cfg->fc;
+
 //   Get noise floor when feedback connected
   BackgroundNoise_Reset();
   while (BackgroundNoise_Ready() == false) {
@@ -70,7 +75,8 @@ void HilCal_Perform(const DspConfig_t* cfg)
     MessFiltResources_SetProcessingTail(MessFiltResources_GetInputAdcHead());
     osDelay(1);
   }
-  hil_cal.noise_floor = BackgroundNoise_GetNoiseRmsCounts();
+  hil_cal.noise_floor_psd_counts_per_sqrt_hz =
+      BackgroundNoise_GetNoiseFloorPsdCountsPerSqrtHz();
 
   // Calculate loopback gain
   FeedbackAttenuation_t atten = CALIBRATION_ATTENUATION;

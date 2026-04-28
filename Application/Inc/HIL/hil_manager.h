@@ -55,22 +55,41 @@ typedef struct __attribute__((packed)) {
   uint8_t reserved[62];
 } HilCommandPacket_t;
 
-// Note: Ensure 4-byte alignment of floats
+// Calibration packet — must remain byte-identical to the host's
+// CalibrationPayload (src/protocol/packets.hpp). 64 bytes total, packed.
+//
+// Field offsets (kept naturally aligned within the packed struct):
+//   [ 0]  response_id (1 with -fshort-enums)
+//   [ 1]  adc_bits, dac_bits, num_input_attenuations           (3 bytes)
+//   [ 4]  loopback_cal_attenuation                             (uint16)
+//   [ 6]  _reserved0                                           (uint16, alignment)
+//   [ 8]  noise_floor_psd_counts_per_sqrt_hz                   (float)
+//   [12]  loopback_gain                                        (float)
+//   [16]  adc_sampling_rate                                    (uint32)
+//   [20]  dac_sampling_rate                                    (uint32)
+//   [24]  input_attenuation[2]                                 (2 × float)
+//   [32]  output_attenuation                                   (float)
+//   [36]  center_freq_hz                                       (float)
+//   [40]  adc_vref_peak_volts                                  (float)
+//   [44]  dac_vref_peak_volts                                  (float)
+//   [48]  reserved[16]                                         (16 bytes)
 typedef struct __attribute__((packed)) {
   HilResponses_t response_id;
-  // Calibration data
   uint8_t adc_bits;
   uint8_t dac_bits;
   uint8_t num_input_attenuations;
-  uint16_t noise_floor;
   uint16_t loopback_cal_attenuation;
+  uint16_t _reserved0;
+  float noise_floor_psd_counts_per_sqrt_hz;
   float loopback_gain;
   uint32_t adc_sampling_rate;
   uint32_t dac_sampling_rate;
   float input_attenuation[2];
   float output_attenuation;
-
-  uint8_t reserved[32];
+  float center_freq_hz;
+  float adc_vref_peak_volts;
+  float dac_vref_peak_volts;
+  uint8_t reserved[16];
 } HilCalibrationPacket_t;
 
 typedef struct __attribute__((packed)) {

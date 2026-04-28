@@ -85,6 +85,13 @@ void HilManager_CalibrationDone(void)
   response_pkt.adc_sampling_rate = HIL_SAMPLING_RATE;
   response_pkt.dac_sampling_rate = HIL_SAMPLING_RATE;
 
+  // ADC and DAC are both single-ended around mid-rail with the analog supply
+  // as the reference; peak swing from mid-rail equals VDDA / 2. Sample 1.0
+  // (normalized) corresponds to V_ref_peak above mid-rail at the pin. ADC_VREF
+  // is defined in mess_filt_resources.h; the DAC shares the same supply.
+  response_pkt.adc_vref_peak_volts = ADC_VREF / 2.0f;
+  response_pkt.dac_vref_peak_volts = ADC_VREF / 2.0f;
+
   if (tud_vendor_n_write(VENDOR_ITF_HIL_CONTROL, &response_pkt, 
       sizeof(HilCalibrationPacket_t)) != sizeof(HilCalibrationPacket_t))
     REGISTER_ERROR(ERROR_HIL_RESPONSE_SEND_FAIL);
