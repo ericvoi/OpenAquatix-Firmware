@@ -23,10 +23,8 @@ extern osThreadId_t dac_taskHandle;
 
 /* Exported function definitions ---------------------------------------------*/
 
-void MessChirp_StartTx(bool to_transducer)
+void MessChirp_StartTx(void)
 {
-  (void)to_transducer;
-
   RETURN_IF_ERROR_PRESENT();
 
   HAL_TIM_Base_Stop(&htim6);

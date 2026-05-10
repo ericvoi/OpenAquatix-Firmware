@@ -37,22 +37,15 @@ extern "C" {
 /**
  * @brief Registers chirp parameters with the DAC resource layer and starts
  *        DAC output. Must be called from the MESS task context after
- *        switching the AFE/HIL state to TX.
+ *        switching the AFE/HIL state to TX (see enterDrivingTransducer()
+ *        in mess_main.c). Physical routing is the caller's responsibility.
  *
  * The function bypasses the message-framing pipeline by reusing the test-
  * tone resource path (Waveform_SetWaveformSequence with is_message=false)
  * and walks N constant-frequency stair steps that the waveform engine
  * stitches into a phase-continuous LFM sweep.
- *
- * The to_transducer parameter is informational only — physical routing is
- * controlled by AFE_SetMode() in the caller (see MESS_CHIRP_TX_TRANSDUCER /
- * MESS_CHIRP_TX_FEEDBACK handlers in mess_main.c).
- *
- * @param to_transducer true if the menu invocation requested transducer
- *                      output (logged for traceability), false for the
- *                      feedback network.
  */
-void MessChirp_StartTx(bool to_transducer);
+void MessChirp_StartTx(void);
 
 #ifdef __cplusplus
 }

@@ -71,9 +71,6 @@ static void deepSleep(FunctionContext_t* context);
 static void exportAllParameters(FunctionContext_t* context);
 static void importAllParameters(FunctionContext_t* context);
 static void sendChirpTransducer(FunctionContext_t* context);
-static void sendChirpFeedback(FunctionContext_t* context);
-static void requestChirp(FunctionContext_t* context, MessageFlags_t request_flag,
-                         const char* destination);
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -86,7 +83,7 @@ static MenuID_t debug_menu_children[] = {MENU_ID_DBG_GPIO, MENU_ID_DBG_SETLED,
                                          MENU_ID_DBG_NOISE, MENU_ID_DBG_DFU,
                                          MENU_ID_DBG_RESETCONFIG, MENU_ID_DBG_DEEPSLEEP,
                                          MENU_ID_DBG_EXPALL, MENU_ID_DBG_IMPALL,
-                                         MENU_ID_DBG_CHIRP_TX, MENU_ID_DBG_CHIRP_FB};
+                                         MENU_ID_DBG_CHIRP_TX};
 static const MenuNode_t debug_menu = {
   .id = MENU_ID_DBG,
   .description = "Debug Menu",
@@ -323,20 +320,6 @@ static const MenuNode_t debug_menu_chirp_tx = {
   .parameters = &debug_menu_chirp_tx_param
 };
 
-static ParamContext_t debug_menu_chirp_fb_param = {
-  .state = PARAM_STATE_0,
-  .param_id = MENU_ID_DBG_CHIRP_FB
-};
-static const MenuNode_t debug_menu_chirp_fb = {
-  .id = MENU_ID_DBG_CHIRP_FB,
-  .description = "Send LFM chirp through feedback network",
-  .handler = sendChirpFeedback,
-  .parent_id = MENU_ID_DBG,
-  .children_ids = NULL,
-  .num_children = 0,
-  .access_level = 0,
-  .parameters = &debug_menu_chirp_fb_param
-};
 
 
 /* Exported function definitions ---------------------------------------------*/
@@ -350,8 +333,7 @@ void COMM_RegisterDebugMenu(void)
              MenuSystem_RegisterMenu(&debug_menu_dfu) && MenuSystem_RegisterMenu(&debug_menu_reset) &&
              MenuSystem_RegisterMenu(&debug_menu_noise_f) && MenuSystem_RegisterMenu(&debug_menu_noise_level) &&
              MenuSystem_RegisterMenu(&debug_menu_deep_sleep) && MenuSystem_RegisterMenu(&debug_menu_expall) &&
-             MenuSystem_RegisterMenu(&debug_menu_impall) && MenuSystem_RegisterMenu(&debug_menu_chirp_tx) &&
-             MenuSystem_RegisterMenu(&debug_menu_chirp_fb);
+             MenuSystem_RegisterMenu(&debug_menu_impall) && MenuSystem_RegisterMenu(&debug_menu_chirp_tx);
 
   if (ret == false) REGISTER_ERROR(ERROR_MENU_REGISTRATION);
 }
@@ -612,27 +594,15 @@ static void importAllParameters(FunctionContext_t* context)
 
 static void sendChirpTransducer(FunctionContext_t* context)
 {
-  requestChirp(context, MESS_CHIRP_TX_TRANSDUCER, "transducer");
-}
-
-static void sendChirpFeedback(FunctionContext_t* context)
-{
-  requestChirp(context, MESS_CHIRP_TX_FEEDBACK, "feedback network");
-}
-
-static void requestChirp(FunctionContext_t* context, MessageFlags_t request_flag,
-                         const char* destination)
-{
   if (print_event_handle == NULL) {
     context->state->state = PARAM_STATE_COMPLETE;
     return;
   }
 
-  osEventFlagsSet(print_event_handle, request_flag);
+  osEventFlagsSet(print_event_handle, MESS_CHIRP_TX);
 
   sprintf((char*) context->output_buffer,
-          "\r\nChirp queued for %s (%u-%u Hz, %u us).\r\n\r\n",
-          destination,
+          "\r\nChirp queued for transducer (%u-%u Hz, %u us).\r\n\r\n",
           (unsigned) CHIRP_F_START_HZ, (unsigned) CHIRP_F_END_HZ,
           (unsigned) CHIRP_DURATION_US);
   COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
