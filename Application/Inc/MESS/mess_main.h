@@ -185,6 +185,8 @@ typedef enum {
   MESS_HIL_START = 1 << 19,
   MESS_HIL_STOP = 1 << 20,
   MESS_DAC_MESS_DONE = 1 << 21,
+  MESS_CHIRP_TX_TRANSDUCER = 1 << 22,
+  MESS_CHIRP_TX_FEEDBACK = 1 << 23,
 } MessageFlags_t;
 
 /* Exported macro ------------------------------------------------------------*/

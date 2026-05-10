@@ -57,12 +57,31 @@ void MessDacResource_RegisterMessageConfiguration(const DspConfig_t* new_cfg,
 
 /**
  * @brief Registers a tone to send with the DAC through feedback
- * 
+ *
  * @param freq_hz Frequency of the tone
  * @param duration_ms Duration of the tone in ms
  * @param amplitude Amplitude of the signal relative to full-scale
  */
 void MessDacResource_RegisterTestTone(uint32_t freq_hz, uint32_t duration_ms, float amplitude);
+
+/**
+ * @brief Registers a stair-stepped LFM chirp output
+ *
+ * Each call to MessDacResource_GetStep returns a constant-frequency
+ * WaveformStep_t whose freq_hz advances linearly across num_steps steps.
+ * The waveform engine carries the phase accumulator across steps so the
+ * sweep is phase-continuous (only the instantaneous frequency is piecewise
+ * constant). Used by mess_chirp.c for the paper-experiments TX probe.
+ *
+ * @param f_start_hz       Frequency of step 0
+ * @param f_end_hz         Frequency at the end of the last step
+ * @param num_steps        Number of constant-frequency stair steps
+ * @param step_duration_us Duration of each step in microseconds
+ * @param amplitude        Amplitude relative to full-scale (0.0–1.0)
+ */
+void MessDacResource_RegisterChirp(uint32_t f_start_hz, uint32_t f_end_hz,
+                                   uint16_t num_steps, uint32_t step_duration_us,
+                                   float amplitude);
 
 /**
  * @brief Get the next waveform step

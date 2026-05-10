@@ -34,6 +34,7 @@
 #include "mess_error_detection.h"
 #include "mess_ranging.h"
 #include "mess_hil_cal.h"
+#include "mess_chirp.h"
 
 #include "cfg_main.h"
 #include "cfg_parameters.h"
@@ -83,6 +84,13 @@ static osMessageQueueId_t tx_queue = NULL; // Messages to send
 static osMessageQueueId_t rx_queue = NULL; // Messages received
 
 static ProcessingState_t task_state = CHANGING;
+
+// Latched by handleFlags() when the CDC chirp menu fires MESS_CHIRP_TX_*;
+// consumed by switchState(DRIVING_TRANSDUCER) to dispatch to MessChirp_StartTx
+// instead of Modulate_StartTransducerOutput so the chirp can share the
+// canonical TX-state entry (HIL transition + AFE + done-flag clear).
+static bool chirp_pending = false;
+static bool chirp_to_transducer = false;
 
 static BitMessage_t input_bit_msg;
 
@@ -454,10 +462,18 @@ void switchState(ProcessingState_t new_state)
   switch (new_state) {
     case DRIVING_TRANSDUCER: {
       notifyHilTransitioning();
-      AfeMode_t new_mode = (in_hil) ? (AFE_MODE_TX_FEEDBACK) : (AFE_MODE_TX);
+      // Chirp via internal feedback in non-HIL forces TX_FEEDBACK; every
+      // other path uses transducer routing (or TX_FEEDBACK when in HIL).
+      bool route_to_feedback = in_hil || (chirp_pending && !chirp_to_transducer);
+      AfeMode_t new_mode = route_to_feedback ? AFE_MODE_TX_FEEDBACK : AFE_MODE_TX;
       RETURN_IF_ERROR_PRESENT(AFE_SetMode(new_mode)); // TODO: change to include feedback for input and output
       notifyHilTx();
-      RETURN_IF_ERROR_PRESENT(Modulate_StartTransducerOutput(message_length, cfg, &bit_msg, &tx_msg));
+      if (chirp_pending) {
+        chirp_pending = false;
+        MessChirp_StartTx(chirp_to_transducer);
+      } else {
+        RETURN_IF_ERROR_PRESENT(Modulate_StartTransducerOutput(message_length, cfg, &bit_msg, &tx_msg));
+      }
       osEventFlagsClear(print_event_handle, MESS_DAC_MESS_DONE);
       task_state = DRIVING_TRANSDUCER;
       break;
@@ -520,6 +536,11 @@ void handleFlags()
   if (flags & MESS_FREQ_RESP) {
     Modulate_TestFrequencyResponse(cfg->fc, 30000, 0.2f);
     in_feedback = true;
+    switchState(DRIVING_TRANSDUCER);
+  }
+  if (flags & (MESS_CHIRP_TX_TRANSDUCER | MESS_CHIRP_TX_FEEDBACK)) {
+    chirp_pending = true;
+    chirp_to_transducer = (flags & MESS_CHIRP_TX_TRANSDUCER) != 0u;
     switchState(DRIVING_TRANSDUCER);
   }
   if (flags & MESS_PRINT_WAVEFORM) {
