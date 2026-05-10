@@ -462,10 +462,16 @@ void switchState(ProcessingState_t new_state)
   switch (new_state) {
     case DRIVING_TRANSDUCER: {
       notifyHilTransitioning();
-      // Chirp via internal feedback in non-HIL forces TX_FEEDBACK; every
-      // other path uses transducer routing (or TX_FEEDBACK when in HIL).
-      bool route_to_feedback = in_hil || (chirp_pending && !chirp_to_transducer);
-      AfeMode_t new_mode = route_to_feedback ? AFE_MODE_TX_FEEDBACK : AFE_MODE_TX;
+      AfeMode_t new_mode;
+      if (chirp_pending) {
+        // Chirp is a debug probe — in HIL mirror MSG_TRANSMIT_FEEDBACK
+        // (AFE_MODE_RX_FEEDBACK: no 30 V, no PA; host samples the feedback
+        // ADC directly). On the bench, respect the menu's pick.
+        new_mode = in_hil ? AFE_MODE_RX_FEEDBACK
+                          : (chirp_to_transducer ? AFE_MODE_TX : AFE_MODE_TX_FEEDBACK);
+      } else {
+        new_mode = (in_hil) ? AFE_MODE_TX_FEEDBACK : AFE_MODE_TX;
+      }
       RETURN_IF_ERROR_PRESENT(AFE_SetMode(new_mode)); // TODO: change to include feedback for input and output
       notifyHilTx();
       if (chirp_pending) {
