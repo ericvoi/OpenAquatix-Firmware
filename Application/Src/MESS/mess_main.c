@@ -152,7 +152,6 @@ DEFINE_DESC_TABLE(ENCRYPTION_TABLE, encryption_descriptors)
 /* Private function prototypes -----------------------------------------------*/
 
 static void switchState(ProcessingState_t new_state);
-static void enterDrivingTransducer(void);
 static void handleFlags();
 static void sendMessage();
 static void handleSync(SyncState_t sync_state);
@@ -455,7 +454,10 @@ void switchState(ProcessingState_t new_state)
   task_state = CHANGING;
   switch (new_state) {
     case DRIVING_TRANSDUCER: {
-      enterDrivingTransducer();
+      notifyHilTransitioning();
+      AfeMode_t new_mode = (in_hil) ? (AFE_MODE_TX_FEEDBACK) : (AFE_MODE_TX);
+      RETURN_IF_ERROR_PRESENT(AFE_SetMode(new_mode)); // TODO: change to include feedback for input and output
+      notifyHilTx();
       RETURN_IF_ERROR_PRESENT(Modulate_StartTransducerOutput(message_length, cfg, &bit_msg, &tx_msg));
       osEventFlagsClear(print_event_handle, MESS_DAC_MESS_DONE);
       task_state = DRIVING_TRANSDUCER;
@@ -499,18 +501,6 @@ void switchState(ProcessingState_t new_state)
   }
 }
 
-// Common HIL/AFE pre-roll for entering DRIVING_TRANSDUCER. Shared by
-// switchState(DRIVING_TRANSDUCER) and the MESS_CHIRP_TX handler; the caller
-// then starts the DAC source (Modulate_StartTransducerOutput / MessChirp_StartTx)
-// and finishes with the standard `clear MESS_DAC_MESS_DONE → task_state` epilogue.
-void enterDrivingTransducer(void)
-{
-  notifyHilTransitioning();
-  AfeMode_t new_mode = (in_hil) ? (AFE_MODE_TX_FEEDBACK) : (AFE_MODE_TX);
-  RETURN_IF_ERROR_PRESENT(AFE_SetMode(new_mode));
-  notifyHilTx();
-}
-
 void handleFlags()
 {
   uint32_t flags = osEventFlagsWait(print_event_handle, 0x00FFFFFFU, osFlagsWaitAny, 0);
@@ -534,7 +524,10 @@ void handleFlags()
     switchState(DRIVING_TRANSDUCER);
   }
   if (flags & MESS_CHIRP_TX) {
-    enterDrivingTransducer();
+    notifyHilTransitioning();
+    AfeMode_t chirp_mode = (in_hil) ? AFE_MODE_TX_FEEDBACK : AFE_MODE_TX;
+    RETURN_IF_ERROR_PRESENT(AFE_SetMode(chirp_mode));
+    notifyHilTx();
     MessChirp_StartTx();
     osEventFlagsClear(print_event_handle, MESS_DAC_MESS_DONE);
     task_state = DRIVING_TRANSDUCER;
