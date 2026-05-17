@@ -201,20 +201,8 @@ static void exitHilMode(void)
   osEventFlagsSet(print_event_handle, MESS_HIL_STOP);
 }
 
-// Stop both DMAs (HAL stop is synchronous, so no new DMA
-// callbacks will fire after this returns), flush the USB HIL-stream FIFOs, wipe
-// the ring buffer + sticky error flags + packet counter, and clear any HIL
-// event flags that were raised before or during the stop so stale events from
-// the previous direction don't run against the new state.
-// AFE mode is intentionally not reset here — modems aren't transmitting at HIL entry.
 static void resetHil(void)
 {
-  // The waveform DAC (message TX generator) shares hdac1/DAC_CHANNEL_1 with
-  // the HIL-feedback DAC. If MESS is mid-message, calling HilStream_StopDac
-  // below would kill the half/complete callbacks driving Waveform_FillBuffer,
-  // last_fill is never set, and MESS wedges in DRIVING_TRANSDUCER waiting
-  // for MESS_DAC_MESS_DONE forever (only POR recovers). Raise the flag
-  // explicitly so MESS aborts the in-flight message and transitions out.
   if (Waveform_IsRunning()) {
     Waveform_StopWaveformOutput();
   }

@@ -223,9 +223,9 @@ void updateBackgroundNoise()
       noise_history_index = (noise_history_index + 1) % NOISE_HISTORY_SIZE; 
       break;
     case BG_NOISE_RUNNING:
-      if (current_block.accumulated_energy > (in_band_noise * NOISE_ESTIMATION_REJECTION) && // Too low energy
-          (HAL_AbsoluteTimestamp() < (last_noise_entry_timestamp + BACKGROUND_NOISE_TIMEOUT_MS))) // Not timed out
-        break;
+      // if (current_block.accumulated_energy > (in_band_noise * NOISE_ESTIMATION_REJECTION) && // Too low energy
+      //     (HAL_AbsoluteTimestamp() < (last_noise_entry_timestamp + BACKGROUND_NOISE_TIMEOUT_MS))) // Not timed out
+      //   break;
       noise_history[noise_history_index] = current_block.accumulated_energy;
       in_band_noise = computePercentile(noise_history, accumulated_noise_entries)
                       * NOISE_ESTIMATION_BIAS;

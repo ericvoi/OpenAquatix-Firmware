@@ -83,6 +83,7 @@ void Interleaver_Undo(BitMessage_t* bit_msg, const DspConfig_t* cfg, bool is_pre
 void interleave(uint16_t start_index, uint16_t length,
     BitMessage_t* input_bit_msg, BitMessage_t* buffer_bit_msg)
 {
+  if (length < 3) return;
   // If the length and the interleaver depth have a common denominator other
   // than 1, the interleaver will result in duplicate entries and lost data
   uint16_t interleaver_depth = findInterleavingDepth(length);
@@ -107,6 +108,7 @@ void interleave(uint16_t start_index, uint16_t length,
 void deinterleave(uint16_t start_index, uint16_t length,
     BitMessage_t* input_bit_msg, BitMessage_t* buffer_bit_msg)
 {
+  if (length < 3) return;
   // If the length and the interleaver depth have a common denominator other
   // than 1, the interleaver will result in duplicate entries and lost data
   uint16_t interleaver_depth = findInterleavingDepth(length);

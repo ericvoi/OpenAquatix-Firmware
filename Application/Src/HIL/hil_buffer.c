@@ -22,7 +22,7 @@
 #include <string.h>
 
 #ifndef HIL_WRAP_TRACE
-#define HIL_WRAP_TRACE 1
+#define HIL_WRAP_TRACE 0
 #endif
 
 #if HIL_WRAP_TRACE

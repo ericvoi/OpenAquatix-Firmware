@@ -1,12 +1,8 @@
 /*
  * mess_chirp.h
  *
- * Hard-coded LFM chirp TX path for the OpenCREST paper-experiments
- * channel-validation probe (§4.2). Emits a single 25→35 kHz, 50 ms
- * linear chirp through the production DAC chain. All RX-side detection
- * is done off-board on the host, so this module is intentionally
- * minimal (no menu params, no on-modem detection) and parallel to
- * mess_modulate.c for easy removal post-paper.
+ *  Created on: May 8, 2026
+ *      Author: ericv
  *
  * Copyright (c) 2026 OpenAquatix Contributors
  * SPDX-License-Identifier: MIT
@@ -30,7 +26,7 @@ extern "C" {
 #define CHIRP_DURATION_US       50000u
 #define CHIRP_NUM_STEPS         500u
 #define CHIRP_STEP_DURATION_US  (CHIRP_DURATION_US / CHIRP_NUM_STEPS)
-#define CHIRP_AMPLITUDE         (1.0f)
+#define CHIRP_AMPLITUDE         (0.5f)
 
 /* Exported functions prototypes ---------------------------------------------*/
 
