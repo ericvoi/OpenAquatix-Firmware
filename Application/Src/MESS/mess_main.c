@@ -188,9 +188,30 @@ void MESS_StartTask(void* argument)
     switch (task_state) {
       case DRIVING_TRANSDUCER: {
         // Currently driving transducer so listen to transducer feedback network
+        static uint32_t drv_poll_count = 0;
+        drv_poll_count++;
+        if ((drv_poll_count % 500) == 0) {
+          uint32_t raw = osEventFlagsGet(print_event_handle);
+          char hbuf[80];
+          int hn = snprintf(hbuf, sizeof(hbuf),
+                            "\r\n[DBG %lu] MESS drv poll #%lu raw=0x%lx\r\n",
+                            (unsigned long) osKernelGetTickCount(),
+                            (unsigned long) drv_poll_count,
+                            (unsigned long) raw);
+          if (hn > 0) USB_TransmitData((uint8_t*) hbuf, (uint16_t) hn);
+        }
         uint32_t flags = osEventFlagsWait(print_event_handle, MESS_DAC_MESS_DONE, osFlagsWaitAny, 0);
 
         if (flags & osFlagsError) break;
+
+        {
+          char sbuf[80];
+          int sn = snprintf(sbuf, sizeof(sbuf),
+                            "\r\n[DBG %lu] MESS sees flags=0x%lx\r\n",
+                            (unsigned long) osKernelGetTickCount(),
+                            (unsigned long) flags);
+          if (sn > 0) USB_TransmitData((uint8_t*) sbuf, (uint16_t) sn);
+        }
 
         if (flags & MESS_DAC_MESS_DONE) {
           switchState(LISTENING);
