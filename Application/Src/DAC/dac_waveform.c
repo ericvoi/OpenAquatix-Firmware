@@ -380,24 +380,24 @@ void updateWaveformParameters()
 void HAL_DAC_ConvHalfCpltCallbackCh1(DAC_HandleTypeDef *hdac)
 {
   (void)(hdac);
-  if (HilManager_HilMode() == HIL_STATE_RX) {
-    osThreadFlagsSet(hil_taskHandle, HIL_EVT_DAC_HALF_FULL);
-    return;
-  }
   if (dac_running == true) {
     osThreadFlagsSet(dac_taskHandle, DAC_FILL_FIRST_HALF);
+    return;
+  }
+  if (HilManager_HilMode() == HIL_STATE_RX) {
+    osThreadFlagsSet(hil_taskHandle, HIL_EVT_DAC_HALF_FULL);
   }
 }
 
 void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac)
 {
   (void)(hdac);
-  if (HilManager_HilMode() == HIL_STATE_RX) {
-    osThreadFlagsSet(hil_taskHandle, HIL_EVT_DAC_FULL);
-    return;
-  }
   if (dac_running == true) {
     osThreadFlagsSet(dac_taskHandle, DAC_FILL_LAST_HALF);
+    return;
+  }
+  if (HilManager_HilMode() == HIL_STATE_RX) {
+    osThreadFlagsSet(hil_taskHandle, HIL_EVT_DAC_FULL);
   }
 }
 

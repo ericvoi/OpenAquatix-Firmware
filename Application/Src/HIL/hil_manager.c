@@ -18,12 +18,14 @@
 #include "mess_filt_resources.h"
 #include "mess_main.h"
 #include "dac_waveform.h"
+#include "hmi_usb.h"
 #include "tusb.h"
 #include "error_manager.h"
 #include "usb_main.h"
 #include "cmsis_os.h"
 #include "stm32h7xx_hal.h"
 #include <stdint.h>
+#include <stdio.h>
 
 /* Private typedef -----------------------------------------------------------*/
 
@@ -183,6 +185,9 @@ static void pingRespond(void)
 
 static void enterHilMode(void)
 {
+  if (Waveform_IsRunning()) {
+    Waveform_StopWaveformOutput();
+  }
   resetHil();
   hil_state = HIL_STATE_RX;
   // Defer the DAC start until the host has prefilled the ring; otherwise the
@@ -195,6 +200,9 @@ static void enterHilMode(void)
 
 static void exitHilMode(void)
 {
+  if (Waveform_IsRunning()) {
+    Waveform_StopWaveformOutput();
+  }
   resetHil();
   hil_state = HIL_STATE_IDLE;
 
@@ -203,11 +211,10 @@ static void exitHilMode(void)
 
 static void resetHil(void)
 {
-  if (Waveform_IsRunning()) {
-    Waveform_StopWaveformOutput();
-  }
   HilStream_StopAdc();
-  HilStream_StopDac();
+  if (Waveform_IsRunning() == false) {
+    HilStream_StopDac();
+  }
   HilBuf_Reset();
   tud_vendor_n_read_flush(VENDOR_ITF_HIL_STREAM);
   tud_vendor_n_write_flush(VENDOR_ITF_HIL_STREAM);
@@ -220,6 +227,11 @@ static void resetHil(void)
 
 static void enterHilRxMode(void)
 {
+  char buf[48];
+  int n = snprintf(buf, sizeof(buf),
+                   "\r\n[DBG %lu] enterRx prev=%d\r\n",
+                   (unsigned long) osKernelGetTickCount(), (int) hil_state);
+  if (n > 0) USB_TransmitData((uint8_t*) buf, (uint16_t) n);
   resetHil();
   hil_state = HIL_STATE_RX;
   HilBuf_ArmDeferredDacStart();
@@ -227,6 +239,11 @@ static void enterHilRxMode(void)
 
 static void enterHilTxMode(void)
 {
+  char buf[48];
+  int n = snprintf(buf, sizeof(buf),
+                   "\r\n[DBG %lu] enterTx prev=%d\r\n",
+                   (unsigned long) osKernelGetTickCount(), (int) hil_state);
+  if (n > 0) USB_TransmitData((uint8_t*) buf, (uint16_t) n);
   resetHil();
   hil_state = HIL_STATE_TX;
   HilStream_StartAdc();
@@ -234,6 +251,11 @@ static void enterHilTxMode(void)
 
 static void enterHilTransitionMode(void)
 {
+  char buf[48];
+  int n = snprintf(buf, sizeof(buf),
+                   "\r\n[DBG %lu] enterTransition prev=%d\r\n",
+                   (unsigned long) osKernelGetTickCount(), (int) hil_state);
+  if (n > 0) USB_TransmitData((uint8_t*) buf, (uint16_t) n);
   resetHil();
   hil_state = HIL_STATE_TRANSITIONING;
 }
