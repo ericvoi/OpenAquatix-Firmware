@@ -185,6 +185,17 @@ void MESS_StartTask(void* argument)
 
   resetTask();
   for (;;) {
+    static uint32_t loop_count = 0;
+    loop_count++;
+    if ((loop_count % 500) == 0) {
+      char lbuf[64];
+      int ln = snprintf(lbuf, sizeof(lbuf),
+                        "\r\n[DBG %lu] MESS loop #%lu ts=%d\r\n",
+                        (unsigned long) osKernelGetTickCount(),
+                        (unsigned long) loop_count,
+                        (int) task_state);
+      if (ln > 0) USB_TransmitData((uint8_t*) lbuf, (uint16_t) ln);
+    }
     switch (task_state) {
       case DRIVING_TRANSDUCER: {
         // Currently driving transducer so listen to transducer feedback network
@@ -237,10 +248,45 @@ void MESS_StartTask(void* argument)
           sendMessage();
         }
 
+        bool _lis_diag = (task_state != LISTENING);
+        if (_lis_diag) {
+          char b[64];
+          int n = snprintf(b, sizeof(b),
+                           "\r\n[DBG %lu] LIS pre-Sync ts=%d\r\n",
+                           (unsigned long) osKernelGetTickCount(),
+                           (int) task_state);
+          if (n > 0) USB_TransmitData((uint8_t*) b, (uint16_t) n);
+        }
+
         SyncState_t sync_state = Sync_Synchronize(cfg, &rx_msg);
+        if (_lis_diag) {
+          char b[64];
+          int n = snprintf(b, sizeof(b),
+                           "\r\n[DBG %lu] LIS post-Sync ss=%d ts=%d\r\n",
+                           (unsigned long) osKernelGetTickCount(),
+                           (int) sync_state, (int) task_state);
+          if (n > 0) USB_TransmitData((uint8_t*) b, (uint16_t) n);
+        }
+
         handleSync(sync_state);
+        if (_lis_diag) {
+          char b[64];
+          int n = snprintf(b, sizeof(b),
+                           "\r\n[DBG %lu] LIS post-hSync ts=%d\r\n",
+                           (unsigned long) osKernelGetTickCount(),
+                           (int) task_state);
+          if (n > 0) USB_TransmitData((uint8_t*) b, (uint16_t) n);
+        }
 
         BackgroundNoise_Calculate(cfg);
+        if (_lis_diag) {
+          char b[64];
+          int n = snprintf(b, sizeof(b),
+                           "\r\n[DBG %lu] LIS post-BgN ts=%d\r\n",
+                           (unsigned long) osKernelGetTickCount(),
+                           (int) task_state);
+          if (n > 0) USB_TransmitData((uint8_t*) b, (uint16_t) n);
+        }
         break;
       case PROCESSING:
         // Process ADC input data only
