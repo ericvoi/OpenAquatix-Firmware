@@ -246,6 +246,7 @@ void MESS_StartTask(void* argument)
           Interleaver_Apply(&bit_msg, cfg);
           message_length = bit_msg.bit_count;
           sendMessage();
+          if (task_state != LISTENING) break;
         }
 
         bool _lis_diag = (task_state != LISTENING);

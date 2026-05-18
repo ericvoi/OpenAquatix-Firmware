@@ -61,6 +61,7 @@ void USB_Init(void)
 
 void USB_TransmitData(uint8_t* data, uint16_t len)
 {
+  if (tud_ready() == false) return;
   if (osMutexAcquire(usb_mutex, USB_MUTEX_TIMEOUT) != osOK)
     REGISTER_ERROR(ERROR_USB_HMI);
 
