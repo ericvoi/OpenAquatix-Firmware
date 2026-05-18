@@ -238,9 +238,12 @@ void MESS_StartTask(void* argument)
         if (proceed == false) {switchState(LISTENING); break;};
 
         if (input_bit_msg.fully_received == true && input_bit_msg.added_to_queue == false) {
-          // TODO: fix currently incorrect since cant know if transducer or feedback
-          rx_msg.type = (tx_msg.type == MSG_TRANSMIT_TRANSDUCER) ?
-                        MSG_RECEIVED_TRANSDUCER : MSG_RECEIVED_FEEDBACK;
+          if (AFE_GetMode() == AFE_MODE_RX || in_hil) {
+            rx_msg.type = MSG_RECEIVED_TRANSDUCER;
+          }
+          else {
+            rx_msg.type = MSG_RECEIVED_FEEDBACK;
+          }
           rx_msg.timestamp = osKernelGetTickCount();
           rx_msg.length_bits = input_bit_msg.data_len_bits;
           rx_msg.protocol = cfg->protocol;
