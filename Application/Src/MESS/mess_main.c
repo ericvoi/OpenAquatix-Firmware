@@ -454,12 +454,12 @@ void switchState(ProcessingState_t new_state)
   task_state = CHANGING;
   switch (new_state) {
     case DRIVING_TRANSDUCER: {
-      osEventFlagsClear(print_event_handle, MESS_DAC_MESS_DONE);
       notifyHilTransitioning();
       AfeMode_t new_mode = (in_hil) ? (AFE_MODE_TX_FEEDBACK) : (AFE_MODE_TX);
       RETURN_IF_ERROR_PRESENT(AFE_SetMode(new_mode)); // TODO: change to include feedback for input and output
       notifyHilTx();
       RETURN_IF_ERROR_PRESENT(Modulate_StartTransducerOutput(message_length, cfg, &bit_msg, &tx_msg));
+      osEventFlagsClear(print_event_handle, MESS_DAC_MESS_DONE);
       task_state = DRIVING_TRANSDUCER;
       break;
     }

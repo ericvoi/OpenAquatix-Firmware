@@ -29,7 +29,7 @@
 /* Private define ------------------------------------------------------------*/
 
 #define RANGING_TIMEOUT_MS            20000
-#define RANGING_RESPONSE_DELAY        2000
+#define RANGING_RESPONSE_DELAY        4000
 #define AFE_TURNAROUND_TIME           500
 
 // A fixed offset is required for ranging calibration. Uncertain on reason why TODO

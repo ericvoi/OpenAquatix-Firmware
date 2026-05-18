@@ -183,9 +183,12 @@ static void pingRespond(void)
 
 static void enterHilMode(void)
 {
+  if (Waveform_IsRunning() == true) {
+    Waveform_StopWaveformOutput();
+  }
   resetHil();
   hil_state = HIL_STATE_RX;
-  // Defer the DAC start until the host has prefilled the ring; otherwise the
+  // Defer the DAC start until the host has prefilled the ring. Otherwise the
   // DAC drains an empty buffer for ~30 s before USB throughput catches up,
   // producing chronic underruns through the entire startup transient.
   HilBuf_ArmDeferredDacStart();
@@ -195,6 +198,9 @@ static void enterHilMode(void)
 
 static void exitHilMode(void)
 {
+  if (Waveform_IsRunning() == true) {
+    Waveform_StopWaveformOutput();
+  }
   resetHil();
   hil_state = HIL_STATE_IDLE;
 
@@ -203,11 +209,10 @@ static void exitHilMode(void)
 
 static void resetHil(void)
 {
-  if (Waveform_IsRunning()) {
-    Waveform_StopWaveformOutput();
-  }
   HilStream_StopAdc();
-  HilStream_StopDac();
+  if (Waveform_IsRunning() == false) {
+    HilStream_StopDac();
+  }
   HilBuf_Reset();
   tud_vendor_n_read_flush(VENDOR_ITF_HIL_STREAM);
   tud_vendor_n_write_flush(VENDOR_ITF_HIL_STREAM);
