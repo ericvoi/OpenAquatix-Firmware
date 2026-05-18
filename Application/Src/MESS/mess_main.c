@@ -48,6 +48,8 @@
 #include "afe.h"
 #include "dac_waveform.h"
 #include "pga113-driver.h"
+#include "hmi_usb.h"
+#include <stdio.h>
 
 #include "mess_dac_resources.h"
 
@@ -451,6 +453,14 @@ void switchState(ProcessingState_t new_state)
 {
   RETURN_IF_ERROR_PRESENT();
   ProcessingState_t old_state = task_state;
+  {
+    char buf[48];
+    int n = snprintf(buf, sizeof(buf),
+                     "\r\n[DBG %lu] sw %d->%d\r\n",
+                     (unsigned long) osKernelGetTickCount(),
+                     (int) old_state, (int) new_state);
+    if (n > 0) USB_TransmitData((uint8_t*) buf, (uint16_t) n);
+  }
   task_state = CHANGING;
   switch (new_state) {
     case DRIVING_TRANSDUCER: {
