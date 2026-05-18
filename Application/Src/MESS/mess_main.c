@@ -48,8 +48,6 @@
 #include "afe.h"
 #include "dac_waveform.h"
 #include "pga113-driver.h"
-#include "hmi_usb.h"
-#include <stdio.h>
 
 #include "mess_dac_resources.h"
 
@@ -185,44 +183,12 @@ void MESS_StartTask(void* argument)
 
   resetTask();
   for (;;) {
-    static uint32_t loop_count = 0;
-    loop_count++;
-    if ((loop_count % 500) == 0) {
-      char lbuf[64];
-      int ln = snprintf(lbuf, sizeof(lbuf),
-                        "\r\n[DBG %lu] MESS loop #%lu ts=%d\r\n",
-                        (unsigned long) osKernelGetTickCount(),
-                        (unsigned long) loop_count,
-                        (int) task_state);
-      if (ln > 0) USB_TransmitData((uint8_t*) lbuf, (uint16_t) ln);
-    }
     switch (task_state) {
       case DRIVING_TRANSDUCER: {
         // Currently driving transducer so listen to transducer feedback network
-        static uint32_t drv_poll_count = 0;
-        drv_poll_count++;
-        if ((drv_poll_count % 500) == 0) {
-          uint32_t raw = osEventFlagsGet(print_event_handle);
-          char hbuf[80];
-          int hn = snprintf(hbuf, sizeof(hbuf),
-                            "\r\n[DBG %lu] MESS drv poll #%lu raw=0x%lx\r\n",
-                            (unsigned long) osKernelGetTickCount(),
-                            (unsigned long) drv_poll_count,
-                            (unsigned long) raw);
-          if (hn > 0) USB_TransmitData((uint8_t*) hbuf, (uint16_t) hn);
-        }
         uint32_t flags = osEventFlagsWait(print_event_handle, MESS_DAC_MESS_DONE, osFlagsWaitAny, 0);
 
         if (flags & osFlagsError) break;
-
-        {
-          char sbuf[80];
-          int sn = snprintf(sbuf, sizeof(sbuf),
-                            "\r\n[DBG %lu] MESS sees flags=0x%lx\r\n",
-                            (unsigned long) osKernelGetTickCount(),
-                            (unsigned long) flags);
-          if (sn > 0) USB_TransmitData((uint8_t*) sbuf, (uint16_t) sn);
-        }
 
         if (flags & MESS_DAC_MESS_DONE) {
           switchState(LISTENING);
@@ -249,45 +215,17 @@ void MESS_StartTask(void* argument)
           if (task_state != LISTENING) break;
         }
 
-        bool _lis_diag = (task_state != LISTENING);
-        if (_lis_diag) {
-          char b[64];
-          int n = snprintf(b, sizeof(b),
-                           "\r\n[DBG %lu] LIS pre-Sync ts=%d\r\n",
-                           (unsigned long) osKernelGetTickCount(),
-                           (int) task_state);
-          if (n > 0) USB_TransmitData((uint8_t*) b, (uint16_t) n);
-        }
+        // sendMessage may have transitioned us out of LISTENING (e.g. into
+        // DRIVING_TRANSDUCER). Skip the rest of the LISTENING-mode DSP in
+        // that case: Sync_Synchronize would otherwise reset PN state and
+        // block waiting for ADC samples that won't arrive while the input
+        // is stopped for TX.
+        if (task_state != LISTENING) break;
 
         SyncState_t sync_state = Sync_Synchronize(cfg, &rx_msg);
-        if (_lis_diag) {
-          char b[64];
-          int n = snprintf(b, sizeof(b),
-                           "\r\n[DBG %lu] LIS post-Sync ss=%d ts=%d\r\n",
-                           (unsigned long) osKernelGetTickCount(),
-                           (int) sync_state, (int) task_state);
-          if (n > 0) USB_TransmitData((uint8_t*) b, (uint16_t) n);
-        }
-
         handleSync(sync_state);
-        if (_lis_diag) {
-          char b[64];
-          int n = snprintf(b, sizeof(b),
-                           "\r\n[DBG %lu] LIS post-hSync ts=%d\r\n",
-                           (unsigned long) osKernelGetTickCount(),
-                           (int) task_state);
-          if (n > 0) USB_TransmitData((uint8_t*) b, (uint16_t) n);
-        }
 
         BackgroundNoise_Calculate(cfg);
-        if (_lis_diag) {
-          char b[64];
-          int n = snprintf(b, sizeof(b),
-                           "\r\n[DBG %lu] LIS post-BgN ts=%d\r\n",
-                           (unsigned long) osKernelGetTickCount(),
-                           (int) task_state);
-          if (n > 0) USB_TransmitData((uint8_t*) b, (uint16_t) n);
-        }
         break;
       case PROCESSING:
         // Process ADC input data only
@@ -524,14 +462,6 @@ void switchState(ProcessingState_t new_state)
 {
   RETURN_IF_ERROR_PRESENT();
   ProcessingState_t old_state = task_state;
-  {
-    char buf[48];
-    int n = snprintf(buf, sizeof(buf),
-                     "\r\n[DBG %lu] sw %d->%d\r\n",
-                     (unsigned long) osKernelGetTickCount(),
-                     (int) old_state, (int) new_state);
-    if (n > 0) USB_TransmitData((uint8_t*) buf, (uint16_t) n);
-  }
   task_state = CHANGING;
   switch (new_state) {
     case DRIVING_TRANSDUCER: {
@@ -540,16 +470,7 @@ void switchState(ProcessingState_t new_state)
       RETURN_IF_ERROR_PRESENT(AFE_SetMode(new_mode)); // TODO: change to include feedback for input and output
       notifyHilTx();
       RETURN_IF_ERROR_PRESENT(Modulate_StartTransducerOutput(message_length, cfg, &bit_msg, &tx_msg));
-      {
-        uint32_t pre = osEventFlagsGet(print_event_handle);
-        osEventFlagsClear(print_event_handle, MESS_DAC_MESS_DONE);
-        char buf[64];
-        int n = snprintf(buf, sizeof(buf),
-                         "\r\n[DBG %lu] DACDONE clr postmod pre=0x%lx\r\n",
-                         (unsigned long) osKernelGetTickCount(),
-                         (unsigned long) pre);
-        if (n > 0) USB_TransmitData((uint8_t*) buf, (uint16_t) n);
-      }
+      osEventFlagsClear(print_event_handle, MESS_DAC_MESS_DONE);
       task_state = DRIVING_TRANSDUCER;
       break;
     }

@@ -15,11 +15,9 @@
 #include "hil_manager.h"
 #include "mess_filt_resources.h"
 #include "dac_waveform.h"
-#include "hmi_usb.h"
 #include "stm32h7xx_hal.h"
 #include "cmsis_os.h"
 #include <stdbool.h>
-#include <stdio.h>
 
 /* Private typedef -----------------------------------------------------------*/
 
@@ -60,18 +58,11 @@ void HilStream_StartAdc(void)
 void HilStream_StartDac(void)
 {
   HAL_TIM_Base_Stop(&HIL_TIMER);
-  HAL_StatusTypeDef st_stop = HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
   osDelay(1);
 
-  HAL_StatusTypeDef st_start = HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t*) &dma_buf, ADC_DAC_DMA_BUF_SIZE, DAC_ALIGN_12B_R);
+  HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t*) &dma_buf, ADC_DAC_DMA_BUF_SIZE, DAC_ALIGN_12B_R);
   HAL_TIM_Base_Start(&HIL_TIMER);
-
-  char buf[64];
-  int n = snprintf(buf, sizeof(buf),
-                   "\r\n[DBG %lu] StartDac stop=%d start=%d\r\n",
-                   (unsigned long) osKernelGetTickCount(),
-                   (int) st_stop, (int) st_start);
-  if (n > 0) USB_TransmitData((uint8_t*) buf, (uint16_t) n);
 }
 
 void HilStream_StopAdc(void)
@@ -81,14 +72,7 @@ void HilStream_StopAdc(void)
 
 void HilStream_StopDac(void)
 {
-  HAL_StatusTypeDef st = HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
-
-  char buf[64];
-  int n = snprintf(buf, sizeof(buf),
-                   "\r\n[DBG %lu] StopDac wfRun=%d ret=%d\r\n",
-                   (unsigned long) osKernelGetTickCount(),
-                   (int) Waveform_IsRunning(), (int) st);
-  if (n > 0) USB_TransmitData((uint8_t*) buf, (uint16_t) n);
+  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
 }
 
 // Fill samples in dma buffer from ring buffer
