@@ -472,7 +472,16 @@ void switchState(ProcessingState_t new_state)
       RETURN_IF_ERROR_PRESENT(AFE_SetMode(new_mode)); // TODO: change to include feedback for input and output
       notifyHilTx();
       RETURN_IF_ERROR_PRESENT(Modulate_StartTransducerOutput(message_length, cfg, &bit_msg, &tx_msg));
-      osEventFlagsClear(print_event_handle, MESS_DAC_MESS_DONE);
+      {
+        uint32_t pre = osEventFlagsGet(print_event_handle);
+        osEventFlagsClear(print_event_handle, MESS_DAC_MESS_DONE);
+        char buf[64];
+        int n = snprintf(buf, sizeof(buf),
+                         "\r\n[DBG %lu] DACDONE clr postmod pre=0x%lx\r\n",
+                         (unsigned long) osKernelGetTickCount(),
+                         (unsigned long) pre);
+        if (n > 0) USB_TransmitData((uint8_t*) buf, (uint16_t) n);
+      }
       task_state = DRIVING_TRANSDUCER;
       break;
     }

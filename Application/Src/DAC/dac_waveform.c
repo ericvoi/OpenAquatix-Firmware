@@ -26,7 +26,9 @@
 #include "core_cm7.h"
 #include "hil_manager.h"
 #include "hil_main.h"
+#include "hmi_usb.h"
 #include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
 #include <math.h>
 #include <limits.h>
@@ -159,8 +161,25 @@ bool Waveform_PrepareWaveformOutput(uint32_t channel)
 
 void Waveform_StartOutput(void)
 {
+  {
+    char buf[80];
+    int n = snprintf(buf, sizeof(buf),
+                     "\r\n[DBG %lu] StartOut delay=%d cyc=%lu del=%lu\r\n",
+                     (unsigned long) osKernelGetTickCount(),
+                     (int) delay_next_message,
+                     (unsigned long) DWT->CYCCNT,
+                     (unsigned long) delay_cyccnt);
+    if (n > 0) USB_TransmitData((uint8_t*) buf, (uint16_t) n);
+  }
   if (delay_next_message == false) {
     HAL_TIM_Base_Start(&htim6);
+    {
+      char buf[48];
+      int n = snprintf(buf, sizeof(buf),
+                       "\r\n[DBG %lu] htim6 start nodelay\r\n",
+                       (unsigned long) osKernelGetTickCount());
+      if (n > 0) USB_TransmitData((uint8_t*) buf, (uint16_t) n);
+    }
     return;
   }
   delay_next_message = false;
@@ -168,10 +187,25 @@ void Waveform_StartOutput(void)
   uint32_t current_cyccnt = DWT->CYCCNT;
   uint32_t ms_to_wait = (delay_cyccnt - current_cyccnt) / (SystemCoreClock / 1000);
   if (ms_to_wait > 6) ms_to_wait -= 3; // Wait 3ms for CYCCNT condition
+  {
+    char buf[64];
+    int n = snprintf(buf, sizeof(buf),
+                     "\r\n[DBG %lu] StartOut msW=%lu\r\n",
+                     (unsigned long) osKernelGetTickCount(),
+                     (unsigned long) ms_to_wait);
+    if (n > 0) USB_TransmitData((uint8_t*) buf, (uint16_t) n);
+  }
   osDelay(ms_to_wait);
   uint32_t start_difference = delay_cyccnt - DWT->CYCCNT;
   while (start_difference > (delay_cyccnt - DWT->CYCCNT)) { ;}
   HAL_TIM_Base_Start(&htim6);
+  {
+    char buf[48];
+    int n = snprintf(buf, sizeof(buf),
+                     "\r\n[DBG %lu] htim6 start delayed\r\n",
+                     (unsigned long) osKernelGetTickCount());
+    if (n > 0) USB_TransmitData((uint8_t*) buf, (uint16_t) n);
+  }
 }
 
 void Waveform_SendRangingRequest(void)
@@ -184,9 +218,18 @@ void Waveform_SendRangingRequest(void)
 
 bool Waveform_StopWaveformOutput()
 {
+  bool was_running = dac_running;
   // reset flags and end DMA transfer to ease DMA channels
   dac_running = false;
   osEventFlagsSet(print_event_handle, MESS_DAC_MESS_DONE);
+  {
+    char buf[64];
+    int n = snprintf(buf, sizeof(buf),
+                     "\r\n[DBG %lu] DACDONE set wfRun_pre=%d\r\n",
+                     (unsigned long) osKernelGetTickCount(),
+                     (int) was_running);
+    if (n > 0) USB_TransmitData((uint8_t*) buf, (uint16_t) n);
+  }
   if (HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1) != HAL_OK) return false;
 
   wave_ctrl.phase_accumulator = 0;
@@ -265,6 +308,13 @@ void Waveform_FillBuffer(FillType_t type)
         while (i < half_end)
           dac_buffer[i++] = (DAC_MAX_VALUE + 1) / 2;
         last_fill = true;
+        {
+          char buf[48];
+          int n = snprintf(buf, sizeof(buf),
+                           "\r\n[DBG %lu] lastFill set\r\n",
+                           (unsigned long) osKernelGetTickCount());
+          if (n > 0) USB_TransmitData((uint8_t*) buf, (uint16_t) n);
+        }
         return;
       }
       current_step++;
