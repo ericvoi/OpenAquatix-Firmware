@@ -210,18 +210,17 @@ WaveformStep_t getTestToneStep(uint16_t current_step)
 WaveformStep_t getChirpStep(uint16_t current_step)
 {
   WaveformStep_t waveform_step = {0};
-  if (current_step >= chirp_params.num_steps) return waveform_step;
+  if (current_step != 0) return waveform_step;
 
-  // Use the midpoint instantaneous frequency of step k so the piecewise-
-  // constant approximation has zero mean error against the ideal LFM:
-  //   f_k = f0 + (f1 - f0) * (k + 0.5) / N
-  uint32_t df = chirp_params.f_end_hz - chirp_params.f_start_hz;
-  uint64_t numerator = (uint64_t)df * (2u * (uint32_t)current_step + 1u);
-  uint32_t denom = 2u * (uint32_t)chirp_params.num_steps;
-  waveform_step.freq_hz = chirp_params.f_start_hz + (uint32_t)(numerator / denom);
-  waveform_step.duration_us = chirp_params.step_duration_us;
+  // Single continuous LFM step. Phase is updated per sample by the
+  // waveform engine (OUTPUT_LFM_CHIRP path); num_steps / step_duration_us
+  // from the registration are folded into total duration here.
+  waveform_step.output_type = OUTPUT_LFM_CHIRP;
+  waveform_step.freq_hz = chirp_params.f_start_hz;
+  waveform_step.f_end_hz = chirp_params.f_end_hz;
+  waveform_step.duration_us =
+      (uint32_t)chirp_params.num_steps * chirp_params.step_duration_us;
   waveform_step.relative_amplitude = chirp_params.amplitude;
-  waveform_step.output_type = OUTPUT_CONSTANT_SQUARE;
   return waveform_step;
 }
 

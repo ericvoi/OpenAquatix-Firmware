@@ -36,6 +36,7 @@
 typedef struct {
   uint32_t phase_accumulator;
   uint32_t phase_increment;
+  int32_t  phase_increment_delta;  // Per-sample delta for LFM chirps; 0 otherwise
 
   uint32_t initial_tukey_window_index;
   uint32_t initial_tukey_end_index;
@@ -303,6 +304,7 @@ void Waveform_FillBuffer(FillType_t type)
       dac_buffer[i] = offset_amt + ((base_value * wave_ctrl.amplitude) >> AMPLITUDE_PRECISION);
 
       wave_ctrl.phase_accumulator += wave_ctrl.phase_increment;
+      wave_ctrl.phase_increment   += wave_ctrl.phase_increment_delta;
       i++;
       current_symbol_duration_us += DAC_SUBSAMPLING;
     }
@@ -354,6 +356,8 @@ void updateWaveformParameters()
 
   wave_ctrl.amplitude = current_waveform_step.relative_amplitude * (1 << AMPLITUDE_PRECISION);
 
+  wave_ctrl.phase_increment_delta = 0;
+
   switch (current_waveform_step.output_type) {
     case OUTPUT_CONSTANT_SQUARE:
       wave_ctrl.tukey_increment = 0;
@@ -370,6 +374,22 @@ void updateWaveformParameters()
       wave_ctrl.final_tukey_window_index   = (TUKEY_POINTS - 1) << TUKEY_PRECISION;
       wave_ctrl.final_tukey_start_index    = current_waveform_step.duration_us - ramp_us;
       break;
+    case OUTPUT_LFM_CHIRP: {
+      // Rectangular envelope; phase_increment grows linearly across the
+      // whole step so the instantaneous frequency sweeps from freq_hz to
+      // f_end_hz in duration_us. Per-sample delta: (Δphase_inc) / N.
+      wave_ctrl.tukey_increment         = 0;
+      wave_ctrl.initial_tukey_end_index = 0;
+      wave_ctrl.final_tukey_start_index = UINT_MAX;
+
+      uint32_t total_samples = current_waveform_step.duration_us / DAC_SUBSAMPLING;
+      int64_t phase_inc_start = ((int64_t)current_waveform_step.freq_hz   << PHASE_PRECISION) / DAC_SAMPLE_RATE;
+      int64_t phase_inc_end   = ((int64_t)current_waveform_step.f_end_hz  << PHASE_PRECISION) / DAC_SAMPLE_RATE;
+      wave_ctrl.phase_increment_delta = (total_samples > 0)
+          ? (int32_t)((phase_inc_end - phase_inc_start) / (int64_t)total_samples)
+          : 0;
+      break;
+    }
     default:
       break;
   }

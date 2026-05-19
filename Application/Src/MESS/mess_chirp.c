@@ -40,7 +40,7 @@ void MessChirp_StartTx(void)
                                 CHIRP_NUM_STEPS, CHIRP_STEP_DURATION_US,
                                 CHIRP_AMPLITUDE);
 
-  if (Waveform_SetWaveformSequence(CHIRP_NUM_STEPS, false, false, 0) == false)
+  if (Waveform_SetWaveformSequence(1, false, false, 0) == false)
     REGISTER_ERROR(ERROR_TRANSDUCER_FB_INITIALIZATION);
 
   if (Waveform_PrepareWaveformOutput(DAC_CHANNEL_1) == false)
