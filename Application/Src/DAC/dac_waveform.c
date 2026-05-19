@@ -187,6 +187,7 @@ bool Waveform_StopWaveformOutput()
   // reset flags and end DMA transfer to ease DMA channels
   dac_running = false;
   osEventFlagsSet(print_event_handle, MESS_DAC_MESS_DONE);
+  HAL_TIM_Base_Stop(&htim6);
   if (HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1) != HAL_OK) return false;
 
   wave_ctrl.phase_accumulator = 0;
