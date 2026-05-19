@@ -594,12 +594,15 @@ static void importAllParameters(FunctionContext_t* context)
 
 static void sendChirpTransducer(FunctionContext_t* context)
 {
-  if (print_event_handle == NULL) {
+  Message_t msg = {0};
+  msg.type = MSG_TRANSMIT_CHIRP;
+  if (MESS_AddMessageToTxQ(&msg) == false) {
+    sprintf((char*) context->output_buffer,
+            "\r\nFailed to queue chirp.\r\n\r\n");
+    COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
     context->state->state = PARAM_STATE_COMPLETE;
     return;
   }
-
-  osEventFlagsSet(print_event_handle, MESS_CHIRP_TX);
 
   sprintf((char*) context->output_buffer,
           "\r\nChirp queued for transducer (%u-%u Hz, %u us).\r\n\r\n",

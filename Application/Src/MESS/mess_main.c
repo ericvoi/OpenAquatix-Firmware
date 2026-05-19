@@ -206,11 +206,13 @@ void MESS_StartTask(void* argument)
         if (MESS_GetMessageFromTxQ(&tx_msg) == true) {
           getConfig();
 
-          Packet_PrepareTx(&tx_msg, &bit_msg, cfg);
-          ErrorCorrection_AddCorrection(&bit_msg, cfg);
-          FeedbackTests_CorruptMessage(&bit_msg); // if applicable
-          Interleaver_Apply(&bit_msg, cfg);
-          message_length = bit_msg.bit_count;
+          if (tx_msg.type != MSG_TRANSMIT_CHIRP) {
+            Packet_PrepareTx(&tx_msg, &bit_msg, cfg);
+            ErrorCorrection_AddCorrection(&bit_msg, cfg);
+            FeedbackTests_CorruptMessage(&bit_msg); // if applicable
+            Interleaver_Apply(&bit_msg, cfg);
+            message_length = bit_msg.bit_count;
+          }
           sendMessage();
           // Break needed in case of state changes which can cause sync to hang
           break;
@@ -463,7 +465,11 @@ void switchState(ProcessingState_t new_state)
       AfeMode_t new_mode = (in_hil) ? (AFE_MODE_TX_FEEDBACK) : (AFE_MODE_TX);
       RETURN_IF_ERROR_PRESENT(AFE_SetMode(new_mode)); // TODO: change to include feedback for input and output
       notifyHilTx();
-      RETURN_IF_ERROR_PRESENT(Modulate_StartTransducerOutput(message_length, cfg, &bit_msg, &tx_msg));
+      if (tx_msg.type == MSG_TRANSMIT_CHIRP) {
+        MessChirp_StartTx();
+      } else {
+        RETURN_IF_ERROR_PRESENT(Modulate_StartTransducerOutput(message_length, cfg, &bit_msg, &tx_msg));
+      }
       osEventFlagsClear(print_event_handle, MESS_DAC_MESS_DONE);
       task_state = DRIVING_TRANSDUCER;
       break;
@@ -520,15 +526,6 @@ void handleFlags()
     Modulate_TestFrequencyResponse(cfg->fc, 30000, 0.2f);
     in_feedback = true;
     switchState(DRIVING_TRANSDUCER);
-  }
-  if (flags & MESS_CHIRP_TX) {
-    notifyHilTransitioning();
-    AfeMode_t chirp_mode = (in_hil) ? AFE_MODE_TX_FEEDBACK : AFE_MODE_TX;
-    RETURN_IF_ERROR_PRESENT(AFE_SetMode(chirp_mode));
-    notifyHilTx();
-    MessChirp_StartTx();
-    osEventFlagsClear(print_event_handle, MESS_DAC_MESS_DONE);
-    task_state = DRIVING_TRANSDUCER;
   }
   if (flags & MESS_PRINT_WAVEFORM) {
     print_next_waveform = true;
@@ -594,6 +591,7 @@ void sendMessage()
   RETURN_IF_ERROR_PRESENT();
   switch (tx_msg.type) {
     case MSG_TRANSMIT_TRANSDUCER:
+    case MSG_TRANSMIT_CHIRP:
       switchState(DRIVING_TRANSDUCER);
       break;
     case MSG_TRANSMIT_FEEDBACK:
