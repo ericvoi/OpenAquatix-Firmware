@@ -212,15 +212,9 @@ void MESS_StartTask(void* argument)
           Interleaver_Apply(&bit_msg, cfg);
           message_length = bit_msg.bit_count;
           sendMessage();
-          if (task_state != LISTENING) break;
+          // Break needed in case of state changes which can cause sync to hang
+          break;
         }
-
-        // sendMessage may have transitioned us out of LISTENING (e.g. into
-        // DRIVING_TRANSDUCER). Skip the rest of the LISTENING-mode DSP in
-        // that case: Sync_Synchronize would otherwise reset PN state and
-        // block waiting for ADC samples that won't arrive while the input
-        // is stopped for TX.
-        if (task_state != LISTENING) break;
 
         SyncState_t sync_state = Sync_Synchronize(cfg, &rx_msg);
         handleSync(sync_state);
