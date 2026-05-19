@@ -27,12 +27,14 @@ extern "C" {
 
 typedef enum {
   OUTPUT_CONSTANT_SQUARE,     // Square envelope of a constant frequency and amplitude
-  OUTPUT_CONSTANT_TUKEY       // ^ With Tukey window applied
+  OUTPUT_CONSTANT_TUKEY,      // ^ With Tukey window applied
+  OUTPUT_LFM_CHIRP            // Linear-frequency sweep from freq_hz to f_end_hz over duration_us
 } ModulationOutputType_t;
 
 typedef struct {
   ModulationOutputType_t output_type;
-  uint32_t freq_hz;
+  uint32_t freq_hz;           // Start frequency (also the carrier for non-LFM steps)
+  uint32_t f_end_hz;          // End frequency for OUTPUT_LFM_CHIRP; ignored otherwise
   float relative_amplitude;
   uint32_t duration_us;
 } WaveformStep_t;
