@@ -30,11 +30,11 @@ void MessChirp_StartTx(void)
 {
   RETURN_IF_ERROR_PRESENT();
 
-  HAL_TIM_Base_Stop(&htim6);
-  if (Waveform_StopWaveformOutput() == false)
+  if (HAL_TIM_Base_Stop(&htim6) != HAL_OK)
     REGISTER_ERROR(ERROR_TRANSDUCER_FB_INITIALIZATION);
 
-  osDelay(1);
+  if (Waveform_StopWaveformOutput() == false)
+    REGISTER_ERROR(ERROR_TRANSDUCER_FB_INITIALIZATION);
 
   MessDacResource_RegisterChirp(CHIRP_F_START_HZ, CHIRP_F_END_HZ,
                                 CHIRP_NUM_STEPS, CHIRP_STEP_DURATION_US,
@@ -45,6 +45,8 @@ void MessChirp_StartTx(void)
 
   if (Waveform_PrepareWaveformOutput(DAC_CHANNEL_1) == false)
     REGISTER_ERROR(ERROR_TRANSDUCER_FB_INITIALIZATION);
+
+  osDelay(150);
 
   osThreadFlagsSet(dac_taskHandle, DAC_START_OUTPUT);
 }
