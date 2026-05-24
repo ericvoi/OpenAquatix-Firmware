@@ -27,7 +27,8 @@ extern "C" {
 
 typedef enum {
   ATTENUATION_93DB,
-  ATTENUATION_63DB
+  ATTENUATION_63DB,
+  NUM_IN_FB_ATTENUATIONS
 } FeedbackAttenuation_t;
 
 /* Exported constants --------------------------------------------------------*/
@@ -61,6 +62,8 @@ void Feedback_SwitchOutput(bool on);
  * @param attenuation Enum with degree of attenuation
  */
 void Feedback_ChangeInputAttenuation(FeedbackAttenuation_t attenuation);
+
+float Feedback_GetAttenuation(FeedbackAttenuation_t attenuation);
 
 /* Private defines -----------------------------------------------------------*/
 

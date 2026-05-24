@@ -26,7 +26,7 @@
 /* Private typedef -----------------------------------------------------------*/
 
 typedef struct {
-  osThreadId task_id; // NULL if no task registered
+  osThreadId_t task_id; // NULL if no task registered
   const char* name;
   bool parameters_registered;
   bool pending_reset;
@@ -77,7 +77,7 @@ void Error_RegisterTask(const char* task_name)
   if (isIsr()) return;
   if (task_name == NULL) taskDeathLoop();
 
-  osThreadId thread_id = osThreadGetId();
+  osThreadId_t thread_id = osThreadGetId();
   if (thread_id == NULL) taskDeathLoop();
 
   for (uint8_t i = 0; i < NUM_TASKS; i++) {
@@ -97,7 +97,7 @@ void Error_RegisterTask(const char* task_name)
 void Error_ParameterRegistrationComplete(void)
 {
   if (isIsr()) return;
-  osThreadId thread_id = osThreadGetId();
+  osThreadId_t thread_id = osThreadGetId();
   if (thread_id == NULL) taskDeathLoop();
 
   for (uint8_t i = 0; i < NUM_TASKS; i++) {
@@ -257,7 +257,7 @@ void systemDeathLoop(OpenAquatixErrors_t reason)
 TaskInfo_t* getTaskInfo(void)
 {
   if (isIsr()) return &isr_info;
-  osThreadId thread_id = osThreadGetId();
+  osThreadId_t thread_id = osThreadGetId();
 
   for (uint8_t i = 0; i < NUM_TASKS; i++) {
     if (registered_tasks[i].task_id == thread_id)

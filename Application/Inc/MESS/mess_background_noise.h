@@ -72,6 +72,17 @@ float BackgroundNoise_GetScaleless();
 float BackgroundNoise_GetNsd();
 
 /**
+ * @brief Returns the AFE noise floor as a one-sided power spectral density
+ *        amplitude, in ADC counts per sqrt(Hz). This is the unit the host
+ *        consumes; it lets the host compare AFE noise to the simulator's
+ *        Wenz ambient PSD without negotiating measurement bandwidth.
+ *
+ * @return float counts/sqrt(Hz), or 0.0f if the estimator has not yet
+ *         produced a valid result.
+ */
+float BackgroundNoise_GetNoiseFloorPsdCountsPerSqrtHz(void);
+
+/**
  * @brief Whether enough samples have been analyzed for a background noise calculation
  * 
  * @return true if ready, false otherwise

@@ -29,6 +29,7 @@
 #include "mess_modulate.h"
 #include "mess_packet.h"
 #include "mess_background_noise.h"
+#include "mess_chirp.h"
 
 #include "cmsis_os.h"
 #include "main.h"
@@ -69,6 +70,7 @@ static void resetSavedValues(FunctionContext_t* context);
 static void deepSleep(FunctionContext_t* context);
 static void exportAllParameters(FunctionContext_t* context);
 static void importAllParameters(FunctionContext_t* context);
+static void sendChirpTransducer(FunctionContext_t* context);
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -76,11 +78,12 @@ extern osEventFlagsId_t sleep_events;
 
 static MenuID_t debug_menu_children[] = {MENU_ID_DBG_GPIO, MENU_ID_DBG_SETLED,
                                          MENU_ID_DBG_PRINT, MENU_ID_DBG_BGDUMP,
-                                         MENU_ID_DBG_BGFREQ, MENU_ID_DBG_TEMP, 
-                                         MENU_ID_DBG_ERR, MENU_ID_DBG_PWR, 
-                                         MENU_ID_DBG_NOISE, MENU_ID_DBG_DFU, 
+                                         MENU_ID_DBG_BGFREQ, MENU_ID_DBG_TEMP,
+                                         MENU_ID_DBG_ERR, MENU_ID_DBG_PWR,
+                                         MENU_ID_DBG_NOISE, MENU_ID_DBG_DFU,
                                          MENU_ID_DBG_RESETCONFIG, MENU_ID_DBG_DEEPSLEEP,
-                                         MENU_ID_DBG_EXPALL, MENU_ID_DBG_IMPALL};
+                                         MENU_ID_DBG_EXPALL, MENU_ID_DBG_IMPALL,
+                                         MENU_ID_DBG_CHIRP_TX};
 static const MenuNode_t debug_menu = {
   .id = MENU_ID_DBG,
   .description = "Debug Menu",
@@ -302,6 +305,22 @@ static const MenuNode_t debug_menu_impall = {
   .parameters = &debug_menu_impall_param
 };
 
+static ParamContext_t debug_menu_chirp_tx_param = {
+  .state = PARAM_STATE_0,
+  .param_id = MENU_ID_DBG_CHIRP_TX
+};
+static const MenuNode_t debug_menu_chirp_tx = {
+  .id = MENU_ID_DBG_CHIRP_TX,
+  .description = "Send LFM chirp through transducer",
+  .handler = sendChirpTransducer,
+  .parent_id = MENU_ID_DBG,
+  .children_ids = NULL,
+  .num_children = 0,
+  .access_level = 0,
+  .parameters = &debug_menu_chirp_tx_param
+};
+
+
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -314,7 +333,7 @@ void COMM_RegisterDebugMenu(void)
              MenuSystem_RegisterMenu(&debug_menu_dfu) && MenuSystem_RegisterMenu(&debug_menu_reset) &&
              MenuSystem_RegisterMenu(&debug_menu_noise_f) && MenuSystem_RegisterMenu(&debug_menu_noise_level) &&
              MenuSystem_RegisterMenu(&debug_menu_deep_sleep) && MenuSystem_RegisterMenu(&debug_menu_expall) &&
-             MenuSystem_RegisterMenu(&debug_menu_impall);
+             MenuSystem_RegisterMenu(&debug_menu_impall) && MenuSystem_RegisterMenu(&debug_menu_chirp_tx);
 
   if (ret == false) REGISTER_ERROR(ERROR_MENU_REGISTRATION);
 }
@@ -571,4 +590,24 @@ static void exportAllParameters(FunctionContext_t* context)
 static void importAllParameters(FunctionContext_t* context)
 {
   ImportExport_ImportAllParameters(context);
+}
+
+static void sendChirpTransducer(FunctionContext_t* context)
+{
+  Message_t msg = {0};
+  msg.type = MSG_TRANSMIT_CHIRP;
+  if (MESS_AddMessageToTxQ(&msg) == false) {
+    sprintf((char*) context->output_buffer,
+            "\r\nFailed to queue chirp.\r\n\r\n");
+    COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
+    context->state->state = PARAM_STATE_COMPLETE;
+    return;
+  }
+
+  sprintf((char*) context->output_buffer,
+          "\r\nChirp queued for transducer (%u-%u Hz, %u us).\r\n\r\n",
+          (unsigned) CHIRP_F_START_HZ, (unsigned) CHIRP_F_END_HZ,
+          (unsigned) CHIRP_DURATION_US);
+  COMM_TransmitData(context->output_buffer, CALC_LEN, context->comm_interface);
+  context->state->state = PARAM_STATE_COMPLETE;
 }

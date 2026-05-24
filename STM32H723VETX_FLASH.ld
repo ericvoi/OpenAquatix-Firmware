@@ -47,7 +47,7 @@ MEMORY
   DTCMRAM (xrw)    : ORIGIN = 0x20000000,   LENGTH = 128K
   FLASH    (rx)    : ORIGIN = 0x08000000,   LENGTH = 384K /* last sector reserved for configuration values */
   RAM_D1  (xrw)    : ORIGIN = 0x24000000,   LENGTH = 320K
-  RAM_D2  (xrw)    : ORIGIN = 0x30000000,   LENGTH = 32K  /* 16K Reserved for DMA buffers and protected by MPU */
+  RAM_D2  (xrw)    : ORIGIN = 0x30000000,   LENGTH = 32K  /* Reserved for DMA buffers and protected by MPU */
   RAM_D3  (xrw)    : ORIGIN = 0x38000000,   LENGTH = 16K
   BKPSRAM (rw)     : ORIGIN = 0x38800000,   LENGTH = 4k
 }

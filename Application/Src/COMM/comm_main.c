@@ -14,7 +14,7 @@
 #include "cmsis_os.h"
 #include "arm_math.h"
 
-#include "usb_comm.h"
+#include "hmi_usb.h"
 #include "dau_card-driver.h"
 #include "error_manager.h"
 
@@ -30,6 +30,9 @@
 #include "cfg_defaults.h"
 
 #include <ctype.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 /* Private typedef -----------------------------------------------------------*/
 
@@ -38,13 +41,17 @@ typedef struct {
   CommInterface_t interface;
 } MenuContext_t;
 
+typedef struct {
+  uint32_t flag;
+  const char* message;
+} HmiNotification_t;
+
 /* Private define ------------------------------------------------------------*/
 
-#define ECHO_USB
-// #define ECHO_UART
-
 #define MAX_MENU_NUMBER_LENGTH    2
-#define BUFFER_BACK_TRACK_AMOUNT  5
+
+#define ANSI_ESCAPE               "\r\033[K"
+#define ANSI_ESCAPE_LEN           (strlen(ANSI_ESCAPE))
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -58,9 +65,21 @@ static uint8_t out_buffer[MAX_COMM_OUT_BUFFER_SIZE];
 
 static uint8_t msg_buffer[MAX_COMM_IN_BUFFER_SIZE];
 static uint16_t msg_buf_len = 0;
-static uint8_t test_msg[] = "Welcome to the UAM HMI!\r\n";
+static uint8_t test_msg[] = "\r\nWelcome to the OpenAquatix HMI!\r\n";
 
-static uint16_t last_echo_len = 0;
+static uint16_t pending_input_len = 0;
+
+static const HmiNotification_t hmi_notifications[] = {
+  { MESS_DROPPED_PACKET_PREAMBLE,         "RX DECODE FAILED: Dropped a packet with an invalid preamble\r\n" },
+  { MESS_DROPPED_PACKET_CARGO,            "RX DECODE FAILED: Dropped a packet with an invalid cargo\r\n" },
+  { MESS_MAC_LOST_MESSAGE,                "TX REQUEST FAILED: Lost message in MAC; message not sent\r\n" },
+  { MESS_MAC_TX_SPACE,                    "TX REQUEST FAILED: No space in TX queue for message\r\n" },
+  { MESS_MAC_DROPPED_MESSAGE,             "TX REQUEST FAILED: Channel did not free in time\r\n" },
+  { MESS_FAILED_RANGING_REQUEST,          "RANGE REQUEST FAILED: Failed to send ranging request\r\n" },
+  { MESS_FAILED_RANGING_RESPONSE,         "RANGE REQUEST FAILED: Received ranging request, but could not respond\r\n" },
+  { MESS_RECEIVED_RANGING_RESPONSE_BAD,   "RANGE REQUEST FAILED: Received valid ranging response, but could not add to queue\r\n" },
+  { MESS_FBK_TEST_DISABLED,               "Cannot complete feedback tests as subsystem is disabled\r\n" },
+};
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -71,15 +90,13 @@ static void handleHmiWithdraw(void);
 static void handleHmiNavigation(void);
 static void handleHmiFunction(void);
 
-static void echoInput(void);
-
 static void displaySubMenus(void);
 static bool isNumber(uint8_t* buf, uint16_t len);
 static bool checkMenuNumberInput(uint8_t* buf, uint16_t len, uint16_t* number);
-static void updateInputEcho(uint8_t* msg_buffer, uint16_t len);
-static void resetInputEcho(void);
+static void refreshInputLine(uint8_t* buffer, uint16_t len);
+static void clearInputLine(void);
 
-static void printNotifications(void);
+static bool printNotifications(void);
 
 static void registerCommParams(void);
 
@@ -90,7 +107,6 @@ static void resetTask(void);
 void COMM_StartTask(void *argument)
 {
   (void)(argument);
-  USB_CreateShared();
   menu_context.interface = COMM_BOTH;
 
   Error_RegisterTask("COMM");
@@ -114,23 +130,28 @@ void COMM_StartTask(void *argument)
     }
 
     RxState_t state = getHmiInput(&menu_context.interface);
-
-    printNotifications();
+    bool notified = printNotifications();
 
     switch (state) {
       case DATA_READY:
+        pending_input_len = 0;
         if (msg_buffer[0] == WITHDRAW_CHAR && msg_buf_len > 0) {
           handleHmiWithdraw();
-          break;
+        } else {
+          COMM_TransmitData("\r\n", 2, menu_context.interface);
+          handleHmiNavigation();
+          handleHmiFunction();
         }
-
-        handleHmiNavigation();
-        handleHmiFunction();
         break;
       case NEW_CONTENT:
-        echoInput();
+        refreshInputLine(msg_buffer, msg_buf_len);
+        pending_input_len = msg_buf_len;
         break;
       case NO_CHANGE:
+        if (notified && pending_input_len > 0) {
+          // Reprint partial input that was cleared by notifications
+          refreshInputLine(msg_buffer, pending_input_len);
+        }
         break;
       default:
         break;
@@ -227,9 +248,6 @@ void handleHmiFunction(void)
 
   // no children so handle function
   // Prepare function argument
-  updateInputEcho(msg_buffer, msg_buf_len);
-  osDelay(1);
-  resetInputEcho();
   FunctionContext_t context = {
       .state = menu_context.current_menu->parameters,
       .input_len = msg_buf_len,
@@ -239,27 +257,12 @@ void handleHmiFunction(void)
   strncpy(context.input, (char*) msg_buffer, MAX_COMM_IN_BUFFER_SIZE);
 
   (*menu_context.current_menu->handler)(&context);
-  resetInputEcho();
 
   if (menu_context.current_menu->parameters->state == PARAM_STATE_COMPLETE) {
     menu_context.current_menu->parameters->state = PARAM_STATE_0;
     menu_context.current_menu = MenuSystem_GetMenu(menu_context.current_menu->parent_id);
     displaySubMenus();
   }
-}
-
-void echoInput(void)
-{
-  #ifdef ECHO_USB
-    if (menu_context.interface == COMM_USB) {
-      updateInputEcho(msg_buffer, msg_buf_len);
-    }
-  #endif
-  #ifdef ECHO_UART
-    if (menu_context.interface == COMM_UART) {
-      updateInputEcho(msg_buffer, msg_buf_len);
-    }
-  #endif
 }
 
 void displaySubMenus(void)
@@ -297,87 +300,44 @@ bool checkMenuNumberInput(uint8_t* buf, uint16_t len, uint16_t* number)
   return true;
 }
 
-void updateInputEcho(uint8_t* msg_buffer, uint16_t len)
+// Clears current line content on the terminal and reprints the buffer
+void refreshInputLine(uint8_t* buffer, uint16_t len)
 {
-  int16_t len_difference = (int16_t) len - (int16_t) last_echo_len;
-  uint16_t start_index;
-  if (len_difference > BUFFER_BACK_TRACK_AMOUNT) {
-    start_index = last_echo_len;
+  COMM_TransmitData(ANSI_ESCAPE, ANSI_ESCAPE_LEN, menu_context.interface);
+  if (len > 0) {
+    COMM_TransmitData(buffer, len, menu_context.interface);
   }
-  else {
-    start_index = (len > BUFFER_BACK_TRACK_AMOUNT) ? (len - BUFFER_BACK_TRACK_AMOUNT) : 0;
-  }
-  uint16_t back_amount = (uint16_t) MIN((int16_t) last_echo_len,
-      (int16_t) (BUFFER_BACK_TRACK_AMOUNT - MIN(len_difference, BUFFER_BACK_TRACK_AMOUNT)));
-  uint16_t out_buffer_len = back_amount;
-  if (back_amount > 0) {
-    memset(out_buffer, '\b', back_amount);
-  }
-  uint16_t new_data_len = MIN(len, MAX(BUFFER_BACK_TRACK_AMOUNT, len_difference));
-  for (int i = 0; i < new_data_len; i++) {
-    out_buffer[back_amount + i] = msg_buffer[start_index + i];
-    out_buffer_len++;
-  }
-  if (last_echo_len > len) {
-    for (int i = 0; i < last_echo_len - len; i++) {
-      out_buffer[out_buffer_len++] = ' ';
-    }
-    for (int i = 0; i < last_echo_len - len; i++) {
-      out_buffer[out_buffer_len++] = '\b';
-    }
-  }
-
-  COMM_TransmitData(out_buffer, MAX(out_buffer_len, len_difference), menu_context.interface);
-
-  last_echo_len = len;
 }
 
-void resetInputEcho(void)
+// Clears the input line without reprinting (used before printing other output)
+void clearInputLine(void)
 {
-  last_echo_len = 0;
+  if (pending_input_len > 0) {
+    COMM_TransmitData(ANSI_ESCAPE, ANSI_ESCAPE_LEN, menu_context.interface);
+  }
 }
 
-void printNotifications(void)
+bool printNotifications(void)
 {
-  if (print_event_handle == NULL) return;
+  if (print_event_handle == NULL) return false;
 
   uint32_t flags = osEventFlagsGet(print_event_handle);
-  if (flags & MESS_DROPPED_PACKET_PREAMBLE) {
-    COMM_TransmitData("Dropped a packet with an invalid preamble\r\n", CALC_LEN, menu_context.interface);
-    osEventFlagsClear(print_event_handle, MESS_DROPPED_PACKET_PREAMBLE);
+  if (flags == 0) return false;
+
+  bool printed = false;
+
+  for (uint32_t i = 0; i < sizeof(hmi_notifications) / sizeof(hmi_notifications[0]); i++) {
+    if (flags & hmi_notifications[i].flag) {
+      if (printed == false) {
+        clearInputLine();  // clear partial input before first notification
+        printed = true;
+      }
+      COMM_TransmitData(hmi_notifications[i].message, CALC_LEN, menu_context.interface);
+      osEventFlagsClear(print_event_handle, hmi_notifications[i].flag);
+    }
   }
-  if (flags & MESS_DROPPED_PACKET_CARGO) {
-    COMM_TransmitData("Dropped a packet with an invalid cargo\r\n", CALC_LEN, menu_context.interface);
-    osEventFlagsClear(print_event_handle, MESS_DROPPED_PACKET_CARGO);
-  }
-  if (flags & MESS_MAC_LOST_MESSAGE) {
-    COMM_TransmitData("TX REQUEST FAILED: Lost message in MAC; message not sent\r\n", CALC_LEN, menu_context.interface);
-    osEventFlagsClear(print_event_handle, MESS_MAC_LOST_MESSAGE);
-  }
-  if (flags & MESS_MAC_TX_SPACE) {
-    COMM_TransmitData("TX REQUEST FAILED: No space in TX queue for message\r\n", CALC_LEN, menu_context.interface);
-    osEventFlagsClear(print_event_handle, MESS_MAC_TX_SPACE);
-  }
-  if (flags & MESS_MAC_DROPPED_MESSAGE) {
-    COMM_TransmitData("TX REQUEST FAILED: Channel did not free in time\r\n", CALC_LEN, menu_context.interface);
-    osEventFlagsClear(print_event_handle, MESS_MAC_DROPPED_MESSAGE);
-  }
-  if (flags & MESS_FAILED_RANGING_REQUEST) {
-    COMM_TransmitData("Failed to send ranging request\r\n", CALC_LEN, menu_context.interface);
-    osEventFlagsClear(print_event_handle, MESS_FAILED_RANGING_REQUEST);
-  }
-  if (flags & MESS_FAILED_RANGING_RESPONSE) {
-    COMM_TransmitData("Received ranging request, but could not respond\r\n", CALC_LEN, menu_context.interface);
-    osEventFlagsClear(print_event_handle, MESS_FAILED_RANGING_RESPONSE);
-  }
-  if (flags & MESS_RECEIVED_RANGING_RESPONSE_BAD) {
-    COMM_TransmitData("Received valid ranging response, but could not add to queue\r\n", CALC_LEN, menu_context.interface);
-    osEventFlagsClear(print_event_handle, MESS_RECEIVED_RANGING_RESPONSE_BAD);
-  }
-  if (flags & MESS_FBK_TEST_DISABLED) {
-    COMM_TransmitData("Cannot complete feedback tests as subsytem is disabled\r\n", CALC_LEN, menu_context.interface);
-    osEventFlagsClear(print_event_handle, MESS_FBK_TEST_DISABLED);
-  }
+
+  return printed;
 }
 
 void registerCommParams(void)

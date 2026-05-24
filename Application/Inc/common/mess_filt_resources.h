@@ -38,10 +38,13 @@ extern "C" {
 #define PROCESSING_BUFFER_SIZE    (1 << PROCESSING_BUFFER_POWER) // 16384
 #define PROCESSING_BUFFER_MASK    (PROCESSING_BUFFER_SIZE - 1)
 
-#define ADC_BITS                  (16U)
+#define INPUT_ADC_BITS            (16U)
+#define FEEDBACK_ADC_BITS         (16U)
 
 #define ADC_SAMPLING_RATE         120000  // 120 kHz
 #define ADC_VREF                  (3.3f)
+
+#define OUT_FB_ATTENUATION        (1.6E3 / (1.6E5 + 1.6E3))
 
 /* Exported macro ------------------------------------------------------------*/
 

@@ -114,6 +114,7 @@ void LED_Update()
   ProcessingState_t state = MESS_GetState();
 
   switch (state) {
+    case HIL_CALIBRATION:
     case LISTENING:
       // set led to default if no warnings
       Ws2812b_SetColour(LISTENING_COLOUR);

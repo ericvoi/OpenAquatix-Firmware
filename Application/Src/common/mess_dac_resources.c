@@ -23,6 +23,12 @@
 /* Private typedef -----------------------------------------------------------*/
 
 typedef enum {
+  OUTPUT_MESSAGE,
+  OUTPUT_TEST_TONE,
+  OUTPUT_CHIRP
+} DacOutputType_t;
+
+typedef enum {
   PACKET_PHASE_WAKEUP,
   PACKET_PHASE_SYNC,
   PACKET_PHASE_DATA
@@ -49,9 +55,27 @@ static DspConfig_t cfg;
 static BitMessage_t bit_msg;
 
 static TransmissionLayout_t transmission_layout;
+static DacOutputType_t output_type;
+static WaveformStep_t test_tone;
+
+// Stair-stepped LFM: each call to MessDacResource_GetStep returns a constant-
+// frequency WaveformStep_t whose freq_hz advances linearly from f_start_hz to
+// f_end_hz over num_steps. Phase carries through across steps because the
+// waveform engine never zeros wave_ctrl.phase_accumulator between steps.
+typedef struct {
+  uint32_t f_start_hz;
+  uint32_t f_end_hz;
+  uint32_t step_duration_us;
+  uint16_t num_steps;
+  float amplitude;
+} ChirpParams_t;
+static ChirpParams_t chirp_params;
 
 /* Private function prototypes -----------------------------------------------*/
 
+WaveformStep_t getMessageStep(uint16_t current_step);
+WaveformStep_t getTestToneStep(uint16_t current_step);
+WaveformStep_t getChirpStep(uint16_t current_step);
 TransmissionPhase_t getPhase(uint16_t current_step, uint16_t* transmission_step, uint16_t* symbol_index);
 
 /* Exported function definitions ---------------------------------------------*/
@@ -78,11 +102,73 @@ void MessDacResource_RegisterMessageConfiguration(const DspConfig_t* new_cfg,
 
   transmission_layout.wakeup_steps = WakeupTones_NumSteps(new_cfg);
   transmission_layout.sync_steps = Sync_NumSteps(new_cfg);
+  output_type = OUTPUT_MESSAGE;
+
+  osMutexRelease(mess_dac_resource_mutex);
+}
+
+void MessDacResource_RegisterTestTone(uint32_t freq_hz, uint32_t duration_ms, float amplitude)
+{
+  if (osMutexAcquire(mess_dac_resource_mutex, MUTEX_TIMEOUT) != osOK) {
+    REGISTER_ERROR(ERROR_MUTEX_TIMEOUT);
+    return;
+  }
+
+  test_tone.freq_hz = freq_hz;
+  test_tone.duration_us = duration_ms * 1000;
+  test_tone.relative_amplitude = amplitude;
+  test_tone.output_type = OUTPUT_CONSTANT_SQUARE;
+  output_type = OUTPUT_TEST_TONE;
+
+  osMutexRelease(mess_dac_resource_mutex);
+}
+
+void MessDacResource_RegisterChirp(uint32_t f_start_hz, uint32_t f_end_hz,
+                                   uint16_t num_steps, uint32_t step_duration_us,
+                                   float amplitude)
+{
+  if (osMutexAcquire(mess_dac_resource_mutex, MUTEX_TIMEOUT) != osOK) {
+    REGISTER_ERROR(ERROR_MUTEX_TIMEOUT);
+    return;
+  }
+
+  chirp_params.f_start_hz = f_start_hz;
+  chirp_params.f_end_hz = f_end_hz;
+  chirp_params.num_steps = num_steps;
+  chirp_params.step_duration_us = step_duration_us;
+  chirp_params.amplitude = amplitude;
+  output_type = OUTPUT_CHIRP;
 
   osMutexRelease(mess_dac_resource_mutex);
 }
 
 WaveformStep_t MessDacResource_GetStep(uint16_t current_step)
+{
+  switch (output_type) {
+    case OUTPUT_MESSAGE:
+      return getMessageStep(current_step);
+    case OUTPUT_TEST_TONE:
+      return getTestToneStep(current_step);
+    case OUTPUT_CHIRP:
+      return getChirpStep(current_step);
+    default: {
+      WaveformStep_t step = {0};
+      REGISTER_ERROR_NON_VOID(ERROR_UNHANDLED_CASE, step);
+      return step;
+    }
+  }
+}
+
+uint16_t MessDacResource_SyncWakeupSteps()
+{
+  uint16_t sync_steps = Sync_NumSteps(&cfg);
+  uint16_t wakeup_steps = WakeupTones_NumSteps(&cfg);
+  return sync_steps + wakeup_steps;
+}
+
+/* Private function definitions ----------------------------------------------*/
+
+WaveformStep_t getMessageStep(uint16_t current_step)
 {
   WaveformStep_t waveform_step = {0};
 
@@ -113,14 +199,30 @@ WaveformStep_t MessDacResource_GetStep(uint16_t current_step)
   return waveform_step;
 }
 
-uint16_t MessDacResource_SyncWakeupSteps()
+WaveformStep_t getTestToneStep(uint16_t current_step)
 {
-  uint16_t sync_steps = Sync_NumSteps(&cfg);
-  uint16_t wakeup_steps = WakeupTones_NumSteps(&cfg);
-  return sync_steps + wakeup_steps;
+  WaveformStep_t waveform_step = {0};
+  if (current_step != 0) return waveform_step;
+
+  return test_tone;
 }
 
-/* Private function definitions ----------------------------------------------*/
+WaveformStep_t getChirpStep(uint16_t current_step)
+{
+  WaveformStep_t waveform_step = {0};
+  if (current_step != 0) return waveform_step;
+
+  // Single continuous LFM step. Phase is updated per sample by the
+  // waveform engine (OUTPUT_LFM_CHIRP path); num_steps / step_duration_us
+  // from the registration are folded into total duration here.
+  waveform_step.output_type = OUTPUT_LFM_CHIRP;
+  waveform_step.freq_hz = chirp_params.f_start_hz;
+  waveform_step.f_end_hz = chirp_params.f_end_hz;
+  waveform_step.duration_us =
+      (uint32_t)chirp_params.num_steps * chirp_params.step_duration_us;
+  waveform_step.relative_amplitude = chirp_params.amplitude;
+  return waveform_step;
+}
 
 TransmissionPhase_t getPhase(uint16_t current_step, uint16_t* transmission_step, uint16_t* symbol_index)
 {
