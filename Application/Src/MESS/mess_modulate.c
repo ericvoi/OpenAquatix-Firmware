@@ -64,13 +64,9 @@ typedef struct {
 
 /* Private variables ---------------------------------------------------------*/
 
-extern osThreadId_t dacTaskHandle;
+extern osThreadId_t dac_taskHandle;
 
 static float output_amplitude = DEFAULT_OUTPUT_AMPLITUDE;
-
-static WaveformStep_t test_sequence[2];
-
-static uint32_t test_freq = 30000;
 
 static OutputStrengthMethod_t output_strength_method = DEFAULT_MOD_OUTPUT_METHOD;
 
@@ -164,16 +160,14 @@ void Modulate_StartTransducerOutput(uint16_t num_steps,
   if (Waveform_SetWaveformSequence(num_steps, true, tx_msg->delay, tx_msg->delay_cyccnt) == false)
     REGISTER_ERROR(ERROR_STARTING_TRANSDUCER_OUTPUT);
 
-  RETURN_IF_ERROR_PRESENT(MessFiltResources_StartFeedbackAdc());
-
   if (Waveform_PrepareWaveformOutput(DAC_CHANNEL_1) == false)
     REGISTER_ERROR(ERROR_STARTING_TRANSDUCER_OUTPUT);
   
   osDelay(150);
   if ((tx_msg->data_type == RANGING_REQUEST) && (new_cfg->protocol == PROTOCOL_CUSTOM))
-    osThreadFlagsSet(dacTaskHandle, DAC_START_RANGING_REQUEST);
+    osThreadFlagsSet(dac_taskHandle, DAC_START_RANGING_REQUEST);
   else
-    osThreadFlagsSet(dacTaskHandle, DAC_START_OUTPUT);
+    osThreadFlagsSet(dac_taskHandle, DAC_START_OUTPUT);
 }
 
 void Modulate_StartFeedbackOutput(uint16_t num_steps, 
@@ -196,23 +190,30 @@ void Modulate_StartFeedbackOutput(uint16_t num_steps,
   if (Waveform_PrepareWaveformOutput(DAC_CHANNEL_1) == false) 
     REGISTER_ERROR(ERROR_TRANSDUCER_FB_INITIALIZATION);
 
-  if (HAL_TIM_Base_Start(&htim6) != HAL_OK)
-    REGISTER_ERROR(ERROR_TRANSDUCER_FB_INITIALIZATION);
-
   if ((tx_msg->data_type == RANGING_REQUEST) && (new_cfg->protocol == PROTOCOL_CUSTOM))
-    osThreadFlagsSet(dacTaskHandle, DAC_START_RANGING_REQUEST);
+    osThreadFlagsSet(dac_taskHandle, DAC_START_RANGING_REQUEST);
   else
-    osThreadFlagsSet(dacTaskHandle, DAC_START_OUTPUT);
+    osThreadFlagsSet(dac_taskHandle, DAC_START_OUTPUT);
 }
 
-// TODO: properly deprecate
-void Modulate_TestFrequencyResponse()
+void Modulate_TestFrequencyResponse(uint32_t freq_hz, uint32_t duration_ms, float amplitude)
 {
-  test_sequence[0].duration_us = FEEDBACK_TEST_DURATION_MS * 1000;
-  test_sequence[0].freq_hz = test_freq;
-  test_sequence[0].relative_amplitude = output_amplitude;
+  RETURN_IF_ERROR_PRESENT();
+  HAL_TIM_Base_Stop(&htim6);
+  if (Waveform_StopWaveformOutput() == false) 
+    REGISTER_ERROR(ERROR_TRANSDUCER_FB_INITIALIZATION);
 
-//  Waveform_SetWaveformSequence(test_sequence, 1);
+  osDelay(1);
+
+  MessDacResource_RegisterTestTone(freq_hz, duration_ms, amplitude);
+  
+  if (Waveform_SetWaveformSequence(1, false, false, 0) == false) 
+    REGISTER_ERROR(ERROR_TRANSDUCER_FB_INITIALIZATION);
+
+  if (Waveform_PrepareWaveformOutput(DAC_CHANNEL_1) == false) 
+    REGISTER_ERROR(ERROR_TRANSDUCER_FB_INITIALIZATION);
+
+  osThreadFlagsSet(dac_taskHandle, DAC_START_OUTPUT);
 }
 
 uint32_t Modulate_GetFhbfskFrequency(bool bit, 

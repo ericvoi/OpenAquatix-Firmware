@@ -23,7 +23,9 @@
 
 /* Private define ------------------------------------------------------------*/
 
-
+#define ATTEN_R1        (1.0E6)
+#define ATTEN_R2A       (22.0f)
+#define ATTEN_R2B       (732.0f)
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -31,7 +33,10 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-
+static float in_fb_attenuations[NUM_IN_FB_ATTENUATIONS] = {
+  ATTEN_R2A / (ATTEN_R2A + ATTEN_R1),
+  ATTEN_R2B / (ATTEN_R2B + ATTEN_R1)
+};
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -62,6 +67,13 @@ void Feedback_ChangeInputAttenuation(FeedbackAttenuation_t attenuation)
       // TODO: handle error
       break;
   }
+}
+
+float Feedback_GetAttenuation(FeedbackAttenuation_t attenuation)
+{
+  if (attenuation > NUM_IN_FB_ATTENUATIONS) return 1;
+
+  return in_fb_attenuations[attenuation];
 }
 
 /* Private function definitions ----------------------------------------------*/

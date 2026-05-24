@@ -169,7 +169,9 @@ void updateStates()
   updateState(&info_3V3A);
   updateState(&info_negative_3V3);
   updateState(&info_30V);
-  if (HAL_GPIO_ReadPin(PGOOD_30V_GPIO_Port, PGOOD_30V_Pin) == GPIO_PIN_RESET) {
+  bool pwr_bad_30v = HAL_GPIO_ReadPin(PGOOD_30V_GPIO_Port, PGOOD_30V_Pin) == GPIO_PIN_RESET;
+  bool on_30v = info_30V.state == PWR_READY;
+  if (pwr_bad_30v && on_30v) {
     info_30V.state = PWR_ERROR;
   }
   updateState(&info_Ws5V);

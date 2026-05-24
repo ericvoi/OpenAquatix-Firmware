@@ -78,7 +78,7 @@ void COMMLoops_LoopUint32(FunctionContext_t* context, ParamIds_t param_id)
           context->state->state = PARAM_STATE_COMPLETE;
         }
         else {
-          sprintf((char*) context->output_buffer, "\r\n\r\nCurrent value of %s:"
+          sprintf((char*) context->output_buffer, "\r\nCurrent value of %s:"
               " %lu\r\n", parameter_name, current_value);
           COMM_TransmitData(context->output_buffer, CALC_LEN, 
               context->comm_interface);
@@ -104,8 +104,8 @@ void COMMLoops_LoopUint32(FunctionContext_t* context, ParamIds_t param_id)
           }
           context->state->state = PARAM_STATE_COMPLETE;
         } else {
-          sprintf((char*) context->output_buffer, "\r\nValue %lu is outside the"
-              " range of %lu and %lu\r\n", new_value, min, max);
+          sprintf((char*) context->output_buffer, "\r\nValue %s is outside the"
+              " range of %lu and %lu\r\n", context->input, min, max);
           COMM_TransmitData(context->output_buffer, CALC_LEN, 
               context->comm_interface);
           context->state->state = PARAM_STATE_0;
@@ -153,7 +153,7 @@ void COMMLoops_LoopUint16(FunctionContext_t* context, ParamIds_t param_id)
           context->state->state = PARAM_STATE_COMPLETE;
         }
         else {
-          sprintf((char*) context->output_buffer, "\r\n\r\nCurrent value of %s:"
+          sprintf((char*) context->output_buffer, "\r\nCurrent value of %s:"
               " %u\r\n", parameter_name, current_value);
           COMM_TransmitData(context->output_buffer, CALC_LEN, 
               context->comm_interface);
@@ -179,8 +179,8 @@ void COMMLoops_LoopUint16(FunctionContext_t* context, ParamIds_t param_id)
           }
           context->state->state = PARAM_STATE_COMPLETE;
         } else {
-          sprintf((char*) context->output_buffer, "\r\nValue %u is outside the"
-          " range of %u and %u\r\n", new_value, min, max);
+          sprintf((char*) context->output_buffer, "\r\nValue %s is outside the"
+          " range of %u and %u\r\n", context->input, min, max);
           COMM_TransmitData(context->output_buffer, CALC_LEN, 
               context->comm_interface);
           context->state->state = PARAM_STATE_0;
@@ -228,7 +228,7 @@ void COMMLoops_LoopUint8(FunctionContext_t* context, ParamIds_t param_id)
           context->state->state = PARAM_STATE_COMPLETE;
         }
         else {
-          sprintf((char*) context->output_buffer, "\r\n\r\nCurrent value of %s:"
+          sprintf((char*) context->output_buffer, "\r\nCurrent value of %s:"
               " %u\r\n", parameter_name, current_value);
           COMM_TransmitData(context->output_buffer, CALC_LEN, 
               context->comm_interface);
@@ -254,8 +254,8 @@ void COMMLoops_LoopUint8(FunctionContext_t* context, ParamIds_t param_id)
           }
           context->state->state = PARAM_STATE_COMPLETE;
         } else {
-          sprintf((char*) context->output_buffer, "\r\nValue %u is outside the "
-              "range of %u and %u\r\n", new_value, min, max);
+          sprintf((char*) context->output_buffer, "\r\nValue %s is outside the "
+              "range of %u and %u\r\n", context->input, min, max);
           COMM_TransmitData(context->output_buffer, CALC_LEN, 
               context->comm_interface);
           context->state->state = PARAM_STATE_0;
@@ -303,7 +303,7 @@ void COMMLoops_LoopFloat(FunctionContext_t* context, ParamIds_t param_id)
           context->state->state = PARAM_STATE_COMPLETE;
         }
         else {
-          sprintf((char*) context->output_buffer, "\r\n\r\nCurrent value of %s:"
+          sprintf((char*) context->output_buffer, "\r\nCurrent value of %s:"
               " %.4f\r\n", parameter_name, current_value);
           COMM_TransmitData(context->output_buffer, CALC_LEN, 
               context->comm_interface);
@@ -379,7 +379,7 @@ void COMMLoops_LoopEnum(FunctionContext_t* context, ParamIds_t param_id)
           context->state->state = PARAM_STATE_COMPLETE;
         }
         else {
-          sprintf((char*) context->output_buffer, "\r\n\r\nCurrent value of %s"
+          sprintf((char*) context->output_buffer, "\r\nCurrent value of %s"
               " is %u: %s\r\n", parameter_name, current_value, 
               descriptors[current_value]);
           COMM_TransmitData(context->output_buffer, CALC_LEN, 
@@ -415,8 +415,8 @@ void COMMLoops_LoopEnum(FunctionContext_t* context, ParamIds_t param_id)
           }
           context->state->state = PARAM_STATE_COMPLETE;
         } else {
-          sprintf((char*) context->output_buffer, "\r\nValue %u is outside the "
-              "range of %u and %u\r\n", new_value, min, max);
+          sprintf((char*) context->output_buffer, "\r\nValue %s is outside the "
+              "range of %u and %u\r\n", context->input, min, max);
           COMM_TransmitData(context->output_buffer, CALC_LEN, 
               context->comm_interface);
           context->state->state = PARAM_STATE_0;

@@ -79,10 +79,11 @@ void Modulate_StartFeedbackOutput(uint16_t num_steps,
 /**
  * @brief Generates a single-frequency test signal for frequency response analysis
  *
- * Creates a test waveform at the previously configured test frequency for
- * FEEDBACK_TEST_DURATION_MS milliseconds. Uses the current output amplitude setting.
+ * @param freq_hz The frequency of the tone
+ * @param duration_ms The duration of the tone in milliseconds
+ * @param amplitude The amplitude of the test tone relative to full-scale
  */
-void Modulate_TestFrequencyResponse();
+void Modulate_TestFrequencyResponse(uint32_t freq_hz, uint32_t duration_ms, float amplitude);
 
 /**
  * @brief Calculates the frequency for a given bit using FHBFSK modulation

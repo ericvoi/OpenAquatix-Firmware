@@ -27,7 +27,8 @@ extern "C" {
 
 typedef enum {
   ATTENUATION_93DB,
-  ATTENUATION_63DB
+  ATTENUATION_63DB,
+  NUM_IN_FB_ATTENUATIONS
 } FeedbackAttenuation_t;
 
 /* Exported constants --------------------------------------------------------*/

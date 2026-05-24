@@ -99,7 +99,7 @@ typedef struct {
 
 extern SPI_HandleTypeDef LPS22HH_SPI_BUS;
 
-static osMutexId lps_spi_mutex = NULL;
+static osMutexId_t lps_spi_mutex = NULL;
 static osEventFlagsId_t lps_events = NULL;
 
 static uint8_t rx_data;

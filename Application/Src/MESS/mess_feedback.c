@@ -12,10 +12,11 @@
 
 #include "mess_filt_resources.h"
 #include "mess_feedback.h"
-#include "usb_comm.h"
+#include "hmi_usb.h"
 #include "dac_waveform.h"
 #include "error_manager.h"
 #include <stdbool.h>
+#include <stdio.h>
 
 /* Private typedef -----------------------------------------------------------*/
 
