@@ -818,17 +818,17 @@ void registerMessMainParams()
 
   min_u32 = MIN_MESSAGING_PROTOCOL;
   max_u32 = MAX_MESSAGING_PROTOCOL;
-  if (Param_Register(PARAM_PROTOCOL, "the messaging protocol", PARAM_TYPE_UINT8,
+  if (Param_Register(PARAM_PROTOCOL, "the messaging protocol", PARAM_TYPE_ENUM,
                      &messaging_protocol, sizeof(uint8_t), &min_u32, 
-                     &max_u32, NULL, NULL) == false) {
+                     &max_u32, NULL, messaging_protocol_descriptors) == false) {
     REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 
   min_u32 = MIN_TX_RX_CAPABLE;
   max_u32 = MAX_TX_RX_CAPABLE;
-  if (Param_Register(PARAM_TX_RX_ABILITY, "Tx/Rx ability flag", PARAM_TYPE_ENUM,
+  if (Param_Register(PARAM_TX_RX_ABILITY, "Tx/Rx ability flag", PARAM_TYPE_UINT8,
                      &tx_rx_capable, sizeof(bool), &min_u32,
-                     &max_u32, NULL, messaging_protocol_descriptors) == false) {
+                     &max_u32, NULL, NULL) == false) {
     REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 

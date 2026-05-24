@@ -126,7 +126,7 @@ char const* string_desc_arr[] = {
   (const char[]){ 0x09, 0x04 },    // 0: Language (English)
   "OpenAquatix",                   // 1: Manufacturer
   "OpenAquatix Modem",             // 2: Product
-  "OA-2-2",                        // 3: Serial Number
+  "OA-2-1",                        // 3: Serial Number
   "HMI",                           // 4: CDC Interface
   "HIL Stream",                    // 5: HIL Stream Interface
   "HIL Control",                   // 6: HIL Stream Control
