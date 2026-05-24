@@ -6,12 +6,6 @@ authors:
     given-names: "Eric"
   - family-names: "Cockrall"
     given-names: "Cameron"
-  - family-names: "Huang"
-    given-names: "Letian"
-  - family-names: "Wang"
-    given-names: "Zhaohui"
-  - family-names: "Elezzabi"
-    given-names: "Abdulhakem"
 preferred-citation:
   type: conference-paper
   title: "Development of a Low-Cost Reconfigurable Underwater Acoustic Modem for AUV Applications"
