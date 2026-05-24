@@ -62,6 +62,15 @@ void Feedback_SwitchOutput(bool on);
  */
 void Feedback_ChangeInputAttenuation(FeedbackAttenuation_t attenuation);
 
+/**
+ * @brief Gets the attenuation given an attenuation index
+ * 
+ * @param attenuation Index of array of attenuations
+ * @return float Attenuation in linear terms. Returns 1 if invalid attenuation
+ * index
+ */
+float Feedback_GetAttenuation(FeedbackAttenuation_t attenuation);
+
 /* Private defines -----------------------------------------------------------*/
 
 #ifdef __cplusplus
