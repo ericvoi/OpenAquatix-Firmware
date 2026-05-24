@@ -48,6 +48,7 @@
 #include "core_cm7.h"
 #include "tusb.h"
 #include "usb_main.h"
+#include "hil_main.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -104,101 +105,113 @@ TIM_HandleTypeDef htim16;
 TIM_HandleTypeDef htim17;
 DMA_HandleTypeDef hdma_tim3_ch1;
 
-/* Definitions for defaultTask */
-osThreadId_t defaultTaskHandle;
-uint32_t defaultTaskBuffer[ 4000 ];
-osStaticThreadDef_t defaultTaskControlBlock;
-const osThreadAttr_t defaultTask_attributes = {
-  .name = "defaultTask",
-  .cb_mem = &defaultTaskControlBlock,
-  .cb_size = sizeof(defaultTaskControlBlock),
-  .stack_mem = &defaultTaskBuffer[0],
-  .stack_size = sizeof(defaultTaskBuffer),
+/* Definitions for tusb_task */
+osThreadId_t tusb_taskHandle;
+uint32_t tusb_task_buffer[ 2048 ];
+osStaticThreadDef_t tusb_task_control_block;
+const osThreadAttr_t tusb_task_attributes = {
+  .name = "tusb_task",
+  .cb_mem = &tusb_task_control_block,
+  .cb_size = sizeof(tusb_task_control_block),
+  .stack_mem = &tusb_task_buffer[0],
+  .stack_size = sizeof(tusb_task_buffer),
   .priority = (osPriority_t) osPriorityHigh7,
 };
-/* Definitions for messageTask */
-osThreadId_t messageTaskHandle;
-uint32_t messageTaskBuffer[ 8000 ];
-osStaticThreadDef_t messageTaskControlBlock;
-const osThreadAttr_t messageTask_attributes = {
-  .name = "messageTask",
-  .cb_mem = &messageTaskControlBlock,
-  .cb_size = sizeof(messageTaskControlBlock),
-  .stack_mem = &messageTaskBuffer[0],
-  .stack_size = sizeof(messageTaskBuffer),
+/* Definitions for message_task */
+osThreadId_t message_taskHandle;
+uint32_t mess_task_buffer[ 8192 ] __attribute__((section(".dtcm")));
+osStaticThreadDef_t mess_task_control_block;
+const osThreadAttr_t message_task_attributes = {
+  .name = "message_task",
+  .cb_mem = &mess_task_control_block,
+  .cb_size = sizeof(mess_task_control_block),
+  .stack_mem = &mess_task_buffer[0],
+  .stack_size = sizeof(mess_task_buffer),
   .priority = (osPriority_t) osPriorityHigh4,
 };
-/* Definitions for sysTask */
-osThreadId_t sysTaskHandle;
-uint32_t sysTaskBuffer[ 200 ];
-osStaticThreadDef_t sysTaskControlBlock;
-const osThreadAttr_t sysTask_attributes = {
-  .name = "sysTask",
-  .cb_mem = &sysTaskControlBlock,
-  .cb_size = sizeof(sysTaskControlBlock),
-  .stack_mem = &sysTaskBuffer[0],
-  .stack_size = sizeof(sysTaskBuffer),
+/* Definitions for sys_task */
+osThreadId_t sys_taskHandle;
+uint32_t sys_task_buffer[ 256 ];
+osStaticThreadDef_t sys_task_control_block;
+const osThreadAttr_t sys_task_attributes = {
+  .name = "sys_task",
+  .cb_mem = &sys_task_control_block,
+  .cb_size = sizeof(sys_task_control_block),
+  .stack_mem = &sys_task_buffer[0],
+  .stack_size = sizeof(sys_task_buffer),
   .priority = (osPriority_t) osPriorityNormal7,
 };
-/* Definitions for commTask */
-osThreadId_t commTaskHandle;
-uint32_t commTaskBuffer[ 3000 ];
-osStaticThreadDef_t commTaskControlBlock;
-const osThreadAttr_t commTask_attributes = {
-  .name = "commTask",
-  .cb_mem = &commTaskControlBlock,
-  .cb_size = sizeof(commTaskControlBlock),
-  .stack_mem = &commTaskBuffer[0],
-  .stack_size = sizeof(commTaskBuffer),
+/* Definitions for comm_task */
+osThreadId_t comm_taskHandle;
+uint32_t comm_task_buffer[ 2048 ];
+osStaticThreadDef_t comm_task_control_block;
+const osThreadAttr_t comm_task_attributes = {
+  .name = "comm_task",
+  .cb_mem = &comm_task_control_block,
+  .cb_size = sizeof(comm_task_control_block),
+  .stack_mem = &comm_task_buffer[0],
+  .stack_size = sizeof(comm_task_buffer),
   .priority = (osPriority_t) osPriorityNormal6,
 };
-/* Definitions for configTask */
-osThreadId_t configTaskHandle;
-uint32_t configTaskBuffer[ 512 ];
-osStaticThreadDef_t configTaskControlBlock;
-const osThreadAttr_t configTask_attributes = {
-  .name = "configTask",
-  .cb_mem = &configTaskControlBlock,
-  .cb_size = sizeof(configTaskControlBlock),
-  .stack_mem = &configTaskBuffer[0],
-  .stack_size = sizeof(configTaskBuffer),
+/* Definitions for cfg_task */
+osThreadId_t cfg_taskHandle;
+uint32_t cfg_task_buffer[ 512 ];
+osStaticThreadDef_t cfg_task_control_block;
+const osThreadAttr_t cfg_task_attributes = {
+  .name = "cfg_task",
+  .cb_mem = &cfg_task_control_block,
+  .cb_size = sizeof(cfg_task_control_block),
+  .stack_mem = &cfg_task_buffer[0],
+  .stack_size = sizeof(cfg_task_buffer),
   .priority = (osPriority_t) osPriorityBelowNormal,
 };
-/* Definitions for dacTask */
-osThreadId_t dacTaskHandle;
-uint32_t dacTaskBuffer[ 1000 ];
-osStaticThreadDef_t dacTaskControlBlock;
-const osThreadAttr_t dacTask_attributes = {
-  .name = "dacTask",
-  .cb_mem = &dacTaskControlBlock,
-  .cb_size = sizeof(dacTaskControlBlock),
-  .stack_mem = &dacTaskBuffer[0],
-  .stack_size = sizeof(dacTaskBuffer),
+/* Definitions for dac_task */
+osThreadId_t dac_taskHandle;
+uint32_t dac_task_buffer[ 1024 ];
+osStaticThreadDef_t dac_task_control_block;
+const osThreadAttr_t dac_task_attributes = {
+  .name = "dac_task",
+  .cb_mem = &dac_task_control_block,
+  .cb_size = sizeof(dac_task_control_block),
+  .stack_mem = &dac_task_buffer[0],
+  .stack_size = sizeof(dac_task_buffer),
   .priority = (osPriority_t) osPriorityHigh6,
 };
-/* Definitions for macTask */
-osThreadId_t macTaskHandle;
-uint32_t macTaskBuffer[ 2000 ];
-osStaticThreadDef_t macTaskControlBlock;
-const osThreadAttr_t macTask_attributes = {
-  .name = "macTask",
-  .cb_mem = &macTaskControlBlock,
-  .cb_size = sizeof(macTaskControlBlock),
-  .stack_mem = &macTaskBuffer[0],
-  .stack_size = sizeof(macTaskBuffer),
+/* Definitions for mac_task */
+osThreadId_t mac_taskHandle;
+uint32_t mac_task_buffer[ 2048 ];
+osStaticThreadDef_t mac_task_control_block;
+const osThreadAttr_t mac_task_attributes = {
+  .name = "mac_task",
+  .cb_mem = &mac_task_control_block,
+  .cb_size = sizeof(mac_task_control_block),
+  .stack_mem = &mac_task_buffer[0],
+  .stack_size = sizeof(mac_task_buffer),
   .priority = (osPriority_t) osPriorityNormal1,
 };
-/* Definitions for filtTask */
-osThreadId_t filtTaskHandle;
-uint32_t filtTaskBuffer[ 500 ];
-osStaticThreadDef_t filtTaskControlBlock;
-const osThreadAttr_t filtTask_attributes = {
-  .name = "filtTask",
-  .cb_mem = &filtTaskControlBlock,
-  .cb_size = sizeof(filtTaskControlBlock),
-  .stack_mem = &filtTaskBuffer[0],
-  .stack_size = sizeof(filtTaskBuffer),
+/* Definitions for filt_task */
+osThreadId_t filt_taskHandle;
+uint32_t filt_task_buffer[ 512 ];
+osStaticThreadDef_t filt_task_control_block;
+const osThreadAttr_t filt_task_attributes = {
+  .name = "filt_task",
+  .cb_mem = &filt_task_control_block,
+  .cb_size = sizeof(filt_task_control_block),
+  .stack_mem = &filt_task_buffer[0],
+  .stack_size = sizeof(filt_task_buffer),
   .priority = (osPriority_t) osPriorityHigh5,
+};
+/* Definitions for hil_task */
+osThreadId_t hil_taskHandle;
+uint32_t hil_task_buffer[ 1024 ];
+osStaticThreadDef_t hil_task_control_block;
+const osThreadAttr_t hil_task_attributes = {
+  .name = "hil_task",
+  .cb_mem = &hil_task_control_block,
+  .cb_size = sizeof(hil_task_control_block),
+  .stack_mem = &hil_task_buffer[0],
+  .stack_size = sizeof(hil_task_buffer),
+  .priority = (osPriority_t) osPriorityHigh6,
 };
 /* Definitions for dau_uart_mutex */
 osMutexId_t dau_uart_mutexHandle;
@@ -234,14 +247,15 @@ static void MX_OCTOSPI1_Init(void);
 static void MX_RTC_Init(void);
 static void MX_SPI3_Init(void);
 static void MX_FMAC_Init(void);
-void StartDefaultTask(void *argument);
-void startMessageProcessingTask(void *argument);
+void startTusbTask(void *argument);
+void startMessTask(void *argument);
 void startSystemManagementTask(void *argument);
 void startCommunicationTask(void *argument);
 void startconfigTask(void *argument);
 void startDacTask(void *argument);
 void startMacTask(void *argument);
 void startFiltTask(void *argument);
+void startHilTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 static void usbHsInit(void);
@@ -353,7 +367,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
   /* USER CODE END 1 */
 
   /* MPU Configuration--------------------------------------------------------*/
@@ -451,29 +464,32 @@ int main(void)
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* creation of defaultTask */
-  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+  /* creation of tusb_task */
+  tusb_taskHandle = osThreadNew(startTusbTask, NULL, &tusb_task_attributes);
 
-  /* creation of messageTask */
-  messageTaskHandle = osThreadNew(startMessageProcessingTask, NULL, &messageTask_attributes);
+  /* creation of message_task */
+  message_taskHandle = osThreadNew(startMessTask, NULL, &message_task_attributes);
 
-  /* creation of sysTask */
-  sysTaskHandle = osThreadNew(startSystemManagementTask, NULL, &sysTask_attributes);
+  /* creation of sys_task */
+  sys_taskHandle = osThreadNew(startSystemManagementTask, NULL, &sys_task_attributes);
 
-  /* creation of commTask */
-  commTaskHandle = osThreadNew(startCommunicationTask, NULL, &commTask_attributes);
+  /* creation of comm_task */
+  comm_taskHandle = osThreadNew(startCommunicationTask, NULL, &comm_task_attributes);
 
-  /* creation of configTask */
-  configTaskHandle = osThreadNew(startconfigTask, NULL, &configTask_attributes);
+  /* creation of cfg_task */
+  cfg_taskHandle = osThreadNew(startconfigTask, NULL, &cfg_task_attributes);
 
-  /* creation of dacTask */
-  dacTaskHandle = osThreadNew(startDacTask, NULL, &dacTask_attributes);
+  /* creation of dac_task */
+  dac_taskHandle = osThreadNew(startDacTask, NULL, &dac_task_attributes);
 
-  /* creation of macTask */
-  macTaskHandle = osThreadNew(startMacTask, NULL, &macTask_attributes);
+  /* creation of mac_task */
+  mac_taskHandle = osThreadNew(startMacTask, NULL, &mac_task_attributes);
 
-  /* creation of filtTask */
-  filtTaskHandle = osThreadNew(startFiltTask, NULL, &filtTask_attributes);
+  /* creation of filt_task */
+  filt_taskHandle = osThreadNew(startFiltTask, NULL, &filt_task_attributes);
+
+  /* creation of hil_task */
+  hil_taskHandle = osThreadNew(startHilTask, NULL, &hil_task_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -618,7 +634,7 @@ static void MX_ADC1_Init(void)
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIG_T6_TRGO;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
-  hadc1.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DR;
+  hadc1.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DMA_CIRCULAR;
   hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;
   hadc1.Init.LeftBitShift = ADC_LEFTBITSHIFT_NONE;
   hadc1.Init.OversamplingMode = DISABLE;
@@ -640,7 +656,7 @@ static void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_4;
   sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
   sConfig.Offset = 0;
@@ -1287,7 +1303,7 @@ static void MX_TIM6_Init(void)
   htim6.Instance = TIM6;
   htim6.Init.Prescaler = 120-1;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim6.Init.Period = 2-1;
+  htim6.Init.Period = 4-1;
   htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
   {
@@ -1589,32 +1605,32 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE END 4 */
 
-/* USER CODE BEGIN Header_StartDefaultTask */
+/* USER CODE BEGIN Header_startTusbTask */
 /**
-  * @brief  Function implementing the defaultTask thread.
+  * @brief  Function implementing the tusb_task thread.
   * @param  argument: Not used
   * @retval None
   */
-/* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void *argument)
+/* USER CODE END Header_startTusbTask */
+void startTusbTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
   USB_StartTask(argument);
   /* USER CODE END 5 */
 }
 
-/* USER CODE BEGIN Header_startMessageProcessingTask */
+/* USER CODE BEGIN Header_startMessTask */
 /**
-* @brief Function implementing the messageTask thread.
+* @brief Function implementing the message_task thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_startMessageProcessingTask */
-void startMessageProcessingTask(void *argument)
+/* USER CODE END Header_startMessTask */
+void startMessTask(void *argument)
 {
-  /* USER CODE BEGIN startMessageProcessingTask */
+  /* USER CODE BEGIN startMessTask */
   MESS_StartTask(argument);
-  /* USER CODE END startMessageProcessingTask */
+  /* USER CODE END startMessTask */
 }
 
 /* USER CODE BEGIN Header_startSystemManagementTask */
@@ -1702,6 +1718,20 @@ void startFiltTask(void *argument)
   /* USER CODE END startFiltTask */
 }
 
+/* USER CODE BEGIN Header_startHilTask */
+/**
+* @brief Function implementing the hil_task thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_startHilTask */
+void startHilTask(void *argument)
+{
+  /* USER CODE BEGIN startHilTask */
+  HIL_StartTask(argument);
+  /* USER CODE END startHilTask */
+}
+
  /* MPU Configuration */
 
 void MPU_Config(void)
@@ -1731,7 +1761,7 @@ void MPU_Config(void)
   */
   MPU_InitStruct.Number = MPU_REGION_NUMBER1;
   MPU_InitStruct.BaseAddress = 0x30000000;
-  MPU_InitStruct.Size = MPU_REGION_SIZE_16KB;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_32KB;
   MPU_InitStruct.SubRegionDisable = 0x0;
   MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
 

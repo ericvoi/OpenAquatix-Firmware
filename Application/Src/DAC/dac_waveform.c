@@ -24,6 +24,8 @@
 #include "cmsis_os.h"
 #include "error_manager.h"
 #include "core_cm7.h"
+#include "hil_manager.h"
+#include "hil_main.h"
 #include <stdbool.h>
 #include <string.h>
 #include <math.h>
@@ -34,6 +36,7 @@
 typedef struct {
   uint32_t phase_accumulator;
   uint32_t phase_increment;
+  int32_t  phase_increment_delta;  // Per-sample delta for LFM chirps; 0 otherwise
 
   uint32_t initial_tukey_window_index;
   uint32_t initial_tukey_end_index;
@@ -63,7 +66,7 @@ typedef struct {
 
 /* Private variables ---------------------------------------------------------*/
 
-extern osThreadId_t dacTaskHandle;
+extern osThreadId_t dac_taskHandle;
 
 static uint16_t sine_table[SINE_POINTS];
 static uint16_t dac_buffer[DAC_BUFFER_SIZE] __attribute__((section(".dma_buf")));
@@ -84,6 +87,8 @@ static uint32_t delay_cyccnt = 0;
 static volatile uint32_t callback_count = 0;
 
 static uint16_t tukey_window[TUKEY_POINTS];
+
+extern osThreadId_t hil_taskHandle;
 
 // Output tone that flushes out the DAC and prevents the first message from being scrambled
 WaveformStep_t test_step = {
@@ -182,11 +187,11 @@ bool Waveform_StopWaveformOutput()
 {
   // reset flags and end DMA transfer to ease DMA channels
   dac_running = false;
+  osEventFlagsSet(print_event_handle, MESS_DAC_MESS_DONE);
+  HAL_TIM_Base_Stop(&htim6);
   if (HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1) != HAL_OK) return false;
 
   wave_ctrl.phase_accumulator = 0;
-
-  if (MessFiltResources_StopFeedbackAdc() == false) return false;
   return true;
 }
 
@@ -271,7 +276,7 @@ void Waveform_FillBuffer(FillType_t type)
     // end_index: whichever comes first — end of this symbol or end of half-buffer
     const uint16_t end_index = i + MIN(
         (uint32_t)(half_end - i),
-        current_waveform_step.duration_us - current_symbol_duration_us);
+        (current_waveform_step.duration_us - current_symbol_duration_us) * DAC_SUBSAMPLING);
 
     // Initial envelope modulation (Tukey ramp-up)
     while (current_symbol_duration_us < wave_ctrl.initial_tukey_end_index && (i < end_index)) {
@@ -284,7 +289,7 @@ void Waveform_FillBuffer(FillType_t type)
                      - ((scaling_value >> (4 + AMPLITUDE_PRECISION)) / 2)
                      + (((uint64_t)base_value * scaling_value) >> (16 + AMPLITUDE_PRECISION));
       i++;
-      current_symbol_duration_us++;
+      current_symbol_duration_us += DAC_SUBSAMPLING;
       wave_ctrl.phase_accumulator += wave_ctrl.phase_increment;
       wave_ctrl.initial_tukey_window_index += wave_ctrl.tukey_increment;
     }
@@ -299,8 +304,9 @@ void Waveform_FillBuffer(FillType_t type)
       dac_buffer[i] = offset_amt + ((base_value * wave_ctrl.amplitude) >> AMPLITUDE_PRECISION);
 
       wave_ctrl.phase_accumulator += wave_ctrl.phase_increment;
+      wave_ctrl.phase_increment   += wave_ctrl.phase_increment_delta;
       i++;
-      current_symbol_duration_us++;
+      current_symbol_duration_us += DAC_SUBSAMPLING;
     }
 
     // Final envelope modulation (Tukey ramp-down)
@@ -314,7 +320,7 @@ void Waveform_FillBuffer(FillType_t type)
                      - ((scaling_value >> (4 + AMPLITUDE_PRECISION)) / 2)
                      + (((uint64_t)base_value * scaling_value) >> (16 + AMPLITUDE_PRECISION));
       i++;
-      current_symbol_duration_us++;
+      current_symbol_duration_us += DAC_SUBSAMPLING;
       wave_ctrl.phase_accumulator += wave_ctrl.phase_increment;
       wave_ctrl.final_tukey_window_index -= wave_ctrl.tukey_increment;
     }
@@ -350,6 +356,8 @@ void updateWaveformParameters()
 
   wave_ctrl.amplitude = current_waveform_step.relative_amplitude * (1 << AMPLITUDE_PRECISION);
 
+  wave_ctrl.phase_increment_delta = 0;
+
   switch (current_waveform_step.output_type) {
     case OUTPUT_CONSTANT_SQUARE:
       wave_ctrl.tukey_increment = 0;
@@ -357,12 +365,31 @@ void updateWaveformParameters()
       wave_ctrl.final_tukey_start_index = UINT_MAX;
       break;
     case OUTPUT_CONSTANT_TUKEY:
+      uint32_t ramp_us = (uint32_t)(TUKEY_ALPHA * 0.5f * (float)current_waveform_step.duration_us);
+      uint32_t ramp_samples = ramp_us / DAC_SUBSAMPLING;
+
       wave_ctrl.initial_tukey_window_index = 0;
-      wave_ctrl.initial_tukey_end_index = (uint32_t) (TUKEY_ALPHA * 0.5f * (float) current_waveform_step.duration_us);
-      wave_ctrl.tukey_increment = ((TUKEY_POINTS - 1) << TUKEY_PRECISION) / wave_ctrl.initial_tukey_end_index;
-      wave_ctrl.final_tukey_window_index = (TUKEY_POINTS - 1) << TUKEY_PRECISION;
-      wave_ctrl.final_tukey_start_index = current_waveform_step.duration_us - wave_ctrl.initial_tukey_end_index;
+      wave_ctrl.initial_tukey_end_index    = ramp_us;
+      wave_ctrl.tukey_increment            = ((TUKEY_POINTS - 1) << TUKEY_PRECISION) / ramp_samples;
+      wave_ctrl.final_tukey_window_index   = (TUKEY_POINTS - 1) << TUKEY_PRECISION;
+      wave_ctrl.final_tukey_start_index    = current_waveform_step.duration_us - ramp_us;
       break;
+    case OUTPUT_LFM_CHIRP: {
+      // Rectangular envelope; phase_increment grows linearly across the
+      // whole step so the instantaneous frequency sweeps from freq_hz to
+      // f_end_hz in duration_us. Per-sample delta: (Δphase_inc) / N.
+      wave_ctrl.tukey_increment         = 0;
+      wave_ctrl.initial_tukey_end_index = 0;
+      wave_ctrl.final_tukey_start_index = UINT_MAX;
+
+      uint32_t total_samples = current_waveform_step.duration_us / DAC_SUBSAMPLING;
+      int64_t phase_inc_start = ((int64_t)current_waveform_step.freq_hz   << PHASE_PRECISION) / DAC_SAMPLE_RATE;
+      int64_t phase_inc_end   = ((int64_t)current_waveform_step.f_end_hz  << PHASE_PRECISION) / DAC_SAMPLE_RATE;
+      wave_ctrl.phase_increment_delta = (total_samples > 0)
+          ? (int32_t)((phase_inc_end - phase_inc_start) / (int64_t)total_samples)
+          : 0;
+      break;
+    }
     default:
       break;
   }
@@ -375,7 +402,12 @@ void HAL_DAC_ConvHalfCpltCallbackCh1(DAC_HandleTypeDef *hdac)
 {
   (void)(hdac);
   if (dac_running == true) {
-    osThreadFlagsSet(dacTaskHandle, DAC_FILL_FIRST_HALF);
+    osThreadFlagsSet(dac_taskHandle, DAC_FILL_FIRST_HALF);
+    return;
+  }
+  if (HilManager_HilMode() == HIL_STATE_RX) {
+    osThreadFlagsSet(hil_taskHandle, HIL_EVT_DAC_HALF_FULL);
+    return;
   }
 }
 
@@ -383,32 +415,13 @@ void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac)
 {
   (void)(hdac);
   if (dac_running == true) {
-    osThreadFlagsSet(dacTaskHandle, DAC_FILL_LAST_HALF);
+    osThreadFlagsSet(dac_taskHandle, DAC_FILL_LAST_HALF);
+    return;
   }
-}
-
-void HAL_DACEx_ConvHalfCpltCallbackCh2(DAC_HandleTypeDef *hdac)
-{
-  (void)(hdac);
-  if (dac_running == true) {
-    osThreadFlagsSet(dacTaskHandle, DAC_FILL_FIRST_HALF);
+  if (HilManager_HilMode() == HIL_STATE_RX) {
+    osThreadFlagsSet(hil_taskHandle, HIL_EVT_DAC_FULL);
+    return;
   }
-}
-
-void HAL_DACEx_ConvCpltCallbackCh2(DAC_HandleTypeDef *hdac)
-{
-  (void)(hdac);
-  if (dac_running == true) {
-    osThreadFlagsSet(dacTaskHandle, DAC_FILL_LAST_HALF);
-  }
-}
-
-void HAL_DAC_ErrorCallbackCh2(DAC_HandleTypeDef *hdac)
-{
-  (void)(hdac);
-//  uint32_t dma_error = hdac->DMA_Handle1->ErrorCode;
-//  uint32_t dac_error = hdac->ErrorCode;
-
 }
 
 void HAL_DMA_ErrorCallback(DMA_HandleTypeDef *hdma)

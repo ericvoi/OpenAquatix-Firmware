@@ -112,6 +112,16 @@ typedef struct {
   X(ERROR_MENU_REGISTRATION,              ERROR_SEVERITY_UNRECOVERABLE,   "Failed to register menu",                  SUBSYS_NONE)      \
   X(ERROR_USB_HMI,                        ERROR_SEVERITY_WARN,            "Failed to write data to HMI",              SUBSYS_NONE)      \
                                                                                                                                         \
+  /* --- HIL --- */                                                                                                                     \
+  X(ERROR_HIL_CMD_UNKNOWN,                ERROR_SEVERITY_WARN,            "Received unknown HIL command",             SUBSYS_NONE)      \
+  X(ERROR_HIL_RESPONSE_SEND_FAIL,         ERROR_SEVERITY_WARN,            "Failed to send HIL command response",      SUBSYS_NONE)      \
+  X(ERROR_HIL_CAL,                        ERROR_SEVERITY_WARN,            "Issue getting HIL calibration",            SUBSYS_NONE)      \
+  X(ERROR_HIL_BUF_UNDERRUN,               ERROR_SEVERITY_WARN,            "HIL ring buffer underrun",                 SUBSYS_NONE)      \
+  X(ERROR_HIL_BUF_OVERRUN,                ERROR_SEVERITY_WARN,            "HIL ring buffer overrun",                  SUBSYS_NONE)      \
+  X(ERROR_HIL_BAD_PACKET_INDEX,           ERROR_SEVERITY_WARN,            "Received HIL packet out of order",         SUBSYS_NONE)      \
+  X(ERROR_HIL_SHORT_READ,                 ERROR_SEVERITY_WARN,            "Short read from HIL stream endpoint",      SUBSYS_NONE)      \
+  X(ERROR_HIL_RING_FULL,                  ERROR_SEVERITY_WARN,            "HIL RX ring full, dropped packet",         SUBSYS_NONE)      \
+                                                                                                                                        \
   /* --- General Software Errors --- */                                                                                                 \
   X(ERROR_ERROR_MANAGEMENT_INTERNAL,      ERROR_SEVERITY_WARN,            "Internal error management error",          SUBSYS_NONE)      \
   X(ERROR_GENERAL_WARN_ISR,               ERROR_SEVERITY_WARN,            "Unexpected error in an ISR",               SUBSYS_NONE)      \

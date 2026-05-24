@@ -45,13 +45,33 @@ uint8_t const* tud_descriptor_device_cb(void) {
 // Configuration Descriptor
 //--------------------------------------------------------------------
 
+#define TUD_VENDOR_BULK_DESC_LEN  (9 + 7 + 7)  // 23 bytes
+
+#define TUD_VENDOR_BULK_DESCRIPTOR(_itfnum, _stridx, _epout, _epin, _epsize)  \
+  /* Interface descriptor */                                                  \
+  9, TUSB_DESC_INTERFACE, _itfnum, 0, 2,                                      \
+  TUSB_CLASS_VENDOR_SPECIFIC, 0x00, 0x00, _stridx,                            \
+  /* Endpoint OUT */                                                          \
+  7, TUSB_DESC_ENDPOINT, _epout, TUSB_XFER_BULK, U16_TO_U8S_LE(_epsize), 0,   \
+  /* Endpoint IN */                                                           \
+  7, TUSB_DESC_ENDPOINT, _epin,  TUSB_XFER_BULK, U16_TO_U8S_LE(_epsize), 0
+
 // CDC uses 2 interfaces: control + data
 // Endpoints: 1 notify (interrupt IN), 1 data OUT, 1 data IN
-#define CONFIG_TOTAL_LEN    (TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN)
+#define CONFIG_TOTAL_LEN    ( TUD_CONFIG_DESC_LEN      \
+                            + TUD_CDC_DESC_LEN         \
+                            + TUD_VENDOR_BULK_DESC_LEN \
+                            + TUD_VENDOR_BULK_DESC_LEN )
 
-#define EPNUM_CDC_NOTIFY    0x81    // EP1 IN  (interrupt, for line state)
-#define EPNUM_CDC_OUT       0x02    // EP2 OUT (bulk, host->device)
-#define EPNUM_CDC_IN        0x82    // EP2 IN  (bulk, device->host)
+#define EPNUM_CDC_NOTIFY      0x81    // EP1 IN  (interrupt, for line state)
+#define EPNUM_CDC_OUT         0x02    // EP2 OUT (bulk, host->device)
+#define EPNUM_CDC_IN          0x82    // EP2 IN  (bulk, device->host)
+
+#define EPNUM_HIL_STREAM_OUT  0x03    // EP3 OUT (bulk, host->DAC)
+#define EPNUM_HIL_STREAM_IN   0x83    // EP3 IN  (bulk, ADC->host)
+
+#define EPNUM_HIL_CONTROL_OUT 0x04    // EP4 OUT (bulk, commands for HIL)
+#define EPNUM_HIL_CONTROL_IN  0x84    // EP4 IN  (bulk, HIL command responses)
 
 uint8_t const desc_configuration[] = {
   // Config descriptor
@@ -64,7 +84,7 @@ uint8_t const desc_configuration[] = {
     250                 // power in mA
   ),
 
-  // CDC descriptor (expands to control + data interface)
+  // CDC interface 0+1, EP1 notify, EP2 data
   TUD_CDC_DESCRIPTOR(
     ITF_NUM_CDC,        // interface number
     4,                  // string index
@@ -73,7 +93,25 @@ uint8_t const desc_configuration[] = {
     EPNUM_CDC_OUT,      // data out endpoint
     EPNUM_CDC_IN,       // data in endpoint
     512                 // data EP size
-  )
+  ),
+
+  // HIL stream: interface 2, EP3 OUT + EP3 IN
+  TUD_VENDOR_BULK_DESCRIPTOR(
+    ITF_NUM_HIL_STREAM,
+    5,                    // string index
+    EPNUM_HIL_STREAM_OUT,
+    EPNUM_HIL_STREAM_IN,
+    512                   // HS bulk max packet
+  ),
+
+  // HIL control: interface 3, EP4 OUT + EP4 IN
+  TUD_VENDOR_BULK_DESCRIPTOR(
+    ITF_NUM_HIL_CONTROL,
+    6,                    // string index
+    EPNUM_HIL_CONTROL_OUT,
+    EPNUM_HIL_CONTROL_IN,
+    512                   // HS bulk max packet
+  ),
 };
 
 uint8_t const* tud_descriptor_configuration_cb(uint8_t index) {
@@ -88,8 +126,10 @@ char const* string_desc_arr[] = {
   (const char[]){ 0x09, 0x04 },    // 0: Language (English)
   "OpenAquatix",                   // 1: Manufacturer
   "OpenAquatix Modem",             // 2: Product
-  "123456",                        // 3: Serial Number
+  "OA-2-2",                        // 3: Serial Number
   "HMI",                           // 4: CDC Interface
+  "HIL Stream",                    // 5: HIL Stream Interface
+  "HIL Control",                   // 6: HIL Stream Control
 };
 
 static uint16_t desc_str[32];

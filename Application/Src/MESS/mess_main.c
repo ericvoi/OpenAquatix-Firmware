@@ -33,11 +33,15 @@
 #include "mess_demodulate.h"
 #include "mess_error_detection.h"
 #include "mess_ranging.h"
+#include "mess_hil_cal.h"
+#include "mess_chirp.h"
 
 #include "cfg_main.h"
 #include "cfg_parameters.h"
 #include "cfg_defaults.h"
 #include "cfg_callbacks.h"
+
+#include "hil_main.h"
 
 #include "error_manager.h"
 
@@ -130,7 +134,10 @@ static uint16_t message_length = 0;
 static Message_t tx_msg;
 static Message_t rx_msg;
 
+static bool in_hil = false;
+
 extern osMessageQueueId_t mac_rx_queue;
+extern osThreadId_t hil_taskHandle;
 
 DEFINE_DESC_TABLE(MOD_DEMOD_METHODS_TABLE, mod_demod_descriptors)
 DEFINE_DESC_TABLE(ERROR_DETECTION_METHOD_TABLE, error_detection_descriptors)
@@ -144,7 +151,7 @@ DEFINE_DESC_TABLE(ENCRYPTION_TABLE, encryption_descriptors)
 
 /* Private function prototypes -----------------------------------------------*/
 
-static void switchState(ProcessingState_t newState);
+static void switchState(ProcessingState_t new_state);
 static void handleFlags();
 static void sendMessage();
 static void handleSync(SyncState_t sync_state);
@@ -153,6 +160,10 @@ static void registerMessParams();
 static void registerMessMainParams();
 static void handlePreambleOnlyMessage();
 static void getConfig();
+
+static void notifyHilRx();
+static void notifyHilTx();
+static void notifyHilTransitioning();
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -173,18 +184,17 @@ void MESS_StartTask(void* argument)
   resetTask();
   for (;;) {
     switch (task_state) {
-      case DRIVING_TRANSDUCER:
+      case DRIVING_TRANSDUCER: {
         // Currently driving transducer so listen to transducer feedback network
-        if (Waveform_IsRunning() == false) {
-          osDelay(1); // Lets the ADC finish in the case of feedback network
-          HAL_TIM_Base_Stop(&htim6);
-          if (in_feedback == true) {
-            Feedback_DumpData();
-            in_feedback = false;
-          }
+        uint32_t flags = osEventFlagsWait(print_event_handle, MESS_DAC_MESS_DONE, osFlagsWaitAny, 0);
+
+        if (flags & osFlagsError) break;
+
+        if (flags & MESS_DAC_MESS_DONE) {
           switchState(LISTENING);
         }
         break;
+      }
       case LISTENING:
 
         Input_UpdatePgaGain();
@@ -196,12 +206,16 @@ void MESS_StartTask(void* argument)
         if (MESS_GetMessageFromTxQ(&tx_msg) == true) {
           getConfig();
 
-          Packet_PrepareTx(&tx_msg, &bit_msg, cfg);
-          ErrorCorrection_AddCorrection(&bit_msg, cfg);
-          FeedbackTests_CorruptMessage(&bit_msg); // if applicable
-          Interleaver_Apply(&bit_msg, cfg);
-          message_length = bit_msg.bit_count;
+          if (tx_msg.type != MSG_TRANSMIT_CHIRP) {
+            Packet_PrepareTx(&tx_msg, &bit_msg, cfg);
+            ErrorCorrection_AddCorrection(&bit_msg, cfg);
+            FeedbackTests_CorruptMessage(&bit_msg); // if applicable
+            Interleaver_Apply(&bit_msg, cfg);
+            message_length = bit_msg.bit_count;
+          }
           sendMessage();
+          // Break needed in case of state changes which can cause sync to hang
+          break;
         }
 
         SyncState_t sync_state = Sync_Synchronize(cfg, &rx_msg);
@@ -226,9 +240,12 @@ void MESS_StartTask(void* argument)
         if (proceed == false) {switchState(LISTENING); break;};
 
         if (input_bit_msg.fully_received == true && input_bit_msg.added_to_queue == false) {
-          // TODO: fix currently incorrect since cant know if transducer or feedback
-          rx_msg.type = (tx_msg.type == MSG_TRANSMIT_TRANSDUCER) ?
-                        MSG_RECEIVED_TRANSDUCER : MSG_RECEIVED_FEEDBACK;
+          if (AFE_GetMode() == AFE_MODE_RX || in_hil) {
+            rx_msg.type = MSG_RECEIVED_TRANSDUCER;
+          }
+          else {
+            rx_msg.type = MSG_RECEIVED_FEEDBACK;
+          }
           rx_msg.timestamp = osKernelGetTickCount();
           rx_msg.length_bits = input_bit_msg.data_len_bits;
           rx_msg.protocol = cfg->protocol;
@@ -267,6 +284,11 @@ void MESS_StartTask(void* argument)
         if (input_bit_msg.fully_received == true && print_next_waveform == false) {
           switchState(LISTENING);
         }
+        break;
+      case HIL_CALIBRATION:
+        HilCal_Perform(cfg);
+        switchState(LISTENING);
+        osThreadFlagsSet(hil_taskHandle, HIL_EVT_CAL_DONE);
         break;
       default:
         break;
@@ -432,29 +454,51 @@ ProcessingState_t MESS_GetState()
 
 /* Private function definitions ----------------------------------------------*/
 
-void switchState(ProcessingState_t newState)
+void switchState(ProcessingState_t new_state)
 {
   RETURN_IF_ERROR_PRESENT();
-  // First deactivate and clear all adcs, dacs, and all buffers except for the input buffer when transitioning from listening to processing
+  ProcessingState_t old_state = task_state;
   task_state = CHANGING;
-  switch (newState) {
-    case DRIVING_TRANSDUCER:
-      RETURN_IF_ERROR_PRESENT(AFE_SetMode(AFE_MODE_TX)); // TODO: change to include feedback for input and output
-      RETURN_IF_ERROR_PRESENT(Modulate_StartTransducerOutput(message_length, cfg, &bit_msg, &tx_msg));
+  switch (new_state) {
+    case DRIVING_TRANSDUCER: {
+      notifyHilTransitioning();
+      AfeMode_t new_mode = (in_hil) ? (AFE_MODE_TX_FEEDBACK) : (AFE_MODE_TX);
+      RETURN_IF_ERROR_PRESENT(AFE_SetMode(new_mode)); // TODO: change to include feedback for input and output
+      notifyHilTx();
+      if (tx_msg.type == MSG_TRANSMIT_CHIRP) {
+        MessChirp_StartTx();
+      } else {
+        RETURN_IF_ERROR_PRESENT(Modulate_StartTransducerOutput(message_length, cfg, &bit_msg, &tx_msg));
+      }
+      osEventFlagsClear(print_event_handle, MESS_DAC_MESS_DONE);
       task_state = DRIVING_TRANSDUCER;
       break;
-    case LISTENING:
+    }
+    case LISTENING: {
+      if (old_state != PROCESSING)
+        notifyHilTransitioning();
       Sync_Reset();
       cfg = &custom_config;
-      if (Waveform_StopWaveformOutput() == false) 
-        REGISTER_ERROR(ERROR_STOPPING_TRANSDUCER_OUTPUT);
-      
-      RETURN_IF_ERROR_PRESENT(AFE_SetMode(AFE_MODE_RX));
+      if (old_state != PROCESSING) {
+        if (Waveform_StopWaveformOutput() == false)
+          REGISTER_ERROR(ERROR_STOPPING_TRANSDUCER_OUTPUT);
+      }
+
+      AfeMode_t new_mode = (in_hil) ? (AFE_MODE_RX_FEEDBACK) : (AFE_MODE_RX);
+
+      RETURN_IF_ERROR_PRESENT(AFE_SetMode(new_mode));
+      if (old_state != PROCESSING)
+        notifyHilRx();
       task_state = LISTENING;
       break;
+    }
     case PROCESSING:
       Packet_PrepareRx(&rx_msg, &input_bit_msg, cfg);
       task_state = PROCESSING;
+      break;
+    case HIL_CALIBRATION:
+      RETURN_IF_ERROR_PRESENT(AFE_SetMode(AFE_MODE_RX_FEEDBACK));
+      task_state = HIL_CALIBRATION;
       break;
     default:
       break;
@@ -463,7 +507,7 @@ void switchState(ProcessingState_t newState)
 
 void handleFlags()
 {
-  uint32_t flags = osEventFlagsWait(print_event_handle, 0xFFFF, osFlagsWaitAny, 0);
+  uint32_t flags = osEventFlagsWait(print_event_handle, 0x00FFFFFFU, osFlagsWaitAny, 0);
 
   if (flags == osFlagsErrorResource) {
     return;
@@ -471,39 +515,44 @@ void handleFlags()
 
   if (flags & 0x80000000U) {
     REGISTER_ERROR(ERROR_FLAGS_RUNNING);
+    return;
   }
 
   if (flags & MESS_PRINT_REQUEST) {
-    osEventFlagsClear(print_event_handle, MESS_PRINT_REQUEST);
     Input_PrintNoise();
     osEventFlagsSet(print_event_handle, MESS_PRINT_COMPLETE);
   }
-  else if (flags & MESS_FREQ_RESP) {
-    osEventFlagsClear(print_event_handle, MESS_FREQ_RESP);
-    Modulate_TestFrequencyResponse();
+  if (flags & MESS_FREQ_RESP) {
+    Modulate_TestFrequencyResponse(cfg->fc, 30000, 0.2f);
     in_feedback = true;
     switchState(DRIVING_TRANSDUCER);
   }
-  else if (flags & MESS_PRINT_WAVEFORM) {
-    osEventFlagsClear(print_event_handle, MESS_PRINT_WAVEFORM);
+  if (flags & MESS_PRINT_WAVEFORM) {
     print_next_waveform = true;
   }
-  else if (flags & MESS_PERFORM_FEEDBACK_TESTS) {
-    osEventFlagsClear(print_event_handle, MESS_PERFORM_FEEDBACK_TESTS);
+  if (flags & MESS_PERFORM_FEEDBACK_TESTS) {
     FeedbackTests_Start();
   }
-  else if (flags & MESS_INPUT_FFT) {
-    osEventFlagsClear(print_event_handle, MESS_INPUT_FFT);
+  if (flags & MESS_INPUT_FFT) {
     Input_NoiseFft();
     osEventFlagsSet(print_event_handle, MESS_PRINT_COMPLETE);
   }
-  else if (flags & MESS_REQUEST_RANGE_FEEDBACK) {
-    osEventFlagsClear(print_event_handle, MESS_REQUEST_RANGE_FEEDBACK);
+  if (flags & MESS_REQUEST_RANGE_FEEDBACK) {
     Ranging_Request(cfg, true);
   }
-  else if (flags & MESS_REQUEST_RANGE_TRANSDUCER) {
-    osEventFlagsClear(print_event_handle, MESS_REQUEST_RANGE_TRANSDUCER);
+  if (flags & MESS_REQUEST_RANGE_TRANSDUCER) {
     Ranging_Request(cfg, false);
+  }
+  if (flags & MESS_HIL_CAL_START) {
+    switchState(HIL_CALIBRATION);
+  }
+  if (flags & MESS_HIL_START) {
+    in_hil = true;
+    switchState(LISTENING);
+  }
+  if (flags & MESS_HIL_STOP) {
+    in_hil = false;
+    switchState(LISTENING);
   }
 }
 
@@ -542,10 +591,11 @@ void sendMessage()
   RETURN_IF_ERROR_PRESENT();
   switch (tx_msg.type) {
     case MSG_TRANSMIT_TRANSDUCER:
+    case MSG_TRANSMIT_CHIRP:
       switchState(DRIVING_TRANSDUCER);
       break;
     case MSG_TRANSMIT_FEEDBACK:
-      AFE_SetMode(AFE_MODE_RX_FEEDBACK);
+      RETURN_IF_ERROR_PRESENT(AFE_SetMode(AFE_MODE_RX_FEEDBACK));
       Modulate_StartFeedbackOutput(message_length, cfg, &bit_msg, &tx_msg);
       // Should automatically go to processing once waveform being received without intervention
       // TODO: what if above unsuccessful?
@@ -584,7 +634,6 @@ void resetTask()
   switchState(LISTENING);
 
   osDelay(10);
-  Waveform_Flush();
   MessFiltResources_StartInputAdc();
 }
 
@@ -839,4 +888,25 @@ void getConfig()
     default:
       break;
   }
+}
+
+static void notifyHilRx()
+{
+  if (in_hil == false) return;
+
+  osThreadFlagsSet(hil_taskHandle, HIL_EVT_ENTER_RX);
+}
+
+static void notifyHilTx()
+{
+  if (in_hil == false) return;
+
+  osThreadFlagsSet(hil_taskHandle, HIL_EVT_ENTER_TX);
+}
+
+static void notifyHilTransitioning()
+{
+  if (in_hil == false) return;
+
+  osThreadFlagsSet(hil_taskHandle, HIL_EVT_ENTER_TRANSITION);
 }

@@ -1,31 +1,29 @@
 /*
- * usb_main.h
+ * mess_hil_cal.h
  *
- *  Created on: Mar 31, 2026
+ *  Created on: Apr 4, 2026
  *      Author: ericv
  *
  * Copyright (c) 2026 OpenAquatix Contributors
  * SPDX-License-Identifier: MIT
  */
 
-#ifndef USB_USB_MAIN_H_
-#define USB_USB_MAIN_H_
+#ifndef MESS_MESS_HIL_CAL_H_
+#define MESS_MESS_HIL_CAL_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32h7xx_hal.h"
 
+#include "hil_manager.h"
+#include "mess_dsp_config.h"
+#include <stdbool.h>
 
 /* Private includes ----------------------------------------------------------*/
 
-// Varies based on the order in which these are initialized in usb_descriptors.c
-#define CDC_ITF_HMI             0
 
-#define VENDOR_ITF_HIL_STREAM   0
-#define VENDOR_ITF_HIL_CONTROL  1
 
 /* Exported types ------------------------------------------------------------*/
 
@@ -41,7 +39,8 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-void USB_StartTask(void* argument);
+void HilCal_Perform(const DspConfig_t* cfg);
+bool HilCal_Get(HilCalibrationPacket_t* cal_packet);
 
 /* Private defines -----------------------------------------------------------*/
 
@@ -49,4 +48,4 @@ void USB_StartTask(void* argument);
 }
 #endif
 
-#endif /* USB_USB_MAIN_H_ */
+#endif /* MESS_MESS_HIL_CAL_H_ */

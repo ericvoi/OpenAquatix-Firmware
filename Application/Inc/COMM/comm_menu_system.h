@@ -127,6 +127,7 @@ typedef enum {
   MENU_ID_DBG_DEEPSLEEP,        // Enter deep sleep mode
   MENU_ID_DBG_EXPALL,           // Export all parameters
   MENU_ID_DBG_IMPALL,           // Import all parameters
+  MENU_ID_DBG_CHIRP_TX,         // Send LFM chirp through transducer (paper §4.2 probe)
   MENU_ID_HIST_PWR,             // History of power
   MENU_ID_HIST_PWR_PEAK,        // Peak power consumption since boot
   MENU_ID_HIST_PWR_BOOT,        // Total power consumption since boot

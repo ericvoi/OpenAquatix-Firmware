@@ -14,6 +14,7 @@
 #include "cmsis_os.h"
 #include "comm_main.h"
 #include "tusb.h"
+#include "usb_main.h"
 #include "error_manager.h"
 #include <string.h>
 #include <stdbool.h>
@@ -60,11 +61,12 @@ void USB_Init(void)
 
 void USB_TransmitData(uint8_t* data, uint16_t len)
 {
+  if (tud_ready() == false) return;
   if (osMutexAcquire(usb_mutex, USB_MUTEX_TIMEOUT) != osOK)
     REGISTER_ERROR(ERROR_USB_HMI);
 
-  uint32_t written = tud_cdc_n_write(ITF_NUM_CDC, data, len);
-  tud_cdc_n_write_flush(ITF_NUM_CDC);
+  uint32_t written = tud_cdc_n_write(CDC_ITF_HMI, data, len);
+  tud_cdc_n_write_flush(CDC_ITF_HMI);
   
   osMutexRelease(usb_mutex);
 

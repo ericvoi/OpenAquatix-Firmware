@@ -73,7 +73,7 @@ void fhbfskWakeupStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uin
 {
   if (step_index == NUM_WAKEUP_TONES) {
     waveform_step->relative_amplitude = 0.0f;
-    waveform_step->duration_us = SILENCE_DURATION_MS;
+    waveform_step->duration_us = SILENCE_DURATION_MS * 1000;
     return;
   }
 

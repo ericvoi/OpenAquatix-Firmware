@@ -85,6 +85,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Middlewares/Third_Party/tinyusb/src/class/cdc}&quot;"/>
 									<listOptionValue builtIn="false" value="../Drivers/CMSIS/RTOS2/Include"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Application/Inc/USB}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Application/Inc/HIL}&quot;"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.assembler.input.378525069" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.assembler.input"/>
 							</tool>
@@ -145,6 +146,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Middlewares/Third_Party/tinyusb/src/class/cdc}&quot;"/>
 									<listOptionValue builtIn="false" value="../Drivers/CMSIS/RTOS2/Include"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Application/Inc/USB}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Application/Inc/HIL}&quot;"/>
 								</option>
 								<option id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.warnings.extra.442608688" name="Enable extra warning flags (-Wextra)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.warnings.extra" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 								<option id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.warnings.w_switch_default.142243814" name="Warn when a switch statement does not have a default case (-Wswitch-default)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.warnings.w_switch_default" useByScannerDiscovery="false" value="true" valueType="boolean"/>
@@ -183,8 +185,8 @@
 					</folderInfo>
 					<sourceEntries>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Application/Inc"/>
+						<entry excluding="Third_Party/tinyusb/src/class/video|Third_Party/tinyusb/src/class/usbtmc|Third_Party/tinyusb/src/class/net|Third_Party/tinyusb/src/class/mtp|Third_Party/tinyusb/src/class/msc|Third_Party/tinyusb/src/class/midi|Third_Party/tinyusb/src/class/hid|Third_Party/tinyusb/src/class/dfu|Third_Party/tinyusb/src/class/bth|Third_Party/tinyusb/src/class/audio" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
 						<entry excluding="Src|Inc" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Application"/>
-						<entry excluding="Third_Party/tinyusb/src/class/video|Third_Party/tinyusb/src/class/vendor|Third_Party/tinyusb/src/class/usbtmc|Third_Party/tinyusb/src/class/net|Third_Party/tinyusb/src/class/mtp|Third_Party/tinyusb/src/class/msc|Third_Party/tinyusb/src/class/midi|Third_Party/tinyusb/src/class/hid|Third_Party/tinyusb/src/class/dfu|Third_Party/tinyusb/src/class/bth|Third_Party/tinyusb/src/class/audio" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Application/Src"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
@@ -273,6 +275,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Middlewares/Third_Party/tinyusb/src/class/cdc}&quot;"/>
 									<listOptionValue builtIn="false" value="../Drivers/CMSIS/RTOS2/Include"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Application/Inc/USB}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Application/Inc/HIL}&quot;"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.assembler.input.1841296105" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.assembler.input"/>
 							</tool>
@@ -332,6 +335,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Middlewares/Third_Party/tinyusb/src/class/cdc}&quot;"/>
 									<listOptionValue builtIn="false" value="../Drivers/CMSIS/RTOS2/Include"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Application/Inc/USB}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Application/Inc/HIL}&quot;"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.1550481133" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
 							</tool>
@@ -359,8 +363,8 @@
 					</folderInfo>
 					<sourceEntries>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Application/Inc"/>
+						<entry excluding="Third_Party/tinyusb/src/class/video|Third_Party/tinyusb/src/class/usbtmc|Third_Party/tinyusb/src/class/net|Third_Party/tinyusb/src/class/mtp|Third_Party/tinyusb/src/class/msc|Third_Party/tinyusb/src/class/midi|Third_Party/tinyusb/src/class/hid|Third_Party/tinyusb/src/class/dfu|Third_Party/tinyusb/src/class/bth|Third_Party/tinyusb/src/class/audio" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
 						<entry excluding="Src|Inc" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Application"/>
-						<entry excluding="Third_Party/tinyusb/src/class/video|Third_Party/tinyusb/src/class/vendor|Third_Party/tinyusb/src/class/usbtmc|Third_Party/tinyusb/src/class/net|Third_Party/tinyusb/src/class/mtp|Third_Party/tinyusb/src/class/msc|Third_Party/tinyusb/src/class/midi|Third_Party/tinyusb/src/class/hid|Third_Party/tinyusb/src/class/dfu|Third_Party/tinyusb/src/class/bth|Third_Party/tinyusb/src/class/audio" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Application/Src"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
