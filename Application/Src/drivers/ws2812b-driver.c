@@ -14,6 +14,7 @@
 #include "stm32h7xx_hal.h"
 #include "ws2812b-driver.h"
 #include "pwr_domains.h"
+#include "cmsis_os.h"
 #include <string.h>
 #include <stdbool.h>
 
@@ -106,6 +107,8 @@ bool Ws2812b_Update(uint8_t brightness)
   }
   else {
     PWR_Ws5V(true);
+    uint16_t timeout = 10;
+    while ((timeout--) && (PWR_StateWs5V() != PWR_READY)) osDelay(1);
   }
 
   uint16_t buf_index = WS_RST_PERIODS;

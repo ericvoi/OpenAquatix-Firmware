@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the associated paper below."
+title: "OpenAquatix"
+authors:
+  - family-names: "Voisin"
+    given-names: "Eric"
+  - family-names: "Cockrall"
+    given-names: "Cameron"
+preferred-citation:
+  type: conference-paper
+  title: "Development of a Low-Cost Reconfigurable Underwater Acoustic Modem for AUV Applications"
+  authors:
+    - family-names: "Voisin"
+      given-names: "Eric"
+    - family-names: "Cockrall"
+      given-names: "Cameron"
+    - family-names: "Huang"
+      given-names: "Letian"
+    - family-names: "Wang"
+      given-names: "Zhaohui"
+    - family-names: "Elezzabi"
+      given-names: "Abdulhakem"
+  collection-title: "OCEANS 2025 - Great Lakes"
+  collection-type: "proceedings"
+  year: 2025
+  start: 1
+  end: 8
+  doi: "10.23919/OCEANS59106.2025.11245092"

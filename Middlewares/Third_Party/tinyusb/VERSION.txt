@@ -1,0 +1,6 @@
+Library: TinyUSB
+Source:  https://github.com/hathach/tinyusb
+Tag:     0.20.0
+Commit:  3af1bec
+Date:    2025-11-19
+Files:   Vendored subset - all class types, ST portable only

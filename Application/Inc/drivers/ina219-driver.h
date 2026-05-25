@@ -54,6 +54,13 @@ typedef struct {
 void INA_Init(void);
 
 /**
+ * @brief Resets the INA from the point fo view of an ISR
+ * 
+ * Unlike INA_Init, this does not check if transaction goes through
+ */
+void INA_Reset(void);
+
+/**
  * @brief Registers buffer to store INA power values
  * 
  * @param buf Buffer storing current, voltage, and power values
@@ -70,6 +77,13 @@ void INA_RegisterBuffer(InaPowerValues_t* buf, uint16_t buf_len, volatile uint16
  * @return true if state correct (INA_IDLE) and driver returns HAL_OK, false otherwise
  */
 void INA_StartRead(void);
+
+/**
+ * @brief Puts the INA219 into shutdown mode preventing samples from being read
+ * 
+ * @note Powering up the INA is done when reading a value automatically
+ */
+void INA_PowerDown(void);
 
 /**
  * @brief Callback called when memory tx complete

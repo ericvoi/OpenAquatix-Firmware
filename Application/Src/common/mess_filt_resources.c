@@ -50,7 +50,8 @@ static AdcBuffers_t adc_buffers __attribute__((section(".dtcm")));
 float* input_buffer = adc_buffers.in_buf;
 uint16_t* feedback_buffer = adc_buffers.fb_buf;
 
-volatile uint16_t adc_buffer[ADC_BUFFER_SIZE] __attribute__((section(".dma_buf"))); // shared ADC buffer for both feedback and input ADCs
+volatile uint16_t in_adc_buffer[ADC_BUFFER_SIZE] __attribute__((section(".dma_buf"))); // Input ADC buffer
+volatile uint16_t fb_adc_buffer[ADC_BUFFER_SIZE] __attribute__((section(".dma_buf"))); // Feedback ADC buffer
 
 volatile uint16_t input_head_pos = 0;
 volatile uint16_t input_processing_tail_pos = 0;
@@ -89,7 +90,8 @@ void MessFiltResources_Init()
   feedback_head_pos = 0;
   feedback_tail_pos = 0;
 
-  memset((void*) adc_buffer, 0, ADC_BUFFER_SIZE * sizeof(uint16_t));
+  memset((void*) in_adc_buffer, 0, ADC_BUFFER_SIZE * sizeof(uint16_t));
+  memset((void*) fb_adc_buffer, 0, ADC_BUFFER_SIZE * sizeof(uint16_t));
 }
 
 void MessFiltResources_StartInputAdc()
@@ -102,7 +104,7 @@ void MessFiltResources_StartInputAdc()
   HAL_ADC_Stop_DMA(&INPUT_ADC);
   osDelay(1);
   HAL_TIM_Base_Start(&htim8);
-  HAL_StatusTypeDef ret = HAL_ADC_Start_DMA(&INPUT_ADC, (uint32_t*) adc_buffer, ADC_BUFFER_SIZE);
+  HAL_StatusTypeDef ret = HAL_ADC_Start_DMA(&INPUT_ADC, (uint32_t*) in_adc_buffer, ADC_BUFFER_SIZE);
   if (ret != HAL_OK) 
     REGISTER_ERROR(ERROR_INPUT_ADC_INITIALIZATION);
 }
@@ -111,7 +113,7 @@ void MessFiltResources_StartFeedbackAdc()
 {
   feedback_head_pos = 0;
   feedback_tail_pos = 0;
-  HAL_StatusTypeDef ret = HAL_ADC_Start_DMA(&FEEDBACK_ADC, (uint32_t*) adc_buffer, ADC_BUFFER_SIZE);
+  HAL_StatusTypeDef ret = HAL_ADC_Start_DMA(&FEEDBACK_ADC, (uint32_t*) fb_adc_buffer, ADC_BUFFER_SIZE);
   if (ret != HAL_OK) 
     REGISTER_ERROR(ERROR_FEEDBACK_ADC_INITIALIZATION);
 }
@@ -128,9 +130,9 @@ bool MessFiltResources_StopInputAdc()
 
 bool MessFiltResources_StopAllAdcs()
 {
-  if (MessFiltResources_StopFeedbackAdc() == false) {
-    return false;
-  }
+  // if (MessFiltResources_StopFeedbackAdc() == false) {
+  //   return false;
+  // }
   if (MessFiltResources_StopInputAdc() == false) {
     return false;
   }
@@ -163,7 +165,7 @@ void MessFiltResources_AddFilteredSamples(float* buf, uint16_t num_samples, uint
   // uint16_t noise_len_left      = PROCESSING_BUFFER_SIZE - noise_len;
 
   if (processing_len_left <= num_samples /*|| noise_len_left <= num_samples*/) {
-    // TODO: handle error
+    REGISTER_ERROR(ERROR_ADC_BUFFER_OVERFLOW);
     return;
   }
 

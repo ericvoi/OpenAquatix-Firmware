@@ -21,7 +21,7 @@
 #include "cfg_parameters.h"
 
 #include "check_inputs.h"
-#include "usb_comm.h"
+#include "hmi_usb.h"
 #include "cmsis_os.h"
 #include "error_manager.h"
 #include <stdio.h>
@@ -164,7 +164,7 @@ void sendEvalTransducer(FunctionContext_t* context)
 
 void startFeedbackTests(FunctionContext_t* context) 
 {
-  osEventFlagsSet(print_event_handle, MESS_FEEDBACK_TESTS);
+  osEventFlagsSet(print_event_handle, MESS_PERFORM_FEEDBACK_TESTS);
 
   context->state->state = PARAM_STATE_COMPLETE;
 }

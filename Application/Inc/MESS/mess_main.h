@@ -91,6 +91,7 @@ typedef enum {
   MSG_TRANSMIT_TRANSDUCER,     // Message needs to be transmitted via transducer
   MSG_RECEIVED_FEEDBACK,       // Received message from the feedback network
   MSG_TRANSMIT_FEEDBACK,       // Message needs to be transmitted via network
+  MSG_TRANSMIT_CHIRP,          // Debug LFM chirp via transducer (no payload)
   MSG_ERROR                    // Error in message processing
 } MessageType_t;
 
@@ -148,6 +149,7 @@ typedef enum {
   DRIVING_TRANSDUCER,
   LISTENING,
   PROCESSING,
+  HIL_CALIBRATION,
   CHANGING
 } ProcessingState_t;
 
@@ -166,7 +168,7 @@ typedef enum {
   MESS_PRINT_COMPLETE = 1 << 1,
   MESS_FREQ_RESP = 1 << 2,
   MESS_PRINT_WAVEFORM = 1 << 3,
-  MESS_FEEDBACK_TESTS = 1 << 4,
+  MESS_PERFORM_FEEDBACK_TESTS = 1 << 4,
   MESS_DAC_READY = 1 << 5,
   MESS_INPUT_FFT = 1 << 6,
   MESS_DROPPED_PACKET_PREAMBLE = 1 << 7,
@@ -178,7 +180,12 @@ typedef enum {
   MESS_REQUEST_RANGE_TRANSDUCER = 1 << 13,
   MESS_FAILED_RANGING_REQUEST = 1 << 14,
   MESS_FAILED_RANGING_RESPONSE = 1 << 15,
-  MESS_RECEIVED_RANGING_RESPONSE_BAD = 1 << 16
+  MESS_RECEIVED_RANGING_RESPONSE_BAD = 1 << 16,
+  MESS_FBK_TEST_DISABLED = 1 << 17,
+  MESS_HIL_CAL_START = 1 << 18,
+  MESS_HIL_START = 1 << 19,
+  MESS_HIL_STOP = 1 << 20,
+  MESS_DAC_MESS_DONE = 1 << 21,
 } MessageFlags_t;
 
 /* Exported macro ------------------------------------------------------------*/

@@ -353,7 +353,7 @@ void sendMessageToTxQueue(FunctionContext_t* context, Message_t* msg, bool is_fe
   msg->delay = false;
 
   memset(&msg->preamble, 0, sizeof(PreambleContent_t));
-  if (osMessageQueuePut(regular_tx_queue, msg, 0, 0) == true) {
+  if (osMessageQueuePut(regular_tx_queue, msg, 0, 0) == osOK) {
     sprintf((char*) context->output_buffer, "\r\nSuccessfully added to"
         " %s queue!\r\n\r\n", is_feedback ? "feedback network" : "transducer");
     COMM_TransmitData(context->output_buffer, CALC_LEN, 

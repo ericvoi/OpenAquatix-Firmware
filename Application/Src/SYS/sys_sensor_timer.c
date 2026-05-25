@@ -17,6 +17,7 @@
 #include "sys_power.h"
 
 #include "error_manager.h"
+#include "error_subsys.h"
 
 #include <stdbool.h>
 
@@ -71,10 +72,25 @@ void SensorTimer_Tick()
 {
   sensor_ticks++;
 
-  if ((sensor_ticks % TICKS_FOR_TEMPERATURE) == 0) {
+  SubSystemStatus_t tj_status  = ErrorSubsys_CurrentStatus(SUBSYS_TJ);
+  SubSystemStatus_t ina_status = ErrorSubsys_CurrentStatus(SUBSYS_PGA);
+
+  // TODO: add reset logic for Tj (resetting ADC) once factored out of main
+
+  if (ina_status == SUBSYS_RESET) {
+    INA_Reset();
+    ErrorSubsys_ClearReset(SUBSYS_INA);
+    return;
+  }
+  if (ina_status == SUBSYS_DISABLE) {
+    INA_PowerDown();
+    return;
+  }
+
+  if ((sensor_ticks % TICKS_FOR_TEMPERATURE) == 0 && tj_status == SUBSYS_PROCEED) {
     Temperature_TriggerTjConversion();
   }
-  if ((sensor_ticks % TICKS_FOR_INA219) == 0) {
+  if ((sensor_ticks % TICKS_FOR_INA219) == 0 && ina_status == SUBSYS_PROCEED) {
     INA_StartRead();
   }
 }

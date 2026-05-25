@@ -89,7 +89,7 @@ PowerDomainState_t PWR_State30V(void);
  * 
  * @return PowerDomainState_t State of the domain (off, transitioning, or off)
  */
-PowerDomainState_t PWR_State_Ws5V(void);
+PowerDomainState_t PWR_StateWs5V(void);
 
 /* Private defines -----------------------------------------------------------*/
 

@@ -240,7 +240,8 @@ bool calculateJanusReservationBits(Message_t* msg, BitMessage_t* bit_msg, const 
     return false;
   }
   uint16_t reservation_length = ((e & 0x07) << 4) | (m & 0x0F);
-  msg->preamble.reservation_time_10ms.value = reservation_length / 10;
+  // TODO: Major bug in MAC without descaling reservation length
+  msg->preamble.reservation_time_10ms.value = reservation_length;
   msg->preamble.reservation_time_10ms.valid = true;
   float reservation_time = ((m + 16.0f) * (1 << e) - 14.0f) * (4.0f / 25.0f);
   bit_msg->cargo.ecc_len = (uint16_t) roundf(reservation_time * cfg->baud_rate);

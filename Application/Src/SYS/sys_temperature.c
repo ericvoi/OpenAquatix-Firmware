@@ -21,7 +21,7 @@
 /* Private typedef -----------------------------------------------------------*/
 
 typedef struct {
-  uint16_t raw_value;
+  int16_t raw_value;
   float converted_value_c;
 } Temperature_t;
 
@@ -68,7 +68,7 @@ extern ADC_HandleTypeDef hadc3;
 
 /* Ambient Temperature Variables ============================================*/
 
-static uint16_t ta_buf[TEMPERATURE_BUFFER_SIZE];
+static int16_t ta_buf[TEMPERATURE_BUFFER_SIZE];
 static uint16_t ta_buf_head = 0;
 static uint16_t ta_buf_tail = 0;
 
@@ -76,7 +76,7 @@ static float current_ta;
 static float ta_max = -1000.0f;
 
 static uint64_t ta_count = 0;
-static uint64_t accumulated_raw_ta = 0;
+static int64_t accumulated_raw_ta = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -160,7 +160,7 @@ float Temperature_GetPeakTj()
 
 float Temperature_GetAverageTa(void)
 {
-  uint16_t raw_average = accumulated_raw_ta = ta_count;
+  int16_t raw_average = accumulated_raw_ta / ta_count;
 
   return LPS_ConvertRawTemperature(raw_average);
 }

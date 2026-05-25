@@ -30,7 +30,7 @@ typedef struct {
 #define STABILIZATION_DELAY_3V3A            5
 #define STABILIZATION_DELAY_NEGATIVE_3V3    5
 #define STABILIZATION_DELAY_30V             200
-#define STABILIZATION_DELAY_WS_5V           1
+#define STABILIZATION_DELAY_WS_5V           5
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -108,7 +108,7 @@ PowerDomainState_t PWR_State30V(void)
   return info_30V.state;
 }
 
-PowerDomainState_t PWR_State_Ws5V(void)
+PowerDomainState_t PWR_StateWs5V(void)
 {
   updateStates();
   return info_Ws5V.state;
@@ -169,7 +169,9 @@ void updateStates()
   updateState(&info_3V3A);
   updateState(&info_negative_3V3);
   updateState(&info_30V);
-  if (HAL_GPIO_ReadPin(PGOOD_30V_GPIO_Port, PGOOD_30V_Pin) == GPIO_PIN_RESET) {
+  bool pwr_bad_30v = HAL_GPIO_ReadPin(PGOOD_30V_GPIO_Port, PGOOD_30V_Pin) == GPIO_PIN_RESET;
+  bool on_30v = info_30V.state == PWR_READY;
+  if (pwr_bad_30v && on_30v) {
     info_30V.state = PWR_ERROR;
   }
   updateState(&info_Ws5V);

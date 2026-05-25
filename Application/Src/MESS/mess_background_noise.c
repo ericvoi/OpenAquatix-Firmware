@@ -178,9 +178,25 @@ float BackgroundNoise_GetScaleless()
 
 float BackgroundNoise_GetNsd()
 {
-  float psd_two_sided = in_band_noise / FILT_GetBandwidth() / 2.0f;
+  float psd_two_sided = in_band_noise / FILT_GetSamplingRate();
   float psd_one_sided = psd_two_sided * 2.0f * (ADC_V_SCALE * ADC_V_SCALE);
   return sqrtf(psd_one_sided) * 1.0e9f;
+}
+
+float BackgroundNoise_GetNoiseFloorPsdCountsPerSqrtHz(void)
+{
+  // in_band_noise is the smoothed normalized variance estimate (treated as
+  // an estimate of total broadband variance σ²; see GetNsd derivation).
+  //   var per Hz, two-sided  = in_band_noise / sample_rate
+  //   var per Hz, one-sided  = 2 × two-sided
+  //   counts² / Hz one-sided = above × full_scale²
+  //   counts / √Hz           = sqrt(...)
+  if (estimator_state != BG_NOISE_RUNNING) return 0.0f;
+  const float fs = (float)FILT_GetSamplingRate();
+  if (fs <= 0.0f) return 0.0f;
+  const float full_scale = (float)(1U << (INPUT_ADC_BITS - 1));
+  const float one_sided_var_per_hz = in_band_noise * 2.0f / fs;
+  return sqrtf(one_sided_var_per_hz) * full_scale;
 }
 
 bool BackgroundNoise_Ready()
@@ -207,9 +223,9 @@ void updateBackgroundNoise()
       noise_history_index = (noise_history_index + 1) % NOISE_HISTORY_SIZE; 
       break;
     case BG_NOISE_RUNNING:
-      if (current_block.accumulated_energy > (in_band_noise * NOISE_ESTIMATION_REJECTION) && // Too low energy
-          (HAL_AbsoluteTimestamp() < (last_noise_entry_timestamp + BACKGROUND_NOISE_TIMEOUT_MS))) // Not timed out
-        break;
+      // if (current_block.accumulated_energy > (in_band_noise * NOISE_ESTIMATION_REJECTION) && // Too low energy
+      //     (HAL_AbsoluteTimestamp() < (last_noise_entry_timestamp + BACKGROUND_NOISE_TIMEOUT_MS))) // Not timed out
+      //   break;
       noise_history[noise_history_index] = current_block.accumulated_energy;
       in_band_noise = computePercentile(noise_history, accumulated_noise_entries)
                       * NOISE_ESTIMATION_BIAS;

@@ -55,10 +55,10 @@ typedef struct {
 
 #define SCRATCH_BUFFER_SIZE       (ADC_BUFFER_SIZE / 2)
 
-#define ADC_MIDPOINT              (1U << (ADC_BITS - 1U))
-#define Q15_UPSHIFT               (16U - ADC_BITS)
+#define ADC_MIDPOINT              (1U << (INPUT_ADC_BITS - 1U))
+#define Q15_UPSHIFT               (16U - INPUT_ADC_BITS)
 #define FLOAT_NORM                (1.0f / (float)ADC_MIDPOINT)
-#define DC_SHIFT                  (ADC_BITS - 4U)
+#define DC_SHIFT                  (INPUT_ADC_BITS - 4U)
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -66,7 +66,7 @@ typedef struct {
 
 /* Private variables ---------------------------------------------------------*/
 
-extern volatile uint16_t adc_buffer[];
+extern volatile uint16_t in_adc_buffer[];
 
 static DigitalFilter_t fsk_filter = DEFAULT_FSK_FILTER;
 static DigitalFilter_t fhbfsk_filter = DEFAULT_FHBFSK_FILTER;
@@ -83,8 +83,8 @@ static FilterInfo_t filter_infos[] = {
 
 static DcEstimate_t dc_tracker;
 
-static q15_t filt_in_buffer[SCRATCH_BUFFER_SIZE];
-static q15_t filt_out_buffer[SCRATCH_BUFFER_SIZE];
+// static q15_t filt_in_buffer[SCRATCH_BUFFER_SIZE];
+// static q15_t filt_out_buffer[SCRATCH_BUFFER_SIZE];
 static float dec_buffer[SCRATCH_BUFFER_SIZE];
 
 static uint16_t decimation_index_tracker = 0;
@@ -242,11 +242,9 @@ void handleEvents(void)
   if (fmac_ready == true) decimateFilteredData();
 
   if (raw_first_half_ready == true) {
-    osEventFlagsClear(filt_events, FILT_FIRST_HALF_RDY_RAW);
     processRawAdcData(true);
   }
   if (raw_second_half_ready == true) {
-    osEventFlagsClear(filt_events, FILT_SECOND_HALF_RDY_RAW);
     processRawAdcData(false);
   }
 }
@@ -311,7 +309,7 @@ void processRawAdcData(bool first_half)
 
   uint16_t entries_in_dec_buffer = 0;
   for (uint16_t i = start; i < end; i += d) {
-    int32_t x = (int32_t)(adc_buffer[i]);
+    int32_t x = (int32_t)(in_adc_buffer[i]);
     dcEstimateUpdate(&dc_tracker, x);
     dec_buffer[entries_in_dec_buffer] = (float)(x - dcEstimateValue(&dc_tracker)) * FLOAT_NORM;
     entries_in_dec_buffer++;
