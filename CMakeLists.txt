@@ -55,6 +55,7 @@ include_directories(
     Drivers/CMSIS/DSP/Include
     Drivers/CMSIS/Include
     Drivers/CMSIS/Device/ST/STM32H7xx/Include
+    Drivers/CMSIS/RTOS2/Include
     Drivers/STM32H7xx_HAL_Driver/Inc
     Drivers/STM32H7xx_HAL_Driver/Inc/Legacy
 
@@ -63,11 +64,14 @@ include_directories(
     Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2
     Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F
 
-    # USB
-    USB_DEVICE/App
-    USB_DEVICE/Target
-    Middlewares/ST/STM32_USB_Device_Library/Core/Inc
-    Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
+    # TinyUSB
+    Middlewares/Third_Party/tinyusb/src
+    Middlewares/Third_Party/tinyusb/src/class/cdc
+    Middlewares/Third_Party/tinyusb/src/class/vendor
+    Middlewares/Third_Party/tinyusb/src/common
+    Middlewares/Third_Party/tinyusb/src/device
+    Middlewares/Third_Party/tinyusb/src/osal
+    Middlewares/Third_Party/tinyusb/src/portable/synopsys/dwc2
 
     # Application
     Application/Inc
@@ -85,6 +89,8 @@ include_directories(
     Application/Inc/bsp
     Application/Inc/error
     Application/Inc/FILT
+    Application/Inc/HIL
+    Application/Inc/USB
 )
 
 # ── Sources ───────────────────────────────────────────────────────────────────
@@ -101,8 +107,6 @@ file(GLOB FREERTOS_SOURCES
     "Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/*.c"
 )
 
-# Only compile one heap implementation - check your original project
-# for which one CubeIDE was using (likely heap_4.c)
 file(GLOB FREERTOS_HEAP
     "Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c"
 )
@@ -113,11 +117,14 @@ file(GLOB FREERTOS_PORT
 )
 
 # ── USB Sources ───────────────────────────────────────────────────────────────
-file(GLOB USB_SOURCES
-    "Middlewares/ST/STM32_USB_Device_Library/Core/Src/*.c"
-    "Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/*.c"
-    "USB_DEVICE/App/*.c"
-    "USB_DEVICE/Target/*.c"
+file(GLOB TUSB_SOURCES
+    "Middlewares/Third_Party/tinyusb/src/tusb.c"
+    "Middlewares/Third_Party/tinyusb/src/class/cdc/*.c"
+    "Middlewares/Third_Party/tinyusb/src/class/vendor/*.c"
+    "Middlewares/Third_Party/tinyusb/src/common/*.c"
+    "Middlewares/Third_Party/tinyusb/src/device/*.c"
+    "Middlewares/Third_Party/tinyusb/src/osal/*.c"
+    "Middlewares/Third_Party/tinyusb/src/portable/*.c"
 )
 
 # ── App / Core ────────────────────────────────────────────────────────────────
@@ -142,7 +149,7 @@ set(ALL_SOURCES
     ${FREERTOS_SOURCES}
     ${FREERTOS_HEAP}
     ${FREERTOS_PORT}
-    ${USB_SOURCES}
+    ${TUSB_SOURCES}
 )
 
 # ── Linker ───────────────────────────────────────────────────────────────────

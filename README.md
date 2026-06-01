@@ -28,7 +28,7 @@ The firmware in this repository is for the underwater acoustic modem found [here
 ### Requirements
 - [CMake 3.20+](https://cmake.org/download/)
 - [Ninja](https://ninja-build.org/)
-- [Arm GNU Toolchain 15.2.rel1](https://developer.arm.com/downloads/-arm-gnu-toolchain-downloads)
+- [Arm GNU Toolchain 15.2.rel1](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads)
   - Select: `arm-none-eabi`
 
 ### Build
