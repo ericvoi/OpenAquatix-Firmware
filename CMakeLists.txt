@@ -117,7 +117,7 @@ file(GLOB FREERTOS_PORT
 )
 
 # ── USB Sources ───────────────────────────────────────────────────────────────
-file(GLOB TUSB_SOURCES
+file(GLOB_RECURSE TUSB_SOURCES
     "Middlewares/Third_Party/tinyusb/src/tusb.c"
     "Middlewares/Third_Party/tinyusb/src/class/cdc/*.c"
     "Middlewares/Third_Party/tinyusb/src/class/vendor/*.c"
