@@ -4,7 +4,6 @@ Debug/
 Release/
 build/
 .launches/
-.vscode/
 
 # STM32CubeIDE metadata
 .metadata/

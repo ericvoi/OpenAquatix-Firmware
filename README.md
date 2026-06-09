@@ -48,6 +48,8 @@ Output files will be in `build/`:
 - `UAM.elf` — debug/flash with GDB
 - `UAM.bin` — raw binary flashed over USB
 
+If using VS Code as the IDE, press f5 to compile and debug after installing the Cortex-Debug extension. Additional key combinations can be used to build, flash (no debug), and build + flash.
+
 ## Third-Party Libraries
 
 | Library | License | Version/Commit |

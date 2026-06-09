@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug (ST-Link / OpenOCD)",
+      "type": "cortex-debug",
+      "request": "launch",
+      "servertype": "openocd",
+      "cwd": "${workspaceFolder}",
+      "executable": "${workspaceFolder}/build/UAM.elf",
+      "device": "STM32H723VE",
+      "configFiles": ["interface/stlink.cfg", "target/stm32h7x.cfg"],
+      "svdFile": "${workspaceFolder}/STM32H723.svd",
+      "armToolchainPath": "${env:OPENAQUATIX_TOOLCHAIN_DIR}",
+      "runToEntryPoint": "main",
+      "showDevDebugOutput": "none",
+      "preLaunchTask": "Build"
+    }
+  ]
+}
