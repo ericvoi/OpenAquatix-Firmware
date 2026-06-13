@@ -1,0 +1,40 @@
+
+set(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_SYSTEM_PROCESSOR arm)
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+
+# Allow toolchain path to be specified:
+#   1. Via CMake variable:     -DARM_TOOLCHAIN_DIR="C:/path/to/bin"
+#   2. Via environment variable: set ARM_TOOLCHAIN_DIR=C:/path/to/bin
+#   3. Falls back to PATH if neither is set (just uses arm-none-eabi-gcc)
+if(DEFINED OPENAQUATIX_TOOLCHAIN_DIR)
+    set(TOOLCHAIN_BIN_DIR "${OPENAQUATIX_TOOLCHAIN_DIR}/")
+    message(STATUS "Using toolchain passed as argument")
+elseif(DEFINED ENV{OPENAQUATIX_TOOLCHAIN_DIR})
+    set(TOOLCHAIN_BIN_DIR "$ENV{OPENAQUATIX_TOOLCHAIN_DIR}/")
+    message(STATUS "Using toolchain passed as environment variable")
+else()
+    set(TOOLCHAIN_BIN_DIR "")
+    message(STATUS "OPENAQUATIX_TOOLCHAIN_DIR not set - using toolchain from PATH")
+endif()
+
+set(TOOLCHAIN_PREFIX arm-none-eabi-)
+
+if (CMAKE_HOST_WIN32)
+    set(TOOLCHAIN_EXT ".exe")
+else()
+    set(TOOLCHAIN_EXT "")
+endif()
+
+set(CMAKE_C_COMPILER   ${TOOLCHAIN_BIN_DIR}${TOOLCHAIN_PREFIX}gcc${TOOLCHAIN_EXT})
+set(CMAKE_CXX_COMPILER ${TOOLCHAIN_BIN_DIR}${TOOLCHAIN_PREFIX}g++${TOOLCHAIN_EXT})
+set(CMAKE_ASM_COMPILER ${TOOLCHAIN_BIN_DIR}${TOOLCHAIN_PREFIX}gcc${TOOLCHAIN_EXT})
+set(CMAKE_OBJCOPY      ${TOOLCHAIN_BIN_DIR}${TOOLCHAIN_PREFIX}objcopy${TOOLCHAIN_EXT})
+set(CMAKE_OBJDUMP      ${TOOLCHAIN_BIN_DIR}${TOOLCHAIN_PREFIX}objdump${TOOLCHAIN_EXT})
+set(CMAKE_SIZE         ${TOOLCHAIN_BIN_DIR}${TOOLCHAIN_PREFIX}size${TOOLCHAIN_EXT})
+set(CMAKE_GDB          ${TOOLCHAIN_BIN_DIR}${TOOLCHAIN_PREFIX}gdb${TOOLCHAIN_EXT})
+
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)

@@ -2,8 +2,8 @@
 .settings/
 Debug/
 Release/
+build/
 .launches/
-.vscode/
 
 # STM32CubeIDE metadata
 .metadata/
@@ -20,3 +20,5 @@ Release/
 
 # Data Outputs
 scripts/acoustic_data
+
+CLAUDE.md
