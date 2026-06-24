@@ -63,14 +63,14 @@ static BitMessage_t bit_msg;
 
 static TransmissionLayout_t transmission_layout;
 static DacOutputType_t output_type;
-static WaveformStep_t test_tone;
+static Symbol_t test_tone;
 static ChirpParams_t chirp_params;
 
 /* Private function prototypes -----------------------------------------------*/
 
-WaveformStep_t getMessageStep(uint16_t current_step);
-WaveformStep_t getTestToneStep(uint16_t current_step);
-WaveformStep_t getChirpStep(uint16_t current_step);
+Symbol_t getMessageStep(uint16_t current_step);
+Symbol_t getTestToneStep(uint16_t current_step);
+Symbol_t getChirpStep(uint16_t current_step);
 TransmissionPhase_t getPhase(uint16_t current_step, uint16_t* transmission_step, uint16_t* symbol_index);
 
 /* Exported function definitions ---------------------------------------------*/
@@ -135,7 +135,7 @@ void MessDacResource_RegisterChirp(uint32_t f_start_hz, uint32_t f_end_hz,
   osMutexRelease(mess_dac_resource_mutex);
 }
 
-WaveformStep_t MessDacResource_GetStep(uint16_t current_step)
+Symbol_t MessDacResource_GetStep(uint16_t current_step)
 {
   switch (output_type) {
     case OUTPUT_MESSAGE:
@@ -145,7 +145,7 @@ WaveformStep_t MessDacResource_GetStep(uint16_t current_step)
     case OUTPUT_CHIRP:
       return getChirpStep(current_step);
     default: {
-      WaveformStep_t step = {0};
+      Symbol_t step = {0};
       REGISTER_ERROR_NON_VOID(ERROR_UNHANDLED_CASE, step);
       return step;
     }
@@ -161,13 +161,13 @@ uint16_t MessDacResource_SyncWakeupSteps()
 
 /* Private function definitions ----------------------------------------------*/
 
-WaveformStep_t getMessageStep(uint16_t current_step)
+Symbol_t getMessageStep(uint16_t current_step)
 {
-  WaveformStep_t waveform_step = {0};
+  Symbol_t symbol = {0};
 
   if (osMutexAcquire(mess_dac_resource_mutex, MUTEX_TIMEOUT) != osOK) {
-    REGISTER_ERROR_NON_VOID(ERROR_MUTEX_TIMEOUT, waveform_step);
-    return waveform_step;
+    REGISTER_ERROR_NON_VOID(ERROR_MUTEX_TIMEOUT, symbol);
+    return symbol;
   }
 
   uint16_t transmission_step;
@@ -176,40 +176,40 @@ WaveformStep_t getMessageStep(uint16_t current_step)
 
   switch (transmission_phase) {
     case PACKET_PHASE_WAKEUP:
-      WakeupTones_GetStep(&cfg, &waveform_step, transmission_step);
+      WakeupTones_GetStep(&cfg, &symbol, transmission_step);
       break;
     case PACKET_PHASE_SYNC:
-      Sync_GetStep(&cfg, &waveform_step, transmission_step);
+      Sync_GetStep(&cfg, &symbol, transmission_step);
       break;
     case PACKET_PHASE_DATA:
-      Modulate_DataStep(&cfg, &bit_msg, &waveform_step, transmission_step, symbol_step);
+      Modulate_DataStep(&cfg, &bit_msg, &symbol, transmission_step, symbol_step);
       break;
     default:
-      REGISTER_ERROR_NON_VOID(ERROR_UNHANDLED_CASE, waveform_step);
+      REGISTER_ERROR_NON_VOID(ERROR_UNHANDLED_CASE, symbol);
       break;
   }
   osMutexRelease(mess_dac_resource_mutex);
-  return waveform_step;
+  return symbol;
 }
 
-WaveformStep_t getTestToneStep(uint16_t current_step)
+Symbol_t getTestToneStep(uint16_t current_step)
 {
-  WaveformStep_t waveform_step = {0};
-  if (current_step != 0) return waveform_step;
+  Symbol_t symbol = {0};
+  if (current_step != 0) return symbol;
 
   return test_tone;
 }
 
-WaveformStep_t getChirpStep(uint16_t current_step)
+Symbol_t getChirpStep(uint16_t current_step)
 {
-  WaveformStep_t waveform_step = {0};
-  if (current_step != 0) return waveform_step;
-  waveform_step.output_type = OUTPUT_LFM;
-  waveform_step.u.chirp.f_start_hz = chirp_params.f_start_hz;
-  waveform_step.u.chirp.f_end_hz = chirp_params.f_end_hz;
-  waveform_step.duration_ns = chirp_params.duration_us * 1000;
-  waveform_step.relative_amplitude = chirp_params.amplitude;
-  return waveform_step;
+  Symbol_t symbol = {0};
+  if (current_step != 0) return symbol;
+  symbol.output_type = OUTPUT_LFM;
+  symbol.u.chirp.f_start_hz = chirp_params.f_start_hz;
+  symbol.u.chirp.f_end_hz = chirp_params.f_end_hz;
+  symbol.duration_ns = chirp_params.duration_us * 1000;
+  symbol.relative_amplitude = chirp_params.amplitude;
+  return symbol;
 }
 
 TransmissionPhase_t getPhase(uint16_t current_step, uint16_t* transmission_step, uint16_t* symbol_index)

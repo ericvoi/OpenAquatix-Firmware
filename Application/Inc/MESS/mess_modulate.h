@@ -120,10 +120,10 @@ uint32_t Modulate_GetFskFrequency(bool bit, const DspConfig_t* cfg);
  * 
  * @param cfg DSP configuration for the bit's transmission
  * @param bit_msg Bit message to take the bits from
- * @param waveform_step Waveform step to populate with symbol information
+ * @param symbol Waveform step to populate with symbol information
  * @param transmission_step Step in transmission, corresponds to bit index
  */
-void Modulate_DataStep(const DspConfig_t* cfg, BitMessage_t* bit_msg, WaveformStep_t* waveform_step, uint16_t bit_index, uint16_t symbol_index);
+void Modulate_DataStep(const DspConfig_t* cfg, BitMessage_t* bit_msg, Symbol_t* symbol, uint16_t bit_index, uint16_t symbol_index);
 
 /**
  * @brief Registers modulation parameters with the parameter system for HMI access

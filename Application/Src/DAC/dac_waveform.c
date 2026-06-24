@@ -71,7 +71,7 @@ static uint16_t dac_buffer[DAC_BUFFER_SIZE] __attribute__((section(".dma_buf")))
 
 static float scratch_buf[DAC_BUFFER_SIZE / 2];
 static ModState_t modulation_state __attribute__((section(".dtcm")));
-static WaveformStep_t current_waveform_step;
+static Symbol_t curr_symbol;
 static volatile uint32_t sequence_length = 0;
 static volatile uint16_t current_step = 0;
 static volatile bool dac_running = false;
@@ -91,7 +91,7 @@ static float tukey_table[TUKEY_POINTS] __attribute__((section(".dtcm")));
 extern osThreadId_t hil_taskHandle;
 
 // Output tone that flushes out the DAC and prevents the first message from being scrambled
-WaveformStep_t test_step = {
+Symbol_t test_step = {
   .output_type = OUTPUT_NCO,
   .ramp_samples = 0,
   .relative_amplitude = 0.0f,
@@ -107,9 +107,10 @@ static void updateWaveformParameters(void);
 
 static void fillBufferNco(float* buf, uint16_t n, ModState_t* state);
 static void fillBufferLfm(float* buf, uint16_t n, ModState_t* state);
+static void fillBufferHfm(float* buf, uint16_t n, ModState_t* state);
 
 static void applyEnvelope(uint16_t* dst, const float* src, uint16_t n,
-                          const WaveformStep_t* step, const ModState_t* state);
+                          const Symbol_t* step, const ModState_t* state);
 
 static inline float sineLut(uint32_t phase) {
   return sine_table[(phase >> PHASE_SHIFT) & (SINE_POINTS - 1)];
@@ -117,6 +118,10 @@ static inline float sineLut(uint32_t phase) {
 static inline float tukeyLut(uint32_t index, uint32_t ramp_duration) {
   return tukey_table[index * TUKEY_POINTS / ramp_duration];
 }
+
+static inline uint32_t phaseInc(uint32_t freq) {
+  return (((uint64_t) freq) << PHASE_PRECISION) / DAC_SAMPLE_RATE; 
+} 
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -233,7 +238,7 @@ void Waveform_Flush()
   modulation_state.k.nco.phase_increment = 0;
   modulation_state.pos = 0;
 
-  memcpy(&current_waveform_step, &test_step, sizeof(WaveformStep_t));
+  memcpy(&curr_symbol, &test_step, sizeof(Symbol_t));
   Waveform_FillBuffer(FILL_FIRST_HALF);
   Waveform_FillBuffer(FILL_LAST_HALF);
 
@@ -266,7 +271,7 @@ void Waveform_FillBuffer(FillType_t type)
 
   while (i < end) {
 
-    if (modulation_state.pos >= current_waveform_step.n_samples) {
+    if (modulation_state.pos >= curr_symbol.n_samples) {
       if (current_step >= sequence_length - 1) {
         // Last symbol is done — fill remainder with DC midpoint so the
         // DMA never outputs stale data, then schedule a stop
@@ -279,21 +284,23 @@ void Waveform_FillBuffer(FillType_t type)
       updateWaveformParameters();
     }
 
-    uint16_t n = MIN((uint32_t) end - i, current_waveform_step.n_samples - modulation_state.pos);
+    uint16_t n = MIN((uint32_t) end - i, curr_symbol.n_samples - modulation_state.pos);
     if (n == 0) REGISTER_ERROR(ERROR_INVALID_DAC_SEQ_LEN);
 
-    switch (current_waveform_step.output_type) {
+    switch (curr_symbol.output_type) {
       case OUTPUT_NCO:
         fillBufferNco(scratch_buf, n, &modulation_state);
         break;
       case OUTPUT_LFM:
         fillBufferLfm(scratch_buf, n, &modulation_state);
         break;
+      case OUTPUT_HFM:
+        fillBufferHfm(scratch_buf, n, &modulation_state);
       default:
         REGISTER_ERROR(ERROR_UNHANDLED_CASE);
         break;
     }
-    applyEnvelope(&dac_buffer[i], scratch_buf, n, &current_waveform_step, &modulation_state);
+    applyEnvelope(&dac_buffer[i], scratch_buf, n, &curr_symbol, &modulation_state);
     i += n;
     modulation_state.pos += n;
   } // while (i < half_end)
@@ -320,26 +327,31 @@ void generateTukeyWindow(void)
 void updateWaveformParameters()
 {
   modulation_state.pos = 0;
-  current_waveform_step = MessDacResource_GetStep(current_step);
+  curr_symbol = MessDacResource_GetStep(current_step);
 
-  current_waveform_step.n_samples = ((uint64_t) current_waveform_step.duration_ns * DAC_SAMPLE_RATE) /
+  curr_symbol.n_samples = ((uint64_t) curr_symbol.duration_ns * DAC_SAMPLE_RATE) /
                                     1E9;
 
-  switch (current_waveform_step.output_type) {
+  switch (curr_symbol.output_type) {
     case OUTPUT_NCO:
-      modulation_state.k.nco.phase_increment = (((uint64_t)
-          current_waveform_step.u.nco.freq_hz) << PHASE_PRECISION) / DAC_SAMPLE_RATE;
+      modulation_state.k.nco.phase_increment = phaseInc(curr_symbol.u.nco.freq_hz);
       break;
     case OUTPUT_LFM: {
       modulation_state.k.lfm.phase = 0;
-      int64_t inc_start = ((int64_t) current_waveform_step.u.chirp.f_start_hz <<
-          PHASE_PRECISION) / DAC_SAMPLE_RATE;
-      int64_t inc_end   = ((int64_t) current_waveform_step.u.chirp.f_end_hz   <<
-          PHASE_PRECISION) / DAC_SAMPLE_RATE;
+      int32_t inc_start = (int32_t) phaseInc(curr_symbol.u.chirp.f_start_hz);
+      int32_t inc_end   = (int32_t) phaseInc(curr_symbol.u.chirp.f_end_hz);
       modulation_state.k.lfm.increment = inc_start;
-      modulation_state.k.lfm.increment_delta = (current_waveform_step.n_samples > 0)
-          ? (int32_t)((inc_end - inc_start) / (int64_t) current_waveform_step.n_samples)
+      modulation_state.k.lfm.increment_delta = (curr_symbol.n_samples > 0)
+          ? ((inc_end - inc_start) / (int32_t) curr_symbol.n_samples)
           : 0;
+      break;
+    }
+    case OUTPUT_HFM: {
+      float f0 = curr_symbol.u.chirp.f_start_hz;
+      float f1 = curr_symbol.u.chirp.f_end_hz;
+      modulation_state.k.hfm.pi0 = (float) phaseInc(curr_symbol.u.chirp.f_start_hz);
+      modulation_state.k.hfm.g = 1.0f;
+      modulation_state.k.hfm.dg = (f0 / f1 - 1.0f) / curr_symbol.n_samples;
       break;
     }
     default:
@@ -348,11 +360,12 @@ void updateWaveformParameters()
   }
 
   float tukey_alpha = 0.0f;
-  switch (current_waveform_step.output_type) {
+  switch (curr_symbol.output_type) {
     case OUTPUT_NCO:
       tukey_alpha = TUKEY_ALPHA_NCO;
       break;
     case OUTPUT_LFM:
+    case OUTPUT_HFM:
       tukey_alpha = TUKEY_ALPHA_CHIRP;
       break;
     default:
@@ -362,8 +375,8 @@ void updateWaveformParameters()
 
   if (apply_tukey == false) tukey_alpha = 0.0f;
 
-  current_waveform_step.ramp_samples =
-      (uint32_t) (current_waveform_step.n_samples * tukey_alpha / 2.0f);
+  curr_symbol.ramp_samples =
+      (uint32_t) (curr_symbol.n_samples * tukey_alpha / 2.0f);
 }
 
 static void fillBufferNco(float* buf, uint16_t n, ModState_t* state)
@@ -391,8 +404,23 @@ static void fillBufferLfm(float* buf, uint16_t n, ModState_t* state)
   state->k.lfm.increment = increment;
 }
 
+static void fillBufferHfm(float* buf, uint16_t n, ModState_t* state)
+{
+  uint32_t phase = state->k.hfm.phase;
+  float g = state->k.hfm.g;
+  const float dg = state->k.hfm.dg;
+  const float pi0 = state->k.hfm.pi0;
+  for (uint16_t i = 0; i < n; i++) {
+    buf[i] = sineLut(phase);
+    phase += (uint32_t)(pi0 / g + 0.5f);
+    g += dg;
+  }
+  state->k.hfm.phase = phase;
+  state->k.hfm.g = g;
+}
+
 static void applyEnvelope(uint16_t* dst, const float* src, uint16_t n,
-                          const WaveformStep_t* step, const ModState_t* state)
+                          const Symbol_t* step, const ModState_t* state)
 {
   for (uint16_t i = 0; i < n; i++) {
     // Get the envelope attenuation

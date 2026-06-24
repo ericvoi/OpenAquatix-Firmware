@@ -41,7 +41,7 @@ typedef struct {
     struct {uint32_t freq_hz;} nco;
     struct {uint32_t f_start_hz, f_end_hz;} chirp;
   } u;
-} WaveformStep_t;
+} Symbol_t;
 
 typedef enum {
   FILL_FIRST_HALF,

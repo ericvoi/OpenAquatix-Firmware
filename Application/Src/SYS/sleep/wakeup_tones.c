@@ -36,24 +36,24 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-static void fhbfskWakeupStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step_index);
+static void fhbfskWakeupStep(const DspConfig_t* cfg, Symbol_t* symbol, uint16_t step_index);
 static uint32_t fhbfskWakeupTone(const DspConfig_t* cfg, uint16_t step_index);
-static void fixedWakeupStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step_index);
+static void fixedWakeupStep(const DspConfig_t* cfg, Symbol_t* symbol, uint16_t step_index);
 static uint32_t fixedWakeupTone(const DspConfig_t* cfg, uint16_t step_index);
 
 
 /* Exported function definitions ---------------------------------------------*/
 
-void WakeupTones_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step_index)
+void WakeupTones_GetStep(const DspConfig_t* cfg, Symbol_t* symbol, uint16_t step_index)
 {
   if (cfg->wakeup_tones == false || (step_index > NUM_WAKEUP_TONES))
     REGISTER_ERROR(ERROR_WAVEFORM_STEP);
 
   if (cfg->mod_demod_method == MOD_DEMOD_FHBFSK) {
-    fhbfskWakeupStep(cfg, waveform_step, step_index);
+    fhbfskWakeupStep(cfg, symbol, step_index);
   }
   else {
-    fixedWakeupStep(cfg, waveform_step, step_index);
+    fixedWakeupStep(cfg, symbol, step_index);
   }
 }
 
@@ -69,18 +69,18 @@ uint16_t WakeupTones_NumSteps(const DspConfig_t* cfg)
 
 /* Private function definitions ----------------------------------------------*/
 
-void fhbfskWakeupStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step_index)
+void fhbfskWakeupStep(const DspConfig_t* cfg, Symbol_t* symbol, uint16_t step_index)
 {
-  waveform_step->output_type = OUTPUT_NCO;
+  symbol->output_type = OUTPUT_NCO;
   if (step_index == NUM_WAKEUP_TONES) {
-    waveform_step->relative_amplitude = 0.0f;
-    waveform_step->duration_ns = SILENCE_DURATION_MS * 1000 * 1000;
+    symbol->relative_amplitude = 0.0f;
+    symbol->duration_ns = SILENCE_DURATION_MS * 1000 * 1000;
     return;
   }
 
-  waveform_step->u.nco.freq_hz = fhbfskWakeupTone(cfg, step_index);
-  waveform_step->duration_ns = (uint32_t) 4 * (1.0E9 / cfg->baud_rate);
-  waveform_step->relative_amplitude = Modulate_GetAmplitude(waveform_step->u.nco.freq_hz);
+  symbol->u.nco.freq_hz = fhbfskWakeupTone(cfg, step_index);
+  symbol->duration_ns = (uint32_t) 4 * (1.0E9 / cfg->baud_rate);
+  symbol->relative_amplitude = Modulate_GetAmplitude(symbol->u.nco.freq_hz);
 }
 
 uint32_t fhbfskWakeupTone(const DspConfig_t* cfg, uint16_t step_index)
@@ -104,12 +104,12 @@ uint32_t fhbfskWakeupTone(const DspConfig_t* cfg, uint16_t step_index)
   return center_freq - bandwidth * (offset) / 2; // Fc - BW/2, Fc, Fc + BW/2
 }
 
-void fixedWakeupStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step_index)
+void fixedWakeupStep(const DspConfig_t* cfg, Symbol_t* symbol, uint16_t step_index)
 {
-  waveform_step->output_type = OUTPUT_NCO;
-  waveform_step->u.nco.freq_hz = fixedWakeupTone(cfg, step_index);
-  waveform_step->duration_ns = (uint32_t) 4 * (1.0E9 / cfg->baud_rate);
-  waveform_step->relative_amplitude = Modulate_GetAmplitude(waveform_step->u.nco.freq_hz);
+  symbol->output_type = OUTPUT_NCO;
+  symbol->u.nco.freq_hz = fixedWakeupTone(cfg, step_index);
+  symbol->duration_ns = (uint32_t) 4 * (1.0E9 / cfg->baud_rate);
+  symbol->relative_amplitude = Modulate_GetAmplitude(symbol->u.nco.freq_hz);
 }
 
 uint32_t fixedWakeupTone(const DspConfig_t* cfg, uint16_t step_index)

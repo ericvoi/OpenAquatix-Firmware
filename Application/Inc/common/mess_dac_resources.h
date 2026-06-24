@@ -68,7 +68,7 @@ void MessDacResource_RegisterTestTone(uint32_t freq_hz, uint32_t duration_ms, fl
  * @brief Registers a stair-stepped LFM chirp output
  *
  * Each call to MessDacResource_GetStep returns a constant-frequency
- * WaveformStep_t whose freq_hz advances linearly across num_steps steps.
+ * Symbol_t whose freq_hz advances linearly across num_steps steps.
  * The waveform engine carries the phase accumulator across steps so the
  * sweep is phase-continuous (only the instantaneous frequency is piecewise
  * constant). Used by mess_chirp.c for the paper-experiments TX probe.
@@ -88,7 +88,7 @@ void MessDacResource_RegisterChirp(uint32_t f_start_hz, uint32_t f_end_hz,
  *
  * @return structure with the frequency, duration, and amplitude to transmit
  */
-WaveformStep_t MessDacResource_GetStep(uint16_t current_step);
+Symbol_t MessDacResource_GetStep(uint16_t current_step);
 
 /**
  * @brief Number of steps in the synchronization + wakeup sequence

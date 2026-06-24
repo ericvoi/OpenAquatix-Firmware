@@ -45,10 +45,10 @@ extern "C" {
  * @brief Populates a waveform step with wakeup tones
  * 
  * @param cfg Signal processing parameters defining wakeup tones
- * @param waveform_step Waveform step to transmit (modified)
+ * @param symbol Waveform step to transmit (modified)
  * @param step_index Step of the transmit sequence
  */
-void WakeupTones_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_t step_index);
+void WakeupTones_GetStep(const DspConfig_t* cfg, Symbol_t* symbol, uint16_t step_index);
 
 /**
  * @brief Number of steps in the transmission wakeup sequence

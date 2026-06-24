@@ -234,7 +234,7 @@ uint32_t Modulate_GetFskFrequency(bool bit, const DspConfig_t* cfg)
   return (bit) ? cfg->fsk_f1 : cfg->fsk_f0;
 }
 
-void Modulate_DataStep(const DspConfig_t* cfg, BitMessage_t* bit_msg, WaveformStep_t* waveform_step, uint16_t bit_index, uint16_t symbol_index)
+void Modulate_DataStep(const DspConfig_t* cfg, BitMessage_t* bit_msg, Symbol_t* symbol, uint16_t bit_index, uint16_t symbol_index)
 {
   bool bit;
   if (Packet_GetBit(bit_msg, bit_index, &bit) == false)
@@ -242,18 +242,18 @@ void Modulate_DataStep(const DspConfig_t* cfg, BitMessage_t* bit_msg, WaveformSt
   
   switch (cfg->mod_demod_method) {
     case MOD_DEMOD_FSK:
-      waveform_step->output_type = OUTPUT_NCO;
-      waveform_step->u.nco.freq_hz = Modulate_GetFskFrequency(bit, cfg);
+      symbol->output_type = OUTPUT_NCO;
+      symbol->u.nco.freq_hz = Modulate_GetFskFrequency(bit, cfg);
       break;
     case MOD_DEMOD_FHBFSK:
-      waveform_step->output_type = OUTPUT_NCO;
-      waveform_step->u.nco.freq_hz = Modulate_GetFhbfskFrequency(bit, symbol_index, cfg);
+      symbol->output_type = OUTPUT_NCO;
+      symbol->u.nco.freq_hz = Modulate_GetFhbfskFrequency(bit, symbol_index, cfg);
       break;
     default:
       REGISTER_ERROR(ERROR_WAVEFORM_STEP);
   }
-  waveform_step->duration_ns = (uint32_t) roundf(1.0E9f / cfg->baud_rate);
-  waveform_step->relative_amplitude = Modulate_GetAmplitude(waveform_step->u.nco.freq_hz);
+  symbol->duration_ns = (uint32_t) roundf(1.0E9f / cfg->baud_rate);
+  symbol->relative_amplitude = Modulate_GetAmplitude(symbol->u.nco.freq_hz);
 }
 
 void Modulate_RegisterParams()
