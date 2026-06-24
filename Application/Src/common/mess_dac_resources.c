@@ -39,6 +39,13 @@ typedef struct {
   uint16_t sync_steps;
 } TransmissionLayout_t;
 
+typedef struct {
+  uint32_t f_start_hz;
+  uint32_t f_end_hz;
+  uint32_t duration_us;
+  float amplitude;
+} ChirpParams_t;
+
 /* Private define ------------------------------------------------------------*/
 
 #define MUTEX_TIMEOUT   0 // No timeout since it must be instant
@@ -57,18 +64,6 @@ static BitMessage_t bit_msg;
 static TransmissionLayout_t transmission_layout;
 static DacOutputType_t output_type;
 static WaveformStep_t test_tone;
-
-// Stair-stepped LFM: each call to MessDacResource_GetStep returns a constant-
-// frequency WaveformStep_t whose freq_hz advances linearly from f_start_hz to
-// f_end_hz over num_steps. Phase carries through across steps because the
-// waveform engine never zeros wave_ctrl.phase_accumulator between steps.
-typedef struct {
-  uint32_t f_start_hz;
-  uint32_t f_end_hz;
-  uint32_t step_duration_us;
-  uint16_t num_steps;
-  float amplitude;
-} ChirpParams_t;
 static ChirpParams_t chirp_params;
 
 /* Private function prototypes -----------------------------------------------*/
@@ -114,18 +109,17 @@ void MessDacResource_RegisterTestTone(uint32_t freq_hz, uint32_t duration_ms, fl
     return;
   }
 
-  test_tone.freq_hz = freq_hz;
-  test_tone.duration_us = duration_ms * 1000;
+  test_tone.u.nco.freq_hz = freq_hz;
+  test_tone.duration_ns = duration_ms * 1E6;
   test_tone.relative_amplitude = amplitude;
-  test_tone.output_type = OUTPUT_CONSTANT_SQUARE;
+  test_tone.output_type = OUTPUT_NCO;
   output_type = OUTPUT_TEST_TONE;
 
   osMutexRelease(mess_dac_resource_mutex);
 }
 
 void MessDacResource_RegisterChirp(uint32_t f_start_hz, uint32_t f_end_hz,
-                                   uint16_t num_steps, uint32_t step_duration_us,
-                                   float amplitude)
+                                   uint32_t duration_us, float amplitude)
 {
   if (osMutexAcquire(mess_dac_resource_mutex, MUTEX_TIMEOUT) != osOK) {
     REGISTER_ERROR(ERROR_MUTEX_TIMEOUT);
@@ -134,8 +128,7 @@ void MessDacResource_RegisterChirp(uint32_t f_start_hz, uint32_t f_end_hz,
 
   chirp_params.f_start_hz = f_start_hz;
   chirp_params.f_end_hz = f_end_hz;
-  chirp_params.num_steps = num_steps;
-  chirp_params.step_duration_us = step_duration_us;
+  chirp_params.duration_us = duration_us;
   chirp_params.amplitude = amplitude;
   output_type = OUTPUT_CHIRP;
 
@@ -211,15 +204,10 @@ WaveformStep_t getChirpStep(uint16_t current_step)
 {
   WaveformStep_t waveform_step = {0};
   if (current_step != 0) return waveform_step;
-
-  // Single continuous LFM step. Phase is updated per sample by the
-  // waveform engine (OUTPUT_LFM_CHIRP path); num_steps / step_duration_us
-  // from the registration are folded into total duration here.
-  waveform_step.output_type = OUTPUT_LFM_CHIRP;
-  waveform_step.freq_hz = chirp_params.f_start_hz;
-  waveform_step.f_end_hz = chirp_params.f_end_hz;
-  waveform_step.duration_us =
-      (uint32_t)chirp_params.num_steps * chirp_params.step_duration_us;
+  waveform_step.output_type = OUTPUT_LFM;
+  waveform_step.u.chirp.f_start_hz = chirp_params.f_start_hz;
+  waveform_step.u.chirp.f_end_hz = chirp_params.f_end_hz;
+  waveform_step.duration_ns = chirp_params.duration_us * 1000;
   waveform_step.relative_amplitude = chirp_params.amplitude;
   return waveform_step;
 }

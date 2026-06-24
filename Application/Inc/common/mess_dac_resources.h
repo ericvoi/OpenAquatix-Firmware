@@ -74,14 +74,12 @@ void MessDacResource_RegisterTestTone(uint32_t freq_hz, uint32_t duration_ms, fl
  * constant). Used by mess_chirp.c for the paper-experiments TX probe.
  *
  * @param f_start_hz       Frequency of step 0
- * @param f_end_hz         Frequency at the end of the last step
- * @param num_steps        Number of constant-frequency stair steps
- * @param step_duration_us Duration of each step in microseconds
+ * @param f_end_hz         Frequency at the end of the chirp
+ * @param duration_us      Duration of the full chirp
  * @param amplitude        Amplitude relative to full-scale (0.0–1.0)
  */
 void MessDacResource_RegisterChirp(uint32_t f_start_hz, uint32_t f_end_hz,
-                                   uint16_t num_steps, uint32_t step_duration_us,
-                                   float amplitude);
+                                   uint32_t duration_us, float amplitude);
 
 /**
  * @brief Get the next waveform step

@@ -119,8 +119,6 @@ static const GaloisParameters_t galois_map[MAX_FHBFSK_NUM_TONES - MIN_FHBFSK_NUM
 extern const uint16_t primes[50];
 static const uint16_t num_primes = sizeof(primes) / sizeof(primes[0]);
 
-static bool apply_tukey = DEFAULT_APPLY_TUKEY;
-
 DEFINE_DESC_TABLE(OUTPUT_STRENGTH_METHOD_TABLE, output_strength_method_descriptors)
 
 /* Private function prototypes -----------------------------------------------*/
@@ -244,18 +242,18 @@ void Modulate_DataStep(const DspConfig_t* cfg, BitMessage_t* bit_msg, WaveformSt
   
   switch (cfg->mod_demod_method) {
     case MOD_DEMOD_FSK:
-      waveform_step->freq_hz = Modulate_GetFskFrequency(bit, cfg);
+      waveform_step->output_type = OUTPUT_NCO;
+      waveform_step->u.nco.freq_hz = Modulate_GetFskFrequency(bit, cfg);
       break;
     case MOD_DEMOD_FHBFSK:
-      waveform_step->freq_hz = Modulate_GetFhbfskFrequency(bit, symbol_index, cfg);
+      waveform_step->output_type = OUTPUT_NCO;
+      waveform_step->u.nco.freq_hz = Modulate_GetFhbfskFrequency(bit, symbol_index, cfg);
       break;
     default:
       REGISTER_ERROR(ERROR_WAVEFORM_STEP);
   }
-  waveform_step->duration_us = (uint32_t) roundf(1000000.0f / cfg->baud_rate);
-  waveform_step->relative_amplitude = Modulate_GetAmplitude(waveform_step->freq_hz);
-
-  waveform_step->output_type = (apply_tukey) ? (OUTPUT_CONSTANT_TUKEY) : (OUTPUT_CONSTANT_SQUARE);
+  waveform_step->duration_ns = (uint32_t) roundf(1.0E9f / cfg->baud_rate);
+  waveform_step->relative_amplitude = Modulate_GetAmplitude(waveform_step->u.nco.freq_hz);
 }
 
 void Modulate_RegisterParams()
@@ -314,13 +312,6 @@ void Modulate_RegisterParams()
   max_f = MAX_MAX_TRANSDUCER_V;
   if (Param_Register(PARAM_MAX_TRANSDUCER_VOLTAGE, "Maximum transducer voltage", PARAM_TYPE_FLOAT,
                      &max_transducer_voltage, sizeof(float), &min_f, &max_f, NULL, NULL) == false) {
-    REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
-  }
-
-  min_u32 = MIN_APPLY_TUKEY;
-  max_u32 = MAX_APPLY_TUKEY;
-  if (Param_Register(PARAM_APPLY_TUKEY, "Tukey window modulation", PARAM_TYPE_UINT8,
-                     &apply_tukey, sizeof(bool), &min_u32, &max_u32, NULL, NULL) == false) {
     REGISTER_ERROR(ERROR_PARAMETER_REGISTRATION);
   }
 }

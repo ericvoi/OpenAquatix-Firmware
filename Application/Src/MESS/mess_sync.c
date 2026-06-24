@@ -139,9 +139,10 @@ void Sync_GetStep(const DspConfig_t* cfg, WaveformStep_t* waveform_step, uint16_
 {
   switch (cfg->sync_method) {
     case SYNC_PN_32_JANUS:
-      waveform_step->freq_hz = janus_frequencies[step];
-      waveform_step->duration_us = (uint32_t) roundf(1000000.0f / cfg->baud_rate);
-      waveform_step->relative_amplitude = Modulate_GetAmplitude(waveform_step->freq_hz);
+      waveform_step->output_type = OUTPUT_NCO;
+      waveform_step->u.nco.freq_hz = janus_frequencies[step];
+      waveform_step->duration_ns = (uint32_t) roundf(1.0E9 / cfg->baud_rate);
+      waveform_step->relative_amplitude = Modulate_GetAmplitude(waveform_step->u.nco.freq_hz);
       break;
     default:
       REGISTER_ERROR(ERROR_WAVEFORM_STEP);

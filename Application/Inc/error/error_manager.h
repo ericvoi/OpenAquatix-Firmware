@@ -85,6 +85,7 @@ typedef struct {
   X(ERROR_AGC,                            ERROR_SEVERITY_DISABLE_SUBSYS,  "Error in AGC subsystem",                   SUBSYS_PGA)       \
   X(ERROR_FFT_INITIALIZATION,             ERROR_SEVERITY_UNRECOVERABLE,   "Error initializing FFT",                   SUBSYS_NONE)      \
   X(ERROR_INVALID_NOISE_BIN,              ERROR_SEVERITY_UNRECOVERABLE,   "Invalid noise bin range",                  SUBSYS_NONE)      \
+  X(ERROR_INVALID_DAC_SEQ_LEN,            ERROR_SEVERITY_WARN,            "Invalid DAC fill sequence length",         SUBSYS_NONE)      \
                                                                                                                                         \
   /* --- Acoustic Protocol & MAC --- */                                                                                                 \
   X(ERROR_UNKNOWN_MESSAGE,                ERROR_SEVERITY_WARN,            "Invalid message type received",            SUBSYS_NONE)      \

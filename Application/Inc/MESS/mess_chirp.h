@@ -24,8 +24,6 @@ extern "C" {
 #define CHIRP_F_START_HZ        25000u
 #define CHIRP_F_END_HZ          35000u
 #define CHIRP_DURATION_US       50000u
-#define CHIRP_NUM_STEPS         500u
-#define CHIRP_STEP_DURATION_US  (CHIRP_DURATION_US / CHIRP_NUM_STEPS)
 #define CHIRP_AMPLITUDE         (0.5f)
 
 /* Exported functions prototypes ---------------------------------------------*/
