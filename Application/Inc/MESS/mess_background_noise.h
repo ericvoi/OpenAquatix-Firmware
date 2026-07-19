@@ -49,13 +49,15 @@ void BackgroundNoise_CreateShared();
 /**
  * @brief Restarts the background noise and invalidates the current background
  * noise measurement
+ * 
+ * @param cfg DSP configuration for noise calculations
  */
-void BackgroundNoise_Reset();
+void BackgroundNoise_Reset(const DspConfig_t* cfg);
 
 /**
  * @brief Calculates the background noise in band on the most recent data
  */
-void BackgroundNoise_Calculate(const DspConfig_t* cfg);
+void BackgroundNoise_Calculate(void);
 
 /**
  * @brief Returns the calculated background noise

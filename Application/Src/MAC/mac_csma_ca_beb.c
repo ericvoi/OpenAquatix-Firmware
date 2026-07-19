@@ -15,6 +15,7 @@
 #include "mac_protocol.h"
 #include "mac_csma_ca_beb.h"
 #include "mess_main.h"
+#include "janus_utils.h"
 #include "cfg_main.h"
 #include "cmsis_os.h"
 #include "error_manager.h"
@@ -78,7 +79,6 @@ static void CsmaCaBeb_Init(void* protocol_data)
     osDelay(1);
   }
   osEventFlagsSet(channel_report_flag, REPORT_16_CD_PSD);
-  CFG_IncrementVersionNumber();
 }
 
 void CsmaCaBeb_Deinit(void* protocol_data)
@@ -200,14 +200,15 @@ static MacState_t CsmaCaBeb_ProcessRxMessage(void* protocol_data, const Message_
   CsmaCaBebData_t* data = (CsmaCaBebData_t*) protocol_data;
   MacState_t ret = MAC_STATE_SUCCESS;
 
-  if (message->preamble.reservation_time_10ms.valid == true) {
-    if (message->preamble.reservation_time_10ms.value > MAXIMUM_RESERVATION_TIME_MS / 10) {
-      REGISTER_ERROR_NON_VOID(ERROR_INVALID_RESERVATION_TIME, MAC_STATE_ERROR);
-      ret = MAC_STATE_ERROR;
-    }
-    uint32_t reserved_until = message->timestamp + message->preamble.reservation_time_10ms.value * 10;
+  PreambleValue_t res;
+  memcpy(&res, &message->preamble.reservation_code, sizeof(PreambleValue_t));
+
+  if (res.valid == true) {
+    uint32_t reservation_time_ms = decodeJanusReservationTime(res.value);
+    if (reservation_time_ms == 0) ret = MAC_STATE_ERROR;
+    uint32_t reserved_until = message->timestamp + reservation_time_ms;
     uint32_t current_timestamp = osKernelGetTickCount();
-    if (current_timestamp - reserved_until > MAXIMUM_RESERVATION_TIME_MS) {
+    if (((int64_t) current_timestamp - (int64_t) reserved_until) >= 0) {
       data->active_reservation = false;
     }
     else {

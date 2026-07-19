@@ -296,6 +296,7 @@ void Waveform_FillBuffer(FillType_t type)
         break;
       case OUTPUT_HFM:
         fillBufferHfm(scratch_buf, n, &modulation_state);
+        break;
       default:
         REGISTER_ERROR(ERROR_UNHANDLED_CASE);
         break;

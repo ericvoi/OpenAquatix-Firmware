@@ -86,20 +86,10 @@ bool CFG_CreateFlags(void);
  */
 void CFG_WaitLoadComplete(void);
 
+/**
+ * @brief Requests a flash save
+ */
 void CFG_SetFlashSaveFlag(void);
-
-/**
- * @brief Increments the configuration number used by other tasks to determine
- * if there has been a change in the configuration
- */
-void CFG_IncrementVersionNumber(void);
-
-/**
- * @brief Returns the current version number
- * 
- * @return uint32_t Version number
- */
-uint32_t CFG_GetVersionNumber(void);
 
 /* Private defines -----------------------------------------------------------*/
 

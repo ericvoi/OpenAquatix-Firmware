@@ -55,7 +55,6 @@ typedef struct {
 
 /* Exported constants --------------------------------------------------------*/
 
-#define MAXIMUM_RESERVATION_TIME_MS                 (632640) // Maximum reservation time in ms as specified by JANUS
 #define MAC_PROTOCOL_UNKNOWN                        (NUM_MAC_PROTOCOL + 1)
 
 /* Exported macro ------------------------------------------------------------*/

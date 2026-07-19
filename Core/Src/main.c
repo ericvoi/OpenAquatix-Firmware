@@ -110,7 +110,7 @@ osThreadId_t tusb_taskHandle;
 uint32_t tusb_task_buffer[ 2048 ];
 osStaticThreadDef_t tusb_task_control_block;
 const osThreadAttr_t tusb_task_attributes = {
-  .name = "tusb_task",
+  .name = "USB",
   .cb_mem = &tusb_task_control_block,
   .cb_size = sizeof(tusb_task_control_block),
   .stack_mem = &tusb_task_buffer[0],
@@ -122,7 +122,7 @@ osThreadId_t message_taskHandle;
 uint32_t mess_task_buffer[ 8192 ] __attribute__((section(".dtcm")));
 osStaticThreadDef_t mess_task_control_block;
 const osThreadAttr_t message_task_attributes = {
-  .name = "message_task",
+  .name = MESS_TASK_NAME,
   .cb_mem = &mess_task_control_block,
   .cb_size = sizeof(mess_task_control_block),
   .stack_mem = &mess_task_buffer[0],
@@ -134,7 +134,7 @@ osThreadId_t sys_taskHandle;
 uint32_t sys_task_buffer[ 256 ];
 osStaticThreadDef_t sys_task_control_block;
 const osThreadAttr_t sys_task_attributes = {
-  .name = "sys_task",
+  .name = "SYS",
   .cb_mem = &sys_task_control_block,
   .cb_size = sizeof(sys_task_control_block),
   .stack_mem = &sys_task_buffer[0],
@@ -146,7 +146,7 @@ osThreadId_t comm_taskHandle;
 uint32_t comm_task_buffer[ 2048 ];
 osStaticThreadDef_t comm_task_control_block;
 const osThreadAttr_t comm_task_attributes = {
-  .name = "comm_task",
+  .name = "COMM",
   .cb_mem = &comm_task_control_block,
   .cb_size = sizeof(comm_task_control_block),
   .stack_mem = &comm_task_buffer[0],
@@ -158,7 +158,7 @@ osThreadId_t cfg_taskHandle;
 uint32_t cfg_task_buffer[ 512 ];
 osStaticThreadDef_t cfg_task_control_block;
 const osThreadAttr_t cfg_task_attributes = {
-  .name = "cfg_task",
+  .name = "CFG",
   .cb_mem = &cfg_task_control_block,
   .cb_size = sizeof(cfg_task_control_block),
   .stack_mem = &cfg_task_buffer[0],
@@ -170,7 +170,7 @@ osThreadId_t dac_taskHandle;
 uint32_t dac_task_buffer[ 1024 ];
 osStaticThreadDef_t dac_task_control_block;
 const osThreadAttr_t dac_task_attributes = {
-  .name = "dac_task",
+  .name = "DAC",
   .cb_mem = &dac_task_control_block,
   .cb_size = sizeof(dac_task_control_block),
   .stack_mem = &dac_task_buffer[0],
@@ -182,7 +182,7 @@ osThreadId_t mac_taskHandle;
 uint32_t mac_task_buffer[ 2048 ];
 osStaticThreadDef_t mac_task_control_block;
 const osThreadAttr_t mac_task_attributes = {
-  .name = "mac_task",
+  .name = "MAC",
   .cb_mem = &mac_task_control_block,
   .cb_size = sizeof(mac_task_control_block),
   .stack_mem = &mac_task_buffer[0],
@@ -194,7 +194,7 @@ osThreadId_t filt_taskHandle;
 uint32_t filt_task_buffer[ 512 ];
 osStaticThreadDef_t filt_task_control_block;
 const osThreadAttr_t filt_task_attributes = {
-  .name = "filt_task",
+  .name = FILT_TASK_NAME,
   .cb_mem = &filt_task_control_block,
   .cb_size = sizeof(filt_task_control_block),
   .stack_mem = &filt_task_buffer[0],
@@ -206,7 +206,7 @@ osThreadId_t hil_taskHandle;
 uint32_t hil_task_buffer[ 1024 ];
 osStaticThreadDef_t hil_task_control_block;
 const osThreadAttr_t hil_task_attributes = {
-  .name = "hil_task",
+  .name = "HIL",
   .cb_mem = &hil_task_control_block,
   .cb_size = sizeof(hil_task_control_block),
   .stack_mem = &hil_task_buffer[0],

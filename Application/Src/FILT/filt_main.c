@@ -14,6 +14,7 @@
 #include "cfg_parameters.h"
 #include "cfg_main.h"
 #include "cfg_defaults.h"
+#include "mess_main.h"
 #include "mess_filt_resources.h"
 #include "mess_dsp_config.h"
 #include "mess_background_noise.h"
@@ -118,7 +119,7 @@ void FILT_StartTask(void* argument)
 {
   (void)(argument);
 
-  Error_RegisterTask("FILT");
+  Error_RegisterTask(FILT_TASK_NAME);
   registerFiltParams();
   Error_ParameterRegistrationComplete();
 
@@ -128,8 +129,8 @@ void FILT_StartTask(void* argument)
   // Init FMAC (later) TODO
 
   resetTask();
+  checkFilterChange();
   for (;;) {
-    checkFilterChange();
     handleEvents();
     if (Error_CheckModuleReset() == TASK_RESET) {
       resetTask();
@@ -221,7 +222,7 @@ inline void dcEstimateUpdate(DcEstimate_t *estimator, int32_t x)
 
 void handleEvents(void)
 {
-  uint32_t events = osEventFlagsWait(filt_events, 0x07, osFlagsWaitAny, 1);
+  uint32_t events = osEventFlagsWait(filt_events, 0x0F, osFlagsWaitAny, 1);
 
   if (events == osFlagsErrorResource || events == osFlagsErrorTimeout) {
     return;
@@ -234,10 +235,10 @@ void handleEvents(void)
   bool raw_first_half_ready   = events & FILT_FIRST_HALF_RDY_RAW;
   bool raw_second_half_ready  = events & FILT_SECOND_HALF_RDY_RAW;
   bool fmac_ready             = events & FILT_FMAC_RDY;
+  bool reset_requested        = events & FILT_RESET;
 
   if (raw_first_half_ready && raw_second_half_ready)
     REGISTER_ERROR(ERROR_FILT_EVENTS);
-  
 
   if (fmac_ready == true) decimateFilteredData();
 
@@ -247,17 +248,13 @@ void handleEvents(void)
   if (raw_second_half_ready == true) {
     processRawAdcData(false);
   }
+  if (reset_requested == true) {
+    checkFilterChange();
+  }
 }
 
 void checkFilterChange(void)
 {
-  static uint32_t previous_cfg_num = 0;
-
-  uint32_t current_cfg_num = CFG_GetVersionNumber();
-
-  if (current_cfg_num == previous_cfg_num) return;
-  previous_cfg_num = current_cfg_num;
-
   uint8_t mod_method;
   DigitalFilter_t new_filter;
   if (Param_GetEnum(PARAM_MOD_DEMOD_METHOD, &mod_method) == false)
@@ -279,8 +276,7 @@ void checkFilterChange(void)
   task_context.decimation_factor = filter_infos[new_filter].decimation_factor;
   task_context.use_filter        = filter_infos[new_filter].use_filter;
   decimation_index_tracker = 0;
-  MessFiltResources_InputAdcClear();
-  BackgroundNoise_Reset();
+  osEventFlagsSet(print_event_handle, MESS_DSP_RECONFIGURE);
   if (task_context.use_filter == true) {
     resetFmac();
     task_context.state = FILT_STATE_FLUSHING;

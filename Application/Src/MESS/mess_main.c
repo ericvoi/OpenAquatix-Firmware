@@ -171,7 +171,7 @@ void MESS_StartTask(void* argument)
 {
   (void)(argument);
 
-  Error_RegisterTask("MESS");
+  Error_RegisterTask(MESS_TASK_NAME);
   registerMessParams();
   Error_ParameterRegistrationComplete();
 
@@ -221,7 +221,7 @@ void MESS_StartTask(void* argument)
         SyncState_t sync_state = Sync_Synchronize(cfg, &rx_msg);
         handleSync(sync_state);
 
-        BackgroundNoise_Calculate(cfg);
+        BackgroundNoise_Calculate();
         break;
       case PROCESSING:
         // Process ADC input data only
@@ -554,6 +554,9 @@ void handleFlags()
     in_hil = false;
     switchState(LISTENING);
   }
+  if (flags & MESS_DSP_RECONFIGURE) {
+    resetTask();
+  }
 }
 
 void handlePreambleOnlyMessage()
@@ -622,15 +625,18 @@ void handleSync(SyncState_t sync_state)
 
 void resetTask()
 {
+  getConfig();
   Pga113_Init();
   osDelay(1);
   Pga113_SetGain(PGA_GAIN_1);
   MessFiltResources_Init();
   Input_Init();
+  Input_Reconfigure(cfg);
   Feedback_Init();
   FeedbackTests_Init();
   Demodulate_Init();
-  BackgroundNoise_Reset();
+  Sync_Reset();
+  BackgroundNoise_Reset(cfg);
   switchState(LISTENING);
 
   osDelay(10);

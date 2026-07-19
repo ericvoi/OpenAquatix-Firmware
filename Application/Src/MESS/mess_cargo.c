@@ -344,6 +344,9 @@ void extractCodedEncryptedData(CodingInfo_t coding, EncryptionInfo_t encryption,
       default:
         REGISTER_ERROR(ERROR_UNKNOWN_JANUS);
     }
+    if (msg_byte_index >= (PACKET_DATA_MAX_LENGTH_BYTES - 1)) 
+      REGISTER_ERROR(ERROR_UNKNOWN_JANUS);
+    
     msg->data[msg_byte_index++] = uncoded_byte;
     remaining_length -= chunk_size;
   }

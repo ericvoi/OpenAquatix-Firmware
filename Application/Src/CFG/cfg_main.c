@@ -112,16 +112,6 @@ void CFG_SetFlashSaveFlag()
   osEventFlagsSet(flash_events, FLASH_SAVE_REQUESTED);
 }
 
-void CFG_IncrementVersionNumber()
-{
-  cfg_number++;
-}
-
-uint32_t CFG_GetVersionNumber()
-{
-  return cfg_number;
-}
-
 /* Private function definitions ----------------------------------------------*/
 
 void waitAllTasksRegistered()

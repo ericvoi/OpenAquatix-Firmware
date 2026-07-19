@@ -121,7 +121,7 @@ void BackgroundNoise_CreateShared()
     REGISTER_ERROR(ERROR_QUEUE_INITIALIZATION);
 }
 
-void BackgroundNoise_Reset()
+void BackgroundNoise_Reset(const DspConfig_t* cfg)
 {
   RETURN_IF_ERROR_PRESENT();
   osEventFlagsClear(channel_report_flag, 0xFFFFFFFF);
@@ -134,14 +134,14 @@ void BackgroundNoise_Reset()
   current_block.accumulated_energy = 0.0f;
   current_block.counts = 0;
   estimator_state = BG_NOISE_BOOT;
+
+  updateFrequencyIndices(cfg);
+  RETURN_IF_ERROR_PRESENT(channelReportingRequirement(cfg));
 }
 
-void BackgroundNoise_Calculate(const DspConfig_t* cfg)
+void BackgroundNoise_Calculate(void)
 {
   RETURN_IF_ERROR_PRESENT();
-  updateFrequencyIndices(cfg);
-
-  RETURN_IF_ERROR_PRESENT(channelReportingRequirement(cfg));
 
   while ((MessFiltResources_AvailableNoiseSamples()) > NOISE_BUFFER_SIZE) {
     float fft_in_buf[NOISE_BUFFER_SIZE];
@@ -241,12 +241,6 @@ void updateBackgroundNoise()
 
 void updateFrequencyIndices(const DspConfig_t* cfg)
 {
-  static uint32_t previous_version_number = 0; 
-  uint32_t current_version_number = CFG_GetVersionNumber(); 
-
-  if (current_version_number == previous_version_number) return; // No updated needed
-  previous_version_number = current_version_number;
-
   counts_per_entry = FILT_GetSamplingRate() * MS_PER_ENTRY / 1000 / NOISE_BUFFER_SIZE;
 
   switch (cfg->mod_demod_method) {
@@ -344,21 +338,17 @@ void updateChannelReport()
 void channelReportingRequirement(const DspConfig_t* cfg)
 {
   static ChannelReportType_t last_report_type = REPORT_NONE;
-  static uint32_t last_cfg_number = 0;
-  uint32_t current_cfg_number = CFG_GetVersionNumber();
-  if (last_cfg_number != current_cfg_number) {
-    last_cfg_number = current_cfg_number;
-    switch (last_report_type) {
-      case REPORT_NONE:
-        break;
-      case REPORT_16_CD_PSD:
-        updateChannelReportTotalCount(cfg);
-        break;
-      default:
-        REGISTER_ERROR(ERROR_UNHANDLED_CASE);
-        return;
-    }
+  switch (last_report_type) {
+    case REPORT_NONE:
+      break;
+    case REPORT_16_CD_PSD:
+      updateChannelReportTotalCount(cfg);
+      break;
+    default:
+      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
+      return;
   }
+  
 
   uint32_t flags = osEventFlagsGet(channel_report_flag);
   if (flags & REPORT_NONE) {

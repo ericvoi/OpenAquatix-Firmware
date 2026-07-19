@@ -784,7 +784,6 @@ bool FeedbackTests_GetConfig(DspConfig_t** cfg)
     return true;
   }
 
-  CFG_IncrementVersionNumber();
   *cfg = &feedback_tests[test_index].cfg;
   last_action = UPDATED_CFG;
   last_cfg_update_timestamp = HAL_AbsoluteTimestamp();

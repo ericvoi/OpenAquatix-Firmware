@@ -140,7 +140,7 @@ DEFINE_DESC_TABLE(PREAMBLE_ERROR_BEHAVIOR_TABLE, preamble_error_behavior_descrip
 /* Private function prototypes -----------------------------------------------*/
 
 static void messageStartWithThreshold(Message_t* msg, bool* msg_detected);
-static void messageStartWithFrequency(const DspConfig_t* cfg, Message_t* msg, bool* msg_detected);
+static void messageStartWithFrequency(Message_t* msg, bool* msg_detected);
 static float frequencyToIndex(float frequency, uint16_t fft_size);
 static float indexToFrequency(float index, uint16_t fft_size);
 static bool checkFftConditions(uint16_t check_length, float multiplier, Message_t* msg);
@@ -185,7 +185,7 @@ void Input_DetectMessageStart(const DspConfig_t* cfg, Message_t* msg, SyncState_
         RETURN_IF_ERROR_PRESENT(messageStartWithThreshold(msg, &message_detected));
         break;
       case MSG_START_FREQUENCY:
-        RETURN_IF_ERROR_PRESENT(messageStartWithFrequency(cfg, msg, &message_detected));
+        RETURN_IF_ERROR_PRESENT(messageStartWithFrequency(msg, &message_detected));
         break;
       default:
         REGISTER_ERROR(ERROR_UNHANDLED_CASE);
@@ -309,6 +309,11 @@ void Input_Reset()
   fft_analysis_index = 0;
   fft_analysis_length = 0;
   bit_index = 0;
+}
+
+void Input_Reconfigure(const DspConfig_t* cfg)
+{
+  updateFrequencyIndices(cfg);
 }
 
 void Input_PrintNoise()
@@ -502,13 +507,11 @@ void messageStartWithThreshold(Message_t* msg, bool* msg_detected)
 }
 
 // Broken: runs out of analysis buffer size very quickly
-void messageStartWithFrequency(const DspConfig_t* cfg, Message_t* msg, bool* msg_detected)
+void messageStartWithFrequency(Message_t* msg, bool* msg_detected)
 {
   static const uint16_t analysis_mask = FFT_ANALYSIS_BUFF_SIZE - 1;
 
   if (MessFiltResources_AvailableProcessingSamples() < MSG_START_FFT_SIZE) return;
-
-  updateFrequencyIndices(cfg);
 
   do {
     // Prepare buffer
@@ -659,15 +662,6 @@ void printReceivedWaveform(char* preamble_sequence)
 
 void updateFrequencyIndices(const DspConfig_t* cfg)
 {
-  static uint32_t previous_version_number = 0; 
-  uint32_t current_version_number = CFG_GetVersionNumber(); 
-
-  if (current_version_number == previous_version_number) {
-    return; // No updated needed
-  }
-
-  previous_version_number = current_version_number;
-
   uint32_t frequency0, frequency1;
 
   if (cfg->mod_demod_method == MOD_DEMOD_FSK) {
@@ -722,11 +716,6 @@ static uint32_t totalWaitSamples(const DspConfig_t* cfg)
 
 void updateThresholdSamples(void)
 {
-  static uint32_t last_cfg_num = 0;
-  uint32_t current_cfg_num = CFG_GetVersionNumber();
-  if (last_cfg_num == current_cfg_num) return;
-  last_cfg_num = current_cfg_num;
-
   max_frequency_threshold_length = 0;
 
   for (uint16_t i = 0; i < unique_frequency_conditions; i++) {

@@ -59,14 +59,7 @@ static void NoMac_Deinit(void* protocol_data)
 static MacState_t NoMac_HandleTxRequest(void* protocol_data)
 {
   NoMacData_t* data = (NoMacData_t*) protocol_data;
-  if (data->active_reservation == true) {
-    uint32_t current_timestamp = osKernelGetTickCount();
-    if (current_timestamp - data->channel_reserved_until > MAXIMUM_RESERVATION_TIME_MS) {
-      data->active_reservation = false;
-      return MAC_STATE_SUCCESS;
-    }
-    return MAC_STATE_DEFERRED;
-  }
+  (void)(data);
   return MAC_STATE_SUCCESS;
 }
 
@@ -78,24 +71,12 @@ static void NoMac_ProcessChannelReport(void* protocol_data, const ChannelReport_
 
 static MacState_t NoMac_ProcessRxMessage(void* protocol_data, const Message_t* message)
 {
+  (void)(message);
   NoMacData_t* data = (NoMacData_t*) protocol_data;
+  (void)(data);
   MacState_t ret = MAC_STATE_SUCCESS;
 
-  if (message->preamble.reservation_time_10ms.valid == true) {
-    if (message->preamble.reservation_time_10ms.value > MAXIMUM_RESERVATION_TIME_MS / 10) {
-      REGISTER_ERROR_NON_VOID(ERROR_INVALID_RESERVATION_TIME, MAC_STATE_ERROR);
-      ret = MAC_STATE_ERROR;
-    }
-    uint32_t reserved_until = message->timestamp + message->preamble.reservation_time_10ms.value * 10;
-    uint32_t current_timestamp = osKernelGetTickCount();
-    if (current_timestamp - reserved_until > MAXIMUM_RESERVATION_TIME_MS) {
-      data->active_reservation = false;
-    }
-    else {
-      data->active_reservation = true;
-      data->channel_reserved_until = reserved_until;
-    }
-  }
+  // No MAC does not care about reservation times
 
   return ret;
 }

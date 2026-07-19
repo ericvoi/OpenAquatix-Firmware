@@ -72,7 +72,7 @@ typedef struct {
 #define REQUIRED_CANDIDATES_AFTER_BEST  8
 
 // Frequency bank: all unique FHBFSK tones
-#define MAX_FHBFSK_BANK_SIZE            (MAX_FHBFSK_NUM_TONES)
+#define MAX_FHBFSK_BANK_SIZE            (NUM_SYNC_FREQUENCIES)
 
 // Goertzel reset staggering
 #define RESET_BLOCK_SIZE                8
@@ -169,7 +169,10 @@ SyncState_t Sync_Synchronize(const DspConfig_t* cfg, Message_t* msg)
       RETURN_IF_ERROR_PRESENT_NON_VOID(Input_DetectMessageStart(cfg, msg, &sync_state), SYNC_OK);
       return sync_state;
     case SYNC_PN_32_JANUS:
-      updateParameters(cfg);
+      if (pending_reset == true) {
+        pending_reset = false;
+        updateParameters(cfg);
+      }
       return janusPnSynchronize(msg);
     default:
       REGISTER_ERROR_NON_VOID(ERROR_UNHANDLED_CASE, SYNC_OK);
@@ -186,13 +189,6 @@ void Sync_Reset(void)
 
 static void updateParameters(const DspConfig_t* cfg)
 {
-  static uint32_t previous_version_number = 0;
-  uint32_t current_version_number = CFG_GetVersionNumber();
-
-  if (current_version_number == previous_version_number) {
-    return;
-  }
-  previous_version_number = current_version_number;
   fillJanusFrequencies(cfg);
   buildFrequencyBank(cfg);
   fillWindowOffsets(cfg);
@@ -229,8 +225,8 @@ static void buildFrequencyBank(const DspConfig_t* cfg)
       if (all_freqs[j] == f0) found0 = true;
       if (all_freqs[j] == f1) found1 = true;
     }
-    if (!found0 && count < NUM_SYNC_FREQUENCIES * 2) all_freqs[count++] = f0;
-    if (!found1 && count < NUM_SYNC_FREQUENCIES * 2) all_freqs[count++] = f1;
+    if (! found0 && count < NUM_SYNC_FREQUENCIES * 2) all_freqs[count++] = f0;
+    if (! found1 && count < NUM_SYNC_FREQUENCIES * 2) all_freqs[count++] = f1;
   }
 
   /* Insertion sort ascending */
@@ -337,11 +333,6 @@ static void resetPnSynchronization(void)
 
 static SyncState_t janusPnSynchronize(Message_t* msg)
 {
-  if (pending_reset == true) {
-    pending_reset = false;
-    resetPnSynchronization();
-  }
-
   bool bg_noise_ready = BackgroundNoise_Ready();
   background_noise = BackgroundNoise_GetScaleless();
   if (bg_noise_ready == false || background_noise == 0) {

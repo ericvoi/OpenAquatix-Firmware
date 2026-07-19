@@ -16,6 +16,7 @@
 #include "mess_error_detection.h"
 #include "mess_error_correction.h"
 #include "mess_cargo.h"
+#include "janus_utils.h"
 #include "cfg_parameters.h"
 #include "error_manager.h"
 #include <stdbool.h>
@@ -64,15 +65,25 @@ typedef struct {
 
 #define FIELDS_END {0, 0, 0, 0, 0, 0}
 
+#define BASIC_CUSTOM_FIELDS     FIELD_ENTRY(0, 4, modem_id), \
+                                FIELD_ENTRY(4, 4, message_type), \
+                                FIELD_ENTRY(8, 7, cargo_length), \
+                                FIELD_ENTRY(15, 1, is_mobile)
+
 /* Private variables ---------------------------------------------------------*/
 
 // All possible preambles
 
-static const PreambleFieldConfig_t custom_fields[] = {
-  FIELD_ENTRY(0, 4, modem_id),
-  FIELD_ENTRY(4, 4, message_type),
-  FIELD_ENTRY(8, 7, cargo_length),
-  FIELD_ENTRY(15, 1, is_mobile),
+static const PreambleFieldConfig_t generic_custom_fields[] = {
+  BASIC_CUSTOM_FIELDS,
+  FIELD_UNUSED(16, 8),
+  FIELDS_END
+};
+
+static const PreambleFieldConfig_t tvir_custom_fields[] = {
+  BASIC_CUSTOM_FIELDS,
+  FIELD_ENTRY(16, 4, tvir_type),
+  FIELD_UNUSED(20, 4),
   FIELDS_END
 };
 
@@ -90,7 +101,7 @@ static const PreambleFieldConfig_t janus_011_01_sms_fields[] = {
   #define JANUS_011_01_SMS_APPLICATION_TYPE   (1U)
   FIELD_ENTRY(16, 6, application_type),       
   FIELD_FIXED_ENTRY(22, 1, 0U),       // RPT flag = 0
-  FIELD_ENTRY(23, 7, reservation_time_10ms),
+  FIELD_ENTRY(23, JANUS_RESERVATION_BITS, reservation_code),
   FIELD_UNUSED(30, 1),
   FIELD_ENTRY(31, 8, modem_id),
   FIELD_ENTRY(39, 8, destination_id),
@@ -110,6 +121,7 @@ static uint16_t calculateCargoBytes(uint16_t length_index);
 static void loadCustomParameters(Message_t* msg);
 static void loadJanusParameters(Message_t* msg);
 static void getFields(const PreambleFieldConfig_t** fields, const Message_t* msg, const DspConfig_t* cfg);
+static void customFields(const PreambleFieldConfig_t** fields, CustomMessageData_t message_type);
 static void janusFields(const PreambleFieldConfig_t** fields, JanusMessageData_t janus_message_type);
 static void addPreambleFields(const PreambleFieldConfig_t* fields, const Message_t* msg, BitMessage_t* bit_msg);
 static void extractPreambleFields(const PreambleFieldConfig_t* fields, BitMessage_t* bit_msg, Message_t* msg);
@@ -228,40 +240,26 @@ bool calculateJanusReservationBits(Message_t* msg, BitMessage_t* bit_msg, const 
 {
   num_bits = ErrorCorrection_CodedLength(num_bits, cfg->cargo_ecc_method);
   float required_time = num_bits / cfg->baud_rate;
-  uint16_t reservation_time_index = (uint16_t) ceilf(required_time * 25.0f / 4.0f + 14.0f);
+  uint16_t res_code = encodeJanusReservationTime((uint32_t)(required_time * 1000.0f));
+  RETURN_IF_ERROR_PRESENT_NON_VOID( , false);
 
-  uint8_t e = 0;
-  while ((15 + 16) * (1 << e) < reservation_time_index) {
-    e++;
-    if (e > 7) return false;
-  }
-  uint8_t m = (uint8_t) ceil(((float) reservation_time_index) / ((float) (1 << e)) - 16.0f);
-  if (m > 15) {
-    return false;
-  }
-  uint16_t reservation_length = ((e & 0x07) << 4) | (m & 0x0F);
-  // TODO: Major bug in MAC without descaling reservation length
-  msg->preamble.reservation_time_10ms.value = reservation_length;
-  msg->preamble.reservation_time_10ms.valid = true;
-  float reservation_time = ((m + 16.0f) * (1 << e) - 14.0f) * (4.0f / 25.0f);
-  bit_msg->cargo.ecc_len = (uint16_t) roundf(reservation_time * cfg->baud_rate);
+  msg->preamble.reservation_code.value = res_code;
+  msg->preamble.reservation_code.valid = true;
+  float res_time_ms = decodeJanusReservationTime(res_code);
+  bit_msg->cargo.ecc_len = (uint16_t) roundf((res_time_ms / 1000.0f) * cfg->baud_rate);
   bit_msg->cargo.raw_len = ErrorCorrection_UncodedLength(bit_msg->cargo.ecc_len, cfg->cargo_ecc_method);
   return true;
 }
 
 void decodeJanusReservationBits(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* cfg)
 {
-  if (msg->preamble.reservation_time_10ms.valid == false)
+  if (msg->preamble.reservation_code.valid == false)
     REGISTER_ERROR(ERROR_INVALID_PREAMBLE_FIELD);
-  
-  uint16_t reservation_time_index = msg->preamble.reservation_time_10ms.value;
-  if (reservation_time_index > 127) 
-    REGISTER_ERROR(ERROR_INVALID_PREAMBLE_FIELD);
-  
-  uint8_t m = reservation_time_index & 0x0F;
-  uint8_t e = (reservation_time_index >> 4) & 0x07;
-  float reservation_time = ((m + 16.0f) * (1 << e) - 14.0f) * (4.0f / 25.0f);
-  uint16_t num_bits = (uint16_t) roundf(reservation_time * cfg->baud_rate);
+
+  uint32_t res_time_ms = decodeJanusReservationTime(msg->preamble.reservation_code.value);
+  RETURN_IF_ERROR_PRESENT();
+
+  uint16_t num_bits = (uint16_t) roundf((res_time_ms / 1000.0f) * cfg->baud_rate);
 
   uint16_t cargo_validation_bits;
   ErrorDetection_CheckLength(&cargo_validation_bits, cfg->cargo_validation);
@@ -364,13 +362,34 @@ void getFields(const PreambleFieldConfig_t** fields, const Message_t* msg, const
 {
   switch (cfg->protocol) {
     case PROTOCOL_CUSTOM:
-      *fields = custom_fields;
+      RETURN_IF_ERROR_PRESENT(customFields(fields, msg->data_type));
       return;
     case PROTOCOL_JANUS:
       RETURN_IF_ERROR_PRESENT(janusFields(fields, msg->janus_data_type));
       return;
     default:
       REGISTER_ERROR(ERROR_UNHANDLED_CASE);
+  }
+}
+
+static void customFields(const PreambleFieldConfig_t** fields, CustomMessageData_t message_type)
+{
+  switch (message_type) {
+    case STRING:
+    case INTEGER:
+    case BITS:
+    case EVAL:
+    case FLOAT:
+    case RANGING_REQUEST:
+    case RANGING_RESPONSE:
+    case UNKNOWN:
+      *fields = generic_custom_fields;
+      break;
+    case CHANNEL_TVIR:
+      *fields = tvir_custom_fields;
+      break;
+    default:
+      REGISTER_ERROR(ERROR_UNKNOWN_MESSAGE);
   }
 }
 
@@ -381,7 +400,7 @@ void janusFields(const PreambleFieldConfig_t** fields, JanusMessageData_t janus_
       *fields = janus_011_01_sms_fields;
       return;
     default:
-      REGISTER_ERROR(ERROR_UNHANDLED_CASE);
+      REGISTER_ERROR(ERROR_UNKNOWN_JANUS);
   }
 }
 

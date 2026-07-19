@@ -85,6 +85,7 @@ void Evaluate_UncodedBer(EvalMessageInfo_t* eval_info, BitMessage_t* bit_msg, co
   reference_msg.data_type = EVAL;
   reference_msg.preamble.message_type.value = EVAL;
   reference_msg.preamble.message_type.valid = true;
+  // TODO: This relies on both modems having the same eval message length
   RETURN_IF_ERROR_PRESENT(Packet_PrepareTx(&reference_msg, &reference_bit_msg, cfg));
   RETURN_IF_ERROR_PRESENT(ErrorCorrection_AddCorrection(&reference_bit_msg, cfg));
   for (uint16_t i = 0; i < bit_msg->cargo.ecc_len; i++) {

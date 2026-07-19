@@ -28,7 +28,8 @@ extern "C" {
 typedef enum {
   FILT_FIRST_HALF_RDY_RAW   = 1 << 0,
   FILT_SECOND_HALF_RDY_RAW  = 1 << 1,
-  FILT_FMAC_RDY             = 1 << 2
+  FILT_FMAC_RDY             = 1 << 2,
+  FILT_RESET                = 1 << 3
 } FiltEvents_t;
 
 #define DIGITAL_FILTER_TABLE(X) \
@@ -39,7 +40,7 @@ DECLARE_ENUM(DIGITAL_FILTER_TABLE, NUM_DIGITAL_FILTERS, DigitalFilter_t)
 
 /* Exported constants --------------------------------------------------------*/
 
-
+#define FILT_TASK_NAME              "FILT"
 
 /* Exported macro ------------------------------------------------------------*/
 

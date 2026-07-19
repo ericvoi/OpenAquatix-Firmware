@@ -67,6 +67,8 @@ extern "C" {
 // The data max length does not have ECC applied and is sanitized for a user
 #define PACKET_DATA_MAX_LENGTH_BYTES      (PACKET_DATA_MAX_LENGTH_BITS / 8)
 
+#define MESS_TASK_NAME                    "MESS"
+
 #define CODING_INFO_TABLE(X) \
   X(CODING_ASCII8, "8-bit ASCII") \
   X(CODING_ASCII7, "7-bit ASCII") \
@@ -104,7 +106,8 @@ typedef enum {
   RANGING_RESPONSE,
   // Add new message data types here
   UNKNOWN,
-  EVAL
+  EVAL,
+  CHANNEL_TVIR
 } CustomMessageData_t;
 
 typedef enum {
@@ -186,6 +189,7 @@ typedef enum {
   MESS_HIL_START = 1 << 19,
   MESS_HIL_STOP = 1 << 20,
   MESS_DAC_MESS_DONE = 1 << 21,
+  MESS_DSP_RECONFIGURE = 1 << 22
 } MessageFlags_t;
 
 /* Exported macro ------------------------------------------------------------*/

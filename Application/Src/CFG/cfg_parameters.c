@@ -13,6 +13,9 @@
 #include "cfg_parameters.h"
 #include "cfg_main.h"
 
+#include "mess_main.h"
+#include "filt_main.h"
+
 #include "stm32h7xx.h"
 #include "stm32h7xx_hal.h"
 
@@ -38,6 +41,8 @@ typedef struct {
   } limits;
   void (*callback)(void);
   const char** descriptors;
+  bool triggers_mess_reset;
+  bool triggers_filt_reset;
   bool is_modified;
 } Parameter_t;
 
@@ -74,6 +79,8 @@ static uint32_t num_erases;
 static uint32_t next_write_addr = FLASH_PARAM_ADDR;
 
 static bool flash_load_complete = false;
+
+extern osEventFlagsId_t filt_events;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -168,6 +175,17 @@ bool Param_Register(ParamIds_t id, const char* name, ParamType_t type,
   param->callback = callback;
   param->descriptors = descriptors;
   param->is_modified = false;
+
+  const char* task_name = osThreadGetName(osThreadGetId());
+  if (strcmp(task_name, MESS_TASK_NAME) == 0)
+    param->triggers_mess_reset = true;
+  else
+    param->triggers_mess_reset = false;
+
+  if (strcmp(task_name, FILT_TASK_NAME) == 0)
+    param->triggers_filt_reset = true;
+  else
+    param->triggers_filt_reset = false;
 
   switch (type) {
     case PARAM_TYPE_ENUM:
@@ -409,7 +427,12 @@ ParamSetResult_t Param_SetValue(ParamIds_t id, const void* value)
         (*param->callback)();
       }
       CFG_SetFlashSaveFlag();
-      CFG_IncrementVersionNumber();
+      if (param->triggers_mess_reset == true && flash_load_complete == true) {
+        osEventFlagsSet(print_event_handle, MESS_DSP_RECONFIGURE);
+      }
+      if (param->triggers_filt_reset == true && flash_load_complete == true) {
+        osEventFlagsSet(filt_events, FILT_RESET);
+      }
     }
   }
   osMutexRelease(param_mutex);

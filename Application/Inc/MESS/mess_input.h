@@ -125,6 +125,13 @@ void Input_DecodeBits(BitMessage_t* bit_msg, const DspConfig_t* cfg, Message_t* 
 void Input_Reset();
 
 /**
+ * @brief Reconfgures the parameters used in the input module
+ * 
+ * @param cfg Pointer to new configuration data
+ */
+void Input_Reconfigure(const DspConfig_t* cfg);
+
+/**
  * @brief Transmits current buffer data over USB for noise analysis
  *
  * Sends the entire input buffer content via USB in chunks, with appropriate

@@ -69,9 +69,9 @@ void HilCal_Perform(const DspConfig_t* cfg)
   hil_cal.center_freq_hz = (float)cfg->fc;
 
 //   Get noise floor when feedback connected
-  BackgroundNoise_Reset();
+  BackgroundNoise_Reset(cfg);
   while (BackgroundNoise_Ready() == false) {
-    BackgroundNoise_Calculate(cfg);
+    BackgroundNoise_Calculate();
     MessFiltResources_SetProcessingTail(MessFiltResources_GetInputAdcHead());
     osDelay(1);
   }
