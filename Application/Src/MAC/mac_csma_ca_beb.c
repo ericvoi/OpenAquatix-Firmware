@@ -204,7 +204,7 @@ static MacState_t CsmaCaBeb_ProcessRxMessage(void* protocol_data, const Message_
   memcpy(&res, &message->preamble.reservation_code, sizeof(PreambleValue_t));
 
   if (res.valid == true) {
-    uint32_t reservation_time_ms = decodeJanusReservationTime(res.value);
+    uint32_t reservation_time_ms = JanusUtil_DecodeResTime(res.value);
     if (reservation_time_ms == 0) ret = MAC_STATE_ERROR;
     uint32_t reserved_until = message->timestamp + reservation_time_ms;
     uint32_t current_timestamp = osKernelGetTickCount();

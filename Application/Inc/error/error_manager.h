@@ -86,6 +86,7 @@ typedef struct {
   X(ERROR_FFT_INITIALIZATION,             ERROR_SEVERITY_UNRECOVERABLE,   "Error initializing FFT",                   SUBSYS_NONE)      \
   X(ERROR_INVALID_NOISE_BIN,              ERROR_SEVERITY_UNRECOVERABLE,   "Invalid noise bin range",                  SUBSYS_NONE)      \
   X(ERROR_INVALID_DAC_SEQ_LEN,            ERROR_SEVERITY_WARN,            "Invalid DAC fill sequence length",         SUBSYS_NONE)      \
+  X(ERROR_TVIR_MISC,                      ERROR_SEVERITY_ABORT,           "Miscellaneous error in TVIR processing",   SUBSYS_NONE)      \
                                                                                                                                         \
   /* --- Acoustic Protocol & MAC --- */                                                                                                 \
   X(ERROR_UNKNOWN_MESSAGE,                ERROR_SEVERITY_WARN,            "Invalid message type received",            SUBSYS_NONE)      \
@@ -98,6 +99,9 @@ typedef struct {
   X(ERROR_INVALID_CHARACTER,              ERROR_SEVERITY_ABORT,           "Message contained an invalid character",   SUBSYS_NONE)      \
   X(ERROR_SEND_UNKNOWN_JANUS,             ERROR_SEVERITY_ABORT,           "Attempted JANUS message not supported",    SUBSYS_NONE)      \
   X(ERROR_CSMA_BEB_TIMEOUT,               ERROR_SEVERITY_TASK_RESET,      "CSMA with BEB background noise timeout",   SUBSYS_NONE)      \
+  X(ERROR_JANUS_ENCODED_LEN,              ERROR_SEVERITY_ABORT,           "Tried to parse an invalid cargo length",   SUBSYS_NONE)      \
+  X(ERROR_INVALID_TVIR_CONFIG,            ERROR_SEVERITY_ABORT,           "Invalid tvir configuration",               SUBSYS_NONE)      \
+  X(ERROR_INVALID_REFERENCE_CHIRP,        ERROR_SEVERITY_ABORT,           "Cannot create chirp template",             SUBSYS_NONE)      \
                                                                                                                                         \
   /* --- Configuration & Parameters --- */                                                                                              \
   X(ERROR_FAILED_PARAM_NUM_ERASES,        ERROR_SEVERITY_WARN,            "Failed to update flash erase count",       SUBSYS_NONE)      \

@@ -31,6 +31,8 @@ extern "C" {
 
 #define MAXIMUM_RESERVATION_TIME_MS   (632640) // Maximum reservation time in ms as specified by JANUS
 #define JANUS_RESERVATION_BITS        7
+#define JANUS_N_E                     2
+#define JANUS_N_X                     5
 
 /* Exported macro ------------------------------------------------------------*/
 
@@ -44,7 +46,7 @@ extern "C" {
  * @param time_ms Entire cargo duration in ms
  * @return uint16_t Reservation code
  */
-uint16_t encodeJanusReservationTime(uint32_t time_ms);
+uint16_t JanusUtil_EncodeResTime(uint32_t time_ms);
 
 /**
  * @brief decodes a 7-bit reservation code
@@ -52,7 +54,10 @@ uint16_t encodeJanusReservationTime(uint32_t time_ms);
  * @param coded_value 7-bit reservation code
  * @return uint32_t reservation duration in ms
  */
-uint32_t decodeJanusReservationTime(uint16_t coded_value);
+uint32_t JanusUtil_DecodeResTime(uint16_t coded_value);
+
+uint16_t JanusUtil_EncodeLen(uint16_t n_bits,  uint8_t n_e, uint8_t n_x);
+uint16_t JanusUtil_DecodeLen(uint16_t encoded, uint8_t n_e, uint8_t n_x);
 
 /* Private defines -----------------------------------------------------------*/
 

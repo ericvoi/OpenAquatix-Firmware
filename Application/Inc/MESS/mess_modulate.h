@@ -85,6 +85,8 @@ void Modulate_StartFeedbackOutput(uint16_t num_steps,
  */
 void Modulate_TestFrequencyResponse(uint32_t freq_hz, uint32_t duration_ms, float amplitude);
 
+void Modulate_StartChannelSounding(const DspConfig_t* cfg, const BitMessage_t* bit_msg);
+
 /**
  * @brief Calculates the frequency for a given bit using FHBFSK modulation
  *

@@ -19,6 +19,7 @@ extern "C" {
 #include "stm32h7xx_hal.h"
 #include "mess_packet.h"
 #include "mess_dsp_config.h"
+#include "mess_tvir.h"
 #include "dac_waveform.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -80,6 +81,19 @@ void MessDacResource_RegisterTestTone(uint32_t freq_hz, uint32_t duration_ms, fl
  */
 void MessDacResource_RegisterChirp(uint32_t f_start_hz, uint32_t f_end_hz,
                                    uint32_t duration_us, float amplitude);
+
+/**
+ * @brief Registers a special message type for channel sounding/TVIR. Structur
+ * is similar to a standard message with data as cargo except the cargo is a
+ * sequence of interleaved chirps and silence
+ * 
+ * @param new_cfg Configuration structure with DSP parameters
+ * @param new_bit_msg Sequence of bits to be sent through the transducer
+ * @param n_probes Number of channel probes
+ * @param type Type of channel probes (repetition interval, duration...)
+ */
+void MessDacResource_RegisterTvir(const DspConfig_t* new_cfg, 
+    const Message_t* new_bit_msg, uint16_t n_probes, TvirTypes_t type);
 
 /**
  * @brief Get the next waveform step

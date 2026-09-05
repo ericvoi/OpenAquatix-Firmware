@@ -99,6 +99,8 @@ typedef enum {
   PARAM_FSK_FILTER,
   PARAM_FHBFSK_FILTER,
   PARAM_DEC_FILTER_DEC_FACTOR,
+  PARAM_NUM_TX_SOUNDING_PROBES,
+  PARAM_TX_TVIR_TYPE,
   // Add new parameters just above here and nowhere else
   NUM_PARAM
 } ParamIds_t;

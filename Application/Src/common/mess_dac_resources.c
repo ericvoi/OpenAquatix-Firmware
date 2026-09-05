@@ -25,7 +25,8 @@
 typedef enum {
   OUTPUT_MESSAGE,
   OUTPUT_TEST_TONE,
-  OUTPUT_CHIRP
+  OUTPUT_CHIRP,
+  OUTPUT_TVIR
 } DacOutputType_t;
 
 typedef enum {
@@ -46,6 +47,11 @@ typedef struct {
   float amplitude;
 } ChirpParams_t;
 
+typedef struct {
+  uint16_t n_probes;
+  TvirTypes_t tvir_type;
+} TvirParams_t;
+
 /* Private define ------------------------------------------------------------*/
 
 #define MUTEX_TIMEOUT   0 // No timeout since it must be instant
@@ -65,13 +71,15 @@ static TransmissionLayout_t transmission_layout;
 static DacOutputType_t output_type;
 static Symbol_t test_tone;
 static ChirpParams_t chirp_params;
+static TvirParams_t tvir_params;
 
 /* Private function prototypes -----------------------------------------------*/
 
-Symbol_t getMessageStep(uint16_t current_step);
-Symbol_t getTestToneStep(uint16_t current_step);
-Symbol_t getChirpStep(uint16_t current_step);
-TransmissionPhase_t getPhase(uint16_t current_step, uint16_t* transmission_step, uint16_t* symbol_index);
+static Symbol_t getMessageStep(uint16_t current_step);
+static Symbol_t getTestToneStep(uint16_t current_step);
+static Symbol_t getChirpStep(uint16_t current_step);
+static Symbol_t getTvirStep(uint16_t current_step);
+static TransmissionPhase_t getPhase(uint16_t current_step, uint16_t* transmission_step, uint16_t* symbol_index);
 
 /* Exported function definitions ---------------------------------------------*/
 
@@ -135,6 +143,29 @@ void MessDacResource_RegisterChirp(uint32_t f_start_hz, uint32_t f_end_hz,
   osMutexRelease(mess_dac_resource_mutex);
 }
 
+void MessDacResource_RegisterTvir(const DspConfig_t* new_cfg, 
+    const Message_t* new_bit_msg, uint16_t n_probes, TvirTypes_t type)
+{
+  RETURN_IF_ERROR_PRESENT();
+  if (osMutexAcquire(mess_dac_resource_mutex, MUTEX_TIMEOUT) != osOK) {
+    REGISTER_ERROR(ERROR_MUTEX_TIMEOUT);
+    return;
+  }
+
+  memcpy(&cfg, new_cfg, sizeof(DspConfig_t));
+  memcpy(&bit_msg, new_bit_msg, sizeof(BitMessage_t));
+
+  transmission_layout.wakeup_steps = WakeupTones_NumSteps(new_cfg);
+  transmission_layout.sync_steps = Sync_NumSteps(new_cfg);
+
+  tvir_params.n_probes = n_probes;
+  tvir_params.tvir_type = type;
+
+  output_type = OUTPUT_TVIR;
+
+  osMutexRelease(mess_dac_resource_mutex);
+}
+
 Symbol_t MessDacResource_GetStep(uint16_t current_step)
 {
   switch (output_type) {
@@ -144,6 +175,8 @@ Symbol_t MessDacResource_GetStep(uint16_t current_step)
       return getTestToneStep(current_step);
     case OUTPUT_CHIRP:
       return getChirpStep(current_step);
+    case OUTPUT_TVIR:
+      return getTvirStep(current_step);
     default: {
       Symbol_t step = {0};
       REGISTER_ERROR_NON_VOID(ERROR_UNHANDLED_CASE, step);
@@ -161,7 +194,7 @@ uint16_t MessDacResource_SyncWakeupSteps()
 
 /* Private function definitions ----------------------------------------------*/
 
-Symbol_t getMessageStep(uint16_t current_step)
+static Symbol_t getMessageStep(uint16_t current_step)
 {
   Symbol_t symbol = {0};
 
@@ -192,7 +225,7 @@ Symbol_t getMessageStep(uint16_t current_step)
   return symbol;
 }
 
-Symbol_t getTestToneStep(uint16_t current_step)
+static Symbol_t getTestToneStep(uint16_t current_step)
 {
   Symbol_t symbol = {0};
   if (current_step != 0) return symbol;
@@ -200,7 +233,7 @@ Symbol_t getTestToneStep(uint16_t current_step)
   return test_tone;
 }
 
-Symbol_t getChirpStep(uint16_t current_step)
+static Symbol_t getChirpStep(uint16_t current_step)
 {
   Symbol_t symbol = {0};
   if (current_step != 0) return symbol;
@@ -212,7 +245,45 @@ Symbol_t getChirpStep(uint16_t current_step)
   return symbol;
 }
 
-TransmissionPhase_t getPhase(uint16_t current_step, uint16_t* transmission_step, uint16_t* symbol_index)
+static Symbol_t getTvirStep(uint16_t current_step)
+{
+  Symbol_t symbol = {0};
+
+  if (osMutexAcquire(mess_dac_resource_mutex, MUTEX_TIMEOUT) != osOK) {
+    REGISTER_ERROR_NON_VOID(ERROR_MUTEX_TIMEOUT, symbol);
+    return symbol;
+  }
+
+  uint16_t transmission_step;
+  uint16_t symbol_step;
+  TransmissionPhase_t transmission_phase = getPhase(current_step, &transmission_step, &symbol_step);
+
+  switch (transmission_phase) {
+    case PACKET_PHASE_WAKEUP:
+      WakeupTones_GetStep(&cfg, &symbol, transmission_step);
+      break;
+    case PACKET_PHASE_SYNC:
+      Sync_GetStep(&cfg, &symbol, transmission_step);
+      break;
+    case PACKET_PHASE_DATA: {
+      uint16_t preamble_steps = bit_msg.preamble.ecc_len;
+      if (transmission_step < preamble_steps) {
+        Modulate_DataStep(&cfg, &bit_msg, &symbol, transmission_step, symbol_step);
+      }
+      else {
+        Tvir_GetStep(&symbol, tvir_params.n_probes, tvir_params.tvir_type, transmission_step - preamble_steps);
+      }
+      break;
+    }
+    default:
+      REGISTER_ERROR_NON_VOID(ERROR_UNHANDLED_CASE, symbol);
+      break;
+  }
+  osMutexRelease(mess_dac_resource_mutex);
+  return symbol;
+}
+
+static TransmissionPhase_t getPhase(uint16_t current_step, uint16_t* transmission_step, uint16_t* symbol_index)
 {
   if (current_step < transmission_layout.wakeup_steps) {
     *transmission_step = current_step;

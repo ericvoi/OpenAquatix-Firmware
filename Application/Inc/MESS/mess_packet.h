@@ -44,6 +44,7 @@ typedef struct {
   SectionInfo_t cargo;
   uint16_t final_length; // includes ecc
   uint16_t combined_message_len; // not including ecc
+  uint16_t n_probes; // Only used when the message is a tvir
   float normalized_viterbi_error_metric; // Only set when the ecc method uses convoltuional codes
   bool preamble_received; // Set when first preamble number of bits received and decoded
   bool fully_received;    // Set when message bit count > final bit count

@@ -249,6 +249,14 @@ extern "C" {
 #define MIN_DECIMATION_FACTOR             1
 #define MAX_DECIMATION_FACTOR             20
 
+#define DEFAULT_NUM_TX_SOUNDING_PROBES    100
+#define MIN_NUM_TX_SOUNDING_PROBES        1
+// No max as this is calculated at runtime
+
+#define DEFAULT_TX_TVIR_TYPE              TVIR_25
+#define MIN_TX_TVIR_TYPE                  0
+#define MAX_TX_TVIR_TYPE                  (NUM_TVIR_TYPES - 1)
+
 
 // JANUS basic parameters
 #define JANUS_MOD_DEMOD             (MOD_DEMOD_FHBFSK)

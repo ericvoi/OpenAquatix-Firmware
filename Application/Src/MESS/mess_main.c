@@ -466,9 +466,14 @@ void switchState(ProcessingState_t new_state)
       RETURN_IF_ERROR_PRESENT(AFE_SetMode(new_mode)); // TODO: change to include feedback for input and output
       notifyHilTx();
       if (tx_msg.type == MSG_TRANSMIT_CHIRP) {
-        MessChirp_StartTx();
+        Chirp_TestChirp();
       } else {
-        RETURN_IF_ERROR_PRESENT(Modulate_StartTransducerOutput(message_length, cfg, &bit_msg, &tx_msg));
+        if ((cfg->protocol == PROTOCOL_CUSTOM) && (tx_msg.data_type == CHANNEL_TVIR)) {
+          RETURN_IF_ERROR_PRESENT(Modulate_StartChannelSounding(cfg, bit_msg));
+        }
+        else {
+          RETURN_IF_ERROR_PRESENT(Modulate_StartTransducerOutput(message_length, cfg, &bit_msg, &tx_msg));
+        }
       }
       osEventFlagsClear(print_event_handle, MESS_DAC_MESS_DONE);
       task_state = DRIVING_TRANSDUCER;

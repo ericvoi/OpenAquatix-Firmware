@@ -16,6 +16,7 @@
 #include "mess_error_detection.h"
 #include "mess_error_correction.h"
 #include "mess_cargo.h"
+#include "mess_tvir.h"
 #include "janus_utils.h"
 #include "cfg_parameters.h"
 #include "error_manager.h"
@@ -117,7 +118,6 @@ static void calculateJanusCargoBits(Message_t* msg, BitMessage_t* bit_msg, uint1
 static void decodeJanusCargoBits(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* cfg);
 static bool calculateJanusReservationBits(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* cfg, uint16_t num_bits);
 static void decodeJanusReservationBits(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* cfg);
-static uint16_t calculateCargoBytes(uint16_t length_index);
 static void loadCustomParameters(Message_t* msg);
 static void loadJanusParameters(Message_t* msg);
 static void getFields(const PreambleFieldConfig_t** fields, const Message_t* msg, const DspConfig_t* cfg);
@@ -183,32 +183,11 @@ void Preamble_UpdateNumBits(BitMessage_t* bit_msg, const DspConfig_t* cfg)
 
 void calculateJanusCargoBits(Message_t* msg, BitMessage_t* bit_msg, uint16_t num_bits)
 {
-  uint16_t num_bytes = (num_bits + 7) / 8;
-  if (num_bytes > 480 || num_bytes == 0) 
-    REGISTER_ERROR(ERROR_INVALID_CARGO_LENGTH);
-
-  uint8_t e = 0;
-  uint16_t offset = 32;
-  // find the minimum exponent needed to encode the data
-  while (offset < num_bytes && e < 3) {
-    e++;
-    offset += (1 << 5) << e;
-  }
-
-  offset -= (1 << 5) << e;
-
-  uint16_t remaining_bytes = num_bytes - offset;
-  uint16_t granularity = (1 << e);
-  // Round up to the best nearest x
-  uint8_t x = (remaining_bytes + granularity - 1) / granularity - 1;
-  uint16_t cargo_length = 0;
-  // Add bits with format 0eexxxxx
-  cargo_length |= ((e & 0x03) << 5);
-  cargo_length |= x & 0x1F;
-  num_bytes = calculateCargoBytes(cargo_length);
-  msg->preamble.cargo_length.value = cargo_length;
+  uint16_t encoded_len = JanusUtil_EncodeLen(num_bits, JANUS_N_E, JANUS_N_X);
+  uint16_t num_bits = JanusUtil_DecodeLen(encoded_len, JANUS_N_E, JANUS_N_X);
+  msg->preamble.cargo_length.value = encoded_len;
   msg->preamble.cargo_length.valid = true;
-  bit_msg->cargo.raw_len = num_bytes * 8;
+  bit_msg->cargo.raw_len = num_bits;
 }
 
 void decodeJanusCargoBits(Message_t* msg, BitMessage_t* bit_msg, const DspConfig_t* cfg)
@@ -220,11 +199,10 @@ void decodeJanusCargoBits(Message_t* msg, BitMessage_t* bit_msg, const DspConfig
   if (length_index > 127)
     REGISTER_ERROR(ERROR_INVALID_CARGO_LENGTH);
 
-  uint16_t num_bytes = calculateCargoBytes(length_index);
+  uint16_t num_bits = JanusUtil_DecodeLen(length_index, JANUS_N_E, JANUS_N_X);
 
   uint16_t cargo_validation_bits;
   ErrorDetection_CheckLength(&cargo_validation_bits, cfg->cargo_validation);
-  uint16_t num_bits = num_bytes * 8;
   // Malformed packet
   if (num_bits >= cargo_validation_bits) {
     bit_msg->data_len_bits = num_bits - cargo_validation_bits;
@@ -240,12 +218,12 @@ bool calculateJanusReservationBits(Message_t* msg, BitMessage_t* bit_msg, const 
 {
   num_bits = ErrorCorrection_CodedLength(num_bits, cfg->cargo_ecc_method);
   float required_time = num_bits / cfg->baud_rate;
-  uint16_t res_code = encodeJanusReservationTime((uint32_t)(required_time * 1000.0f));
+  uint16_t res_code = JanusUtil_EncodeResTime((uint32_t)(required_time * 1000.0f));
   RETURN_IF_ERROR_PRESENT_NON_VOID( , false);
 
   msg->preamble.reservation_code.value = res_code;
   msg->preamble.reservation_code.valid = true;
-  float res_time_ms = decodeJanusReservationTime(res_code);
+  float res_time_ms = JanusUtil_DecodeResTime(res_code);
   bit_msg->cargo.ecc_len = (uint16_t) roundf((res_time_ms / 1000.0f) * cfg->baud_rate);
   bit_msg->cargo.raw_len = ErrorCorrection_UncodedLength(bit_msg->cargo.ecc_len, cfg->cargo_ecc_method);
   return true;
@@ -256,7 +234,7 @@ void decodeJanusReservationBits(Message_t* msg, BitMessage_t* bit_msg, const Dsp
   if (msg->preamble.reservation_code.valid == false)
     REGISTER_ERROR(ERROR_INVALID_PREAMBLE_FIELD);
 
-  uint32_t res_time_ms = decodeJanusReservationTime(msg->preamble.reservation_code.value);
+  uint32_t res_time_ms = JanusUtil_DecodeResTime(msg->preamble.reservation_code.value);
   RETURN_IF_ERROR_PRESENT();
 
   uint16_t num_bits = (uint16_t) roundf((res_time_ms / 1000.0f) * cfg->baud_rate);
@@ -266,19 +244,6 @@ void decodeJanusReservationBits(Message_t* msg, BitMessage_t* bit_msg, const Dsp
   bit_msg->cargo.ecc_len = num_bits;
   bit_msg->cargo.raw_len = ErrorCorrection_UncodedLength(num_bits, cfg->cargo_ecc_method);
   bit_msg->data_len_bits = bit_msg->cargo.raw_len - cargo_validation_bits;
-}
-
-uint16_t calculateCargoBytes(uint16_t length_index)
-{
-  uint16_t e = (length_index >> 5) & 0x03;
-  uint16_t x = length_index & 0x1F;
-
-  uint16_t num_bytes = (1 << e) * (x + 1);
-  // add the offset
-  for (uint8_t i = 0; i < e; i++) {
-    num_bytes += ((1 << 5) << i);
-  }
-  return num_bytes;
 }
 
 void loadCustomParameters(Message_t* msg)
@@ -525,6 +490,8 @@ void addCustomPreamble(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t*
       msg->preamble.cargo_length.value = 0;
       msg->preamble.cargo_length.valid = true;
       bit_msg->cargo.raw_len = 0;
+    case CHANNEL_TVIR: 
+      RETURN_IF_ERROR_PRESENT(Tvir_CalculateCargoCode(msg, bit_msg));
       break;
     default:
       REGISTER_ERROR(ERROR_UNHANDLED_CASE);
@@ -609,6 +576,9 @@ void decodeCustomPreamble(BitMessage_t* bit_msg, Message_t* msg, const DspConfig
       if (msg->preamble.cargo_length.value != 0) {
         msg->error_detected = true;
       }
+      break;
+    case CHANNEL_TVIR:
+      RETURN_IF_ERROR_PRESENT(Tvir_CalculateNProbes(msg, bit_msg));
       break;
     default:
       // Attempt decoding anyways, but issue warning to user

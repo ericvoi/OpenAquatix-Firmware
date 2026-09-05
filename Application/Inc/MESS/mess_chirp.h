@@ -18,6 +18,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 
 #include <stdbool.h>
+#include "dac_waveform.h"
 
 /* Exported constants --------------------------------------------------------*/
 
@@ -28,18 +29,18 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
+void Chirp_UpdateTemplate(float duration_s, ModulationOutputType_t type,
+  uint32_t f_start, uint32_t f_end, uint32_t f_s);
+
 /**
  * @brief Registers chirp parameters with the DAC resource layer and starts
  *        DAC output. Must be called from the MESS task context after
  *        switching the AFE/HIL state to TX (see enterDrivingTransducer()
  *        in mess_main.c). Physical routing is the caller's responsibility.
- *
- * The function bypasses the message-framing pipeline by reusing the test-
- * tone resource path (Waveform_SetWaveformSequence with is_message=false)
- * and walks N constant-frequency stair steps that the waveform engine
- * stitches into a phase-continuous LFM sweep.
  */
-void MessChirp_StartTx(void);
+void Chirp_TestChirp(void);
+
+
 
 #ifdef __cplusplus
 }

@@ -214,6 +214,33 @@ void Modulate_TestFrequencyResponse(uint32_t freq_hz, uint32_t duration_ms, floa
   osThreadFlagsSet(dac_taskHandle, DAC_START_OUTPUT);
 }
 
+void Modulate_StartChannelSounding(const DspConfig_t* cfg, const BitMessage_t* bit_msg)
+{
+  if (HAL_TIM_Base_Stop(&htim6) != HAL_OK) 
+    REGISTER_ERROR(ERROR_STARTING_TRANSDUCER_OUTPUT);
+
+  if (MessFiltResources_StopAllAdcs() == false) 
+    REGISTER_ERROR(ERROR_STARTING_TRANSDUCER_OUTPUT);
+
+  if (Waveform_StopWaveformOutput() == false)
+    REGISTER_ERROR(ERROR_STARTING_TRANSDUCER_OUTPUT);
+
+  TvirTypes_t tvir_type;
+  if (Param_GetEnum(PARAM_TX_TVIR_TYPE, &tvir_type) == false)
+    REGISTER_ERROR(ERROR_PARAMETER_ACCESS);
+  MessDacResource_RegisterTvir(cfg, bit_msg, bit_msg->n_probes, tvir_type);
+
+  uint16_t num_steps = bit_msg->preamble.ecc_len + bit_msg->n_probes * 2;
+  if (Waveform_SetWaveformSequence(num_steps, true, false, 0) == false)
+    REGISTER_ERROR(ERROR_STARTING_TRANSDUCER_OUTPUT);
+
+  if (Waveform_PrepareWaveformOutput(DAC_CHANNEL_1) == false)
+    REGISTER_ERROR(ERROR_STARTING_TRANSDUCER_OUTPUT);
+  
+  osDelay(150);
+  osThreadFlagsSet(dac_taskHandle, DAC_START_OUTPUT);
+}
+
 uint32_t Modulate_GetFhbfskFrequency(bool bit, 
                                      uint16_t bit_index, 
                                      const DspConfig_t* cfg)

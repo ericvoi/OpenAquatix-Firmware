@@ -353,8 +353,6 @@ void Input_PrintWaveform(bool* print_next_waveform, bool fully_received)
   uint16_t new_length = (MessFiltResources_GetInputAdcHead() - print_waveform_start_index) & PROCESSING_BUFFER_MASK;
   if (new_length > 8000)
     REGISTER_ERROR(ERROR_PRINT_WAVEFORM_OVERFLOW);
-  
-
 
   if (new_length < WAVEFORM_PRINT_CHUNK_SIZE_UINT16) return;
 

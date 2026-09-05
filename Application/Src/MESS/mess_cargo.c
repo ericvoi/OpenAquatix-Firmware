@@ -159,6 +159,9 @@ void addCustomCargo(BitMessage_t* bit_msg, Message_t* msg, const DspConfig_t* cf
       bit_msg->bit_count = bit_msg->cargo.raw_start_index;
       *no_cargo = true;
       break;
+    case CHANNEL_TVIR:
+      
+      *no_cargo == true;
     default:
       REGISTER_ERROR(ERROR_UNHANDLED_CASE);
   }
